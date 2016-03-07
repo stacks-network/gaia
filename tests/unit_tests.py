@@ -62,8 +62,8 @@ class RegistrarTestCase(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_blockstore_connectivity(self):
-        """ Check connection to blockstore node
+    def test_blockstack_connectivity(self):
+        """ Check connection to blockstack node
         """
 
         client = get_bs_client()
@@ -143,7 +143,7 @@ class RegistrarTestCase(unittest.TestCase):
 
     def test_max_names_owned(self):
         """ Check if registrar wallet addresses own more than 20 names 
-            This is a limit imposed by blockstore
+            This is a limit imposed by blockstack
         """
 
         list_of_addresses = wallet.get_child_keypairs(count=RATE_LIMIT)

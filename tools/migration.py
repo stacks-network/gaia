@@ -225,9 +225,9 @@ def check_pending_tx():
     return counter_total
 
 
-def test_btc_migration(blockstore_db_file, check_username, namespace):
+def test_btc_migration(blockstack_db_file, check_username, namespace):
 
-    btc_migration = open(blockstore_db_file, 'r').read()
+    btc_migration = open(blockstack_db_file, 'r').read()
     btc_migration = json.loads(btc_migration)
 
     btc_registrations = btc_migration['registrations']

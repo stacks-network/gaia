@@ -23,8 +23,8 @@ This file is part of Registrar.
 """
 import os
 
-BLOCKSTORED_IP = 'server.blockstack.org'
-BLOCKSTORED_PORT = 6264
+BLOCKSTACKD_IP = 'server.blockstack.org'
+BLOCKSTACKD_PORT = 6264
 
 DHT_MIRROR_IP = 'mirror.blockstack.org'
 DHT_MIRROR_PORT = 6266

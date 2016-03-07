@@ -37,7 +37,7 @@ from .config import MAXIMUM_NAMES_PER_ADDRESS
 
 from .config import UTXO_SERVER, UTXO_USER, UTXO_PASSWD
 from .config import UTXO_PROVIDER
-from .config import BLOCKSTORED_IP, BLOCKSTORED_PORT
+from .config import BLOCKSTACKD_IP, BLOCKSTACKD_PORT
 
 from .utils import satoshis_to_btc
 from .utils import pretty_print as pprint
@@ -232,9 +232,9 @@ def recipientNotReady(address):
     """
 
     # hack to ensure local, until we update client
-    from blockstore_client import client as bs_client
-    # start session using blockstore_client
-    bs_client.session(server_host=BLOCKSTORED_IP, server_port=BLOCKSTORED_PORT,
+    from blockstack_client import client as bs_client
+    # start session using blockstack_client
+    bs_client.session(server_host=BLOCKSTACKD_IP, server_port=BLOCKSTACKD_PORT,
                       set_global=True)
 
     resp = bs_client.get_names_owned_by_address(address)
@@ -250,7 +250,7 @@ def recipientNotReady(address):
 def dontuseAddress(address):
     """ Check if an address should not be used because of:
         a) it has unconfirmed TX
-        b) it has more than maximum registered names (blockstore restriction)
+        b) it has more than maximum registered names (blockstack restriction)
     """
 
     if UTXO_PROVIDER == 'blockcypher':

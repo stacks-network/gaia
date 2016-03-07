@@ -43,7 +43,7 @@ from .utils import config_log
 from .utils import pretty_print as pprint
 
 from .config import PREORDER_CONFIRMATIONS
-from .config import BLOCKSTORED_IP, BLOCKSTORED_PORT
+from .config import BLOCKSTACKD_IP, BLOCKSTACKD_PORT
 
 log = config_log(__name__)
 
@@ -65,9 +65,9 @@ def preorder(fqu, payment_address, owner_address, payment_privkey=None):
     """
 
     # hack to ensure local, until we update client
-    from blockstore_client import client as bs_client
-    # start session using blockstore_client
-    bs_client.session(server_host=BLOCKSTORED_IP, server_port=BLOCKSTORED_PORT,
+    from blockstack_client import client as bs_client
+    # start session using blockstack_client
+    bs_client.session(server_host=BLOCKSTACKD_IP, server_port=BLOCKSTACKD_PORT,
                       set_global=True)
 
     # stale preorder will get removed from preorder_queue
@@ -134,9 +134,9 @@ def register(fqu, payment_address=None, owner_address=None,
     """
 
     # hack to ensure local, until we update client
-    from blockstore_client import client as bs_client
-    # start session using blockstore_client
-    bs_client.session(server_host=BLOCKSTORED_IP, server_port=BLOCKSTORED_PORT,
+    from blockstack_client import client as bs_client
+    # start session using blockstack_client
+    bs_client.session(server_host=BLOCKSTACKD_IP, server_port=BLOCKSTACKD_PORT,
                       set_global=True)
 
     # check register_queue first
@@ -224,9 +224,9 @@ def update(fqu, profile):
     """
 
     # hack to ensure local, until we update client
-    from blockstore_client import client as bs_client
-    # start session using blockstore_client
-    bs_client.session(server_host=BLOCKSTORED_IP, server_port=BLOCKSTORED_PORT,
+    from blockstack_client import client as bs_client
+    # start session using blockstack_client
+    bs_client.session(server_host=BLOCKSTACKD_IP, server_port=BLOCKSTACKD_PORT,
                       set_global=True)
 
     if alreadyinQueue(update_queue, fqu):
@@ -290,9 +290,9 @@ def transfer(fqu, transfer_address):
     """
 
     # hack to ensure local, until we update client
-    from blockstore_client import client as bs_client
-    # start session using blockstore_client
-    bs_client.session(server_host=BLOCKSTORED_IP, server_port=BLOCKSTORED_PORT,
+    from blockstack_client import client as bs_client
+    # start session using blockstack_client
+    bs_client.session(server_host=BLOCKSTACKD_IP, server_port=BLOCKSTACKD_PORT,
                       set_global=True)
 
     if alreadyinQueue(transfer_queue, fqu):

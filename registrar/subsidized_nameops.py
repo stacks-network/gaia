@@ -49,7 +49,7 @@ from .utils import pretty_print as pprint
 
 from .config import PREORDER_CONFIRMATIONS
 from .config import BLOCKCYPHER_TOKEN
-from .config import BLOCKSTORED_IP, BLOCKSTORED_PORT
+from .config import BLOCKSTACKD_IP, BLOCKSTACKD_PORT
 
 log = config_log(__name__)
 
@@ -88,9 +88,9 @@ def subsidized_update(fqu, profile, owner_privkey, payment_address,
     """
 
     # hack to ensure local, until we update client
-    from blockstore_client import client as bs_client
-    # start session using blockstore_client
-    bs_client.session(server_host=BLOCKSTORED_IP, server_port=BLOCKSTORED_PORT,
+    from blockstack_client import client as bs_client
+    # start session using blockstack_client
+    bs_client.session(server_host=BLOCKSTACKD_IP, server_port=BLOCKSTACKD_PORT,
                       set_global=True)
 
     if alreadyinQueue(update_queue, fqu):
@@ -172,9 +172,9 @@ def subsidized_transfer(fqu, transfer_address, owner_privkey, payment_address,
     """
 
     # hack to ensure local, until we update client
-    from blockstore_client import client as bs_client
-    # start session using blockstore_client
-    bs_client.session(server_host=BLOCKSTORED_IP, server_port=BLOCKSTORED_PORT,
+    from blockstack_client import client as bs_client
+    # start session using blockstack_client
+    bs_client.session(server_host=BLOCKSTACKD_IP, server_port=BLOCKSTACKD_PORT,
                       set_global=True)
 
     if alreadyinQueue(transfer_queue, fqu):
