@@ -94,6 +94,7 @@ class RegistrarRPCServer(SimpleXMLRPCServer):
 
     encrypted_payment_privkey = None
     encrypted_owner_privkey = None
+    encrypted_data_privkey = None
 
     server_started_at = None
 
@@ -137,7 +138,7 @@ class RegistrarRPCServer(SimpleXMLRPCServer):
         data = get_queue_state()
         return json.dumps(data)
 
-    def set_wallet(self, payment_keypair, owner_keypair):
+    def set_wallet(self, payment_keypair, owner_keypair, data_keypair):
         """ Keeps payment privkey in memory (instead of disk)
             for the time that server is alive
         """
@@ -152,6 +153,8 @@ class RegistrarRPCServer(SimpleXMLRPCServer):
         self.encrypted_owner_privkey = aes_encrypt(owner_keypair[1],
                                                    rpc_token)
 
+        self.encrypted_data_privkey = aes_encrypt(data_keypair[1],
+                                                   rpc_token)
         data = {}
         data['success'] = True
         return data
@@ -183,6 +186,17 @@ class RegistrarRPCServer(SimpleXMLRPCServer):
 
         return str(privkey)
 
+    def get_data_privkey(self):
+
+        rpc_token = get_rpc_token()
+
+        if self.encrypted_data_privkey is None:
+            return None 
+
+        privkey = aes_decrypt(self.encrypted_data_privkey, rpc_token)
+
+        return str(privkey)
+
     def get_wallet(self, rpc_token=None):
         """ Keeps payment privkey in memory (instead of disk)
             for the time that server is alive
@@ -197,9 +211,11 @@ class RegistrarRPCServer(SimpleXMLRPCServer):
 
         data['payment_address'] = self.payment_address
         data['owner_address'] = self.owner_address
+        data['data_address'] = self.data_address
 
         data['payment_privkey'] = self.get_payment_privkey()
         data['owner_privkey'] = self.get_owner_privkey()
+        data['data_privkey'] = self.get_data_privkey()
 
         return json.dumps(data)
 
