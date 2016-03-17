@@ -374,7 +374,7 @@ if __name__ == "__main__":
 
            log.debug("name_import " + fqn + " " + btc_address + " " + update_hash)
 
-       """
+           """
            existing = client.lookup(fqn)
            if existing is not None and existing[0] is not None:
                 log.debug("Name '%s' already imported" % fqn)
