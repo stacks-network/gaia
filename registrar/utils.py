@@ -77,7 +77,23 @@ def pretty_print(data):
     print pretty_dump(data)
 
 
+def cleanup_email(email):
+
+    address = email.split('@')[0]
+    domain = email.split('@')[1]
+
+    # drop everything after a +
+    address = address.split('+')[0]
+
+    # replace any .
+    address = address.replace('.', '')
+
+    return address + '@' + domain
+
+
 def check_banned_email(email):
+
+    email = cleanup_email(email)
 
     if email_regrex in email:
         return True

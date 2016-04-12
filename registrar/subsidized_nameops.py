@@ -94,7 +94,7 @@ def subsidized_update(fqu, profile, owner_privkey, payment_address,
     check_address = get_address_from_privkey(owner_privkey)
 
     if check_address != owner_address:
-        log.debug("Given privkey/address doens't own this name.")
+        log.debug("Given privkey/address doesn't own this name.")
         return False
 
     if dontuseAddress(payment_address):
@@ -184,7 +184,7 @@ def subsidized_transfer(fqu, transfer_address, owner_privkey, payment_address,
     check_address = get_address_from_privkey(owner_privkey)
 
     if check_address != owner_address:
-        log.debug("Given privkey/address doens't own this name.")
+        log.debug("Given privkey/address doesn't own this name.")
         return False
 
     if dontuseAddress(payment_address):
