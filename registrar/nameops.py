@@ -2,24 +2,9 @@
 """
     Registrar
     ~~~~~
-
-    copyright: (c) 2014-2015 by Halfmoon Labs, Inc.
-    copyright: (c) 2016 by Blockstack.org
-
-This file is part of Registrar.
-
-    Registrar is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    Registrar is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with Registrar. If not, see <http://www.gnu.org/licenses/>.
+    :copyright: (c) 2014-2016 by Halfmoon Labs, Inc.
+    :copyright: (c) 2016 blockstack.org
+    :license: MIT, see LICENSE for more details.
 """
 
 from .utils import get_hash, pretty_print
@@ -41,6 +26,7 @@ from .wallet import wallet
 
 from .utils import config_log
 from .utils import pretty_print as pprint
+from .utils import pretty_dump
 
 from .config import PREORDER_CONFIRMATIONS
 from .config import BLOCKSTACKD_IP, BLOCKSTACKD_PORT
@@ -336,7 +322,7 @@ def transfer(fqu, transfer_address):
                      tx_hash=resp['tx_hash'])
     else:
         log.debug("Error transferring: %s" % fqu)
-        log.debug(resp)
+        log.debug(pretty_dump(resp))
         return False
 
     return True

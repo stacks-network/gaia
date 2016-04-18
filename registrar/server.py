@@ -1,26 +1,10 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
     Registrar
     ~~~~~
-
-    copyright: (c) 2014-2015 by Halfmoon Labs, Inc.
-    copyright: (c) 2016 by Blockstack.org
-
-This file is part of Registrar.
-
-    Registrar is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    Registrar is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with Registrar. If not, see <http://www.gnu.org/licenses/>.
+    :copyright: (c) 2014-2016 by Halfmoon Labs, Inc.
+    :copyright: (c) 2016 blockstack.org
+    :license: MIT, see LICENSE for more details.
 """
 
 import sys
@@ -207,7 +191,7 @@ class RegistrarServer(object):
 
         if not profileonBlockchain(fqu, profile):
 
-            if nameop is None or nameop is 'update':
+            if nameop == 'update':
                 if fqu not in DHT_IGNORE:
                     log.debug("Updating profile on blockchain: %s" % fqu)
 
@@ -233,7 +217,7 @@ class RegistrarServer(object):
         elif not ownerName(fqu, transfer_address):
             #log.debug("Not transferred: %s" % fqu)
 
-            if nameop is None or nameop == 'transfer':
+            if nameop == 'transfer':
                 log.debug("Transferring name: %s" % fqu)
 
                 payment_address, other_address = self.get_next_addresses()

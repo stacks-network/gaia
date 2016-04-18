@@ -1,33 +1,27 @@
+# -*- coding: utf-8 -*-
 """
     Registrar
     ~~~~~
-
-    copyright: (c) 2014-2015 by Halfmoon Labs, Inc.
-    copyright: (c) 2016 by Blockstack.org
-
-This file is part of Registrar.
-
-    Registrar is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    Registrar is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with Registrar. If not, see <http://www.gnu.org/licenses/>.
+    :copyright: (c) 2014-2016 by Halfmoon Labs, Inc.
+    :copyright: (c) 2016 blockstack.org
+    :license: MIT, see LICENSE for more details.
 """
 
 import os
 import json
 
+from pymongo import MongoClient
+
 from tinydb import TinyDB, Query
 
 from .config import SERVER_MODE
 from .config import LOCAL_DIR, LOCAL_STATE_DB, PEDNING_REQUESTS_DB
+from .config import QUEUE_DB_URI
+
+c = MongoClient()
+state_diff = c['namespace'].state_diff
+
+queue_db = MongoClient(QUEUE_DB_URI)['registrar']
 
 
 class TinyDBConvertor(object):
@@ -88,34 +82,34 @@ class TinyDBConvertor(object):
 
 
 def get_preorder_queue():
-    preorder_queue = TinyDBConvertor('preorder', db_name=LOCAL_STATE_DB)
-    return preorder_queue
+    if SERVER_MODE:
+        return queue_db.preorder_queue
+    else:
+        return TinyDBConvertor('preorder', db_name=LOCAL_STATE_DB)
 
 
 def get_register_queue():
-    register_queue = TinyDBConvertor('register', db_name=LOCAL_STATE_DB)
-    return register_queue
+    if SERVER_MODE:
+        return queue_db.register_queue
+    else:
+        return TinyDBConvertor('register', db_name=LOCAL_STATE_DB)
 
 
 def get_update_queue():
-    update_queue = TinyDBConvertor('update', db_name=LOCAL_STATE_DB)
-    return update_queue
+    if SERVER_MODE:
+        return queue_db.update_queue
+    else:
+        return TinyDBConvertor('update', db_name=LOCAL_STATE_DB)
 
 
 def get_transfer_queue():
-    transfer_queue = TinyDBConvertor('transfer', db_name=LOCAL_STATE_DB)
-    return transfer_queue
+    if SERVER_MODE:
+        return queue_db.transfer_queue
+    else:
+        return TinyDBConvertor('transfer', db_name=LOCAL_STATE_DB)
 
 if SERVER_MODE:
 
-    from pymongo import MongoClient
-
-    from .config import QUEUE_DB_URI
-
-    c = MongoClient()
-    state_diff = c['namespace'].state_diff
-
-    queue_db = MongoClient(QUEUE_DB_URI)['registrar']
     preorder_queue = queue_db.preorder_queue
     register_queue = queue_db.register_queue
     update_queue = queue_db.update_queue

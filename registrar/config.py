@@ -2,25 +2,11 @@
 """
     Registrar
     ~~~~~
-
-    copyright: (c) 2014 by Halfmoon Labs, Inc.
-    copyright: (c) 2015 by Blockstack.org
-
-This file is part of Registrar.
-
-    Registrar is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    Registrar is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with Registrar. If not, see <http://www.gnu.org/licenses/>.
+    :copyright: (c) 2014-2016 by Halfmoon Labs, Inc.
+    :copyright: (c) 2016 blockstack.org
+    :license: MIT, see LICENSE for more details.
 """
+
 import os
 
 BLOCKSTACKD_IP = 'server.blockstack.org'
@@ -43,7 +29,7 @@ REGISTRAR_DRIVERS = ['webapp', 'api']
 IGNORE_USERNAMES = []
 IGNORE_NAMES_STARTING_WITH = []
 
-SERVER_MODE = False  # if registrar deployed as server vs. imported into lib
+SERVER_MODE = True  # if registrar deployed as server vs. imported into lib
 
 try:
     # for registrar's internal queue
@@ -68,7 +54,11 @@ except:
     HD_WALLET_PRIVKEY = None
 
 DEBUG = False  # can change in config_local
-UTXO_PROVIDER = 'blockcypher'
+
+if SERVER_MODE:
+    UTXO_PROVIDER = "bitcoind"
+else:
+    UTXO_PROVIDER = 'blockcypher'
 
 DEFAULT_HOST = '127.0.0.1'
 MEMCACHED_PORT = '11211'
@@ -88,10 +78,11 @@ DEFAULT_WALLET_DISPLAY = 2
 DEFAULT_WALLET_OFFSET = 0
 
 MINIMUM_LENGTH_NAME = 6
+MAXIMUM_LENGTH_NAME = 31  # for .id
 MAXIMUM_NAMES_PER_ADDRESS = 20
 MAX_DHT_WRITE = (8 * 1024) - 1
 
-RATE_LIMIT = 2   # target tx per block
+RATE_LIMIT = 100   # target tx per block
 SLEEP_INTERVAL = 20  # in seconds
 RETRY_INTERVAL = 10  # if a tx is not picked up by x blocks
 

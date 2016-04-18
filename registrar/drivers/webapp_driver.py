@@ -1,26 +1,10 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
     Registrar
     ~~~~~
-
-    copyright: (c) 2014-2015 by Halfmoon Labs, Inc.
-    copyright: (c) 2016 by Blockstack.org
-
-This file is part of Registrar.
-
-    Registrar is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    Registrar is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with Registrar. If not, see <http://www.gnu.org/licenses/>.
+    :copyright: (c) 2014-2016 by Halfmoon Labs, Inc.
+    :copyright: (c) 2016 blockstack.org
+    :license: MIT, see LICENSE for more details.
 """
 
 import os
@@ -36,7 +20,7 @@ parent_dir = os.path.abspath(current_dir + "/../../")
 sys.path.insert(0, parent_dir)
 
 from registrar.config import DEFAULT_NAMESPACE, RATE_LIMIT
-from registrar.config import MINIMUM_LENGTH_NAME
+from registrar.config import MINIMUM_LENGTH_NAME, MAXIMUM_LENGTH_NAME
 from registrar.config import IGNORE_NAMES_STARTING_WITH
 from registrar.config import SECRET_KEY
 
@@ -98,7 +82,8 @@ class WebappDriver(object):
         self.updates = webapp_db.profile_update
         self.registrar_server = RegistrarServer()
 
-    def process_new_users(self, nameop=None, spam_protection=False):
+    def process_new_users(self, nameop=None, spam_protection=False,
+                          live_delete=False):
         """
             Process new registrations coming in on the webapp
         """
@@ -111,7 +96,15 @@ class WebappDriver(object):
             user = get_db_user_from_id(new_user, self.users)
 
             if not self.validUser(user, new_user):
-                continue
+
+                live_delete = False
+                if live_delete:
+                    log.debug("Removing %s" % user['username'])
+                    self.registrations.remove({"user_id": new_user['user_id']})
+
+            #log.debug(user['email'])
+            #log.debug(user['username'])
+            #continue
 
             fqu = user['username'] + "." + DEFAULT_NAMESPACE
             transfer_address = nmc_to_btc_address(user['namecoin_address'])
@@ -122,7 +115,6 @@ class WebappDriver(object):
             if registrationComplete(fqu, profile, transfer_address):
                 log.debug("Registration complete %s. Removing." % fqu)
                 self.registrations.remove({"user_id": new_user['user_id']})
-
                 refresh_resolver(user['username'])
             else:
                 try:
@@ -153,6 +145,12 @@ class WebappDriver(object):
         if len(user['username']) < MINIMUM_LENGTH_NAME:
             log.debug("Expensive name %s. Skipping." % user['username'])
             return False
+
+        # test for maximum name length
+        if len(user['username']) >= MAXIMUM_LENGTH_NAME:
+            log.debug("Name is too long %s. Skipping." % user['username'])
+            return False
+
 
         # test for ignoring names starting with certain patterns
         if ignoreRegistration(user['username'], IGNORE_NAMES_STARTING_WITH):
@@ -205,10 +203,12 @@ class WebappDriver(object):
                     refresh_resolver(user['username'])
                 else:
                     log.debug("Processing: %s, %s" % (fqu, user['email']))
+
                     try:
-                        self.registrar_server.subsidized_nameop(fqu, profile,
-                                                                hex_privkey=hex_privkey,
-                                                                nameop='update')
+                        self.registrar_server.process_subsidized_nameop(fqu,
+                                                                        owner_privkey=hex_privkey,
+                                                                        profile=profile,
+                                                                        nameop='update')
                     except Exception as e:
                         log.debug(e)
             else:
