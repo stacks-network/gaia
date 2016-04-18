@@ -17,6 +17,7 @@ from pybitcoin import BitcoinPrivateKey
 from pybitcoin import is_b58check_address
 
 from .config import email_regrex, DEBUG
+from .config import whitelist_email_regrex
 
 
 def config_log(name):
@@ -99,6 +100,49 @@ def check_banned_email(email):
         return True
     else:
         return False
+
+
+def proof_in_profile(profile):
+    """ Return true if profile has:
+        (a) valid github/facebook/twitter proof, or
+        (b) valid openbazaar GUID
+    """
+
+    if 'github' in profile:
+        if 'proof' in profile['github']:
+            return True
+
+    if 'facebook' in profile:
+        if 'proof' in profile['facebook']:
+            return True
+
+    if 'twitter' in profile:
+        if 'proof' in profile['twitter']:
+            return True
+
+    if 'account' in profile:
+        accounts = profile['account']
+        for account in accounts:
+            if 'service' in account and account['service'] == 'openbazaar':
+                if 'identifier' in account and (len(account['identifier']) > 5):
+                    return True
+
+    return False
+
+
+def whiteListedUser(email, profile):
+    """ Determine from (a) email and (b) profile data if
+        a user should be white-listed for registration or not
+    """
+
+    if proof_in_profile(profile):
+        return True
+
+    for regrex in whitelist_email_regrex:
+        if regrex in email:
+            return True
+
+    return False
 
 
 def ignoreRegistration(name, ignore_patterns):
