@@ -4,7 +4,7 @@
 
 For registering and updating [blockchain IDs](https://github.com/blockstack/blockstack/wiki/Blockchain-ID). 
 
-Blockchain IDs are registered on the Bitcoin blockchain, using [Blockstore](https://github.com/blockstack/blockstore), and associated data is stored on external data stores like a DHT. 
+Blockchain IDs are registered on the Bitcoin blockchain, using [Blockstack](https://github.com/blockstack/blockstack), and associated data is stored on external data stores like a DHT. 
 
 A registrar is a service that registers blockchain IDs and then transfers them to the respective users, along with writing/updating any associated data. Just like GoDaddy helps you manage domain names, a blockchain ID registrar helps you register/manage your blockchain ID. However, the end-users have complete control over the blockchain IDs registered (after a transfer is complete), and anyone can decide to run a registrar.
 

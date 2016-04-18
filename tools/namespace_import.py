@@ -31,7 +31,7 @@ parent_dir = os.path.abspath(current_dir + "/../")
 
 sys.path.insert(0, parent_dir)
 
-from blockstore import client, config
+from blockstack import client, config
 
 log = config.log
 
@@ -240,9 +240,9 @@ if __name__ == "__main__":
         name_rec = json.loads(name_json.strip())
         sent_names[ name_rec['name'] ] = name_rec
 
-    # connect to blockstore
+    # connect to blockstack
     conf = config.get_config()
-    proxy = client.session(conf['blockstored_server'], conf['blockstored_port'])
+    proxy = client.session(conf['blockstackd_server'], conf['blockstackd_port'])
 
     time_of_last_confirmation = 0
 
@@ -382,7 +382,7 @@ if __name__ == "__main__":
 
            log.debug("name_import " + fqn + " " + btc_address + " " + update_hash)
 
-       """
+           """
            existing = client.lookup(fqn)
            if existing is not None and existing[0] is not None:
                 log.debug("Name '%s' already imported" % fqn)
