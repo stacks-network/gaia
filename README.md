@@ -1,7 +1,7 @@
-Gaia: The Blockstack Storage System
+Gaia: A decentralized high-performance storage system
 ====================================
 
-The Blockstack storage system, called "Gaia", is used to host each user's data
+Blockstack uses Gaia as the default storage system. Gaia is used to host each user's data
 without requiring users to run their own servers.
 
 Gaia works by hosting data in one or more existing storage systems of the user's choice.
