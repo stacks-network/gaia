@@ -2,17 +2,22 @@
   "name": "gaia-hub",
   "version": "1.0.0",
   "description": "",
-  "main": "hub.js",
+  "main": "index.js",
   "dependencies": {
     "aws-sdk": "^2.114.0",
     "bitcoinjs-lib": "^3.1.1",
+    "body-parser": "^1.18.1",
     "express": "^4.15.4",
     "express-winston": "^2.4.0",
     "winston": "^2.3.1"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "mocha": "^3.5.3",
+    "supertest": "^3.0.0"
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js",
+    "test": "mocha -R spec ./test/test.js"
   },
   "repository": {
     "type": "git",
