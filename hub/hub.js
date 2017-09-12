@@ -9,6 +9,16 @@ function addressToBucket(address){
     return `blockstack_user_${address}`
 }
 
+function checkSignature(signature, rawtext, address){
+}
+
+function challengeText(){
+    const date = new Date().toISOString().split("T")[0]
+    const myChallenge = "blockstack_storage_please_sign"
+    const myURL = "storage.blockstack.org"
+    return JSON.stringify( [date, myURL, myChallenge] )
+}
+
 function doWrite(address, filename, blob, callback){
     var s3parameters = {
         Body: blob,
