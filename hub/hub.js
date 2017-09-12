@@ -45,10 +45,9 @@ function doWrite(address, filename, readableStream, callback){
     }
     S3.upload(s3parameters, function(err, data){
         if(err){
-            logError(err)
-            callback(err, null)
+            callback(err, null, 500)
         }
-        callback(null, data)
+        callback(null, data, 202)
     })
 }
 
@@ -70,17 +69,33 @@ function parsePath(path){
              filename : filename }
 }
 
-function handlePostRequest(request){
+function writeResponse(response, error, data, statusCode){
+    // todo: for now, just responding in plaintext, but want
+    //       to move to a json api
+    response.writeHead(statusCode, {'Content-Type' : 'text/plain'})
+    // todo: cors headers
+    if (error){
+        response.write(error)
+    }else{
+        response.write(data)
+    }
+    response.end()
+}
+
+function handlePostRequest(request, response){
     var path = url.parse(request.url).path
     var authHeader = request.headers.authentication
     var parsedPath = parsePath(path)
 
+    const responseCB = function(error, data, statusCode){
+        writeResponse(response, error, data, statusCode)
+    }
+
     if (parsedPath === false){
-        // todo: error path 404
+        return responseCB({message : "No such endpoint"}, null , 404)
     }
     if (! authHeader.startsWith(BEARER_HEADER)){
-        // todo: error path 401
-        return false
+        return responseCB({message : "Bad authentication header"}, null , 401)
     }
     // for now, signature <==> authHeader
     const signature = authHeader.slice(BEARER_HEADER)
@@ -88,10 +103,13 @@ function handlePostRequest(request){
     const filename = parsedPath.filename
 
     if (! checkSignature(signature, challengeText(), address)){
-        // todo: auth failure path
-        return false
+        return responseCB({message : "Authentication check failed"}, null , 401)
     }
     // pass request's POST data via ReadableStream interface
-    doWrite(address, filename, request,
-            responseCB);
+    doWrite(address, filename, request, responseCB);
 }
+
+function handleOptions(request, response){
+    // TODO
+}
+
