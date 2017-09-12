@@ -4,12 +4,26 @@
 
 const logging = require('winston')
 const S3 = require('aws-sdk/clients/s3')
+const bitcoinjs = require('bitcoinjs-lib')
 
 function addressToBucket(address){
     return `blockstack_user_${address}`
 }
 
+function pubkeyHexToECPair(pubkeyHex){
+    const pkBuff = Buffer.from(pubkeyHex, "hex")
+    return bitcoin.ECPair.fromPublicKeyBuffer(pkBuff)
+}
+
 function checkSignature(signature, rawtext, address){
+    // todo: what about a multisig owner?
+    const sigObj = JSON.parse(signature)
+    const pkObj = pubkeyHexToECPair(sigObj.publickey)
+    if (pkObj.getAddress() !== address){
+        return false;
+    }
+    const digest = bitcoin.crypto.sha256(Buffer(rawtext))
+    return pkObj.verify(digest, sigObj.signed)
 }
 
 function challengeText(){
