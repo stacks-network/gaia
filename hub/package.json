@@ -1,0 +1,22 @@
+{
+  "name": "gaia-hub",
+  "version": "1.0.0",
+  "description": "",
+  "main": "hub.js",
+  "dependencies": {
+    "aws-sdk": "^2.114.0",
+    "winston": "^2.3.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/blockstack/gaia.git"
+  },
+  "authors": [
+    "Aaron Blankstein (aaron@blockstack.com)",
+    "Jack Zampolin (jack@blockstack.com)"
+  ]
+}
