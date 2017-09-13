@@ -1,34 +1,27 @@
 var logging = require('winston')
 var S3 = require('aws-sdk/clients/s3')
-var StorageRequest = require('./StorageRequest.js')
 
 class S3Driver {
 
   constructor () {
-    this.s3 = new S3()
+    this.S3 = new S3()
   }
 
-  handleStorageRequest (req, res) {
-    var sr = new StorageRequest(req, res)
-
-    if (!sr.valid()) {
-      sr.writeResponse(res, {message : "Authentication check failed"}, null , 401)
-      return
-    }
-
-    // If the request is valid then write it to s3
-    this.s3.upload(sr.s3Write(), (err, data) => {
-      if (err) {
-        sr.writeResponse(err, null, 500)
-        return
-      }
-      sr.writeResponse(null, data, 202)
-      return
-    })
+  static address_to_bucket(address){
+    return `blockstack_user_${address}`
   }
 
-  handleOptions (req, res){
+  initializeIfNeeded (toplevel) {
     // TODO
+  }
+
+  performWrite (toplevel, path, stream, cb) {
+    let s3params = {
+      Bucket: S3Driver.address_to_bucket(toplevel),
+      Key: path,
+      Body: stream
+    }
+    this.S3.upload(s3params, cb)
   }
 
 }

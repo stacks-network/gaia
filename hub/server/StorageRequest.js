@@ -19,12 +19,25 @@ class StorageRequest {
     return authObject.isAuthenticationValid(address)
   }
 
-  s3Write () {
-    return {
-      Bucket: `blockstack_user_${this.req.params.address}`,
-      Key: this.req.params.filename,
-      Body: this.req
+  handle (driver) {
+    if (!this.valid()) {
+      this.writeResponse(res, {message : "Authentication check failed"}, null , 401)
+      return
     }
+
+    let storage_toplevel = this.req.params.address
+    let path = this.req.params.filename
+    let stream = this.req
+
+    driver.initializeIfNeeded(storage_toplevel)
+    driver.performWrite(storage_toplevel, path, stream, (err, data) => {
+      let statusCode = 202
+      if (err) {
+        statusCode = 500
+      }
+      this.writeResponse(err, data, statusCode)
+    })
+
   }
 
   writeResponse (error, data, statusCode) {
@@ -33,9 +46,10 @@ class StorageRequest {
     this.res.writeHead(statusCode, {'Content-Type' : 'text/plain'})
     // todo: cors headers
     if (error) {
-      this.res.write(error)
+      logging.error(error)
+      this.res.write(JSON.stringify(error))
     } else {
-      this.res.write(data)
+      this.res.write(JSON.stringify(data))
     }
     // End the response, this finshes the request and sends the response
     this.res.end()
