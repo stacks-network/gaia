@@ -7,6 +7,7 @@
     "aws-sdk": "^2.114.0",
     "bitcoinjs-lib": "^3.1.1",
     "body-parser": "^1.18.1",
+    "cors": "^2.8.4",
     "express": "^4.15.4",
     "express-winston": "^2.4.0",
     "winston": "^2.3.1"
@@ -17,7 +18,7 @@
   },
   "scripts": {
     "start": "node index.js",
-    "test": "mocha -R spec ./test/test.js"
+    "test": "export CONFIG_PATH=$(pwd)/config.json && mocha -R spec ./test/test.js"
   },
   "repository": {
     "type": "git",

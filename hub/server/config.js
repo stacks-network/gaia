@@ -1,11 +1,26 @@
-var secrets = require('./secrets')
+let fs = require('fs')
+let path = require('path')
+let winston = require('winston');
 
-config = {}
+// Read Config file
+let configPath = process.env.CONFIG_PATH || "../config.json"
+const conf = JSON.parse(fs.readFileSync(configPath))
 
-config.servername = "storage.blockstack.org"
+// Configure Logging:
+// https://github.com/winstonjs/winston/blob/master/docs/transports.md
+var transport = new winston.transports.Console({
+  level: "error",
+  handleExceptions: true,
+  timestamp: true,
+  // stringify: true,
+  colorize: true,
+  json: true
+})
 
-config.driver = "aws"
+// Instantiate Logging
+var logger = new winston.Logger({transports: [transport]});
 
-Object.assign(config, secrets)
+// Add logger and transport to the config
+const config = Object.assign({}, conf, {transport, logger})
 
 module.exports = config

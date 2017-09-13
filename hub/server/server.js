@@ -1,29 +1,45 @@
-var express = require('express');
-var expressWinston = require('express-winston');
-var winston = require('winston'); // for transports.Console
-var S3Driver = require('./S3Driver.js')
-var StorageRequest = require('./StorageRequest.js')
-var app = express()
+let express = require('express');
+let expressWinston = require('express-winston');
+let winston = require('winston');
+let cors = require('cors');
+let path = require('path')
 
-var config = require('./config')
+// Program Imports
+let S3Driver = require(`./drivers/S3Driver`);
+let AzDriver = require(`./drivers/AzDriver`);
+let StorageRequest = require(`./StorageRequest`);
+let config = require(`./config`);
 
+// Instantiate express application
+var app = express();
+
+// Handle driver configuration
 let driver = false
-if (config.driver === "aws"){
-  driver = new S3Driver(config.awsBucket, config.awsCredentials)
+switch (config.driver) {
+  case "aws":
+    driver = new S3Driver(config)
+    break;
+  case "azure":
+    driver = new AzDriver(config)
+    break;
+  default:
+    logger.error("Failed to load driver. Check driver configuration.")
+    process.exit()
+    break
 }
 
-app.use(expressWinston.logger({
-  transports: [
-    new winston.transports.Console({
-      json: true,
-      colorize: true
-    })
-  ]
-}))
+// Instantiate server logging with Winston
+app.use(expressWinston.logger({transports: [config.transport]}))
 
-app.post('/store/:address/:filename', function(req, res, next) {
-  let sr = new StorageRequest(req, res)
-  // note: we need to handle CORS and OPTIONS -- does express do that for us?
+// Configure CORS for the `/store/:address/:filename` route
+// https://github.com/expressjs/cors#configuring-cors
+const corsOptions = {
+  origin: config.servername,
+  optionsSuccessStatus: 200
+}
+
+app.post('/store/:address/:filename', cors(corsOptions), function(req, res, next) {
+  let sr = new StorageRequest(req, res, config.logger)
   sr.handle(driver)
 })
 

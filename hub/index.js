@@ -1,9 +1,9 @@
-// step 1: validate the write
-//         writes require a signature of
-// step 2: perform write, return address
+let path = require('path');
+let winston = require('winston');
 
-var app = require('./server/server.js')
+let app = require(`./server/server.js`);
+let config = require(`./server/config.js`);
 
-app.listen(3000, function(){
-  console.log("express-winston demo listening on port %d in %s mode", this.address().port, app.settings.env);
+app.listen(config.port, function(){
+  config.logger.info("server starting on port %d in %s mode", this.address().port, app.settings.env);
 });
