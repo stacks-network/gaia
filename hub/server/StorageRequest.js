@@ -29,7 +29,7 @@ class StorageRequest {
     let path = this.req.params.filename
     let stream = this.req
 
-    driver.initializeIfNeeded(storage_toplevel)
+
     driver.performWrite(storage_toplevel, path, stream, (err, data) => {
       let statusCode = 202
       if (err) {

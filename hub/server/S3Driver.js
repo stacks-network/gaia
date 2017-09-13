@@ -3,25 +3,32 @@ var S3 = require('aws-sdk/clients/s3')
 
 class S3Driver {
 
-  constructor () {
-    this.S3 = new S3()
+  constructor (bucket, awsOptions) {
+    this.s3 = new S3(awsOptions)
+    this.bucket = bucket
   }
 
-  static address_to_bucket(address){
-    return `blockstack_user_${address}`
+  static toplevel_names(address){
+    return `user_${address}`
   }
 
-  initializeIfNeeded (toplevel) {
-    // TODO
+  static isPathValid(path){
+    // for now, only disallow double dots.
+    return (! path.contains("..") )
   }
 
   performWrite (toplevel, path, stream, cb) {
+    if (! isPathValid(path)){
+      cb( {"message": "Invalid path"}, null, 402)
+      return
+    }
+    let s3key = `{S3Driver.toplevel_names(toplevel)}/${path}`
     let s3params = {
-      Bucket: S3Driver.address_to_bucket(toplevel),
-      Key: path,
+      Bucket: this.bucket,
+      Key: s3key,
       Body: stream
     }
-    this.S3.upload(s3params, cb)
+    this.s3.upload(s3params, cb)
   }
 
 }
