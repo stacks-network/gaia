@@ -44,11 +44,12 @@ class StorageRequest {
     // todo: for now, just responding in plaintext, but want
     //       to move to a json api
     this.res.writeHead(statusCode, {'Content-Type' : 'text/plain'})
-    // todo: cors headers
+    // todo: cors header
     if (error) {
       logging.error(error)
       this.res.write(JSON.stringify(error))
     } else {
+      logging.info(data)
       this.res.write(JSON.stringify(data))
     }
     // End the response, this finshes the request and sends the response

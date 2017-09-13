@@ -9,7 +9,7 @@ var config = require('./config')
 
 let driver = false
 if (config.driver === "aws"){
-  driver = S3Driver(config.awsCredentials)
+  driver = new S3Driver(config.awsBucket, config.awsCredentials)
 }
 
 app.use(expressWinston.logger({

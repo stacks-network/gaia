@@ -1,11 +1,11 @@
+var secrets = require('./secrets')
+
 config = {}
 
 config.servername = "storage.blockstack.org"
 
 config.driver = "aws"
-config.awsCredentials = {
-  accessKeyId = ""
-  secreteAccessKey = ""
-}
+
+Object.assign(config, secrets)
 
 module.exports = config
