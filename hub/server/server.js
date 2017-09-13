@@ -1,11 +1,10 @@
 var express = require('express');
 var expressWinston = require('express-winston');
 var winston = require('winston'); // for transports.Console
-var bodyParser = require('body-parser'); // for transports.Console
-var StorageRequest = require('./StorageRequest.js')
+var S3Driver = require('./S3Driver.js')
 var app = express();
 
-app.use(bodyParser.json());
+let driver = new S3Driver()
 
 app.use(expressWinston.logger({
   transports: [
@@ -16,9 +15,8 @@ app.use(expressWinston.logger({
   ]
 }));
 
-app.get('/', function(req, res, next) {
-  res.write('Hello Blockstack');
-  res.end();
+app.get('/:address/:filename', function(req, res, next) {
+  driver.handleStorageRequest(req,res)
 });
 
 module.exports = app;
