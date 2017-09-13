@@ -15,7 +15,7 @@ app.use(expressWinston.logger({
   ]
 }));
 
-app.get('/:address/:filename', function(req, res, next) {
+app.post('/store/:address/:filename', function(req, res, next) {
   driver.handleStorageRequest(req,res)
 });
 

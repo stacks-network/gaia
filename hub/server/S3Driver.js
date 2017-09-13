@@ -12,11 +12,6 @@ class S3Driver {
     var sr = new StorageRequest(req, res)
 
     if (!sr.valid()) {
-      sr.writeResponse({message: "Bad authentication header"}, null , 401)
-      return
-    }
-
-    if (!sr.sigValid()) {
       sr.writeResponse(res, {message : "Authentication check failed"}, null , 401)
       return
     }

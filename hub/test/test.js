@@ -1,12 +1,27 @@
-var request = require('supertest');
-// require = require('really-need');
+var request = require('supertest')
+var StorageAuth = require('../server/StorageAuthentication.js')
+var bitcoin = require('bitcoinjs-lib')
 
 describe('loading express', function () {
-  var server;
+  var server
   beforeEach(function () {
     server = require('../server/server.js', { bustCache: true });
-  });
-  it('responds to /', function testSlash(done) {
+  })
+  it('handles file POST', function testBasicWrite(done) {
+    let blob = Buffer("Hello Blockstack Shared Storage")
+    let sk = bitcoin.ECPair.makeRandom()
+    let authHeader = StorageAuth
+        .makeWithKey(sk)
+        .toAuthHeader()
+    let address = sk.getAddress()
+    let path = `/store/${address}/helloWorld`
+    request(server).post(path)
+      .set('Content-Type', 'application/octet-stream')
+      .set('Authentication', authHeader)
+      .send(blob)
+      .expect(202, done)
+  })
+/*  it('responds to /', function testSlash(done) {
     request(server)
       .get('/')
       .expect(200, done);
@@ -17,4 +32,5 @@ describe('loading express', function () {
       .get('/foo/bar')
       .expect(404, done);
   });
+*/
 });
