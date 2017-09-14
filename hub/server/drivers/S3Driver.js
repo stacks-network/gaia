@@ -7,18 +7,7 @@ class S3Driver {
     this.bucket = config.bucket
     this.logger = config.logger
 
-    let params = {
-      Bucket: config.bucket,
-      ACL: "public-read",
-    };
-
-    this.s3.createBucket(params, function(error, data) {
-      if (error) {
-        config.logger.error(`failed to initialize s3 bucket: ${err}`)
-        process.exit()
-      }
-      config.logger.info(`bucket initialized: ${data}`)
-    });
+    this.createIfNeeded()
   }
 
   static toplevel_names(address){
@@ -30,8 +19,35 @@ class S3Driver {
     return (path.indexOf("..") === -1)
   }
 
-  performWrite (args) {
+  getReadURLPrefix () {
+    return `https://${this.bucket}.s3.amazonaws.com/user_`
+  }
 
+  createIfNeeded () {
+    this.s3.headBucket( {Bucket: this.bucket}, (error, data) => {
+      if (error && error.code === "NotFound") { // try to create
+        let params = {
+          Bucket: this.bucket,
+          ACL: "public-read",
+        }
+        this.s3.createBucket(params, (error, data) => {
+          if (error) {
+            this.logger.error(`failed to initialize s3 bucket: ${error}`)
+            process.exit()
+          }else{
+            this.logger.info(`initialized s3 bucket: ${this.bucket}`)
+          }
+        })
+      }else if (error) {
+        this.logger.error(`failed to connect to s3 bucket: ${error}`)
+        process.exit()
+      }else{
+        this.logger.info(`connected to s3 bucket: ${this.bucket}`)
+      }
+    })
+  }
+
+  performWrite (args) {
     let s3key = `${S3Driver.toplevel_names(args.storageToplevel)}/${args.path}`
     let s3params = {
       Bucket: this.bucket,
@@ -41,7 +57,7 @@ class S3Driver {
     }
 
     if (!S3Driver.isPathValid(args.path)){
-      this.logger.error(`failed to store ${s3key} in bucket ${this.bucket}, invalid path`)
+      logger.error(`failed to store ${s3key} in bucket ${this.bucket}, invalid path`)
       args.sr.callback( {"message": "Invalid path"}, null, 402)
       return
     }

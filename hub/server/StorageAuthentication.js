@@ -1,13 +1,5 @@
 var bitcoin = require('bitcoinjs-lib')
 
-function challengeText () {
-  let header = "gaiahub"
-  let date = new Date().toISOString().split("T")[0]
-  let myChallenge = "blockstack_storage_please_sign"
-  let myURL = "storage.blockstack.org"
-  return JSON.stringify( [header, date, myURL, myChallenge] )
-}
-
 function pubkeyHexToECPair (pubkeyHex) {
   let pkBuff = Buffer.from(pubkeyHex, "hex")
   return bitcoin.ECPair.fromPublicKeyBuffer(pkBuff)
@@ -19,10 +11,18 @@ class StorageAuthentication {
     this.signature = signature
   }
 
+  static challengeText () {
+    let header = "gaiahub"
+    let date = new Date().toISOString().split("T")[0]
+    let myChallenge = "blockstack_storage_please_sign"
+    let myURL = "storage.blockstack.org"
+    return JSON.stringify( [header, date, myURL, myChallenge] )
+  }
+
   static makeWithKey (secretKey) {
     let publickey = bitcoin.ECPair.fromPublicKeyBuffer(
       secretKey.getPublicKeyBuffer()) // I hate you bitcoinjs-lib.
-    let rawText = challengeText()
+    let rawText = StorageAuthentication.challengeText()
     let digest = bitcoin.crypto.sha256(rawText)
     let signature = secretKey.sign(digest)
     return new StorageAuthentication(publickey, signature)
@@ -56,7 +56,7 @@ class StorageAuthentication {
     if (this.publickey.getAddress() !== address) {
       return false
     }
-    let rawText = challengeText()
+    let rawText = StorageAuthentication.challengeText()
     let digest = bitcoin.crypto.sha256(rawText)
     return (this.publickey.verify(digest, this.signature) === true)
   }

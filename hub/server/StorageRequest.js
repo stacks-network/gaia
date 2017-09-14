@@ -4,9 +4,9 @@ var StorageAuth = require('./StorageAuthentication')
 class StorageRequest {
 
   constructor (req, res, logger) {
-    this.logger = logger
     this.req = req
     this.res = res
+    this.logger = logger
   }
 
   callback (err, data) {

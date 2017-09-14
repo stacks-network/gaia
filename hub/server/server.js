@@ -1,13 +1,11 @@
-let express = require('express');
-let expressWinston = require('express-winston');
-let winston = require('winston');
-let cors = require('cors');
-let path = require('path')
+let express = require('express')
+let expressWinston = require('express-winston')
+let winston = require('winston')
+let cors = require('cors')
 
 // Program Imports
-let S3Driver = require(`./drivers/S3Driver`);
-let AzDriver = require(`./drivers/AzDriver`);
-let StorageRequest = require(`./StorageRequest`);
+let StorageRequest = require(`./StorageRequest`)
+let StorageAuthentication = require(`./StorageAuthentication`)
 
 function server (config) {
   var app = express();
@@ -16,13 +14,15 @@ function server (config) {
   let driver = false
   switch (config.driver) {
     case "aws":
+      let S3Driver = require(`./drivers/S3Driver`)
       driver = new S3Driver(config)
       break;
     case "azure":
+      let AzDriver = require(`./drivers/AzDriver`)
       driver = new AzDriver(config)
       break;
     default:
-      logger.error("Failed to load driver. Check driver configuration.")
+      config.logger.error("Failed to load driver. Check driver configuration.")
       process.exit()
       break
   }
@@ -32,16 +32,20 @@ function server (config) {
   // Instantiate server logging with Winston
   app.use(expressWinston.logger({transports: [config.transport]}))
 
-  // Configure CORS for the `/store/:address/:filename` route
-  // https://github.com/expressjs/cors#configuring-cors
-  const corsOptions = {
-    origin: config.servername,
-    optionsSuccessStatus: 200
-  }
+  app.use(cors())
 
-  app.post('/store/:address/:filename', cors(corsOptions), function(req, res, next) {
+  app.post('/store/:address/:filename', function(req, res, next) {
     let sr = new StorageRequest(req, res, config.logger)
     sr.handle(driver)
+  })
+
+  app.get('/hub_info/', function(req, res, next) {
+    let challengeText = StorageAuthentication.challengeText()
+    let readURLPrefix = driver.getReadURLPrefix()
+    res.writeHead(200, {'Content-Type' : 'application/json'})
+    res.write(JSON.stringify(
+      { challenge_text : challengeText, read_url_prefix : readURLPrefix }))
+    res.end()
   })
 
   return app

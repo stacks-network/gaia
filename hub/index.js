@@ -1,4 +1,3 @@
-let path = require('path');
 let winston = require('winston');
 let fs = require('fs');
 
