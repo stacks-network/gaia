@@ -13,10 +13,10 @@ class AzDriver {
     // Set permissions to 'blob' to allow public reads
     this.blobService.createContainerIfNotExists(config.bucket, { publicAccessLevel: 'blob' }, (error, result, response) => {
       if (error) {
-        config.logger.error("failed to initialize azure container")
+        config.logger.error(`failed to initialize azure container: ${error}`)
         process.exit()
       }
-      config.logger.info("container initialized")
+      config.logger.info(`container initialized: ${result}`)
     });
   }
 

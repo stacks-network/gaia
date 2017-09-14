@@ -1,9 +1,14 @@
 let path = require('path');
 let winston = require('winston');
+let fs = require('fs');
 
-let app = require(`./server/server.js`);
+let server = require(`./server/server.js`);
 let config = require(`./server/config.js`);
 
-app.listen(config.port, function(){
-  config.logger.info("server starting on port %d in %s mode", this.address().port, app.settings.env);
+let configPath = process.env.CONFIG_PATH || "./config.json"
+const conf = config(JSON.parse(fs.readFileSync(configPath)))
+let app = server(conf)
+
+app.listen(app.config.port, function(){
+  app.config.logger.warn("server starting on port %d in %s mode", this.address().port, app.settings.env);
 });
