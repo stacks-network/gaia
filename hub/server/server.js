@@ -34,7 +34,16 @@ function server (config) {
 
   app.use(cors())
 
-  app.post('/store/:address/:filename', function(req, res, next) {
+  // sadly, express doesn't like to capture slashes.
+  //  but that's okay! regexes solve that problem
+  app.post(/^\/store\/([a-zA-Z0-9]+)\/(.+)/, function(req, res, next) {
+    let filename = req.params[1]
+    if (filename.endsWith("/")){
+      filename = filename.substring(0, filename.length - 1)
+    }
+    req.params.address = req.params[0]
+    req.params.filename = filename
+
     let sr = new StorageRequest(req, res, config.logger)
     sr.handle(driver)
   })
