@@ -35,7 +35,7 @@ class StorageRequest {
 
   valid () {
     let authObject = StorageAuth.fromAuthHeader(
-      this.req.headers.authentication)
+      this.req.headers.authorization)
     if (!authObject) {
       return false
     }

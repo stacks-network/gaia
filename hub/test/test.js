@@ -24,7 +24,7 @@ function testDriver(done, driverConfig) {
   let path = `/store/${address}/helloWorld`
   request(app).post(path)
     .set('Content-Type', 'application/octet-stream')
-    .set('Authentication', authHeader)
+    .set('Authorization', authHeader)
     .send(blob)
     .expect(202)
     .then((response) => {
