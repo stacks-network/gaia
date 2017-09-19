@@ -31,7 +31,7 @@ Then do the following:
 $ docker pull quay.io/blockstack/gaia-hub:latest
 $ docker run -d --restart=always -v $HOME/hub/config.json:/src/hub/config.json -p 3000:3000 -e CONFIG_PATH=/src/hub/config.json quay.io/blockstack/gaia-hub:latest
 # Now you can test the hub! The exact output will depend on your configuration
-$ curl hub.example.com | jq
+$ curl https://hub.example.com/hub_info | jq
 {
   "challenge_text": "[\"gaiahub\",\"2017-09-19\",\"{{ .serverName }}\",\"blockstack_storage_please_sign\"]",
   "read_url_prefix": "https://{{ .bucketName }}.{{ .storageProviderUrl }}/user_"
