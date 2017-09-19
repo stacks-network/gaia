@@ -29,6 +29,10 @@ class AzDriver {
     return (path.indexOf("..") === -1)
   }
 
+  getReadURLPrefix () {
+    return `https://${this.accountName}.blob.core.windows.net/${this.bucket}/user_`
+  }
+
   performWrite (args) {
     // cancel write and return 402 if path is invalid
     if (! AzDriver.isPathValid(args.path)){

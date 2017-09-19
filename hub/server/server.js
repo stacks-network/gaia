@@ -57,8 +57,8 @@ function server (config) {
     res.end()
   })
 
+  // Instantiate express application
   return app
 }
-// Instantiate express application
 
 module.exports = server

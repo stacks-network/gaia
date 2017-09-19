@@ -3,7 +3,7 @@ let S3 = require('aws-sdk/clients/s3')
 class S3Driver {
 
   constructor (config) {
-    this.s3 = new S3(config.awsOptions)
+    this.s3 = new S3(config.awsCredentials)
     this.bucket = config.bucket
     this.logger = config.logger
 
@@ -38,10 +38,10 @@ class S3Driver {
             this.logger.info(`initialized s3 bucket: ${this.bucket}`)
           }
         })
-      }else if (error) {
+      } else if (error) {
         this.logger.error(`failed to connect to s3 bucket: ${error}`)
         process.exit()
-      }else{
+      } else {
         this.logger.info(`connected to s3 bucket: ${this.bucket}`)
       }
     })

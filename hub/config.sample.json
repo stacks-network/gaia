@@ -12,5 +12,14 @@
   "azCredentials": {
     "accountName": "",
     "accountKey": ""
+  },
+
+  "argsTransport": {
+    "level": "warn",
+    "handleExceptions": true,
+    "stringify": true,
+    "timestamp": true,
+    "colorize": false,
+    "json": true
   }
 }
