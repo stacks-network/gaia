@@ -1,0 +1,25 @@
+{
+  "servername": "storage.blockstack.org",
+  "port": 3000,
+  "driver": "azure",
+  "bucket": "blockstackuserstorage",
+
+  "awsCredentials": {
+    "accessKeyId": "",
+    "secreteAccessKey": ""
+  },
+
+  "azCredentials": {
+    "accountName": "",
+    "accountKey": ""
+  },
+
+  "argsTransport": {
+    "level": "warn",
+    "handleExceptions": true,
+    "stringify": true,
+    "timestamp": true,
+    "colorize": false,
+    "json": true
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "name": "gaia-hub",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "aws-sdk": "^2.114.0",
+    "azure-storage": "^2.5.0",
+    "bitcoinjs-lib": "^3.1.1",
+    "body-parser": "^1.18.1",
+    "cors": "^2.8.4",
+    "express": "^4.15.4",
+    "express-winston": "^2.4.0",
+    "winston": "^2.3.1"
+  },
+  "devDependencies": {
+    "mocha": "^3.5.3",
+    "request": "^2.81.0",
+    "supertest": "^3.0.0"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "test": "export CONFIG_PATH=$(pwd)/config.json && mocha -R spec ./test/test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/blockstack/gaia.git"
+  },
+  "authors": [
+    "Aaron Blankstein (aaron@blockstack.com)",
+    "Jack Zampolin (jack@blockstack.com)"
+  ]
+}
