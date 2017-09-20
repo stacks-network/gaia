@@ -45,7 +45,7 @@ class StorageRequest {
 
   handle (driver) {
     if (!this.valid()) {
-      this.writeResponse(res, {message : "Authentication check failed"}, null , 401)
+      this.writeResponse({message : "Authentication check failed"}, null , 401)
       return
     }
     let write = {
