@@ -3,9 +3,10 @@ var StorageAuth = require('./StorageAuthentication')
 
 class StorageRequest {
 
-  constructor (req, res, logger) {
+  constructor (req, res, proofChecker, logger) {
     this.req = req
     this.res = res
+    this.proofChecker = proofChecker
     this.logger = logger
   }
 
@@ -45,7 +46,7 @@ class StorageRequest {
 
   handle (driver) {
     if (!this.valid()) {
-      this.writeResponse({message : "Authentication check failed"}, null , 401)
+      this.writeResponse({message : "Authentication check failed"}, null , 403)
       return
     }
     let write = {
@@ -55,11 +56,18 @@ class StorageRequest {
       sr: this,
       contentLength: this.req.headers["content-length"]
     }
-
-    driver.performWrite(write)
-
+    this.proofChecker.checkProofs(this.req)
+      .then( ( proofsValid ) => {
+             if (proofsValid) {
+               driver.performWrite(write)
+             } else {
+               this.writeResponse({message : "Social proofs invalid"}, null, 403)
+             } } )
+      .catch( (error) => {
+        this.logger.error( error )
+        this.writeResponse({message : "Server error"}, null, 500)
+      })
   }
-
 }
 
 module.exports = StorageRequest

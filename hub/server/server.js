@@ -5,6 +5,7 @@ let cors = require('cors')
 
 // Program Imports
 let StorageRequest = require(`./StorageRequest`)
+let ProofChecker = require(`./ProofChecker`)
 let StorageAuthentication = require(`./StorageAuthentication`)
 
 function server (config) {
@@ -27,6 +28,8 @@ function server (config) {
       break
   }
 
+  let proofChecker = new ProofChecker(config.proofsConfig, config.logger)
+
   app.config = config
 
   // Instantiate server logging with Winston
@@ -44,7 +47,7 @@ function server (config) {
     req.params.address = req.params[0]
     req.params.filename = filename
 
-    let sr = new StorageRequest(req, res, config.logger)
+    let sr = new StorageRequest(req, res, proofChecker, config.logger)
     sr.handle(driver)
   })
 
