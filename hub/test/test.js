@@ -5,6 +5,7 @@ let bitcoin = require('bitcoinjs-lib')
 let fs = require('fs')
 
 let StorageAuth = require('../server/StorageAuthentication.js')
+let ProofChecker = require('../server/ProofChecker.js')
 let server = require('../server/server.js')
 let config = require('../server/config.js')
 
@@ -84,12 +85,10 @@ function makeProofsTest(proofCount, configObj) {
     proofUrl: 'https://gist.github.com/kantai/5030a9ea123164eebc5bb5cacde8f9ff',
     service: 'github'
   }
-  let socialProofObject = { proofs : [ goodProof, badProof ] }
   configObj = Object.assign({}, {proofsConfig : {proofsRequired : proofCount}}, configObj)
   const conf = config(configObj)
   let app = server(conf)
-  let proofHeader = Buffer(JSON.stringify(socialProofObject)).toString('base64')
-  console.log(proofHeader)
+  let proofHeader = ProofChecker.makeProofsHeader( [goodProof, badProof] )
   return (request(app).post(path)
           .set('Content-Type', 'application/octet-stream')
           .set('Authorization', authHeader)

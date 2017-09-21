@@ -11,6 +11,18 @@ class ProofChecker {
     this.logger = logger
   }
 
+  static makeProofsHeader ( proofs, name = false ){
+    let socialProofObj = { proofs }
+    if ( name !== false ) {
+      socialProofObj.name = name
+    }
+    return Buffer(JSON.stringify(socialProofObj)).toString('base64')
+  }
+
+  static proofObjectFromHeader ( proofHeader ){
+    return JSON.parse(Buffer(proofHeader, 'base64').toString())
+  }
+
   validEnough ( validProofs ) {
     this.logger.debug(validProofs)
     return (validProofs.length >= this.proofsRequired)
@@ -31,7 +43,7 @@ class ProofChecker {
 
       // 1. parse out proofs
       let proofHeader = req.headers['x-blockstack-socialproofs']
-      let socialProofObj = JSON.parse(Buffer(proofHeader, 'base64').toString())
+      let socialProofObj = ProofChecker.proofObjectFromHeader(proofHeader)
       // 2. lookup name if supplied
       new Promise((resolve) => {
         if ( socialProofObj.hasOwnProperty('name') ) {
