@@ -3,10 +3,11 @@ var StorageAuth = require('./StorageAuthentication')
 
 class StorageRequest {
 
-  constructor (req, res, logger) {
+  constructor (req, res, config) {
     this.req = req
     this.res = res
-    this.logger = logger
+    this.logger = config.logger
+    this.whitelist = config.whitelist
   }
 
   callback (err, data) {
@@ -18,10 +19,7 @@ class StorageRequest {
   }
 
   writeResponse (error, data, statusCode) {
-    // todo: for now, just responding in plaintext, but want
-    //       to move to a json api
-    this.res.writeHead(statusCode, {'Content-Type' : 'text/plain'})
-    // todo: cors header
+    this.res.writeHead(statusCode, {'Content-Type' : 'application/json'})
     if (error) {
       this.logger.error(error)
       this.res.write(JSON.stringify(error))
@@ -44,9 +42,12 @@ class StorageRequest {
   }
 
   handle (driver) {
+    if (this.whitelist && !(this.req.params.address in this.whitelist)) {
+      return this.writeResponse({ message: "Address not authorized for writes" },
+                                null, 401)
+    }
     if (!this.valid()) {
-      this.writeResponse({message : "Authentication check failed"}, null , 401)
-      return
+      return this.writeResponse({message : "Authentication check failed"}, null , 401)
     }
     let write = {
       storageToplevel: this.req.params.address,
