@@ -8,6 +8,7 @@ class AzDriver {
     this.bucket = config.bucket
     this.logger = config.logger
     this.accountName = config.azCredentials.accountName
+    this.readURL = config.readURL
 
     // Check for container(bucket), create it if does not exist
     // Set permissions to 'blob' to allow public reads
@@ -30,6 +31,9 @@ class AzDriver {
   }
 
   getReadURLPrefix () {
+    if (this.readURL !== "") {
+      return `https://${this.readURL}/user_`
+    }
     return `https://${this.accountName}.blob.core.windows.net/${this.bucket}/user_`
   }
 
@@ -53,6 +57,9 @@ class AzDriver {
 
       // Return success and url to user
       let publicURL = `https://${this.accountName}.blob.core.windows.net/${this.bucket}/${azBlob}`
+      if (this.readURL !== "") {
+        let publicURL = `https://${this.readURL}/${azBlob}`
+      }
       this.logger.info(`storing ${azBlob} in container ${this.bucket}, URL: ${publicURL}`)
       args.sr.callback(error, { publicURL }, 202)
     });

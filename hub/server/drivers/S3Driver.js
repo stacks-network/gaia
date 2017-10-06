@@ -6,6 +6,7 @@ class S3Driver {
     this.s3 = new S3(config.awsCredentials)
     this.bucket = config.bucket
     this.logger = config.logger
+    this.readURL = config.readURL
 
     this.createIfNeeded()
   }
@@ -20,6 +21,9 @@ class S3Driver {
   }
 
   getReadURLPrefix () {
+    if (this.readURL !== "") {
+      return `https://${this.readURL}/user_`
+    }
     return `https://${this.bucket}.s3.amazonaws.com/user_`
   }
 
@@ -70,6 +74,9 @@ class S3Driver {
         return
       }
       let publicURL = data.Location
+      if (this.publicURL !== "") {
+        let publicURL = `https://${this.publicURL}/${s3key}`
+      }
       this.logger.info(`storing ${s3key} in bucket ${this.bucket}`)
       args.sr.callback(err, { publicURL }, 202)
     })
