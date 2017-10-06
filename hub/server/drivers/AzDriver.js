@@ -28,7 +28,7 @@ class AzDriver {
 
   getReadURLPrefix () {
     if (this.readURL !== "") {
-      return `https://${this.readURL}/`
+      return `https://${this.readURL}/${this.bucket}`
     }
     return `https://${this.accountName}.blob.core.windows.net/${this.bucket}/`
   }
@@ -54,7 +54,7 @@ class AzDriver {
       // Return success and url to user
       let publicURL = `https://${this.accountName}.blob.core.windows.net/${this.bucket}/${azBlob}`
       if (this.readURL !== "") {
-        let publicURL = `https://${this.readURL}/${azBlob}`
+        let publicURL = `https://${this.readURL}/${this.bucket}/${azBlob}`
       }
       this.logger.info(`storing ${azBlob} in container ${this.bucket}, URL: ${publicURL}`)
       args.sr.callback(error, { publicURL }, 202)

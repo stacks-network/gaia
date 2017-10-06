@@ -57,3 +57,8 @@ cat
 This also provides an easy way to test your storage provider credentials and setup. If your tests fail the first time that may be because the bucket setup did not complete before the test exited. Wait a minute and try the `npm run test` command again.
 
 To configure the logging set the `argsTransport` fields in the config file. Here is a list of [logging configuration options](https://github.com/winstonjs/winston/blob/master/docs/transports.md).
+
+
+### CDN Stuff
+
+- https://docs.microsoft.com/en-us/azure/storage/blobs/storage-https-custom-domain-cdn
