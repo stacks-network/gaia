@@ -34,7 +34,7 @@ $ docker run -d --restart=always -v $HOME/hub/config.json:/src/hub/config.json -
 $ curl https://hub.example.com/hub_info | jq
 {
   "challenge_text": "[\"gaiahub\",\"2017-09-19\",\"{{ .serverName }}\",\"blockstack_storage_please_sign\"]",
-  "read_url_prefix": "https://{{ .bucketName }}.{{ .storageProviderUrl }}/user_"
+  "read_url_prefix": "https://{{ .bucketName }}.{{ .storageProviderUrl }}/"
 }
 ```
 

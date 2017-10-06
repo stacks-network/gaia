@@ -21,10 +21,6 @@ class AzDriver {
     });
   }
 
-  static toplevel_names (address) {
-    return `user_${address}`
-  }
-
   static isPathValid (path) {
     // for now, only disallow double dots.
     return (path.indexOf("..") === -1)
@@ -32,9 +28,9 @@ class AzDriver {
 
   getReadURLPrefix () {
     if (this.readURL !== "") {
-      return `https://${this.readURL}/user_`
+      return `https://${this.readURL}/`
     }
-    return `https://${this.accountName}.blob.core.windows.net/${this.bucket}/user_`
+    return `https://${this.accountName}.blob.core.windows.net/${this.bucket}/`
   }
 
   performWrite (args) {
@@ -44,8 +40,8 @@ class AzDriver {
       return
     }
 
-    // Append user_${address}/ to filename
-    let azBlob = `${AzDriver.toplevel_names(args.storageToplevel)}/${args.path}`
+    // Prepend ${address}/ to filename
+    let azBlob = `${args.storageToplevel}/${args.path}`
     this.blobService.createBlockBlobFromStream(this.bucket, azBlob, (args.stream), args.contentLength, {}, (error, result, response) => {
 
       // return error to user, and log on error

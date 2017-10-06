@@ -11,10 +11,6 @@ class S3Driver {
     this.createIfNeeded()
   }
 
-  static toplevel_names(address){
-    return `user_${address}`
-  }
-
   static isPathValid(path){
     // for now, only disallow double dots.
     return (path.indexOf("..") === -1)
@@ -22,9 +18,9 @@ class S3Driver {
 
   getReadURLPrefix () {
     if (this.readURL !== "") {
-      return `https://${this.readURL}/user_`
+      return `https://${this.readURL}/`
     }
-    return `https://${this.bucket}.s3.amazonaws.com/user_`
+    return `https://${this.bucket}.s3.amazonaws.com/`
   }
 
   createIfNeeded () {
@@ -52,7 +48,7 @@ class S3Driver {
   }
 
   performWrite (args) {
-    let s3key = `${S3Driver.toplevel_names(args.storageToplevel)}/${args.path}`
+    let s3key = `${args.storageToplevel}/${args.path}`
     let s3params = {
       Bucket: this.bucket,
       Key: s3key,
