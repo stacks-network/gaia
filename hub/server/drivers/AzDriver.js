@@ -8,6 +8,7 @@ class AzDriver {
     this.bucket = config.bucket
     this.logger = config.logger
     this.accountName = config.azCredentials.accountName
+    this.readURL = config.readURL
 
     // Check for container(bucket), create it if does not exist
     // Set permissions to 'blob' to allow public reads
@@ -20,17 +21,16 @@ class AzDriver {
     });
   }
 
-  static toplevel_names (address) {
-    return `user_${address}`
-  }
-
   static isPathValid (path) {
     // for now, only disallow double dots.
     return (path.indexOf("..") === -1)
   }
 
   getReadURLPrefix () {
-    return `https://${this.accountName}.blob.core.windows.net/${this.bucket}/user_`
+    if (this.readURL !== "") {
+      return `https://${this.readURL}/${this.bucket}`
+    }
+    return `https://${this.accountName}.blob.core.windows.net/${this.bucket}/`
   }
 
   performWrite (args) {
@@ -40,8 +40,8 @@ class AzDriver {
       return
     }
 
-    // Append user_${address}/ to filename
-    let azBlob = `${AzDriver.toplevel_names(args.storageToplevel)}/${args.path}`
+    // Prepend ${address}/ to filename
+    let azBlob = `${args.storageToplevel}/${args.path}`
     this.blobService.createBlockBlobFromStream(this.bucket, azBlob, (args.stream), args.contentLength, {}, (error, result, response) => {
 
       // return error to user, and log on error
@@ -53,6 +53,9 @@ class AzDriver {
 
       // Return success and url to user
       let publicURL = `https://${this.accountName}.blob.core.windows.net/${this.bucket}/${azBlob}`
+      if (this.readURL !== "") {
+        let publicURL = `https://${this.readURL}/${this.bucket}/${azBlob}`
+      }
       this.logger.info(`storing ${azBlob} in container ${this.bucket}, URL: ${publicURL}`)
       args.sr.callback(error, { publicURL }, 202)
     });

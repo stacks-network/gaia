@@ -6,12 +6,9 @@ class S3Driver {
     this.s3 = new S3(config.awsCredentials)
     this.bucket = config.bucket
     this.logger = config.logger
+    this.readURL = config.readURL
 
     this.createIfNeeded()
-  }
-
-  static toplevel_names(address){
-    return `user_${address}`
   }
 
   static isPathValid(path){
@@ -20,7 +17,10 @@ class S3Driver {
   }
 
   getReadURLPrefix () {
-    return `https://${this.bucket}.s3.amazonaws.com/user_`
+    if (this.readURL !== "") {
+      return `https://${this.readURL}/`
+    }
+    return `https://${this.bucket}.s3.amazonaws.com/`
   }
 
   createIfNeeded () {
@@ -48,7 +48,7 @@ class S3Driver {
   }
 
   performWrite (args) {
-    let s3key = `${S3Driver.toplevel_names(args.storageToplevel)}/${args.path}`
+    let s3key = `${args.storageToplevel}/${args.path}`
     let s3params = {
       Bucket: this.bucket,
       Key: s3key,
@@ -70,6 +70,9 @@ class S3Driver {
         return
       }
       let publicURL = data.Location
+      if (this.publicURL !== "") {
+        let publicURL = `https://${this.publicURL}/${s3key}`
+      }
       this.logger.info(`storing ${s3key} in bucket ${this.bucket}`)
       args.sr.callback(err, { publicURL }, 202)
     })
