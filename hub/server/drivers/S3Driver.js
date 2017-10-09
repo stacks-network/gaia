@@ -71,7 +71,7 @@ class S3Driver {
       }
       let publicURL = data.Location
       if (this.publicURL !== "") {
-        let publicURL = `https://${this.publicURL}/${s3key}`
+        publicURL = `https://${this.publicURL}/${s3key}`
       }
       this.logger.info(`storing ${s3key} in bucket ${this.bucket}`)
       args.sr.callback(err, { publicURL }, 202)
