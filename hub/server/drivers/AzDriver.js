@@ -28,7 +28,7 @@ class AzDriver {
 
   getReadURLPrefix () {
     if (this.readURL !== "") {
-      return `https://${this.readURL}/${this.bucket}`
+      return `https://${this.readURL}/${this.bucket}/`
     }
     return `https://${this.accountName}.blob.core.windows.net/${this.bucket}/`
   }
