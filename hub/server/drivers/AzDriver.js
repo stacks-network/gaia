@@ -9,6 +9,7 @@ class AzDriver {
     this.logger = config.logger
     this.accountName = config.azCredentials.accountName
     this.readURL = config.readURL
+    this.cacheControl = config.cacheControl
 
     // Check for container(bucket), create it if does not exist
     // Set permissions to 'blob' to allow public reads
@@ -27,7 +28,7 @@ class AzDriver {
   }
 
   getReadURLPrefix () {
-    if (this.readURL !== "") {
+    if (this.readURL) {
       return `https://${this.readURL}/${this.bucket}/`
     }
     return `https://${this.accountName}.blob.core.windows.net/${this.bucket}/`
@@ -42,6 +43,10 @@ class AzDriver {
 
     // Prepend ${address}/ to filename
     let azBlob = `${args.storageToplevel}/${args.path}`
+    let azOpts = {}
+    if (this.cacheControl) {
+      azOpts.contentSettings = { 'cacheControl' : this.cacheControl }
+    }
     this.blobService.createBlockBlobFromStream(this.bucket, azBlob, (args.stream), args.contentLength, {}, (error, result, response) => {
 
       // return error to user, and log on error
@@ -52,10 +57,8 @@ class AzDriver {
       }
 
       // Return success and url to user
-      let publicURL = `https://${this.accountName}.blob.core.windows.net/${this.bucket}/${azBlob}`
-      if (this.readURL !== "") {
-        publicURL = `https://${this.readURL}/${this.bucket}/${azBlob}`
-      }
+      let readURL = this.getReadURLPrefix()
+      let publicURL = `${readURL}${azBlob}`
       this.logger.info(`storing ${azBlob} in container ${this.bucket}, URL: ${publicURL}`)
       args.sr.callback(error, { publicURL }, 202)
     });

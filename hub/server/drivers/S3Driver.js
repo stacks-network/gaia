@@ -17,7 +17,7 @@ class S3Driver {
   }
 
   getReadURLPrefix () {
-    if (this.readURL !== "") {
+    if (this.readURL) {
       return `https://${this.readURL}/`
     }
     return `https://${this.bucket}.s3.amazonaws.com/`
@@ -69,10 +69,7 @@ class S3Driver {
         args.sr.callback(err, data, 500)
         return
       }
-      let publicURL = data.Location
-      if (this.publicURL !== "") {
-        publicURL = `https://${this.publicURL}/${s3key}`
-      }
+      let publicURL = `${this.getReadURLPrefix()}${s3key}`
       this.logger.info(`storing ${s3key} in bucket ${this.bucket}`)
       args.sr.callback(err, { publicURL }, 202)
     })
