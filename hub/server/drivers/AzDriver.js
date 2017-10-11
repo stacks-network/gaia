@@ -47,7 +47,7 @@ class AzDriver {
     if (this.cacheControl) {
       azOpts.contentSettings = { 'cacheControl' : this.cacheControl }
     }
-    this.blobService.createBlockBlobFromStream(this.bucket, azBlob, (args.stream), args.contentLength, {}, (error, result, response) => {
+    this.blobService.createBlockBlobFromStream(this.bucket, azBlob, (args.stream), args.contentLength, azOpts, (error, result, response) => {
 
       // return error to user, and log on error
       if (error) {
