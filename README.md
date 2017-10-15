@@ -8,6 +8,10 @@ different system---it is more reliable and performant than Gaia v1 but is **not*
 backwards-compatible.  We will update this repo with Gaia v2 documentation once it is
 stable.
 
+The **stable** APIs are documented [here](https://github.com/blockstack/blockstack.js/tree/master/src/storage).  They will continue to work in both Gaia v1 and Gaia v2.
+
+You can track progress of Gaia v2 development [here](https://github.com/blockstack/blockstack-browser/issues/752).
+
 # Overview
 
 Blockstack uses Gaia as the default storage system. Gaia is used to host each user's data
