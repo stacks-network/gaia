@@ -13,10 +13,13 @@ class StorageAuthentication {
 
   static challengeText () {
     let header = "gaiahub"
-    let date = new Date().toISOString().split("T")[0]
+    let dateParts = new Date().toISOString().split("T")[0]
+        .split("-")
+    // for right now, access tokens are valid for the calendar year.
+    let allowedSpan = dateParts[0]
     let myChallenge = "blockstack_storage_please_sign"
     let myURL = "storage.blockstack.org"
-    return JSON.stringify( [header, date, myURL, myChallenge] )
+    return JSON.stringify( [header, allowedSpan, myURL, myChallenge] )
   }
 
   static makeWithKey (secretKey) {

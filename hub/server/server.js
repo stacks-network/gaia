@@ -47,7 +47,7 @@ function server (config) {
     req.params.address = req.params[0]
     req.params.filename = filename
 
-    let sr = new StorageRequest(req, res, proofChecker, config.logger)
+    let sr = new StorageRequest(req, res, proofChecker, config)
     sr.handle(driver)
   })
 
