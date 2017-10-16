@@ -96,16 +96,37 @@ function makeProofsTest(proofCount, configObj) {
           .send(blob))
 }
 
+function enoughProofsTest(done) {
+
+  let proofsConfig = { proofsRequired : 2 }
+
+  let logger = require('winston')
+
+  let fauxDriver = { getReadURLPrefix :
+                     function () { return 'https://gaia.blockstack.org/hub/' } }
+
+  let p = new ProofChecker( proofsConfig, logger, fauxDriver )
+
+  let r = { params : { address : '15GAGiT2j2F1EzZrvjk3B8vBCfwVEzQaZx' } }
+
+  p.checkProofs(r)
+    .then( result => {
+      assert(result)
+      done()
+    })
+    .catch( x => {
+      logger.warn(x)
+      assert(false)
+      done()
+    })
+
+}
+
 describe('Writing to drivers', function () {
   azConfigObj = JSON.parse(fs.readFileSync(azConfigPath))
   awsConfigObj = JSON.parse(fs.readFileSync(awsConfigPath))
   it('handles file POST with azure driver', (done) => { testDriver(done, azConfigObj) })
   it('handles file POST with aws driver', (done) => { testDriver(done, awsConfigObj) })
   it('handles badSig POSTs with aws driver', (done) => { testBadSig(done, awsConfigObj) })
-  it('handles enoughProof with aws', (done) => { makeProofsTest(1, awsConfigObj).expect(202)
-                                                 .then( () => { done() })
-                                                 .catch((err) => { done(err) }) })
-  it('handles notEnoughProof with aws', (done) => { makeProofsTest(2, awsConfigObj).expect(403)
-                                                    .then( () => { done() })
-                                                    .catch((err) => { done(err) }) })
+  it('handles enoughProofs', (done) => { enoughProofsTest(done) })
 });

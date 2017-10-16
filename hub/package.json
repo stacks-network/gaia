@@ -6,12 +6,14 @@
   "dependencies": {
     "aws-sdk": "^2.114.0",
     "azure-storage": "^2.5.0",
+    "bigi": "^1.4.2",
     "bitcoinjs-lib": "^3.1.1",
-    "blockstack": "git://github.com/blockstack/blockstack.js.git#develop",
+    "blockstack": "^0.11.1",
     "body-parser": "^1.18.1",
     "cors": "^2.8.4",
     "express": "^4.15.4",
     "express-winston": "^2.4.0",
+    "npm": "^5.5.1",
     "winston": "^2.3.1"
   },
   "devDependencies": {

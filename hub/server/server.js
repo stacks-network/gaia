@@ -28,7 +28,7 @@ function server (config) {
       break
   }
 
-  let proofChecker = new ProofChecker(config.proofsConfig, config.logger)
+  let proofChecker = new ProofChecker(config.proofsConfig, config.logger, driver)
 
   app.config = config
 

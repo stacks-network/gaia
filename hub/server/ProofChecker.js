@@ -1,14 +1,12 @@
-var blockstack = require('blockstack')
+const blockstack = require('blockstack')
+const jsontokens = require('jsontokens')
 
 class ProofChecker {
 
-  constructor ( proofsConfig, logger ){
-    if (proofsConfig.hasOwnProperty('apiServer'))
-      this.apiServer = proofsConfig.apiServer
-    else
-      this.apiserver =  'https://core.blockstack.org'
+  constructor ( proofsConfig, logger, storageDriver ){
     this.proofsRequired = proofsConfig.proofsRequired
     this.logger = logger
+    this.storageDriver = storageDriver
   }
 
   static makeProofsHeader ( proofs, name = false ){
@@ -23,61 +21,56 @@ class ProofChecker {
     return JSON.parse(Buffer(proofHeader, 'base64').toString())
   }
 
+  fetchProfile ( address ) {
+    let filename = `${address}/0/profile.json`
+    let readURL = this.storageDriver.getReadURLPrefix()
+    const url = `${readURL}${filename}`
+
+    return fetch( url )
+      .then(x => x.json())
+      .then(x => x[0])
+      .then(x => [jsontokens.decodeToken(x.token).payload, x.token])
+      .then(pieces => {
+        let x = pieces[0]
+        let token = pieces[1]
+        let verifier = new jsontokens.TokenVerifier('ES256k', x.subject.publicKey)
+        let verified = verifier.verify(token)
+        if (verified) {
+          return x.claim
+        } else {
+          return false
+        }
+      })
+
+  }
+
   validEnough ( validProofs ) {
     this.logger.debug(validProofs)
     return (validProofs.length >= this.proofsRequired)
   }
 
   checkProofs ( req ) {
-    // returns indices of valid proofs
     return new Promise((resolve) => {
-      // get headers from req
-      if (this.proofsRequired == 0) {
+      // 1: if we're writing the profile or don't need proofs, let it pass.
+      if (this.proofsRequired == 0 || req.params.filename == '0/profile.json') {
         resolve(true)
       }
-      if (! 'x-blockstack-socialproofs' in req.headers){
-        resolve(false)
-      }
       let address = req.params.address
-      // 0. check if we cached the social proof
-
-      // 1. parse out proofs
-      let proofHeader = req.headers['x-blockstack-socialproofs']
-      let socialProofObj = ProofChecker.proofObjectFromHeader(proofHeader)
-      // 2. lookup name if supplied
-      new Promise((resolve) => {
-        if ( socialProofObj.hasOwnProperty('name') ) {
-          const url = `${this.apiserver}/v1/names/${socialProofObj.name}`
-          fetch( url )
-            .then(response => response.text())
-            .then(responseText => JSON.parse(responseText))
-            .then(responseJSON => {
-              if (! 'address' in responseJSON ) {
-                resolve(null)
-              } else {
-                if (responseJSON.address == address){
-                  resolve(name)
-                }else{
-                  resolve(null)
-                }
-              }
-            })
-            .catch(() => {resolve(null)})
-              } else {
-                resolve(null)
-              }})
-        .then( (name) => {
-          let account = socialProofObj.proofs
-          let mockProfile = { account }
-          blockstack.validateProofs(mockProfile, address, name)
-            .then( ( proofs ) => {
-              let validProofs = proofs.filter(
-                ( p ) => { return p.valid } )
-              resolve( this.validEnough( validProofs ) )
-            }) })
+      // 0: check if we cached the social proofs
+      // 1: fetch the profile.json
+      this.fetchProfile( address )
+        .then( profile =>
+               blockstack.validateProofs(profile, address, undefined) )
+        .then( proofs => {
+          let validProofs = proofs.filter(
+            ( p ) => { return p.valid } )
+          resolve( this.validEnough( validProofs ) )
+        })
+        .catch( x => {
+          this.logger.error(x)
+          resolve( false ) } )
     })
   }
-
 }
 
 
