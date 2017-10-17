@@ -54,7 +54,6 @@ class ProofChecker {
       // 1: if we're writing the profile or don't need proofs, let it pass.
       if (this.proofsRequired == 0 || req.params.filename == '0/profile.json') {
         resolve(true)
-        return
       }else{
         let address = req.params.address
         // 0: check if we cached the social proofs
