@@ -9,6 +9,7 @@
     "bigi": "^1.4.2",
     "bitcoinjs-lib": "^3.1.1",
     "blockstack": "^0.11.1",
+    "jsontokens": "^0.7.6",
     "body-parser": "^1.18.1",
     "cors": "^2.8.4",
     "express": "^4.15.4",
