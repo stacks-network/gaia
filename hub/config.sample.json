@@ -9,6 +9,10 @@
     "secreteAccessKey": ""
   },
 
+  "proofsConfig": {
+    "proofsRequired" : 3
+  },
+
   "azCredentials": {
     "accountName": "",
     "accountKey": ""
