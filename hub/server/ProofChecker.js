@@ -54,24 +54,26 @@ class ProofChecker {
       // 1: if we're writing the profile or don't need proofs, let it pass.
       if (this.proofsRequired == 0 || req.params.filename == '0/profile.json') {
         resolve(true)
+        return
+      }else{
+        let address = req.params.address
+        // 0: check if we cached the social proofs
+        // 1: fetch the profile.json
+        this.fetchProfile( address )
+          .then( profile =>
+                 blockstack.validateProofs(profile, address, undefined) )
+          .then( proofs => {
+            let validProofs = proofs.filter(
+              ( p ) => { return p.valid } )
+            resolve( this.validEnough( validProofs ) )
+          })
+          .catch( x => {
+            this.logger.error(x)
+            resolve( false )
+          })
       }
-      let address = req.params.address
-      // 0: check if we cached the social proofs
-      // 1: fetch the profile.json
-      this.fetchProfile( address )
-        .then( profile =>
-               blockstack.validateProofs(profile, address, undefined) )
-        .then( proofs => {
-          let validProofs = proofs.filter(
-            ( p ) => { return p.valid } )
-          resolve( this.validEnough( validProofs ) )
-        })
-        .catch( x => {
-          this.logger.error(x)
-          resolve( false ) } )
     })
   }
-}
 
 
 module.exports = ProofChecker
