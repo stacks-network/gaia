@@ -57,7 +57,7 @@ function testBadSig(done, configObj) {
     .set('Content-Type', 'application/octet-stream')
     .set('Authorization', authHeader)
     .send(blob)
-    .expect(403)
+    .expect(401)
     .then((response) => {
       done()
     })

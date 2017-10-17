@@ -73,6 +73,6 @@ class ProofChecker {
       }
     })
   }
-
+}
 
 module.exports = ProofChecker
