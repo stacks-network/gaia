@@ -51,23 +51,6 @@ class AzDriver {
     }
     this.blobService.createBlockBlobFromStream(this.bucket, azBlob, (args.stream), args.contentLength, azOpts, (error, result, response) => {
 
-      if (this.backupProfiles && azBlob.endsWith('profile.json')) {
-        // make a backup!
-        this.logger.info('trying to back up profile.json')
-        const timestamp = Math.floor(Date.now() / 1000)
-        const backupBucket = 'hubbackup'
-        this.blobService.createBlockBlobFromStream(
-          backupBucket, `${azBlob}.{timestamp}`, (args.stream), args.contentLength, azOpts,
-          (error, result, response) => {
-            if (error){
-              this.logger.error(`failed to backup ${azBlob}.${timestamp} in container ${backupBucket}: ${error}`)
-              return
-            }
-            this.logger.info(`backed up ${azBlob}.${timestamp} in container ${backupBucket}`)
-          }
-        )
-      }
-
       // return error to user, and log on error
       if (error) {
         this.logger.error(`failed to store ${azBlob} in container ${this.bucket}: ${error}`)
@@ -75,11 +58,33 @@ class AzDriver {
         return
       }
 
-      // Return success and url to user
-      let readURL = this.getReadURLPrefix()
-      let publicURL = `${readURL}${azBlob}`
-      this.logger.info(`storing ${azBlob} in container ${this.bucket}, URL: ${publicURL}`)
-      args.sr.callback(error, { publicURL }, 202)
+      if (this.backupProfiles && azBlob.endsWith('profile.json')) {
+        // make a backup!
+        this.logger.info('trying to back up profile.json')
+        const timestamp = Math.floor(Date.now() / 1000)
+        const backupBucket = 'hubbackup'
+        this.blobService.createBlockBlobFromStream(
+          backupBucket, `${azBlob}.{timestamp}`, (args.stream), args.contentLength, azOpts,
+          (errorBackup, resultBackup, responseBackup) => {
+            if (errorBackup){
+              this.logger.error(`failed to backup ${azBlob}.${timestamp} in container ${backupBucket}: ${error}`)
+              return
+            }
+            this.logger.info(`backed up ${azBlob}.${timestamp} in container ${backupBucket}`)
+            // Return success and url to user
+            let readURL = this.getReadURLPrefix()
+            let publicURL = `${readURL}${azBlob}`
+            this.logger.info(`storing ${azBlob} in container ${this.bucket}, URL: ${publicURL}`)
+            args.sr.callback(error, { publicURL }, 202)
+          }
+        )
+      }else{
+        // Return success and url to user
+        let readURL = this.getReadURLPrefix()
+        let publicURL = `${readURL}${azBlob}`
+        this.logger.info(`storing ${azBlob} in container ${this.bucket}, URL: ${publicURL}`)
+        args.sr.callback(error, { publicURL }, 202)
+      }
     });
   }
 
