@@ -51,16 +51,19 @@ class AzDriver {
     }
     this.blobService.createBlockBlobFromStream(this.bucket, azBlob, (args.stream), args.contentLength, azOpts, (error, result, response) => {
 
-      if (this.backupProfiles && args.path.endsWith('profile.json')) {
+      if (this.backupProfiles && azBlob.endsWith('profile.json')) {
         // make a backup!
+        this.logger.info('trying to back up profile.json')
         const timestamp = Math.floor(Date.now() / 1000)
+        const backupBucket = 'hubbackup'
         this.blobService.createBlockBlobFromStream(
-          this.bucket, `${azBlob}.{timestamp}`, (args.stream), args.contentLength, azOpts,
+          backupBucket, `${azBlob}.{timestamp}`, (args.stream), args.contentLength, azOpts,
           (error, result, response) => {
             if (error){
-              this.logger.error(`failed to backup ${azBlob}.${timestamp} in container ${this.bucket}: ${error}`)
+              this.logger.error(`failed to backup ${azBlob}.${timestamp} in container ${backupBucket}: ${error}`)
+              return
             }
-            this.logger.info(`backed up ${azBlob}.${timestamp} in container ${this.bucket}`)
+            this.logger.info(`backed up ${azBlob}.${timestamp} in container ${backupBucket}`)
           }
         )
       }
