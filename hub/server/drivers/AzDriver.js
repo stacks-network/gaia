@@ -11,6 +11,8 @@ class AzDriver {
     this.readURL = config.readURL
     this.cacheControl = config.cacheControl
 
+    this.backupProfiles = true
+
     // Check for container(bucket), create it if does not exist
     // Set permissions to 'blob' to allow public reads
     this.blobService.createContainerIfNotExists(config.bucket, { publicAccessLevel: 'blob' }, (error, result, response) => {
@@ -48,6 +50,20 @@ class AzDriver {
       azOpts.contentSettings = { 'cacheControl' : this.cacheControl }
     }
     this.blobService.createBlockBlobFromStream(this.bucket, azBlob, (args.stream), args.contentLength, azOpts, (error, result, response) => {
+
+      if (this.backupProfiles && args.path.endsWith('profile.json')) {
+        // make a backup!
+        const timestamp = Math.floor(Date.now() / 1000)
+        this.blobService.createBlockBlobFromStream(
+          this.bucket, `${azBlob}.{timestamp}`, (args.stream), args.contentLength, azOpts,
+          (error, result, response) => {
+            if (error){
+              this.logger.error(`failed to backup ${azBlob}.${timestamp} in container ${this.bucket}: ${error}`)
+            }
+            this.logger.info(`backed up ${azBlob}.${timestamp} in container ${this.bucket}`)
+          }
+        )
+      }
 
       // return error to user, and log on error
       if (error) {
