@@ -11,8 +11,6 @@ class AzDriver {
     this.readURL = config.readURL
     this.cacheControl = config.cacheControl
 
-    this.backupProfiles = true
-
     // Check for container(bucket), create it if does not exist
     // Set permissions to 'blob' to allow public reads
     this.blobService.createContainerIfNotExists(config.bucket, { publicAccessLevel: 'blob' }, (error, result, response) => {
@@ -58,33 +56,11 @@ class AzDriver {
         return
       }
 
-      if (this.backupProfiles && azBlob.endsWith('profile.json')) {
-        // make a backup!
-        this.logger.info('trying to back up profile.json')
-        const timestamp = Math.floor(Date.now() / 1000)
-        const backupBucket = 'hubbackup'
-        this.blobService.createBlockBlobFromStream(
-          backupBucket, `${azBlob}.{timestamp}`, (args.stream), args.contentLength, azOpts,
-          (errorBackup, resultBackup, responseBackup) => {
-            if (errorBackup){
-              this.logger.error(`failed to backup ${azBlob}.${timestamp} in container ${backupBucket}: ${error}`)
-              return
-            }
-            this.logger.info(`backed up ${azBlob}.${timestamp} in container ${backupBucket}`)
-            // Return success and url to user
-            let readURL = this.getReadURLPrefix()
-            let publicURL = `${readURL}${azBlob}`
-            this.logger.info(`storing ${azBlob} in container ${this.bucket}, URL: ${publicURL}`)
-            args.sr.callback(error, { publicURL }, 202)
-          }
-        )
-      }else{
-        // Return success and url to user
-        let readURL = this.getReadURLPrefix()
-        let publicURL = `${readURL}${azBlob}`
-        this.logger.info(`storing ${azBlob} in container ${this.bucket}, URL: ${publicURL}`)
-        args.sr.callback(error, { publicURL }, 202)
-      }
+      // Return success and url to user
+      let readURL = this.getReadURLPrefix()
+      let publicURL = `${readURL}${azBlob}`
+      this.logger.info(`storing ${azBlob} in container ${this.bucket}, URL: ${publicURL}`)
+      args.sr.callback(error, { publicURL }, 202)
     });
   }
 
