@@ -4,3 +4,5 @@ One way to add a higher level abstraction to Gaia would be to wrap a JSON object
 
 The firebase js sdk is open source:
 https://github.com/firebase/firebase-js-sdk
+
+Here is an implementation of the mongo API in localStorage: https://github.com/mWater/minimongo
