@@ -1,6 +1,19 @@
 Gaia: A decentralized high-performance storage system
 ====================================
 
+**Note to developers:** This document describes Gaia v1, which can only handle single
+readers and writers (i.e. no data sharing).  The documentation here will be superceded
+by documentation for Gaia v2, which allows multiple readers.  Gaia v2 is a fundamentally
+different system---it is more reliable and performant than Gaia v1 but is **not**
+backwards-compatible.  We will update this repo with Gaia v2 documentation once it is
+stable.
+
+The **stable** APIs are documented [here](https://github.com/blockstack/blockstack.js/tree/master/src/storage).  They will continue to work in both Gaia v1 and Gaia v2.
+
+You can track progress of Gaia v2 development [here](https://github.com/blockstack/blockstack-browser/issues/752).
+
+# Overview
+
 Blockstack uses Gaia as the default storage system. Gaia is used to host each user's data
 without requiring users to run their own servers.
 

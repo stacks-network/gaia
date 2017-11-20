@@ -1,3 +1,6 @@
+limit_req_zone $binary_remote_addr zone=std_rl:10m rate=10r/s;
+limit_req zone=std_rl burst=10 nodelay;
+
 upstream gaia_hub {
   server localhost:3000;
 }

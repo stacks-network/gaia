@@ -3,9 +3,10 @@ var StorageAuth = require('./StorageAuthentication')
 
 class StorageRequest {
 
-  constructor (req, res, config) {
+  constructor (req, res, proofChecker, config) {
     this.req = req
     this.res = res
+    this.proofChecker = proofChecker
     this.logger = config.logger
     this.whitelist = config.whitelist
   }
@@ -56,11 +57,18 @@ class StorageRequest {
       sr: this,
       contentLength: this.req.headers["content-length"]
     }
-
-    driver.performWrite(write)
-
+    this.proofChecker.checkProofs(this.req)
+      .then( ( proofsValid ) => {
+             if (proofsValid) {
+               driver.performWrite(write)
+             } else {
+               this.writeResponse({message : "Social proofs invalid"}, null, 403)
+             } } )
+      .catch( (error) => {
+        this.logger.error( error )
+        this.writeResponse({message : "Server error"}, null, 500)
+      })
   }
-
 }
 
 module.exports = StorageRequest
