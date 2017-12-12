@@ -53,6 +53,7 @@ class S3Driver {
       Bucket: this.bucket,
       Key: s3key,
       Body: args.stream,
+      ContentType: args.contentType,
       ACL: "public-read"
     }
 

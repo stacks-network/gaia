@@ -50,11 +50,19 @@ class StorageRequest {
     if (!this.valid()) {
       return this.writeResponse({message : "Authentication check failed"}, null , 401)
     }
+
+    let contentType = this.req.headers['content-type']
+
+    if (contentType === null || contentType === undefined) {
+      contentType = 'application/octet-stream'
+    }
+
     let write = {
       storageToplevel: this.req.params.address,
       path: this.req.params.filename,
       stream: this.req,
       sr: this,
+      contentType: contentType,
       contentLength: this.req.headers["content-length"]
     }
     this.proofChecker.checkProofs(this.req)

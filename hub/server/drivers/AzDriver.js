@@ -44,9 +44,13 @@ class AzDriver {
     // Prepend ${address}/ to filename
     let azBlob = `${args.storageToplevel}/${args.path}`
     let azOpts = {}
+
     if (this.cacheControl) {
       azOpts.contentSettings = { 'cacheControl' : this.cacheControl }
     }
+
+    azOpts.contentTypeHeader = args.contentType
+
     this.blobService.createBlockBlobFromStream(this.bucket, azBlob, (args.stream), args.contentLength, azOpts, (error, result, response) => {
 
       // return error to user, and log on error
