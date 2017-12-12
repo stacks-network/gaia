@@ -47,10 +47,11 @@ class AzDriver {
 
     if (this.cacheControl) {
       azOpts.contentSettings = { 'cacheControl' : this.cacheControl }
+    } else {
+      azOpts.contentSettings = {}
     }
 
-    azOpts.contentTypeHeader = args.contentType
-    azOpts.contentType = args.contentType
+    azOpts.contentSettings.contentType = args.contentType
 
     this.blobService.createBlockBlobFromStream(this.bucket, azBlob, (args.stream), args.contentLength, azOpts, (error, result, response) => {
 
