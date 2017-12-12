@@ -50,6 +50,7 @@ class AzDriver {
     }
 
     azOpts.contentTypeHeader = args.contentType
+    azOpts.contentType = args.contentType
 
     this.blobService.createBlockBlobFromStream(this.bucket, azBlob, (args.stream), args.contentLength, azOpts, (error, result, response) => {
 
