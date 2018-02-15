@@ -61,7 +61,7 @@ class StorageRequest {
       storageToplevel: this.req.params.address,
       path: this.req.params.filename,
       stream: this.req,
-      sr: this,
+      callback: this.callback,
       contentType: contentType,
       contentLength: this.req.headers["content-length"]
     }

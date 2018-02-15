@@ -37,7 +37,7 @@ class AzDriver {
   performWrite (args) {
     // cancel write and return 402 if path is invalid
     if (! AzDriver.isPathValid(args.path)){
-      args.sr.callback({"message": "Invalid path"}, null, 402)
+      args.callback({"message": "Invalid path"}, null, 402)
       return
     }
 
@@ -58,7 +58,7 @@ class AzDriver {
       // return error to user, and log on error
       if (error) {
         this.logger.error(`failed to store ${azBlob} in container ${this.bucket}: ${error}`)
-        args.sr.callback(error, response, 500)
+        args.callback(error, response, 500)
         return
       }
 
@@ -66,7 +66,7 @@ class AzDriver {
       let readURL = this.getReadURLPrefix()
       let publicURL = `${readURL}${azBlob}`
       this.logger.info(`storing ${azBlob} in container ${this.bucket}, URL: ${publicURL}`)
-      args.sr.callback(error, { publicURL }, 202)
+      args.callback(error, { publicURL }, 202)
     });
   }
 

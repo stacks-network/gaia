@@ -59,7 +59,7 @@ class S3Driver {
 
     if (!S3Driver.isPathValid(args.path)){
       logger.error(`failed to store ${s3key} in bucket ${this.bucket}, invalid path`)
-      args.sr.callback( {"message": "Invalid path"}, null, 402)
+      args.callback( {"message": "Invalid path"}, null, 402)
       return
     }
 
@@ -67,12 +67,12 @@ class S3Driver {
     this.s3.upload(s3params, (err, data) => {
       if (err) {
         this.logger.error(`failed to store ${s3key} in bucket ${this.bucket}`)
-        args.sr.callback(err, data, 500)
+        args.callback(err, data, 500)
         return
       }
       let publicURL = `${this.getReadURLPrefix()}${s3key}`
       this.logger.info(`storing ${s3key} in bucket ${this.bucket}`)
-      args.sr.callback(err, { publicURL }, 202)
+      args.callback(err, { publicURL }, 202)
     })
   }
 
