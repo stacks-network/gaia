@@ -44,34 +44,30 @@ class ProofChecker {
 
   }
 
-  validEnough ( validProofs ) {
-    this.logger.debug(validProofs)
+  validEnough(validProofs) {
+    logger.debug(`Found ${validProofs.length} valid proofs for user.`)
     return (validProofs.length >= this.proofsRequired)
   }
 
-  checkProofs ( req ) {
-    return new Promise((resolve) => {
-      // 1: if we're writing the profile or don't need proofs, let it pass.
-      if (this.proofsRequired == 0 || req.params.filename == '0/profile.json') {
-        resolve(true)
-      }else{
-        let address = req.params.address
-        // 0: check if we cached the social proofs
-        // 1: fetch the profile.json
-        this.fetchProfile( address )
-          .then( profile =>
-                 blockstack.validateProofs(profile, address, undefined) )
-          .then( proofs => {
-            let validProofs = proofs.filter(
-              ( p ) => { return p.valid } )
-            resolve( this.validEnough( validProofs ) )
-          })
-          .catch( x => {
-            this.logger.error(x)
-            resolve( false )
-          })
-      }
-    })
+  checkProofs(address: string, filename: string) {
+    if (this.proofsRequired == 0 || filename.endsWith('/profile.json')) {
+      return Promise.resolve(true)
+    }
+    return this.fetchProfile(address)
+      .then(profile =>
+            blockstack.validateProofs(profile, address, undefined) )
+      .catch(error => {
+        logger.error(error)
+        throw new NotEnoughProofError('Error fetching and verifying social proofs')
+      })
+      .then(proofs => {
+        let validProofs = proofs.filter(p => p.valid)
+        if(this.validEnough(validProofs)) {
+          return true
+        } else {
+          throw new NotEnoughProofError('Not enough social proofs for gaia hub writes')
+        }
+      })
   }
 }
 

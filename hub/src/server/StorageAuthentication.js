@@ -55,13 +55,21 @@ class StorageAuthentication {
     return `bearer ${authToken}`
   }
 
-  isAuthenticationValid (address) {
+  isAuthenticationValid (address, throwFailure) {
     if (this.publickey.getAddress() !== address) {
+      if (throwFailure) {
+        throw new ValidationError('Address not allowed to write on this path')
+      }
       return false
     }
-    let rawText = StorageAuthentication.challengeText()
-    let digest = bitcoin.crypto.sha256(rawText)
-    return (this.publickey.verify(digest, this.signature) === true)
+    const rawText = StorageAuthentication.challengeText()
+    const digest = bitcoin.crypto.sha256(rawText)
+    const valid = (this.publickey.verify(digest, this.signature) === true)
+
+    if (throwFailure && !valid) {
+      throw new ValidationError('Invalid signature or expired authentication token.')
+    }
+    return valid
   }
 }
 

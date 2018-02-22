@@ -1,21 +1,28 @@
+const nock = require('nock')
+
 let request = require('supertest')
 let assert = require('assert')
 let req = require('request')
 let bitcoin = require('bitcoinjs-lib')
 let fs = require('fs')
 
-let StorageAuth = require('../server/StorageAuthentication.js')
-let ProofChecker = require('../server/ProofChecker.js')
-let server = require('../server/server.js')
-let config = require('../server/config.js')
+let StorageAuth = require('../lib/server/StorageAuthentication.js')
+let ProofChecker = require('../lib/server/ProofChecker.js')
+let HubServer = require('../lib/server/server.js').HubServer
+let config = require('../lib/server/config.js')
 
 let azConfigPath = process.env.AZ_CONFIG_PATH || "./config.azure.json"
 let awsConfigPath = process.env.AWS_CONFIG_PATH || "./config.aws.json"
 
+
+function setupAwsNocks() {
+  
+}
+
 function testDriver(done, configObj) {
   configObj = Object.assign({}, {proofsConfig : {proofsRequired : 0}}, configObj)
   const conf = config(configObj)
-  let app = server(conf)
+  let app = new HubServer({}, {}, conf)
   let sk = bitcoin.ECPair.makeRandom()
   let fileContents = sk.toWIF()
   let blob = Buffer(fileContents)
@@ -44,7 +51,7 @@ function testBadSig(done, configObj) {
   configObj = Object.assign({}, {proofsConfig : {proofsRequired : 0}}, configObj)
   const conf = config(configObj)
 
-  let app = server(conf)
+  let app = new HubServer({}, {}, conf)
   let sk = bitcoin.ECPair.makeRandom()
   let fileContents = sk.toWIF()
   let blob = Buffer(fileContents)
@@ -87,7 +94,7 @@ function makeProofsTest(proofCount, configObj) {
   }
   configObj = Object.assign({}, {proofsConfig : {proofsRequired : proofCount}}, configObj)
   const conf = config(configObj)
-  let app = server(conf)
+  let app = new HubServer({}, {}, conf)
   let proofHeader = ProofChecker.makeProofsHeader( [goodProof, badProof] )
   return (request(app).post(path)
           .set('Content-Type', 'application/octet-stream')
@@ -123,10 +130,11 @@ function enoughProofsTest(done) {
 }
 
 describe('Writing to drivers', function () {
+  nock.disableNetConnect()
   azConfigObj = JSON.parse(fs.readFileSync(azConfigPath))
   awsConfigObj = JSON.parse(fs.readFileSync(awsConfigPath))
   it('handles file POST with azure driver', (done) => { testDriver(done, azConfigObj) })
   it('handles file POST with aws driver', (done) => { testDriver(done, awsConfigObj) })
   it('handles badSig POSTs with aws driver', (done) => { testBadSig(done, awsConfigObj) })
   it('handles enoughProofs', (done) => { enoughProofsTest(done) })
-});
+})

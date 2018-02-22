@@ -8,6 +8,12 @@ let StorageRequest = require(`./StorageRequest`)
 let ProofChecker = require(`./ProofChecker`)
 let StorageAuthentication = require(`./StorageAuthentication`)
 
+function writeResponse(res, data, statusCode) {
+  res.writeHead(statusCode, {'Content-Type' : 'application/json'})
+  res.write(JSON.stringify(data))
+  res.end()
+}
+
 function server (config) {
   var app = express();
 
@@ -44,20 +50,30 @@ function server (config) {
     if (filename.endsWith("/")){
       filename = filename.substring(0, filename.length - 1)
     }
-    req.params.address = req.params[0]
-    req.params.filename = filename
+    const address = req.params[0]
 
-    let sr = new StorageRequest(req, res, proofChecker, config)
-    sr.handle(driver)
+    server.handleRequest(address, filename, req.headers, req)
+      .then((publicURL) => {
+        writeResponse(res, { publicURL }, 202)
+      })
+      .catch((err) => {
+        logger.error(err)
+        if (err instanceof ValidationError) {
+          writeResponse(res, { message: err.message }, 401)
+        } else if (err instanceof BadPathError) {
+          writeResponse(res, { message: err.message }, 403)
+        } else if (err instanceof NotEnoughProofError) {
+          writeResponse(res, { message: err.message }, 402)
+        } else {
+          writeResponse(res, { message: 'Server Error' }, 500)
+        }
+      })
   })
 
   app.get('/hub_info/', function(req, res, next) {
-    let challengeText = StorageAuthentication.challengeText()
-    let readURLPrefix = driver.getReadURLPrefix()
-    res.writeHead(200, {'Content-Type' : 'application/json'})
-    res.write(JSON.stringify(
-      { challenge_text : challengeText, read_url_prefix : readURLPrefix }))
-    res.end()
+    const challengeText = StorageAuthentication.challengeText()
+    const readURLPrefix = driver.getReadURLPrefix()
+    writeResponse(res, { challenge_text : challengeText, read_url_prefix : readURLPrefix }, 200)
   })
 
   // Instantiate express application
