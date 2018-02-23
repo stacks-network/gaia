@@ -1,4 +1,5 @@
 const nock = require('nock')
+const test = require('tape')
 
 let request = require('supertest')
 let assert = require('assert')
@@ -11,12 +12,58 @@ let ProofChecker = require('../lib/server/ProofChecker.js')
 let HubServer = require('../lib/server/server.js').HubServer
 let config = require('../lib/server/config.js')
 
+const errors = require('../lib/server/errors')
+
 let azConfigPath = process.env.AZ_CONFIG_PATH || "./config.azure.json"
 let awsConfigPath = process.env.AWS_CONFIG_PATH || "./config.aws.json"
 
 
+const testWIFs = [
+  'L4kMoaVivcd1FMPPwRU9XT2PdKHPob3oo6YmgTBHrnBHMmo7GcCf',
+  'L3W7EzxYNdG3kBjtQmhKEq2iiZAwpiKEwMobXdaY9xueSUFPkQeH',
+  'KwzzsbVzMekdj9myzxojsgT6DQ6yRQKbWqSXQgo1YKsJcvFJhtRr',
+  'KxYYiJg9mJpCDHcyYMMvSfY4SWGwMofqavxG2ZyDNcXuY7ShBknK']
+const testPairs = testWIFs.map(x => bitcoin.ECPair.fromWIF(x))
+const testAddrs = testPairs.map(x => x.getAddress())
+
 function setupAwsNocks() {
-  
+}
+
+
+class MockDriver {
+  constructor() {
+    this.lastWrite = null
+  }
+  performWrite(write) {
+    this.lastWrite = write
+    return Promise.resolve(`http://test.com/${write.storageTopLevel}/${write.path}`)
+  }
+}
+
+class MockProofs {
+  checkProofs() {
+    return Promise.resolve()
+  }
+}
+
+function testServer() {
+  test('validation tests', (t) => {
+    t.plan(3)
+    const server = new HubServer(new MockDriver(), new MockProofs(),
+                                 { whitelist: [testAddrs[0]] })
+    t.throws(() => server.validate(testAddrs[1], {}),
+             errors.ValidationError, 'Non-whitelisted address should fail validation')
+    t.throws(() => server.validate(testAddrs[0], {}),
+             errors.ValidationError, 'Bad request headers should fail validation')
+
+    const authorization = StorageAuth.makeWithKey(testPairs[0]).toAuthHeader()
+    try {
+      server.validate(testAddrs[0], { authorization })
+      t.pass('White-listed address with good auth header should pass')
+    } catch (err) {
+      t.fail('White-listed address with good auth header should pass')
+    }
+  })
 }
 
 function testDriver(done, configObj) {
@@ -129,6 +176,9 @@ function enoughProofsTest(done) {
 
 }
 
+testServer()
+
+/*
 describe('Writing to drivers', function () {
   nock.disableNetConnect()
   azConfigObj = JSON.parse(fs.readFileSync(azConfigPath))
@@ -138,3 +188,4 @@ describe('Writing to drivers', function () {
   it('handles badSig POSTs with aws driver', (done) => { testBadSig(done, awsConfigObj) })
   it('handles enoughProofs', (done) => { enoughProofsTest(done) })
 })
+*/

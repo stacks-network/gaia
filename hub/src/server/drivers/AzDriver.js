@@ -43,7 +43,7 @@ class AzDriver {
     }
 
     // Prepend ${address}/ to filename
-    let azBlob = `${args.storageToplevel}/${args.path}`
+    let azBlob = `${args.storageTopLevel}/${args.path}`
     let azOpts = {}
 
     if (this.cacheControl) {

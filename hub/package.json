@@ -24,15 +24,18 @@
     "babel-preset-flow": "^6.23.0",
     "mocha": "^3.5.3",
     "nock": "^9.1.9",
+    "nyc": "^11.4.1",
     "request": "^2.81.0",
-    "supertest": "^3.0.0"
+    "supertest": "^3.0.0",
+    "tape": "^4.9.0"
   },
   "scripts": {
     "start": "npm run build && node lib/index.js",
     "build": "babel src -d lib",
     "flow": "flow",
     "lint": "eslint src",
-    "test": "npm run build && CONFIG_PATH=$(pwd)/config.json mocha -R spec ./test/test.js"
+    "test-inner": "npm run build && node ./test/test.js",
+    "test": "nyc --reporter=text npm run test-inner"
   },
   "repository": {
     "type": "git",
