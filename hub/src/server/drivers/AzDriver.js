@@ -1,5 +1,6 @@
-const azure = require('azure-storage')
-const logger = require('winston')
+import azure from 'azure-storage'
+import logger from 'winston'
+import { BadPathError } from '../errors'
 
 // The AzDriver utilized the azure nodejs sdk to write files to azure blob storage
 class AzDriver {
@@ -15,7 +16,7 @@ class AzDriver {
     // Set permissions to 'blob' to allow public reads
     this.blobService.createContainerIfNotExists(
       config.bucket, { publicAccessLevel: 'blob' },
-      (error, result, response) => {
+      (error, result) => {
         if (error) {
           logger.error(`failed to initialize azure container: ${error}`)
           process.exit()
@@ -26,7 +27,7 @@ class AzDriver {
 
   static isPathValid (path) {
     // for now, only disallow double dots.
-    return (path.indexOf("..") === -1)
+    return (path.indexOf('..') === -1)
   }
 
   getReadURLPrefix () {
@@ -43,8 +44,8 @@ class AzDriver {
     }
 
     // Prepend ${address}/ to filename
-    let azBlob = `${args.storageTopLevel}/${args.path}`
-    let azOpts = {}
+    const azBlob = `${args.storageTopLevel}/${args.path}`
+    const azOpts = {}
 
     if (this.cacheControl) {
       azOpts.contentSettings = { 'cacheControl' : this.cacheControl }
@@ -57,7 +58,7 @@ class AzDriver {
     return new Promise((resolve, reject) => {
       this.blobService.createBlockBlobFromStream(
         this.bucket, azBlob, args.stream, args.contentLength, azOpts,
-        (error, result, response) => {
+        (error) => {
           // log error, reject promise.
           if (error) {
             logger.error(`failed to store ${azBlob} in container ${this.bucket}: ${error}`)

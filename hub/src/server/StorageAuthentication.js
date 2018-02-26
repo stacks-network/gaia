@@ -1,57 +1,59 @@
-var bitcoin = require('bitcoinjs-lib')
+import bitcoin from 'bitcoinjs-lib'
+
+import { ValidationError } from './errors'
 
 function pubkeyHexToECPair (pubkeyHex) {
-  let pkBuff = Buffer.from(pubkeyHex, "hex")
+  const pkBuff = Buffer.from(pubkeyHex, 'hex')
   return bitcoin.ECPair.fromPublicKeyBuffer(pkBuff)
 }
 
-class StorageAuthentication {
+export class StorageAuthentication {
   constructor (publickey, signature) {
     this.publickey = publickey
     this.signature = signature
   }
 
   static challengeText () {
-    let header = "gaiahub"
-    let dateParts = new Date().toISOString().split("T")[0]
-        .split("-")
+    const header = 'gaiahub'
+    const dateParts = new Date().toISOString().split('T')[0]
+          .split('-')
     // for right now, access tokens are valid for the calendar year.
-    let allowedSpan = dateParts[0]
-    let myChallenge = "blockstack_storage_please_sign"
-    let myURL = "storage.blockstack.org"
+    const allowedSpan = dateParts[0]
+    const myChallenge = 'blockstack_storage_please_sign'
+    const myURL = 'storage.blockstack.org'
     return JSON.stringify( [header, allowedSpan, myURL, myChallenge] )
   }
 
   static makeWithKey (secretKey) {
-    let publickey = bitcoin.ECPair.fromPublicKeyBuffer(
+    const publickey = bitcoin.ECPair.fromPublicKeyBuffer(
       secretKey.getPublicKeyBuffer()) // I hate you bitcoinjs-lib.
-    let rawText = StorageAuthentication.challengeText()
-    let digest = bitcoin.crypto.sha256(rawText)
-    let signature = secretKey.sign(digest)
+    const rawText = StorageAuthentication.challengeText()
+    const digest = bitcoin.crypto.sha256(rawText)
+    const signature = secretKey.sign(digest)
     return new StorageAuthentication(publickey, signature)
   }
 
   static fromAuthHeader (authHeader) {
-    if (!authHeader.startsWith("bearer")) {
+    if (!authHeader.startsWith('bearer')) {
       return false
     }
 
-    let authPart = authHeader.slice("bearer".length + 1)
-    let decoded = JSON.parse(Buffer(authPart, 'base64').toString())
-    let publickey = pubkeyHexToECPair(decoded.publickey)
-    let signature = bitcoin.ECSignature.fromDER(
-      new Buffer(decoded.signature, 'hex'))
+    const authPart = authHeader.slice('bearer '.length)
+    const decoded = JSON.parse(Buffer.from(authPart, 'base64').toString())
+    const publickey = pubkeyHexToECPair(decoded.publickey)
+    const signature = bitcoin.ECSignature.fromDER(
+      Buffer.from(decoded.signature, 'hex'))
     return new StorageAuthentication(publickey, signature)
   }
 
   toAuthHeader () {
-    let authObj = {
+    const authObj = {
       publickey : this.publickey.getPublicKeyBuffer().toString('hex'),
       signature : this.signature.toDER().toString('hex')
     }
     // I realize that I'm b64 encoding hex encodings, but
     //  this keeps the formats from getting hateful.
-    let authToken = Buffer( JSON.stringify( authObj ) ).toString('base64')
+    const authToken = Buffer.from(JSON.stringify(authObj)).toString('base64')
     return `bearer ${authToken}`
   }
 
@@ -72,5 +74,3 @@ class StorageAuthentication {
     return valid
   }
 }
-
-module.exports = StorageAuthentication

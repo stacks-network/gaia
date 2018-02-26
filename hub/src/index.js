@@ -1,13 +1,10 @@
-let winston = require('winston');
-let fs = require('fs');
+import winston from 'winston'
+import server from './server/server.js'
+import { getConfig } from './server/config.js'
 
-let server = require(`./server/server.js`);
-let config = require(`./server/config.js`);
+const conf = getConfig()
+const app = server(conf)
 
-let configPath = process.env.CONFIG_PATH || "./config.json"
-const conf = config(JSON.parse(fs.readFileSync(configPath)))
-let app = server(conf)
-
-app.listen(app.config.port, function(){
-  app.config.logger.warn("server starting on port %d in %s mode", this.address().port, app.settings.env);
-});
+app.listen(
+  app.config.port,
+  () => winston.warn(`server starting on port ${app.config.port} in ${app.settings.env} mode`))

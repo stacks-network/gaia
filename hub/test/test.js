@@ -7,11 +7,12 @@ let req = require('request')
 let bitcoin = require('bitcoinjs-lib')
 let fs = require('fs')
 
-let StorageAuth = require('../lib/server/StorageAuthentication.js')
-let ProofChecker = require('../lib/server/ProofChecker.js')
+let StorageAuth = require('../lib/server/StorageAuthentication.js').StorageAuthentication
+let ProofChecker = require('../lib/server/ProofChecker.js').ProofChecker
 let HubServer = require('../lib/server/server.js').HubServer
 let config = require('../lib/server/config.js')
 
+const Readable = require('stream').Readable
 const errors = require('../lib/server/errors')
 
 let azConfigPath = process.env.AZ_CONFIG_PATH || "./config.azure.json"
@@ -63,6 +64,43 @@ function testServer() {
     } catch (err) {
       t.fail('White-listed address with good auth header should pass')
     }
+  })
+
+  test('handle request', (t) => {
+    t.plan(8)
+    const mockDriver = new MockDriver()
+    const server = new HubServer(mockDriver, new MockProofs(),
+                                 { whitelist: [testAddrs[0]] })
+    const authorization = StorageAuth.makeWithKey(testPairs[0]).toAuthHeader()
+
+    const s = new Readable()
+    s._read = function noop() {}
+    s.push('hello world')
+    s.push(null)
+    const s2 = new Readable()
+    s2._read = function noop() {}
+    s2.push('hello world')
+    s2.push(null)
+
+    server.handleRequest(testAddrs[0], 'foo.txt',
+                         { 'content-type' : 'text/text',
+                           'content-length': 4,
+                           authorization }, s)
+      .then(path => {
+        t.equal(path, `http://test.com/${testAddrs[0]}/foo.txt`)
+        t.equal(mockDriver.lastWrite.path, 'foo.txt')
+        t.equal(mockDriver.lastWrite.storageTopLevel, testAddrs[0])
+        t.equal(mockDriver.lastWrite.contentType, 'text/text')
+      })
+      .then(() => server.handleRequest(testAddrs[0], 'foo.txt',
+                         { 'content-length': 4,
+                           authorization }, s2))
+      .then(path => {
+        t.equal(path, `http://test.com/${testAddrs[0]}/foo.txt`)
+        t.equal(mockDriver.lastWrite.path, 'foo.txt')
+        t.equal(mockDriver.lastWrite.storageTopLevel, testAddrs[0])
+        t.equal(mockDriver.lastWrite.contentType, 'application/octet-stream')
+      })
   })
 }
 

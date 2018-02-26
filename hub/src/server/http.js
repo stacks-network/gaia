@@ -1,12 +1,12 @@
-let express = require('express')
-let expressWinston = require('express-winston')
-let winston = require('winston')
-let cors = require('cors')
+import express from 'express'
+import expressWinston from 'express-winston'
+import logger from 'winston'
+import cors from 'cors'
 
-// Program Imports
-let StorageRequest = require(`./StorageRequest`)
-let ProofChecker = require(`./ProofChecker`)
-let StorageAuthentication = require(`./StorageAuthentication`)
+import { ProofChecker } from './ProofChecker'
+import { StorageAuthentication } from './StorageAuthentication'
+import { HubServer } from './server'
+import { ValidationError, BadPathError, NotEnoughProofError } from './errors'
 
 function writeResponse(res, data, statusCode) {
   res.writeHead(statusCode, {'Content-Type' : 'application/json'})
@@ -14,40 +14,42 @@ function writeResponse(res, data, statusCode) {
   res.end()
 }
 
-function server (config) {
-  var app = express();
+export function makeHttpServer(config) {
+  const app = express()
 
   // Handle driver configuration
   let driver = false
   switch (config.driver) {
-    case "aws":
-      let S3Driver = require(`./drivers/S3Driver`)
+    case 'aws':
+      const S3Driver = require('./drivers/S3Driver')
       driver = new S3Driver(config)
-      break;
-    case "azure":
-      let AzDriver = require(`./drivers/AzDriver`)
+      break
+    case 'azure':
+      const AzDriver = require('./drivers/AzDriver')
       driver = new AzDriver(config)
-      break;
+      break
     default:
-      config.logger.error("Failed to load driver. Check driver configuration.")
+      logger.error('Failed to load driver. Check driver configuration.')
       process.exit()
       break
   }
 
-  let proofChecker = new ProofChecker(config.proofsConfig, config.logger, driver)
+  const proofChecker = new ProofChecker(config.proofsConfig, driver)
+  const server = new HubServer(driver, proofChecker, config)
 
   app.config = config
 
   // Instantiate server logging with Winston
-  app.use(expressWinston.logger({transports: [config.transport]}))
+  app.use(expressWinston.logger({
+    transports: logger.loggers.default.transports }))
 
   app.use(cors())
 
   // sadly, express doesn't like to capture slashes.
   //  but that's okay! regexes solve that problem
-  app.post(/^\/store\/([a-zA-Z0-9]+)\/(.+)/, function(req, res, next) {
+  app.post(/^\/store\/([a-zA-Z0-9]+)\/(.+)/, function(req, res) {
     let filename = req.params[1]
-    if (filename.endsWith("/")){
+    if (filename.endsWith('/')){
       filename = filename.substring(0, filename.length - 1)
     }
     const address = req.params[0]
@@ -70,14 +72,13 @@ function server (config) {
       })
   })
 
-  app.get('/hub_info/', function(req, res, next) {
+  app.get('/hub_info/', function(req, res) {
     const challengeText = StorageAuthentication.challengeText()
     const readURLPrefix = driver.getReadURLPrefix()
-    writeResponse(res, { challenge_text : challengeText, read_url_prefix : readURLPrefix }, 200)
+    writeResponse(res, { 'challenge_text' : challengeText,
+                         'read_url_prefix' : readURLPrefix }, 200)
   })
 
   // Instantiate express application
   return app
 }
-
-module.exports = server

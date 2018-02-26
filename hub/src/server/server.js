@@ -1,4 +1,4 @@
-import StorageAuth from './StorageAuthentication'
+import { StorageAuthentication as StorageAuth } from './StorageAuthentication'
 import { ValidationError } from './errors'
 import logger from 'winston'
 
@@ -10,10 +10,8 @@ export class HubServer {
     this.whitelist = config.whitelist
   }
 
-  /**
-   * throws exception on validation error
-   *   otherwise returns void.
-   */
+  // throws exception on validation error
+  //   otherwise returns void.
   validate(address: string, requestHeaders: { authorization: string }) {
     if (this.whitelist && !(this.whitelist.includes(address))) {
       throw new ValidationError('Address not authorized for writes')
@@ -33,7 +31,7 @@ export class HubServer {
     authObject.isAuthenticationValid(address, true)
   }
 
-  handleRequest(address: string, filename: string,
+  handleRequest(address: string, path: string,
                 requestHeaders: {},
                 stream: stream.Readable) {
     this.validate(address, requestHeaders)
@@ -46,9 +44,9 @@ export class HubServer {
 
     const writeCommand = { storageTopLevel: address,
                            path, stream, contentType,
-                           contentLength: requestHeaders["content-length"] }
+                           contentLength: requestHeaders['content-length'] }
 
     return this.proofChecker.checkProofs(this.req)
-      .then(() => this.driver.performWrite(write))
+      .then(() => this.driver.performWrite(writeCommand))
   }
 }
