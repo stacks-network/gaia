@@ -16,12 +16,12 @@ class AzDriver {
     // Set permissions to 'blob' to allow public reads
     this.blobService.createContainerIfNotExists(
       config.bucket, { publicAccessLevel: 'blob' },
-      (error, result) => {
+      (error) => {
         if (error) {
           logger.error(`failed to initialize azure container: ${error}`)
-          process.exit()
+          throw error
         }
-        logger.info(`container initialized: ${result}`)
+        logger.info('container initialized.')
       })
   }
 
@@ -40,7 +40,7 @@ class AzDriver {
   performWrite (args) {
     // cancel write and return 402 if path is invalid
     if (! AzDriver.isPathValid(args.path)) {
-      throw new BadPathError('Invalid Path')
+      return Promise.reject(new BadPathError('Invalid Path'))
     }
 
     // Prepend ${address}/ to filename

@@ -7,7 +7,11 @@ import { NotEnoughProofError } from './errors'
 export class ProofChecker {
 
   constructor(proofsConfig, storageDriver) {
-    this.proofsRequired = proofsConfig.proofsRequired
+    if (!proofsConfig) {
+      this.proofsRequired = 0
+    } else {
+      this.proofsRequired = proofsConfig.proofsRequired
+    }
     this.storageDriver = storageDriver
   }
 
