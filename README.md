@@ -145,18 +145,17 @@ a gaia hub driver must implement the following two functions:
  * Performs the actual write of a file to `path`
  *   the file must be readable at `${getReadURLPrefix()}/${storageToplevel}/${path}`
  *
- * @param { String } path - path of the file.
- * @param { String } storageToplevel - the top level directory to store the file in
- * @param { String } contentType - the HTTP content-type of the file
- * @param { stream.Readable } stream - the data to be stored at `path`
- * @param { Integer } contentLength - the bytes of content in the stream
- * @param { function(error, response, statusCode) } callback - a function to be
- *  called either on error or when the write has completed. On success, the
- *  response object should be: { publicUrl: "http://full-url/to/read/file/from.json" }
+ * @param { String } options.path - path of the file.
+ * @param { String } options.storageToplevel - the top level directory to store the file in
+ * @param { String } options.contentType - the HTTP content-type of the file
+ * @param { stream.Readable } options.stream - the data to be stored at `path`
+ * @param { Integer } options.contentLength - the bytes of content in the stream
+ * @returns { Promise } that resolves to the public-readable URL of the stored content.
  */
-performWrite (args: { path, contentType,
-                      stream, contentLength: Number,
-                      callback: function(error, response, statusCode) })
+
+
+performWrite (options: { path, contentType,
+                         stream, contentLength: Number })
 
 /**
  * Return the prefix for reading files from.
