@@ -65,3 +65,4 @@ target/
 *.swp
 *.swo
 *.swn
+hub/.nyc_output/

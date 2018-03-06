@@ -40,21 +40,43 @@ $ curl https://hub.example.com/hub_info | jq
 
 ### Run the tests
 
-To run the tests have one config file for each storage provider you would like to test:
-
+To run the unit tests:
 ```bash
-cat ./config.aws.json
-...
-"driver": "aws",
-...
-cat
-./config.azure.json
-...
-"driver": "azure",
-...
+$ npm run test
 ```
 
-This also provides an easy way to test your storage provider credentials and setup. If your tests fail the first time that may be because the bucket setup did not complete before the test exited. Wait a minute and try the `npm run test` command again.
+To run _driver_ tests and the _integration_ tests, you have
+to provide configuration for the drivers. Specify a driver config
+file using the environment variables:
+
+```bash
+AZ_CONFIG_PATH=test.azure.json
+S3_CONFIG_PATH=test.s3.json
+```
+
+These files are JSON files that only need to contain your credentials
+and bucket. For example, an azure config could look like:
+
+```javascript
+{
+  "azCredentials": {
+    "accountName": "your-azure-account-name",
+    "accountKey": "b64-account-key"
+  },
+  "bucket": "spokes"
+}
+```
+
+To run the tests with the azure driver tests and integration tests included:
+
+```bash
+$ AZ_CONFIG_PATH=test.azure.json npm run test
+```
+
+This also provides an easy way to test your storage provider
+credentials and setup. If your tests fail the first time that may be
+because the bucket setup did not complete before the test exited. Wait
+a minute and try the `npm run test` command again.
 
 To configure the logging set the `argsTransport` fields in the config file. Here is a list of [logging configuration options](https://github.com/winstonjs/winston/blob/master/docs/transports.md).
 
