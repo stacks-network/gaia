@@ -4,6 +4,11 @@
       "plan": "bucketeer:hobbyist"
     }
   ],
+  "buildpacks": [
+    {
+      "url": "heroku/nodejs"
+    }
+  ],
   "name": "Blockstack Gaia Hub",
   "description": "A node.js server that routes gaia writes and helps users manage their storage",
   "repository": "https://github.com/blockstack/gaia",
