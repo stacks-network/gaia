@@ -6,6 +6,7 @@ sed -i "s#\"secretAccessKey\": \"\"#\"secretAccessKey\": \"$BUCKETEER_AWS_SECRET
 sed -i "s/\"readURL\": \"\",/\"readURL\": \"$BUCKETEER_BUCKET_NAME.s3.amazonaws.com\",/g" ./hub/config.json
 sed -i "s/\"driver\": \"\",/\"driver\": \"aws\",/g" ./hub/config.json
 sed -i "s/\"bucket\": \"\",/\"bucket\": \"$BUCKETEER_BUCKET_NAME\",/g" ./hub/config.json
+sed -i "s/\"servername\": \"\",/\"servername\": \"$URL\",/g" ./hub/config.json
 sed -i "s/\"port\": 3000,/\"port\": $PORT,/g" ./hub/config.json
 cat ./hub/config.json
 npm --prefix hub run start
