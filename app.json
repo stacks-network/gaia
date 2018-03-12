@@ -1,0 +1,12 @@
+{
+  "addons": [
+    {
+      "plan": "bucketeer:hobbyist"
+    }
+  ],
+  "name": "Blockstack Gaia Hub",
+  "description": "A node.js server that routes gaia writes and helps users manage their storage",
+  "repository": "https://github.com/blockstack/gaia",
+  "logo": "https://avatars3.githubusercontent.com/u/8165984?s=200&v=4",
+  "keywords": ["node", "express", "static"]
+}

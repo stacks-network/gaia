@@ -6,7 +6,7 @@
   "readURL": "gaia.blockstack.org",
   "awsCredentials": {
     "accessKeyId": "",
-    "secreteAccessKey": ""
+    "secretAccessKey": ""
   },
 
   "proofsConfig": {
