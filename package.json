@@ -4,6 +4,6 @@
     "node": "8.1.x"
   },
   "scripts": {
-    "postinstall": "npm install --prefix hub"
+    "postinstall": "NODE_ENV=development npm install --prefix hub"
   }
 }

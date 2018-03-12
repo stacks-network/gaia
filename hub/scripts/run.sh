@@ -2,7 +2,7 @@
 
 cp ./hub/config.sample.json ./hub/config.json
 sed -i "s/\"accessKeyId\": \"\",/\"accessKeyId\": \"$BUCKETEER_AWS_ACCESS_KEY_ID\",/g" ./hub/config.json
-sed -i "s#\"secretAccessKey\": \"\",#\"secretAccessKey\": \"$BUCKETEER_AWS_SECRET_ACCESS_KEY\",#g" ./hub/config.json
+sed -i "s#\"secretAccessKey\": \"\"#\"secretAccessKey\": \"$BUCKETEER_AWS_SECRET_ACCESS_KEY\"#g" ./hub/config.json
 sed -i "s/\"readURL\": \"\",/\"readURL\": \"$BUCKETEER_BUCKET_NAME.s3.amazonaws.com\",/g" ./hub/config.json
 sed -i "s/\"driver\": \"\",/\"driver\": \"aws\",/g" ./hub/config.json
 sed -i "s/\"bucket\": \"\",/\"bucket\": \"$BUCKETEER_BUCKET_NAME\",/g" ./hub/config.json
