@@ -9,6 +9,10 @@ Developers who wish to _use_ the Gaia storage system should see the
 `blockstack.js` APIs
 documented [here](https://github.com/blockstack/blockstack.js/tree/master/src/storage) and [here](http://blockstack.github.io/blockstack.js/#storage).
 
+If you would like to deploy your own you can easily do so using Heroku:
+
+[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/blockstack/gaia/tree/jz-heroku)
+
 # Overview
 
 <!--- I swapped these two paragraphs and did some word-smithing (jcn) -->
