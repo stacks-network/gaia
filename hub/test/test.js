@@ -15,6 +15,7 @@ let config = require('../lib/server/config.js')
 
 const makeHttpServer = require('../lib/server/http.js').makeHttpServer
 const AzDriver = require('../lib/server/drivers/AzDriver.js')
+const S3Driver = require('../lib/server/drivers/S3Driver.js')
 const errors = require('../lib/server/errors')
 
 let azConfigPath = process.env.AZ_CONFIG_PATH
@@ -100,7 +101,38 @@ function testAzDriver() {
   })
 }
 
-function testS3Driver(mock, config) {
+function testS3Driver() {
+  if (!awsConfigPath) {
+    return
+  }
+  const config = JSON.parse(fs.readFileSync(awsConfigPath))
+
+  test('awsDriver', (t) => {
+    t.plan(3)
+    const driver = new S3Driver(config)
+    const prefix = driver.getReadURLPrefix()
+    const s = new Readable()
+    s._read = function noop() {}
+    s.push('hello world')
+    s.push(null)
+
+    driver.performWrite(
+      { path: '../foo.js'})
+      .then(() => t.ok(false, 'Should have thrown'))
+      .catch((err) => t.equal(err.message, 'Invalid Path', 'Should throw bad path'))
+      .then(() => driver.performWrite(
+        { path: 'foo.txt',
+          storageTopLevel: '12345',
+          stream: s,
+          contentType: 'application/octet-stream',
+          contentLength: 12 }))
+      .then((readUrl) => {
+        t.ok(readUrl.startsWith(prefix + '12345'), `${readUrl} must start with readUrlPrefix ${prefix}12345`)
+        return fetch(readUrl)
+      })
+      .then((resp) => resp.text())
+      .then((resptxt) => t.equal(resptxt, 'hello world', `Must get back hello world: got back: ${resptxt}`))
+  })
 }
 
 function testServer() {
@@ -161,11 +193,12 @@ function testServer() {
 }
 
 function testHttpPost() {
+  if (!azConfigPath) {
+    console.log('eliding test, you must set AZ_CONFIG_PATH to run this test.')
+    return
+  }
 
   test('handle request', (t) => {
-    if (!azConfigPath) {
-      return
-    }
     t.plan(2)
     const config = JSON.parse(fs.readFileSync(azConfigPath))
     Object.assign(config, { driver: 'azure' })
@@ -221,4 +254,5 @@ function testBadSig(done, configObj) {
 testServer()
 testAuth()
 testAzDriver()
+testS3Driver()
 testHttpPost()
