@@ -10,4 +10,4 @@ sed -i "s/\"servername\": \"\",/\"servername\": \"$URL\",/g" ./hub/config.json
 sed -i "s/\"port\": 3000,/\"port\": $PORT,/g" ./hub/config.json
 sed -i "s/\"proofsRequired\" : 3/\"proofsRequired\": 0/g" ./hub/config.json
 cat ./hub/config.json
-#npm --prefix hub run start
+npm --prefix hub run start
