@@ -46,7 +46,7 @@ export class HubServer {
                            path, stream, contentType,
                            contentLength: requestHeaders['content-length'] }
 
-    return this.proofChecker.checkProofs(this.req)
+    return this.proofChecker.checkProofs(address, path)
       .then(() => this.driver.performWrite(writeCommand))
   }
 }
