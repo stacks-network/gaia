@@ -1,0 +1,9 @@
+{
+  "name": "App",
+  "engines": {
+    "node": "8.1.x"
+  },
+  "scripts": {
+    "postinstall": "NODE_ENV=development npm install --prefix hub"
+  }
+}

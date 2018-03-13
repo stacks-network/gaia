@@ -1,12 +1,12 @@
 {
-  "servername": "storage.blockstack.org",
+  "servername": "",
   "port": 3000,
-  "driver": "azure",
-  "bucket": "hub",
-  "readURL": "gaia.blockstack.org",
+  "driver": "",
+  "bucket": "",
+  "readURL": "",
   "awsCredentials": {
     "accessKeyId": "",
-    "secreteAccessKey": ""
+    "secretAccessKey": ""
   },
 
   "proofsConfig": {

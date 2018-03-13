@@ -1,6 +1,9 @@
 import bitcoin from 'bitcoinjs-lib'
 
 import { ValidationError } from './errors'
+import logger from 'winston'
+
+const DEFAULT_STORAGE_URL = 'storage.blockstack.org'
 
 function pubkeyHexToECPair (pubkeyHex) {
   const pkBuff = Buffer.from(pubkeyHex, 'hex')
@@ -8,17 +11,13 @@ function pubkeyHexToECPair (pubkeyHex) {
 }
 
 export class StorageAuthentication {
-  constructor (publickey, signature, myURL) {
+  constructor (publickey, signature, myURL = DEFAULT_STORAGE_URL) {
     this.publickey = publickey
     this.signature = signature
-    if (!myURL) {
-      this.myURL = 'storage.blockstack.org'
-    } else {
-      this.myURL = myURL
-    }
+    this.myURL = myURL
   }
 
-  static challengeText (myURL = 'storage.blockstack.org') {
+  static challengeText (myURL = DEFAULT_STORAGE_URL) {
     const header = 'gaiahub'
     const dateParts = new Date().toISOString().split('T')[0]
           .split('-')
@@ -28,7 +27,7 @@ export class StorageAuthentication {
     return JSON.stringify( [header, allowedSpan, myURL, myChallenge] )
   }
 
-  static makeWithKey (secretKey, myURL = 'storage.blockstack.org') {
+  static makeWithKey (secretKey, myURL = DEFAULT_STORAGE_URL) {
     const publickey = bitcoin.ECPair.fromPublicKeyBuffer(
       secretKey.getPublicKeyBuffer()) // I hate you bitcoinjs-lib.
     const rawText = StorageAuthentication.challengeText(myURL)
@@ -37,7 +36,7 @@ export class StorageAuthentication {
     return new StorageAuthentication(publickey, signature, myURL)
   }
 
-  static fromAuthHeader (authHeader, myURL = 'storage.blockstack.org') {
+  static fromAuthHeader (authHeader, myURL = DEFAULT_STORAGE_URL) {
     if (!authHeader.startsWith('bearer')) {
       return false
     }
@@ -69,10 +68,12 @@ export class StorageAuthentication {
       return false
     }
     const rawText = StorageAuthentication.challengeText(this.myURL)
+
     const digest = bitcoin.crypto.sha256(rawText)
     const valid = (this.publickey.verify(digest, this.signature) === true)
 
     if (throwFailure && !valid) {
+      logger.debug(`Failed to validate with challenge text: ${rawText}`)
       throw new ValidationError('Invalid signature or expired authentication token.')
     }
     return valid
