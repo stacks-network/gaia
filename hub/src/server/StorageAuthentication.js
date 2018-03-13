@@ -8,32 +8,36 @@ function pubkeyHexToECPair (pubkeyHex) {
 }
 
 export class StorageAuthentication {
-  constructor (publickey, signature) {
+  constructor (publickey, signature, myURL) {
     this.publickey = publickey
     this.signature = signature
+    if (!myURL) {
+      this.myURL = 'storage.blockstack.org'
+    } else {
+      this.myURL = myURL
+    }
   }
 
-  static challengeText () {
+  static challengeText (myURL = 'storage.blockstack.org') {
     const header = 'gaiahub'
     const dateParts = new Date().toISOString().split('T')[0]
           .split('-')
     // for right now, access tokens are valid for the calendar year.
     const allowedSpan = dateParts[0]
     const myChallenge = 'blockstack_storage_please_sign'
-    const myURL = 'storage.blockstack.org'
     return JSON.stringify( [header, allowedSpan, myURL, myChallenge] )
   }
 
-  static makeWithKey (secretKey) {
+  static makeWithKey (secretKey, myURL = 'storage.blockstack.org') {
     const publickey = bitcoin.ECPair.fromPublicKeyBuffer(
       secretKey.getPublicKeyBuffer()) // I hate you bitcoinjs-lib.
-    const rawText = StorageAuthentication.challengeText()
+    const rawText = StorageAuthentication.challengeText(myURL)
     const digest = bitcoin.crypto.sha256(rawText)
     const signature = secretKey.sign(digest)
-    return new StorageAuthentication(publickey, signature)
+    return new StorageAuthentication(publickey, signature, myURL)
   }
 
-  static fromAuthHeader (authHeader) {
+  static fromAuthHeader (authHeader, myURL = 'storage.blockstack.org') {
     if (!authHeader.startsWith('bearer')) {
       return false
     }
@@ -43,7 +47,7 @@ export class StorageAuthentication {
     const publickey = pubkeyHexToECPair(decoded.publickey)
     const signature = bitcoin.ECSignature.fromDER(
       Buffer.from(decoded.signature, 'hex'))
-    return new StorageAuthentication(publickey, signature)
+    return new StorageAuthentication(publickey, signature, myURL)
   }
 
   toAuthHeader () {
@@ -64,7 +68,7 @@ export class StorageAuthentication {
       }
       return false
     }
-    const rawText = StorageAuthentication.challengeText()
+    const rawText = StorageAuthentication.challengeText(this.myURL)
     const digest = bitcoin.crypto.sha256(rawText)
     const valid = (this.publickey.verify(digest, this.signature) === true)
 

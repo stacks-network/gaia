@@ -73,7 +73,7 @@ export function makeHttpServer(config) {
   })
 
   app.get('/hub_info/', function(req, res) {
-    const challengeText = StorageAuthentication.challengeText()
+    const challengeText = StorageAuthentication.challengeText(server.serverName)
     const readURLPrefix = driver.getReadURLPrefix()
     writeResponse(res, { 'challenge_text' : challengeText,
                          'read_url_prefix' : readURLPrefix }, 200)

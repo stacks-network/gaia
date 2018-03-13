@@ -1,6 +1,8 @@
 import S3 from 'aws-sdk/clients/s3'
 import logger from 'winston'
 
+import { BadPathError } from '../errors'
+
 class S3Driver {
 
   constructor (config) {
@@ -48,7 +50,7 @@ class S3Driver {
   }
 
   performWrite (args) {
-    const s3key = `${args.storageToplevel}/${args.path}`
+    const s3key = `${args.storageTopLevel}/${args.path}`
     const s3params = {
       Bucket: this.bucket,
       Key: s3key,
@@ -58,24 +60,23 @@ class S3Driver {
     }
 
     if (!S3Driver.isPathValid(args.path)){
-      logger.error(`failed to store ${s3key} in bucket ${this.bucket}, invalid path`)
-      args.callback( { message: 'Invalid path' }, null, 402)
-      return
+      return Promise.reject(new BadPathError('Invalid Path'))
     }
 
     // Upload stream to s3
-    this.s3.upload(s3params, (err, data) => {
-      if (err) {
-        logger.error(`failed to store ${s3key} in bucket ${this.bucket}`)
-        args.callback(err, data, 500)
-        return
-      }
-      const publicURL = `${this.getReadURLPrefix()}${s3key}`
-      logger.info(`storing ${s3key} in bucket ${this.bucket}`)
-      args.callback(err, { publicURL }, 202)
+    return new Promise((resolve, reject) => {
+      this.s3.upload(s3params, (err) => {
+        if (err) {
+          logger.error(`failed to store ${s3key} in bucket ${this.bucket}`)
+          return reject(new Error('S3 storage failure: failed to store' +
+                                  ` ${s3key} in bucket ${this.bucket}: ${err}`))
+        }
+        const publicURL = `${this.getReadURLPrefix()}${s3key}`
+        logger.debug(`storing ${s3key} in bucket ${this.bucket}`)
+        return resolve(publicURL)
+      })
     })
   }
-
 }
 
 module.exports = S3Driver
