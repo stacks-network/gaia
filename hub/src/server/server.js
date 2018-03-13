@@ -4,10 +4,11 @@ import logger from 'winston'
 
 export class HubServer {
   constructor(driver: Object, proofChecker: Object,
-              config: { whitelist: Array<string> }) {
+              config: { whitelist: Array<string>, servername: string }) {
     this.driver = driver
     this.proofChecker = proofChecker
     this.whitelist = config.whitelist
+    this.serverName = config.servername
   }
 
   // throws exception on validation error
@@ -19,7 +20,7 @@ export class HubServer {
 
     let authObject = null
     try {
-      authObject = StorageAuth.fromAuthHeader(requestHeaders.authorization)
+      authObject = StorageAuth.fromAuthHeader(requestHeaders.authorization, this.serverName)
     } catch (err) {
       logger.error(err)
     }
