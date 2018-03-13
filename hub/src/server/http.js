@@ -6,7 +6,6 @@ import cors from 'cors'
 import { ProofChecker } from './ProofChecker'
 import { StorageAuthentication } from './StorageAuthentication'
 import { HubServer } from './server'
-import { ValidationError, BadPathError, NotEnoughProofError } from './errors'
 
 function writeResponse(res, data, statusCode) {
   res.writeHead(statusCode, {'Content-Type' : 'application/json'})
