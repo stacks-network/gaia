@@ -14,7 +14,7 @@
       "description": "A unique key for including the gaia hub's challenge text.",
       "generator": "secret"
     }
-  }
+  },
   "name": "Blockstack Gaia Hub",
   "description": "A node.js server that routes gaia writes and helps users manage their storage",
   "repository": "https://github.com/blockstack/gaia",
