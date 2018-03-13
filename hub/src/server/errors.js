@@ -1,6 +1,6 @@
 export class ValidationError {
   constructor (message) {
-    this.name = this.constructor.name
+    this.name = 'ValidationError'
     this.message = message
     this.stack = (new Error(message)).stack
   }
@@ -8,14 +8,14 @@ export class ValidationError {
 
 export class BadPathError {
   constructor (message) {
-    this.name = this.constructor.name
+    this.name = 'BadPathError'
     this.message = message
     this.stack = (new Error(message)).stack
   }
 }
 export class NotEnoughProofError {
   constructor (message) {
-    this.name = this.constructor.name
+    this.name = 'NotEnoughProofError'
     this.message = message
     this.stack = (new Error(message)).stack
   }

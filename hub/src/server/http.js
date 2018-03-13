@@ -60,11 +60,11 @@ export function makeHttpServer(config) {
       })
       .catch((err) => {
         logger.error(err)
-        if (err instanceof ValidationError) {
+        if (err.name === 'ValidationError') {
           writeResponse(res, { message: err.message }, 401)
-        } else if (err instanceof BadPathError) {
+        } else if (err.name === 'BadPathError') {
           writeResponse(res, { message: err.message }, 403)
-        } else if (err instanceof NotEnoughProofError) {
+        } else if (err.name === 'NotEnoughProofError') {
           writeResponse(res, { message: err.message }, 402)
         } else {
           writeResponse(res, { message: 'Server Error' }, 500)

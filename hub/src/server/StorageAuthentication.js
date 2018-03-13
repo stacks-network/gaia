@@ -1,6 +1,7 @@
 import bitcoin from 'bitcoinjs-lib'
 
 import { ValidationError } from './errors'
+import logger from 'winston'
 
 function pubkeyHexToECPair (pubkeyHex) {
   const pkBuff = Buffer.from(pubkeyHex, 'hex')
@@ -69,10 +70,12 @@ export class StorageAuthentication {
       return false
     }
     const rawText = StorageAuthentication.challengeText(this.myURL)
+
     const digest = bitcoin.crypto.sha256(rawText)
     const valid = (this.publickey.verify(digest, this.signature) === true)
 
     if (throwFailure && !valid) {
+      logger.debug(`Failed to validate with challenge text: ${rawText}`)
       throw new ValidationError('Invalid signature or expired authentication token.')
     }
     return valid

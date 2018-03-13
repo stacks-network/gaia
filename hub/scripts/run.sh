@@ -9,5 +9,6 @@ sed -i "s/\"bucket\": \"\",/\"bucket\": \"$BUCKETEER_BUCKET_NAME\",/g" ./hub/con
 sed -i "s/\"servername\": \"\",/\"servername\": \"$URL\",/g" ./hub/config.json
 sed -i "s/\"port\": 3000,/\"port\": $PORT,/g" ./hub/config.json
 sed -i "s/\"proofsRequired\" : 3/\"proofsRequired\": 0/g" ./hub/config.json
+sed -i "s/\"warn\"/\"debug\"/g" ./hub/config.json
 cat ./hub/config.json
 npm --prefix hub run start
