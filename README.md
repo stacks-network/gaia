@@ -242,6 +242,18 @@ Returns a JSON object:
 
 # Future Design Goals
 
+## Dependency on DNS
+
+The gaia specification requires that a gaia hub return a URL that a user's client
+will be able to fetch. In practice, most gaia hubs will use URLs with DNS entries
+for hostnames (though URLs with IP addresses would work as well). However, even
+though the spec uses URLs, that doesn't necessarily make an opinionated claim on
+underlying mechanisms for that URL. If a browser supported new URL schemes which
+enabled lookups without traditional DNS (for example, with the Blockstack Name
+System instead), then gaia hubs could return URLs implementing that scheme. As
+the Blockstack ecosystem develops and supports these kinds of features, we expect
+users would deploy gaia hubs that would take advantage.
+
 ## Extensibly limiting membership sets
 
 Some service providers may wish to provide hub services to a limited set of
