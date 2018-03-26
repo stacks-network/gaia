@@ -11,7 +11,7 @@ documented [here](https://github.com/blockstack/blockstack.js/tree/master/src/st
 
 If you would like to deploy your own you can easily do so using Heroku:
 
-[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/blockstack/gaia/tree/jz-heroku)
+[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/blockstack/gaia/)
 
 # Overview
 
