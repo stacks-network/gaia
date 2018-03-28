@@ -65,37 +65,37 @@ class DiskDriver {
   }
 
   performWrite (args) {
-    const path = args.path
-    const topLevelDir = args.storageTopLevel
+    return new Promise((resolve, reject) => {
+      const path = args.path
+      const topLevelDir = args.storageTopLevel
 
-    if (!topLevelDir) {
-      return Promise.reject(new BadPathError('Invalid Path'))
-    }
+      if (!topLevelDir) {
+        reject(new BadPathError('Invalid Path'))
+      }
 
-    const abspath = Path.join(this.storageRootDirectory, topLevelDir, path)
-    if (!DiskDriver.isPathValid(abspath)) {
-      return Promise.reject(new BadPathError('Invalid Path'))
-    }
+      const abspath = Path.join(this.storageRootDirectory, topLevelDir, path)
+      if (!DiskDriver.isPathValid(abspath)) {
+        reject(new BadPathError('Invalid Path'))
+      }
 
-    // too long?
-    if (abspath.length > 4096) {
-      return Promise.reject(new BadPathError('Path is too long'))
-    }
+      // too long?
+      if (abspath.length > 4096) {
+        reject(new BadPathError('Path is too long'))
+      }
 
-    const dirparts = abspath.split('/').filter((p) => p.length > 0)
+      const dirparts = abspath.split('/').filter((p) => p.length > 0)
 
-    // can't be too deep
-    if (dirparts.length > 100) {
-      return Promise.reject(new BadPathError('Path is too deep'))
-    }
+      // can't be too deep
+      if (dirparts.length > 100) {
+        reject(new BadPathError('Path is too deep'))
+      }
 
-    const absdirname = Path.dirname(abspath)
-    this.mkdirs(absdirname)
+      const absdirname = Path.dirname(abspath)
+      this.mkdirs(absdirname)
 
-    const writePipe = fs.createWriteStream(abspath, { mode: 0o600, flags: 'w' })
-    args.stream.pipe(writePipe)
+      const writePipe = fs.createWriteStream(abspath, { mode: 0o600, flags: 'w' })
+      args.stream.pipe(writePipe)
 
-    return new Promise((resolve) => {
       resolve(`${this.readURL}${Path.join(topLevelDir, path)}`)
     })
   }
