@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import winston from 'winston'
 import { makeHttpServer } from './server/http.js'
 import { getConfig } from './server/config.js'
