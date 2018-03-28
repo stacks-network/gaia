@@ -137,7 +137,14 @@ function testS3Driver() {
   })
 }
 
+/*
+ * To run this test, you should run an HTTP server on localhost:4000
+ * and use the ../config.sample.disk.json config file.
+ */
 function testDiskDriver() {
+  if (!diskConfigPath) {
+    return
+  }
   const config = JSON.parse(fs.readFileSync(diskConfigPath))
 
   test('diskDriver', (t) => {
