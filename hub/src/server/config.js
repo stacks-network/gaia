@@ -1,5 +1,6 @@
 import winston from 'winston'
 import fs from 'fs'
+import process from 'process'
 
 const configDefaults = {
   argsTransport: {
@@ -13,7 +14,7 @@ const configDefaults = {
 }
 
 export function getConfig() {
-  const configPath = process.env.CONFIG_PATH || './config.json'
+  const configPath = process.env.CONFIG_PATH || process.argv[2] || './config.json'
   const config = Object.assign(
     {}, configDefaults, JSON.parse(fs.readFileSync(configPath)))
 
