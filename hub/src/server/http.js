@@ -27,6 +27,10 @@ export function makeHttpServer(config) {
       const AzDriver = require('./drivers/AzDriver')
       driver = new AzDriver(config)
       break
+    case 'disk':
+      const DiskDriver = require('./drivers/diskDriver')
+      driver = new DiskDriver(config)
+      break
     default:
       logger.error('Failed to load driver. Check driver configuration.')
       process.exit()
