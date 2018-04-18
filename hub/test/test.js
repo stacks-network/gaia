@@ -17,11 +17,14 @@ const makeHttpServer = require('../lib/server/http.js').makeHttpServer
 const AzDriver = require('../lib/server/drivers/AzDriver.js')
 const S3Driver = require('../lib/server/drivers/S3Driver.js')
 const DiskDriver = require('../lib/server/drivers/diskDriver.js')
+const GcDriver = require('../lib/server/drivers/GcDriver.js')
+
 const errors = require('../lib/server/errors')
 
 let azConfigPath = process.env.AZ_CONFIG_PATH
 let awsConfigPath = process.env.AWS_CONFIG_PATH
 let diskConfigPath = process.env.DISK_CONFIG_PATH
+let gcConfigPath = process.env.GC_CONFIG_PATH
 
 const testWIFs = [
   'L4kMoaVivcd1FMPPwRU9XT2PdKHPob3oo6YmgTBHrnBHMmo7GcCf',
@@ -175,6 +178,40 @@ function testDiskDriver() {
   })
 }
 
+function testGcDriver() {
+  if (!gcConfigPath) {
+    return
+  }
+  const config = JSON.parse(fs.readFileSync(gcConfigPath))
+
+  test('awsDriver', (t) => {
+    t.plan(3)
+    const driver = new GcDriver(config)
+    const prefix = driver.getReadURLPrefix()
+    const s = new Readable()
+    s._read = function noop() {}
+    s.push('hello world')
+    s.push(null)
+
+    driver.performWrite(
+      { path: '../foo.js'})
+      .then(() => t.ok(false, 'Should have thrown'))
+      .catch((err) => t.equal(err.message, 'Invalid Path', 'Should throw bad path'))
+      .then(() => driver.performWrite(
+        { path: 'foo.txt',
+          storageTopLevel: '12345',
+          stream: s,
+          contentType: 'application/octet-stream',
+          contentLength: 12 }))
+      .then((readUrl) => {
+        t.ok(readUrl.startsWith(prefix + '12345'), `${readUrl} must start with readUrlPrefix ${prefix}12345`)
+        return fetch(readUrl)
+      })
+      .then((resp) => resp.text())
+      .then((resptxt) => t.equal(resptxt, 'hello world', `Must get back hello world: got back: ${resptxt}`))
+  })
+}
+
 
 function testServer() {
   test('validation tests', (t) => {
@@ -297,4 +334,5 @@ testAuth()
 testAzDriver()
 testS3Driver()
 testDiskDriver()
+testGcDriver()
 testHttpPost()
