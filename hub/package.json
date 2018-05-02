@@ -24,6 +24,8 @@
     "babel-preset-env": "^1.6.1",
     "babel-preset-flow": "^6.23.0",
     "eslint": "^4.18.1",
+    "eslint-plugin-flowtype": "^2.46.3",
+    "flow-bin": "^0.71.0",
     "mocha": "^3.5.3",
     "nock": "^9.1.9",
     "nyc": "^11.4.1",

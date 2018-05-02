@@ -1,11 +1,27 @@
+/* @flow */
+
 import azure from 'azure-storage'
 import logger from 'winston'
 import { BadPathError } from '../errors'
 
-// The AzDriver utilized the azure nodejs sdk to write files to azure blob storage
-class AzDriver {
+import type { DriverModel } from '../driverModel'
+import type { Readable } from 'stream'
 
-  constructor (config) {
+type AZ_CONFIG_TYPE = { azCredentials: { accountName: string,
+                                         accountKey: string },
+                        bucket: string,
+                        readURL?: string,
+                        cacheControl?: string }
+
+// The AzDriver utilized the azure nodejs sdk to write files to azure blob storage
+class AzDriver implements DriverModel {
+  blobService: azure.BlobService
+  accountName: string
+  bucket: string
+  readURL: ?string
+  cacheControl: ?string
+
+  constructor (config: AZ_CONFIG_TYPE) {
     this.blobService = azure.createBlobService(config.azCredentials.accountName,config.azCredentials.accountKey)
     this.bucket = config.bucket
     this.accountName = config.azCredentials.accountName
@@ -25,7 +41,7 @@ class AzDriver {
       })
   }
 
-  static isPathValid (path) {
+  static isPathValid (path: string) {
     // for now, only disallow double dots.
     return (path.indexOf('..') === -1)
   }
@@ -37,7 +53,11 @@ class AzDriver {
     return `https://${this.accountName}.blob.core.windows.net/${this.bucket}/`
   }
 
-  performWrite (args) {
+  performWrite(args: { path: string,
+                       storageTopLevel: string,
+                       stream: Readable,
+                       contentLength: number,
+                       contentType: string }) : Promise<string> {
     // cancel write and return 402 if path is invalid
     if (! AzDriver.isPathValid(args.path)) {
       return Promise.reject(new BadPathError('Invalid Path'))
@@ -46,11 +66,10 @@ class AzDriver {
     // Prepend ${address}/ to filename
     const azBlob = `${args.storageTopLevel}/${args.path}`
     const azOpts = {}
+    azOpts.contentSettings = {}
 
     if (this.cacheControl) {
-      azOpts.contentSettings = { 'cacheControl' : this.cacheControl }
-    } else {
-      azOpts.contentSettings = {}
+      azOpts.contentSettings.cacheControl = this.cacheControl
     }
 
     azOpts.contentSettings.contentType = args.contentType

@@ -1,6 +1,6 @@
 {
   "parser": "babel-eslint",
-  "plugins": [],
+  "plugins": ["flowtype"],
   "env": {
     "browser": false,
     "es6": true,
@@ -26,6 +26,7 @@
     "new-cap": 0,
     "camelcase": 2,
     "semi": [2, "never"],
+    "flowtype/define-flow-type": 1,
     "valid-jsdoc": ["error"]
   }
 }
