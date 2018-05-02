@@ -22,7 +22,7 @@ class GcDriver {
     if (this.readURL) {
       return `https://${this.readURL}/`
     }
-    return `https://storage.googleapis.com/${this.bucket}`
+    return `https://storage.googleapis.com/${this.bucket}/`
   }
 
   createIfNeeded () {
@@ -58,19 +58,22 @@ class GcDriver {
     const publicURL = `${this.getReadURLPrefix()}${filename}`
 
     return new Promise((resolve, reject) => {
-      this.storage
-      .bucket(this.bucket)
-      .upload(args.stream, {destination: filename})
-      .then(() => this.storage.bucket(this.bucket).makePublic())
-      .then(() => {
-        logger.debug(`storing ${filename} in bucket ${this.bucket}`)
-        return resolve(publicURL)
-      })
-      .catch(err => {
-        logger.error(`failed to store ${filename} in bucket ${this.bucket}`)
-        return reject(new Error('Google cloud storage failure: failed to store' +
-                                ` ${filename} in bucket ${this.bucket}: ${err}`))
-      })
+      const fileDestination = this.storage
+            .bucket(this.bucket)
+            .file(filename)
+      args.stream
+        .pipe(fileDestination.createWriteStream({ public: true,
+                                                  resumable: false,
+                                                  contentType: args.contentType }))
+        .on('error', (err) => {
+          logger.error(`failed to store ${filename} in bucket ${this.bucket}`)
+          reject(new Error('Google cloud storage failure: failed to store' +
+                           ` ${filename} in bucket ${this.bucket}: ${err}`))
+        })
+        .on('finish', () => {
+          logger.debug(`storing ${filename} in bucket ${this.bucket}`)
+          resolve(publicURL)
+        })
     })
   }
 }
