@@ -1,11 +1,20 @@
+/* @flow */
 import fs from 'fs'
 import { BadPathError } from '../errors'
 import logger from 'winston'
 import Path from 'path'
 
-class DiskDriver {
+import type { DriverModel } from '../driverModel'
+import type { Readable } from 'stream'
 
-  constructor (config) {
+type DISK_CONFIG_TYPE = { diskSettings: { storageRootDirectory?: string },
+                          readURL?: string }
+
+class DiskDriver implements DriverModel {
+  storageRootDirectory: string
+  readURL: string
+
+  constructor (config: DISK_CONFIG_TYPE) {
     if (!config.readURL) {
       throw new Error('Config is missing readURL')
     }
@@ -23,7 +32,7 @@ class DiskDriver {
     this.mkdirs(this.storageRootDirectory)
   }
 
-  static isPathValid(path){
+  static isPathValid(path: string){
     if (path.indexOf('..') !== -1) {
       return false
     }
@@ -37,7 +46,7 @@ class DiskDriver {
     return this.readURL
   }
 
-  mkdirs(path, mode) {
+  mkdirs(path: string) {
     const pathParts = path.replace(/^\//, '').split('/')
     let tmpPath = '/'
     for (let i = 0; i <= pathParts.length; i++) {
@@ -51,7 +60,7 @@ class DiskDriver {
         if (e.code === 'ENOENT') {
           // need to create
           logger.debug(`mkdir ${tmpPath}`)
-          fs.mkdirSync(tmpPath, mode)
+          fs.mkdirSync(tmpPath)
         }
         else {
           throw e
@@ -64,7 +73,11 @@ class DiskDriver {
     }
   }
 
-  performWrite (args) {
+  performWrite(args: { path: string,
+                       storageTopLevel: string,
+                       stream: Readable,
+                       contentLength: number,
+                       contentType: string }) : Promise<string> {
     return Promise.resolve()
     .then(() => {
       const path = args.path
