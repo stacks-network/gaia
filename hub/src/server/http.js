@@ -31,6 +31,10 @@ export function makeHttpServer(config) {
       const DiskDriver = require('./drivers/diskDriver')
       driver = new DiskDriver(config)
       break
+    case 'google-cloud':
+      const GcDriver = require('./drivers/GcDriver')
+      driver = new GcDriver(config)
+      break
     default:
       logger.error('Failed to load driver. Check driver configuration.')
       process.exit()
