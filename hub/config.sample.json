@@ -18,6 +18,10 @@
     "accountKey": ""
   },
 
+  "gcCredentials": {
+    "projectId": ""
+  },
+
   "argsTransport": {
     "level": "warn",
     "handleExceptions": true,

@@ -1,3 +1,5 @@
+/* @flow */
+
 import express from 'express'
 import expressWinston from 'express-winston'
 import logger from 'winston'
@@ -7,34 +9,32 @@ import { ProofChecker } from './ProofChecker'
 import { StorageAuthentication } from './StorageAuthentication'
 import { HubServer } from './server'
 
-function writeResponse(res, data, statusCode) {
+function writeResponse(res: express.response, data: Object, statusCode: number) {
   res.writeHead(statusCode, {'Content-Type' : 'application/json'})
   res.write(JSON.stringify(data))
   res.end()
 }
 
-export function makeHttpServer(config) {
+export function makeHttpServer(config: Object) {
   const app = express()
 
   // Handle driver configuration
-  let driver = false
-  switch (config.driver) {
-    case 'aws':
-      const S3Driver = require('./drivers/S3Driver')
-      driver = new S3Driver(config)
-      break
-    case 'azure':
-      const AzDriver = require('./drivers/AzDriver')
-      driver = new AzDriver(config)
-      break
-    case 'disk':
-      const DiskDriver = require('./drivers/diskDriver')
-      driver = new DiskDriver(config)
-      break
-    default:
-      logger.error('Failed to load driver. Check driver configuration.')
-      process.exit()
-      break
+  let driver
+  if (config.driver === 'aws') {
+    const S3Driver = require('./drivers/S3Driver')
+    driver = new S3Driver(config)
+  } else if (config.driver === 'azure') {
+    const AzDriver = require('./drivers/AzDriver')
+    driver = new AzDriver(config)
+  } else if (config.driver === 'disk') {
+    const DiskDriver = require('./drivers/diskDriver')
+    driver = new DiskDriver(config)
+  } else if (config.driver === 'google-cloud') {
+    const GcDriver = require('./drivers/GcDriver')
+    driver = new GcDriver(config)
+  } else {
+    logger.error('Failed to load driver. Check driver configuration.')
+    throw new Error('Failed to load driver')
   }
 
   const proofChecker = new ProofChecker(config.proofsConfig, driver)
@@ -50,7 +50,8 @@ export function makeHttpServer(config) {
 
   // sadly, express doesn't like to capture slashes.
   //  but that's okay! regexes solve that problem
-  app.post(/^\/store\/([a-zA-Z0-9]+)\/(.+)/, function(req, res) {
+  app.post(/^\/store\/([a-zA-Z0-9]+)\/(.+)/, (req: express.request,
+                                              res: express.response) => {
     let filename = req.params[1]
     if (filename.endsWith('/')){
       filename = filename.substring(0, filename.length - 1)
@@ -75,7 +76,8 @@ export function makeHttpServer(config) {
       })
   })
 
-  app.get('/hub_info/', function(req, res) {
+  app.get('/hub_info/', (req: express.request,
+                         res: express.response) => {
     const challengeText = StorageAuthentication.challengeText(server.serverName)
     const readURLPrefix = driver.getReadURLPrefix()
     writeResponse(res, { 'challenge_text' : challengeText,
