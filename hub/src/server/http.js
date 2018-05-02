@@ -29,6 +29,9 @@ export function makeHttpServer(config: Object) {
   } else if (config.driver === 'disk') {
     const DiskDriver = require('./drivers/diskDriver')
     driver = new DiskDriver(config)
+  } else if (config.driver === 'google-cloud') {
+    const GcDriver = require('./drivers/GcDriver')
+    driver = new GcDriver(config)
   } else {
     logger.error('Failed to load driver. Check driver configuration.')
     throw new Error('Failed to load driver')
