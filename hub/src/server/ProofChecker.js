@@ -1,3 +1,5 @@
+/* @flow */
+
 import blockstack from 'blockstack'
 import logger from 'winston'
 import fetch from 'node-fetch'
@@ -5,8 +7,11 @@ import fetch from 'node-fetch'
 import { NotEnoughProofError } from './errors'
 
 export class ProofChecker {
+  proofsRequired: number
+  storageDriver: Object
 
-  constructor(proofsConfig, storageDriver) {
+  constructor(proofsConfig: ?{proofsRequired: number},
+              storageDriver: Object) {
     if (!proofsConfig) {
       this.proofsRequired = 0
     } else {
@@ -15,19 +20,7 @@ export class ProofChecker {
     this.storageDriver = storageDriver
   }
 
-  static makeProofsHeader(proofs, name = false) {
-    const socialProofObj = { proofs }
-    if ( name !== false ) {
-      socialProofObj.name = name
-    }
-    return Buffer.from(JSON.stringify(socialProofObj)).toString('base64')
-  }
-
-  static proofObjectFromHeader(proofHeader) {
-    return JSON.parse(Buffer.from(proofHeader, 'base64').toString())
-  }
-
-  fetchProfile(address) {
+  fetchProfile(address: string) {
     const filename = `${address}/profile.json`
     const readURL = this.storageDriver.getReadURLPrefix()
     const url = `${readURL}${filename}`
@@ -39,7 +32,7 @@ export class ProofChecker {
       .then(verified => verified.payload.claim)
   }
 
-  validEnough(validProofs) {
+  validEnough(validProofs: Array<any>) {
     logger.debug(`Found ${validProofs.length} valid proofs for user.`)
     return (validProofs.length >= this.proofsRequired)
   }

@@ -1,3 +1,5 @@
+/* @flow */
+
 import bitcoin from 'bitcoinjs-lib'
 
 import { ValidationError } from './errors'
@@ -11,13 +13,17 @@ function pubkeyHexToECPair (pubkeyHex) {
 }
 
 export class StorageAuthentication {
-  constructor (publickey, signature, myURL = DEFAULT_STORAGE_URL) {
+  publickey: bitcoin.ECPair
+  signature: bitcoin.ECSignature
+  myURL: string
+  constructor (publickey: bitcoin.ECPair, signature: bitcoin.ECSignature,
+               myURL: string = DEFAULT_STORAGE_URL) {
     this.publickey = publickey
     this.signature = signature
     this.myURL = myURL
   }
 
-  static challengeText (myURL = DEFAULT_STORAGE_URL) {
+  static challengeText (myURL: string = DEFAULT_STORAGE_URL) {
     const header = 'gaiahub'
     const dateParts = new Date().toISOString().split('T')[0]
           .split('-')
@@ -27,7 +33,7 @@ export class StorageAuthentication {
     return JSON.stringify( [header, allowedSpan, myURL, myChallenge] )
   }
 
-  static makeWithKey (secretKey, myURL = DEFAULT_STORAGE_URL) {
+  static makeWithKey (secretKey: bitcoin.ECPair, myURL: string = DEFAULT_STORAGE_URL) {
     const publickey = bitcoin.ECPair.fromPublicKeyBuffer(
       secretKey.getPublicKeyBuffer()) // I hate you bitcoinjs-lib.
     const rawText = StorageAuthentication.challengeText(myURL)
@@ -36,7 +42,7 @@ export class StorageAuthentication {
     return new StorageAuthentication(publickey, signature, myURL)
   }
 
-  static fromAuthHeader (authHeader, myURL = DEFAULT_STORAGE_URL) {
+  static fromAuthHeader (authHeader: string, myURL: string = DEFAULT_STORAGE_URL) {
     if (!authHeader.startsWith('bearer')) {
       return false
     }
@@ -60,7 +66,7 @@ export class StorageAuthentication {
     return `bearer ${authToken}`
   }
 
-  isAuthenticationValid (address, throwFailure) {
+  isAuthenticationValid (address: string, throwFailure: boolean) {
     if (this.publickey.getAddress() !== address) {
       if (throwFailure) {
         throw new ValidationError('Address not allowed to write on this path')

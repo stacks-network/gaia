@@ -1,11 +1,22 @@
+/* @flow */
 import Storage from '@google-cloud/storage'
 import logger from 'winston'
 
 import { BadPathError } from '../errors'
 
-class GcDriver {
+import type { DriverModel } from '../driverModel'
+import type { Readable } from 'stream'
 
-  constructor (config) {
+type GC_CONFIG_TYPE = { gcCredentials?: Object,
+                        bucket: string,
+                        readURL?: string }
+
+class GcDriver implements DriverModel {
+  bucket: string
+  readURL: ?string
+  storage: Storage
+
+  constructor (config: GC_CONFIG_TYPE) {
     this.storage =  new Storage(config.gcCredentials)
     this.bucket = config.bucket
     this.readURL = config.readURL
@@ -13,7 +24,7 @@ class GcDriver {
     this.createIfNeeded()
   }
 
-  static isPathValid(path){
+  static isPathValid(path: string){
     // for now, only disallow double dots.
     return (path.indexOf('..') === -1)
   }
@@ -49,7 +60,11 @@ class GcDriver {
     })
   }
 
-  performWrite (args) {
+  performWrite(args: { path: string,
+                       storageTopLevel: string,
+                       stream: Readable,
+                       contentLength: number,
+                       contentType: string }) : Promise<string> {
     if (!GcDriver.isPathValid(args.path)){
       return Promise.reject(new BadPathError('Invalid Path'))
     }

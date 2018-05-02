@@ -1,11 +1,23 @@
+/* @flow */
+
 import S3 from 'aws-sdk/clients/s3'
 import logger from 'winston'
 
 import { BadPathError } from '../errors'
 
-class S3Driver {
+import type { DriverModel } from '../driverModel'
+import type { Readable } from 'stream'
 
-  constructor (config) {
+type S3_CONFIG_TYPE = { awsCredentials: Object,
+                        bucket: string,
+                        readURL?: string }
+
+class S3Driver implements DriverModel {
+  s3: S3
+  bucket: string
+  readURL: ?string
+
+  constructor (config: S3_CONFIG_TYPE) {
     this.s3 = new S3(config.awsCredentials)
     this.bucket = config.bucket
     this.readURL = config.readURL
@@ -13,12 +25,12 @@ class S3Driver {
     this.createIfNeeded()
   }
 
-  static isPathValid(path){
+  static isPathValid(path: string){
     // for now, only disallow double dots.
     return (path.indexOf('..') === -1)
   }
 
-  getReadURLPrefix () {
+  getReadURLPrefix(): string {
     if (this.readURL) {
       return `https://${this.readURL}/`
     }
@@ -49,7 +61,11 @@ class S3Driver {
     })
   }
 
-  performWrite (args) {
+  performWrite(args: { path: string,
+                       storageTopLevel: string,
+                       stream: Readable,
+                       contentLength: number,
+                       contentType: string }) : Promise<string> {
     const s3key = `${args.storageTopLevel}/${args.path}`
     const s3params = {
       Bucket: this.bucket,
