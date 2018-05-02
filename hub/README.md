@@ -11,6 +11,19 @@ $ cp ./config.sample.json ./config.json
 $ npm run start
 ```
 
+To install the Gaia hub as an executable program (required for integration
+testing), do the following:
+
+```bash
+$ cd gaia/hub
+$ sudo npm i -g # or, "sudo npm link"
+$ which blockstack-gaia-hub
+/usr/bin/blockstack-gaia-hub
+```
+
+If you intend to run a Gaia hub in production, you will still need to generate a
+`config.json` file per the above instructions.
+
 ### Deploy the Hub
 
 First have `docker`,`nginx` and `certbot` installed on a server with a FQDN pointed to it. The following guides should help you get this setup.
