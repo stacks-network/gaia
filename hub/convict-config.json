@@ -1,0 +1,128 @@
+{
+  "servername": {
+    "doc": "The name of the server.",
+    "format": "String",
+    "default": "localhost",
+    "env": "servername"
+  },
+  "port": {
+    "doc": "The port to listen on.",
+    "format": "port",
+    "default": 3000,
+    "env": "port"
+  },
+  "driver": {
+    "doc": "The storage driver to use.",
+    "format": ["aws", "azure", "disk", "google-cloud"],
+    "default": "disk",
+    "env": "driver"
+  },
+  "bucket": {
+    "doc": "The bucket name for cloud based storage drivers.",
+    "format": "String",
+    "default": "",
+    "env": "bucket"
+  },
+  "readURL": {
+    "doc": "The readURL.",
+    "format": "url",
+    "default": "http://localhost:3000/read/",
+    "env": "readURL"
+  },
+  "whitelist": {
+    "doc": "Whitelist of addresses that can use this gaia hub.",
+    "format": "arrayOrFalse",
+    "default": false,
+    "env": "whitelist"
+  },
+  "diskSettings": {
+    "storageRootDirectory": {
+      "doc": "The root path for local disk based storage.",
+      "format": "String",
+      "default": "/tmp/gaia-disk",
+      "env": "diskSettings_storageRootDirectory"
+    }
+  },
+  "awsCredentials": {
+    "accessKeyId": {
+      "doc": "The AWS access key.",
+      "format": "String",
+      "default": "",
+      "env": "awsCredentials_accessKeyId"
+    },
+    "secretAccessKey": {
+      "doc": "The AWS secret access key.",
+      "format": "String",
+      "default": "",
+      "env": "awsCredentials_secretAccessKey"
+    }
+  },
+  "proofsConfig": {
+    "proofsRequired": {
+      "doc": "The number of social proofs required for write access.",
+      "format": "Number",
+      "default": 0,
+      "env": "proofsConfig_proofsRequired"
+    }
+  },
+  "azCredentials": {
+    "accountName": {
+      "doc": "The Azure account name.",
+      "format": "String",
+      "default": "",
+      "env": "azCredentials_accountName"
+    },
+    "accountKey": {
+      "doc": "The Azure account key.",
+      "format": "String",
+      "default": "",
+      "env": "azCredentials_accountKey"
+    }
+  },
+  "gcCredentials": {
+    "projectId": {
+      "doc": "The Google Cloud Project ID.",
+      "format": "String",
+      "default": "",
+      "env": "gcCredentials_projectId"
+    }
+  },
+  "argsTransport": {
+    "colorize": {
+      "doc": "Toggle log colorization.",
+      "format": "Boolean",
+      "default": true,
+      "env": "argsTransport_colorize"
+    },
+    "handleExceptions": {
+      "doc": "Toggle uncaught exception handling.",
+      "format": "Boolean",
+      "default": true,
+      "env": "argsTransport_handleExceptions"
+    },
+    "json": {
+      "doc": "Toggle json in logs.",
+      "format": "Boolean",
+      "default": true,
+      "env": "argsTransport_json"
+    },
+    "level": {
+      "doc": "The log level.",
+      "format": ["error", "warn", "info", "verbose", "debug", "silly"],
+      "default": "warn",
+      "env": "argsTransport_level"
+    },
+    "stringify": {
+      "doc": "Toggle stringify on objects in logs.",
+      "format": "Boolean",
+      "default": true,
+      "env": "argsTransport_stringify"
+    },
+    "timestamp": {
+      "doc": "Toggle timestamps in logs.",
+      "format": "Boolean",
+      "default": true,
+      "env": "argsTransport_timestamp"
+    }
+  }
+}

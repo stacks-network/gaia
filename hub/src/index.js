@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import winston from 'winston'
+import logger from 'winston'
 import { makeHttpServer } from './server/http.js'
 import { getConfig } from './server/config.js'
 
@@ -8,4 +8,4 @@ const app = makeHttpServer(conf)
 
 app.listen(
   app.config.port,
-  () => winston.warn(`server starting on port ${app.config.port} in ${app.settings.env} mode`))
+  () => logger.warn(`server starting on port ${app.config.port} in ${app.settings.env} mode`))

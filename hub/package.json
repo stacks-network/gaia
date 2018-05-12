@@ -11,6 +11,7 @@
     "bitcoinjs-lib": "^3.1.1",
     "blockstack": "^0.11.1",
     "body-parser": "^1.18.1",
+    "convict": "^4.2.0",
     "cors": "^2.8.4",
     "express": "^4.15.4",
     "express-winston": "^2.4.0",
