@@ -31,7 +31,7 @@
   },
   "whitelist": {
     "doc": "Whitelist of addresses that can use this gaia hub.",
-    "format": "arrayOrFalse",
+    "format": "stringArrayOrFalse",
     "default": false,
     "env": "whitelist"
   },

@@ -4,28 +4,25 @@ import process from 'process'
 import logger from 'winston'
 
 convict.addFormat({
-  // This format will convert a comma separated string
-  // to an array so it can be set via ENV variable
-  name: 'arrayOrFalse',
+  // This format will accept an array, convert a comma
+  // delimited string to an acceptable array, or convert
+  // anything falsy to false.
+  name: 'stringArrayOrFalse',
   validate: function(val) {
-    // An array is acceptable
-    if (typeof val === 'object' && Array.isArray(val)) {
+    if (Array.isArray(val) || val === false) {
       return
     }
-
-    // false is also acceptable, everything else should throw an error
-    if (val !== false) {
+    else {
       throw new TypeError('must evaluate to false, be a comma separated list, or an Array')
     }
   },
   coerce: function(val) {
-    if (val) {
-      if (typeof val == 'string'){
-        return val.replace(/\s/g, '').split(',')
-      }
-    }
-    else {
+    if (!val) {
       return false
+    }
+
+    if (typeof val === 'string'){
+      return val.split(',').map(item => item.trim())
     }
   }
 })
