@@ -3,6 +3,9 @@
   "version": "1.1.0",
   "description": "",
   "main": "index.js",
+  "engines": {
+    "node": "^9"
+  },
   "dependencies": {
     "@google-cloud/storage": "^1.6.0",
     "aws-sdk": "^2.114.0",
@@ -32,8 +35,6 @@
     "nock": "^9.1.9",
     "nyc": "^11.4.1",
     "proxyquire": "^2.0.1",
-    "request": "^2.81.0",
-    "sinon": "^5.0.7",
     "supertest": "^3.0.0",
     "tape": "^4.9.0"
   },

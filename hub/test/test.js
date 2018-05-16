@@ -4,7 +4,6 @@ const proxyquire = require('proxyquire')
 const FetchMock = require('fetch-mock')
 
 let request = require('supertest')
-let req = require('request')
 let bitcoin = require('bitcoinjs-lib')
 let fs = require('fs')
 
