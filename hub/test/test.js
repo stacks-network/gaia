@@ -1,23 +1,21 @@
-const nock = require('nock')
 const test = require('tape')
 
+const proxyquire = require('proxyquire')
+const FetchMock = require('fetch-mock')
+
 let request = require('supertest')
-let assert = require('assert')
 let req = require('request')
 let bitcoin = require('bitcoinjs-lib')
 let fs = require('fs')
-const Readable = require('stream').Readable
 
-let StorageAuth = require('../lib/server/StorageAuthentication.js').StorageAuthentication
-let ProofChecker = require('../lib/server/ProofChecker.js').ProofChecker
-let HubServer = require('../lib/server/server.js').HubServer
-let config = require('../lib/server/config.js')
+const { Readable, Writable } = require('stream');
 
-const makeHttpServer = require('../lib/server/http.js').makeHttpServer
-const AzDriver = require('../lib/server/drivers/AzDriver.js')
-const S3Driver = require('../lib/server/drivers/S3Driver.js')
-const DiskDriver = require('../lib/server/drivers/diskDriver.js')
-const GcDriver = require('../lib/server/drivers/GcDriver.js')
+const auth = require('../lib/server/authentication.js')
+const config = require('../lib/server/config.js')
+
+const { ProofChecker } = require('../lib/server/ProofChecker.js')
+const { HubServer } = require('../lib/server/server.js')
+const { makeHttpServer } = require('../lib/server/http.js')
 
 const errors = require('../lib/server/errors')
 
@@ -34,9 +32,121 @@ const testWIFs = [
 const testPairs = testWIFs.map(x => bitcoin.ECPair.fromWIF(x))
 const testAddrs = testPairs.map(x => x.getAddress())
 
-function setupAwsNocks() {
+function addMockFetches(prefix, dataMap) {
+  dataMap.forEach( item => {
+    FetchMock.get(`${prefix}${item.key}`, item.data)
+  })
 }
 
+function readStream(input, contentLength, callback) {
+  var bufs = []
+  input.on('data', function(d){ bufs.push(d) });
+  input.on('end', function(){
+    var buf = Buffer.concat(bufs)
+    callback(buf.slice(0, contentLength))
+  })
+}
+
+function makeMockedAzureDriver() {
+  const dataMap = []
+  let bucketName = ''
+  const createContainerIfNotExists = function(newBucketName, options, cb) {
+    bucketName = newBucketName
+    cb()
+  }
+  const createBlockBlobFromStream = function(putBucket, blobName, streamInput, contentLength, opts, cb) {
+    if (bucketName !== putBucket) {
+      cb(new Error(`Unexpected bucket name: ${putBucket}. Expected ${bucketName}`))
+    }
+    readStream(streamInput, contentLength, (buffer) => {
+      dataMap.push({ data: buffer.toString(), key: blobName })
+      cb()
+    })
+  }
+  const createBlobService = function() {
+    return { createContainerIfNotExists, createBlockBlobFromStream }
+  }
+
+  AzDriver = proxyquire('../lib/server/drivers/AzDriver', {
+    'azure-storage': { createBlobService }
+  })
+  return { AzDriver, dataMap }
+}
+
+function makeMockedS3Driver() {
+  const dataMap = []
+  let bucketName = ''
+
+  S3Class = class {
+    headBucket(options, callback) {
+      bucketName = options.Bucket
+      callback()
+    }
+    upload(options, cb) {
+      if (options.Bucket != bucketName) {
+        cb(new Error(`Unexpected bucket name: ${options.Bucket}. Expected ${bucketName}`))
+      }
+      readStream(options.Body, 10000, (buffer) => {
+        dataMap.push({ data: buffer.toString(), key: options.Key })
+        cb()
+      })
+    }
+  }
+
+  driver = proxyquire('../lib/server/drivers/S3Driver', {
+    'aws-sdk/clients/s3': S3Class
+  })
+  return { driver, dataMap }
+}
+
+class MockWriteStream extends Writable {
+  constructor(dataMap, filename) {
+    super({})
+    this.dataMap = dataMap
+    this.filename = filename
+    this.data = ''
+  }
+  _write(chunk, encoding, callback) {
+    this.data += chunk
+    callback()
+  }
+  _final(callback) {
+    this.dataMap.push({ data: this.data, key: this.filename })
+    callback()
+  }
+}
+
+function makeMockedGcDriver() {
+  const dataMap = []
+  let myName = ''
+
+  const file = function (filename) {
+    const createWriteStream = function() {
+      return new MockWriteStream(dataMap, filename)
+    }
+    return { createWriteStream }
+  }
+  const exists = function () {
+    return Promise.resolve([true])
+  }
+  StorageClass = class {
+    bucket(bucketName) {
+      if (myName === '') {
+        myName = bucketName
+      } else {
+        if (myName !== bucketName) {
+          throw new Error(`Unexpected bucket name: ${bucketName}. Expected ${myName}`)
+        }
+      }
+      return { file, exists }
+    }
+  }
+
+  driver = proxyquire('../lib/server/drivers/GcDriver', {
+    '@google-cloud/storage': StorageClass
+  })
+  return { driver, dataMap }
+}
 
 class MockDriver {
   constructor() {
@@ -56,30 +166,56 @@ class MockProofs {
 
 function testAuth() {
   test('storage validation', (t) => {
-    t.plan(5)
-    const authorization = StorageAuth.makeWithKey(testPairs[0]).toAuthHeader()
-    const authenticator = StorageAuth.fromAuthHeader(authorization)
-    t.throws(() => authenticator.isAuthenticationValid(testAddrs[1], true),
+    const challengeText = auth.getChallengeText()
+    const authPart = auth.LegacyAuthentication.makeAuthPart(testPairs[0], challengeText)
+    const authorization = `bearer ${authPart}`
+    const authenticator = auth.parseAuthHeader(authorization)
+    t.throws(() => authenticator.isAuthenticationValid(testAddrs[1], challengeText),
              errors.ValidationError, 'Wrong address must throw')
-    t.ok(!authenticator.isAuthenticationValid(testAddrs[1], false), 'Wrong address must fail')
-    t.ok(authenticator.isAuthenticationValid(testAddrs[0], true), 'Good signature must pass')
+    t.throws(() => authenticator.isAuthenticationValid(testAddrs[0], 'potatos'),
+             errors.ValidationError, 'Wrong challenge text must throw')
+    t.ok(!authenticator.isAuthenticationValid(testAddrs[1], challengeText, { throwOnFailure: false }),
+         'Wrong address must fail')
+    t.ok(authenticator.isAuthenticationValid(testAddrs[0], challengeText, { throwOnFailure: false }),
+         'Good signature must pass')
 
     const pkBad = bitcoin.ECPair.fromPublicKeyBuffer(testPairs[1].getPublicKeyBuffer())
-    const authBad = new StorageAuth(pkBad, authenticator.signature)
+    const authBad = new auth.LegacyAuthentication(pkBad, authenticator.signature)
 
-    t.throws(() => authenticator.isAuthenticationValid(testAddrs[1], true, 'Bad signature must throw'))
-    t.ok(!authenticator.isAuthenticationValid(testAddrs[1], false), 'Bad signature must fail')
+    t.throws(() => authenticator.isAuthenticationValid(testAddrs[1], challengeText),
+             'Bad signature must throw')
+    t.ok(!authenticator.isAuthenticationValid(testAddrs[1], challengeText, { throwOnFailure: false }),
+         'Bad signature must fail')
+    t.end()
   })
 }
 
 function testAzDriver() {
-  if (!azConfigPath) {
-    return
+  let config = {
+    "azCredentials": {
+      "accountName": "mock-azure",
+      "accountKey": "mock-azure-key"
+    },
+    "bucket": "spokes"
   }
-  const config = JSON.parse(fs.readFileSync(azConfigPath))
+  let mockTest = true
+
+  if (azConfigPath) {
+    config = JSON.parse(fs.readFileSync(azConfigPath))
+    mockTest = false
+  }
+
+  let AzDriver, dataMap
+  const azDriverImport = '../lib/server/drivers/AzDriver'
+  if (mockTest) {
+    mockedObj = makeMockedAzureDriver()
+    dataMap = mockedObj.dataMap
+    AzDriver = mockedObj.AzDriver
+  } else {
+    AzDriver = require(azDriverImport)
+  }
 
   test('azDriver', (t) => {
-    t.plan(3)
     const driver = new AzDriver(config)
     const prefix = driver.getReadURLPrefix()
     const s = new Readable()
@@ -98,22 +234,42 @@ function testAzDriver() {
           contentType: 'application/octet-stream',
           contentLength: 12 }))
       .then((readUrl) => {
+        if (mockTest) {
+          addMockFetches(prefix, dataMap)
+        }
+
         t.ok(readUrl.startsWith(prefix), `${readUrl} must start with readUrlPrefix ${prefix}`)
         return fetch(readUrl)
       })
       .then((resp) => resp.text())
       .then((resptxt) => t.equal(resptxt, 'hello world', `Must get back hello world: got back: ${resptxt}`))
+      .catch(() => t.false(true, `Unexpected err: ${err}`))
+      .then(() => { FetchMock.restore; t.end() })
   })
 }
 
 function testS3Driver() {
-  if (!awsConfigPath) {
-    return
+  let config = {
+    "bucket": "spokes"
   }
-  const config = JSON.parse(fs.readFileSync(awsConfigPath))
+  let mockTest = true
+
+  if (awsConfigPath) {
+    const config = JSON.parse(fs.readFileSync(awsConfigPath))
+    mockTest = false
+  }
+
+  let S3Driver, dataMap
+  const S3DriverImport = '../lib/server/drivers/S3Driver'
+  if (mockTest) {
+    mockedObj = makeMockedS3Driver()
+    dataMap = mockedObj.dataMap
+    S3Driver = mockedObj.driver
+  } else {
+    S3Driver = require(S3DriverImport)
+  }
 
   test('awsDriver', (t) => {
-    t.plan(3)
     const driver = new S3Driver(config)
     const prefix = driver.getReadURLPrefix()
     const s = new Readable()
@@ -132,11 +288,16 @@ function testS3Driver() {
           contentType: 'application/octet-stream',
           contentLength: 12 }))
       .then((readUrl) => {
+        if (mockTest) {
+          addMockFetches(prefix, dataMap)
+        }
         t.ok(readUrl.startsWith(prefix + '12345'), `${readUrl} must start with readUrlPrefix ${prefix}12345`)
         return fetch(readUrl)
       })
       .then((resp) => resp.text())
       .then((resptxt) => t.equal(resptxt, 'hello world', `Must get back hello world: got back: ${resptxt}`))
+      .catch(() => t.false(true, `Unexpected err: ${err}`))
+      .then(() => { FetchMock.restore; t.end() })
   })
 }
 
@@ -179,13 +340,27 @@ function testDiskDriver() {
 }
 
 function testGcDriver() {
-  if (!gcConfigPath) {
-    return
+  let config = {
+    "bucket": "spokes"
   }
-  const config = JSON.parse(fs.readFileSync(gcConfigPath))
+  let mockTest = true
 
-  test('awsDriver', (t) => {
-    t.plan(3)
+  if (gcConfigPath) {
+    const config = JSON.parse(fs.readFileSync(gcConfigPath))
+    mockTest = false
+  }
+
+  let GcDriver, dataMap
+  const GcDriverImport = '../lib/server/drivers/GcDriver'
+  if (mockTest) {
+    mockedObj = makeMockedGcDriver()
+    dataMap = mockedObj.dataMap
+    GcDriver = mockedObj.driver
+  } else {
+    GcDriver = require(GcDriverImport)
+  }
+
+  test('Google Cloud Driver', (t) => {
     const driver = new GcDriver(config)
     const prefix = driver.getReadURLPrefix()
     const s = new Readable()
@@ -204,11 +379,16 @@ function testGcDriver() {
           contentType: 'application/octet-stream',
           contentLength: 12 }))
       .then((readUrl) => {
+        if (mockTest) {
+          addMockFetches(prefix, dataMap)
+        }
         t.ok(readUrl.startsWith(prefix + '12345'), `${readUrl} must start with readUrlPrefix ${prefix}12345`)
         return fetch(readUrl)
       })
       .then((resp) => resp.text())
       .then((resptxt) => t.equal(resptxt, 'hello world', `Must get back hello world: got back: ${resptxt}`))
+      .catch(() => t.false(true, `Unexpected err: ${err}`))
+      .then(() => { FetchMock.restore; t.end() })
   })
 }
 
@@ -223,7 +403,9 @@ function testServer() {
     t.throws(() => server.validate(testAddrs[0], {}),
              errors.ValidationError, 'Bad request headers should fail validation')
 
-    const authorization = StorageAuth.makeWithKey(testPairs[0]).toAuthHeader()
+    const challengeText = auth.getChallengeText()
+    const authPart = auth.LegacyAuthentication.makeAuthPart(testPairs[0], challengeText)
+    const authorization = `bearer ${authPart}`
     try {
       server.validate(testAddrs[0], { authorization })
       t.pass('White-listed address with good auth header should pass')
@@ -237,7 +419,9 @@ function testServer() {
     const mockDriver = new MockDriver()
     const server = new HubServer(mockDriver, new MockProofs(),
                                  { whitelist: [testAddrs[0]] })
-    const authorization = StorageAuth.makeWithKey(testPairs[0]).toAuthHeader()
+    const challengeText = auth.getChallengeText()
+    const authPart = auth.LegacyAuthentication.makeAuthPart(testPairs[0], challengeText)
+    const authorization = `bearer ${authPart}`
 
     const s = new Readable()
     s._read = function noop() {}
@@ -271,38 +455,70 @@ function testServer() {
 }
 
 function testHttpPost() {
-  if (!azConfigPath) {
-    console.log('eliding test, you must set AZ_CONFIG_PATH to run this test.')
-    return
+  let config = {
+    "azCredentials": {
+      "accountName": "mock-azure",
+      "accountKey": "mock-azure-key"
+    },
+    "bucket": "spokes"
+  }
+  let mockTest = true
+
+  if (azConfigPath) {
+    config = JSON.parse(fs.readFileSync(azConfigPath))
+    config.driver = 'azure'
+    mockTest = false
+  }
+
+  let dataMap = []
+  let AzDriver
+  if (mockTest) {
+    mockedObj = makeMockedAzureDriver()
+    dataMap = mockedObj.dataMap
+    AzDriver = mockedObj.AzDriver
+    config.driverClass = AzDriver
+  } else {
+    AzDriver = require(azDriverImport)
   }
 
   test('handle request', (t) => {
-    t.plan(2)
-    const config = JSON.parse(fs.readFileSync(azConfigPath))
-    Object.assign(config, { driver: 'azure' })
-
     let app = makeHttpServer(config)
-    let sk = bitcoin.ECPair.makeRandom()
+    let sk = testPairs[1]
     let fileContents = sk.toWIF()
     let blob = Buffer(fileContents)
-    let authHeader = StorageAuth
-        .makeWithKey(sk)
-        .toAuthHeader()
+
+    const challengeText = auth.getChallengeText()
+    const authPart = auth.LegacyAuthentication.makeAuthPart(sk, challengeText)
+    const authorization = `bearer ${authPart}`
+
     let address = sk.getAddress()
     let path = `/store/${address}/helloWorld`
-    request(app).post(path)
-      .set('Content-Type', 'application/octet-stream')
-      .set('Authorization', authHeader)
-      .send(blob)
-      .expect(202)
+    let prefix = ''
+
+    request(app).get('/hub_info/')
+      .expect(200)
       .then((response) => {
+        prefix = JSON.parse(response.text).read_url_prefix
+      })
+      .then(() => request(app).post(path)
+            .set('Content-Type', 'application/octet-stream')
+            .set('Authorization', authorization)
+            .send(blob)
+            .expect(202))
+      .then((response) => {
+        if (mockTest) {
+          addMockFetches(prefix, dataMap)
+        }
+
         let url = JSON.parse(response.text).publicURL
         t.ok(url, 'Must return URL')
         console.log(url)
         fetch(url)
           .then(resp => resp.text())
-          .then(text => t.equal(text, fileContents))
+          .then(text => t.equal(text, fileContents, 'Contents returned must be correct'))
       })
+      .catch(() => t.false(true, `Unexpected err: ${err}`))
+      .then(() => { FetchMock.restore; t.end() })
   })
 }
 
@@ -311,17 +527,19 @@ function testBadSig(done, configObj) {
   const conf = config(configObj)
 
   let app = new HubServer({}, {}, conf)
-  let sk = bitcoin.ECPair.makeRandom()
+  let sk = testPairs[1]
   let fileContents = sk.toWIF()
   let blob = Buffer(fileContents)
-  let authHeader = StorageAuth
-      .makeWithKey(sk)
-      .toAuthHeader()
+
+  const challengeText = auth.getChallengeText()
+  const authPart = auth.LegacyAuthentication.makeAuthPart(testPairs[0], challengeText)
+  const authorization = `bearer ${authPart}`
+
   let address = bitcoin.ECPair.makeRandom().getAddress()
   let path = `/store/${address}/helloWorld`
   request(app).post(path)
     .set('Content-Type', 'application/octet-stream')
-    .set('Authorization', authHeader)
+    .set('Authorization', authorization)
     .send(blob)
     .expect(401)
     .then((response) => {

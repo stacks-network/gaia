@@ -1,8 +1,7 @@
 /* @flow */
 
-import { StorageAuthentication as StorageAuth } from './StorageAuthentication'
+import { validateAuthorizationHeader } from './authentication'
 import { ValidationError } from './errors'
-import logger from 'winston'
 
 import type { Readable } from 'stream'
 import type { DriverModel } from './driverModel'
@@ -27,18 +26,7 @@ export class HubServer {
       throw new ValidationError('Address not authorized for writes')
     }
 
-    let authObject = null
-    try {
-      authObject = StorageAuth.fromAuthHeader(requestHeaders.authorization, this.serverName)
-    } catch (err) {
-      logger.error(err)
-    }
-
-    if (!authObject) {
-      throw new ValidationError('Failed to parse authentication header.')
-    }
-
-    authObject.isAuthenticationValid(address, true)
+    validateAuthorizationHeader(requestHeaders.authorization, this.serverName, address)
   }
 
   handleRequest(address: string, path: string,
