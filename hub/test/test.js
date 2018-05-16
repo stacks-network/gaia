@@ -15,6 +15,7 @@ const config = require('../lib/server/config.js')
 const { ProofChecker } = require('../lib/server/ProofChecker.js')
 const { HubServer } = require('../lib/server/server.js')
 const { makeHttpServer } = require('../lib/server/http.js')
+const { TokenSigner } = require('jsontokens')
 
 const errors = require('../lib/server/errors')
 
@@ -185,6 +186,41 @@ function testAuth() {
              'Bad signature must throw')
     t.ok(!authenticator.isAuthenticationValid(testAddrs[1], challengeText, { throwOnFailure: false }),
          'Bad signature must fail')
+    t.end()
+  })
+
+  test('v1 storage validation', (t) => {
+    const challengeText = 'bananas are tasty'
+    const authPart = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText)
+    const authorization = `bearer ${authPart}`
+    const authenticator = auth.parseAuthHeader(authorization)
+    t.throws(() => authenticator.isAuthenticationValid(testAddrs[1], challengeText),
+             errors.ValidationError, 'Wrong address must throw')
+    t.throws(() => authenticator.isAuthenticationValid(testAddrs[0], 'potatos are tasty'),
+             errors.ValidationError, 'Wrong challenge text must throw')
+    t.ok(!authenticator.isAuthenticationValid(testAddrs[1], challengeText, { throwOnFailure: false }),
+         'Wrong address must fail')
+    t.ok(authenticator.isAuthenticationValid(testAddrs[0], challengeText, { throwOnFailure: false }),
+         'Good signature must pass')
+
+    const signerKeyHex = testPairs[0].d.toHex()
+    const tokenWithoutIssuer = new TokenSigner('ES256K', signerKeyHex).sign(
+      { garbage: 'in' })
+    const goodTokenWithoutExp = new TokenSigner('ES256K', signerKeyHex).sign(
+      { gaiaChallenge: challengeText, iss: testPairs[0].getPublicKeyBuffer().toString('hex') })
+    const expiredToken = new TokenSigner('ES256K', signerKeyHex).sign(
+      { gaiaChallenge: challengeText, iss: testPairs[0].getPublicKeyBuffer().toString('hex'), exp: 1 })
+    const wrongIssuerToken = new TokenSigner('ES256K', signerKeyHex).sign(
+      { gaiaChallenge: challengeText, iss: testPairs[1].getPublicKeyBuffer().toString('hex'), exp: 1 })
+    t.throws(() => new auth.V1Authentication(tokenWithoutIssuer).isAuthenticationValid(testAddrs[0], challengeText),
+             errors.ValidationError, 'No `iss`, should fail')
+    t.throws(() => new auth.V1Authentication(expiredToken).isAuthenticationValid(testAddrs[0], challengeText),
+             errors.ValidationError, 'Expired token should fail')
+    t.throws(() => new auth.V1Authentication(wrongIssuerToken).isAuthenticationValid(testAddrs[1], challengeText),
+             errors.ValidationError, 'Invalid signature')
+    t.ok(new auth.V1Authentication(goodTokenWithoutExp).isAuthenticationValid(testAddrs[0], challengeText),
+         'Valid token without expiration should pass')
+
     t.end()
   })
 }

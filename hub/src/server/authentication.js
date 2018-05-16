@@ -1,7 +1,9 @@
 /* @flow */
 
 import bitcoin from 'bitcoinjs-lib'
-
+import crypto from 'crypto'
+import { decodeToken, TokenSigner, TokenVerifier } from 'jsontokens'
+import { ecPairToHexString } from 'blockstack'
 import { ValidationError } from './errors'
 import logger from 'winston'
 
@@ -10,6 +12,84 @@ const DEFAULT_STORAGE_URL = 'storage.blockstack.org'
 function pubkeyHexToECPair (pubkeyHex) {
   const pkBuff = Buffer.from(pubkeyHex, 'hex')
   return bitcoin.ECPair.fromPublicKeyBuffer(pkBuff)
+}
+
+export class V1Authentication {
+  constructor(token: string) {
+    this.token = token
+  }
+
+  static fromAuthPart(authPart: string) {
+    if (!authPart.startsWith('v1:')) {
+      throw new ValidationError('Authorization header should start with v1:')
+    }
+    const token = authPart.slice('v1:'.length)
+    const decodedToken = decodeToken(token)
+    const publicKey = decodedToken.payload.iss
+    if (!publicKey || !decodedToken) {
+      throw new ValidationError('Auth token should be a JWT with at least an `iss` claim')
+    }
+    return new V1Authentication(token)
+  }
+
+  static makeAuthPart(secretKey: bitcoin.ECPair, challengeText: string) {
+    const FOUR_MONTH_SECONDS = 60 * 60 * 24 * 31 * 4
+    const publicKeyHex = secretKey.getPublicKeyBuffer().toString('hex')
+    const salt = crypto.randomBytes(16).toString('hex')
+    const payload = { gaiaChallenge: challengeText,
+                      iss: publicKeyHex,
+                      exp: FOUR_MONTH_SECONDS + (new Date()/1000),
+                      salt }
+    const signerKeyHex = ecPairToHexString(secretKey).slice(0, 64)
+    const token = new TokenSigner('ES256K', signerKeyHex).sign(payload)
+    return `v1:${token}`
+  }
+
+  isAuthenticationValid(address: string, challengeText: string,
+                        options?: { throwOnFailure?: boolean }) {
+    const defaults = {
+      throwOnFailure: true
+    }
+    options = Object.assign({}, defaults, options)
+
+    const decodedToken = decodeToken(this.token)
+    const publicKey = decodedToken.payload.iss
+    const gaiaChallenge = decodedToken.payload.gaiaChallenge
+
+    try {
+      if (! publicKey) {
+        throw new ValidationError('Must provide `iss` claim in JWT.')
+      }
+
+      const issuerAddress = pubkeyHexToECPair(publicKey).getAddress()
+
+      if (issuerAddress !== address) {
+        throw new ValidationError('Address not allowed to write on this path')
+      }
+
+      const verified = new TokenVerifier('ES256K', publicKey).verify(this.token)
+      if (!verified) {
+        throw new ValidationError('Failed to verify supplied authentication JWT')
+      }
+
+      if (gaiaChallenge !== challengeText) {
+        throw new ValidationError(`Invalid gaiaChallenge text in supplied JWT: ${gaiaChallenge}`)
+      }
+
+      const expiresAt = decodedToken.payload.exp
+      if (expiresAt && expiresAt < (new Date()/1000)) {
+        throw new ValidationError(
+          `Expired authentication token: expire time of ${expiresAt} (secs since epoch)`)
+      }
+      return true
+    } catch (err) {
+      if (!options.throwOnFailure) {
+        return false
+      } else {
+        throw err
+      }
+    }
+  }
 }
 
 export class LegacyAuthentication {
@@ -84,9 +164,8 @@ export function parseAuthHeader(authHeader: string) {
     return LegacyAuthentication.fromAuthPart(authPart)
   } else {
     const version = authPart.slice(0, versionIndex)
-    const authData = authPart.slice(versionIndex)
     if (version === 'v1') {
-      return { version, authData }
+      return V1Authentication.fromAuthPart(authPart)
     } else {
       throw new ValidationError('Unknown authentication header version: ${version}')
     }
