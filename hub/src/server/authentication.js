@@ -8,6 +8,7 @@ import { ValidationError } from './errors'
 import logger from 'winston'
 
 const DEFAULT_STORAGE_URL = 'storage.blockstack.org'
+export const LATEST_AUTH_VERSION = 'v1'
 
 function pubkeyHexToECPair (pubkeyHex) {
   const pkBuff = Buffer.from(pubkeyHex, 'hex')

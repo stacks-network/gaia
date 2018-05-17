@@ -6,7 +6,7 @@ import logger from 'winston'
 import cors from 'cors'
 
 import { ProofChecker } from './ProofChecker'
-import { getChallengeText } from './authentication'
+import { getChallengeText, LATEST_AUTH_VERSION } from './authentication'
 import { HubServer } from './server'
 
 function writeResponse(res: express.response, data: Object, statusCode: number) {
@@ -83,8 +83,9 @@ export function makeHttpServer(config: Object) {
                          res: express.response) => {
     const challengeText = getChallengeText(server.serverName)
     const readURLPrefix = driver.getReadURLPrefix()
-    writeResponse(res, { 'challenge_text' : challengeText,
-                         'read_url_prefix' : readURLPrefix }, 200)
+    writeResponse(res, { 'challenge_text': challengeText,
+                         'latest_auth_version': LATEST_AUTH_VERSION,
+                         'read_url_prefix': readURLPrefix }, 200)
   })
 
   // Instantiate express application
