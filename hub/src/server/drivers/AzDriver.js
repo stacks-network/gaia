@@ -11,7 +11,8 @@ type AZ_CONFIG_TYPE = { azCredentials: { accountName: string,
                                          accountKey: string },
                         bucket: string,
                         readURL?: string,
-                        cacheControl?: string }
+                        cacheControl?: string,
+                        maximumListAttempts?: number }
 
 // The AzDriver utilized the azure nodejs sdk to write files to azure blob storage
 class AzDriver implements DriverModel {
@@ -27,6 +28,7 @@ class AzDriver implements DriverModel {
     this.accountName = config.azCredentials.accountName
     this.readURL = config.readURL
     this.cacheControl = config.cacheControl
+    this.maximumListAttempts = config.maximumListAttempts || 5
 
     // Check for container(bucket), create it if does not exist
     // Set permissions to 'blob' to allow public reads
@@ -51,6 +53,37 @@ class AzDriver implements DriverModel {
       return `https://${this.readURL}/${this.bucket}/`
     }
     return `https://${this.accountName}.blob.core.windows.net/${this.bucket}/`
+  }
+
+  innerListBlob(reducer, prior) {
+    if (prior.attempts >= this.maximumListAttempts) {
+      return Promise.reject(new Error('Too many files returned.'))
+    }
+    if (prior.attempts === 0 || prior.continuationToken != null) {
+      return new Promise((resolve, reject) => {
+        this.blobService.listBlobsSegmentedWithPrefix(
+          this.bucket, prior.prefix, prior.continuationToken, null, (err, results) => {
+            if (err) {
+              return reject(err)
+            }
+            const aggregate = results.entries.reduce(reducer, prior.aggregate)
+            return resolve({ attempts: prior.attempts + 1,
+                             prefix: prior.prefix,
+                             aggregate,
+                             continuationToken: results.entries.continuationToken })
+          })
+      })
+        .then(current => this.innerListBlob(reducer, current))
+    } else {
+      return Promise.resolve(prior.aggregate)
+    }
+  }
+
+  listFiles(prefix: string) {
+    return this.innerListBlob((agg, entry) => {
+      agg.push(entry.name.slice(prefix.length + 1))
+      return agg
+    }, { attempts: 0, prefix, aggregate: [], continuationToken: null })
   }
 
   performWrite(args: { path: string,

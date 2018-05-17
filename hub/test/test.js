@@ -79,7 +79,7 @@ function testAzDriver() {
   const config = JSON.parse(fs.readFileSync(azConfigPath))
 
   test('azDriver', (t) => {
-    t.plan(3)
+    t.plan(5)
     const driver = new AzDriver(config)
     const prefix = driver.getReadURLPrefix()
     const s = new Readable()
@@ -103,6 +103,11 @@ function testAzDriver() {
       })
       .then((resp) => resp.text())
       .then((resptxt) => t.equal(resptxt, 'hello world', `Must get back hello world: got back: ${resptxt}`))
+      .then(() => driver.listFiles('12345'))
+      .then((files) => {
+        t.equal(files.length, 1, 'Should return one file')
+        t.equal(files[0], 'foo.txt', 'Should be foo.txt!')
+      })
   })
 }
 
