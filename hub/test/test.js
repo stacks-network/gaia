@@ -192,6 +192,7 @@ function testAuth() {
   test('v1 storage validation', (t) => {
     const challengeText = 'bananas are tasty'
     const authPart = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText)
+    console.log(`V1 storage validation: ${authPart}`)
     const authorization = `bearer ${authPart}`
     const authenticator = auth.parseAuthHeader(authorization)
     t.throws(() => authenticator.isAuthenticationValid(testAddrs[1], challengeText),
@@ -522,10 +523,6 @@ function testHttpPost() {
     let fileContents = sk.toWIF()
     let blob = Buffer(fileContents)
 
-    const challengeText = auth.getChallengeText()
-    const authPart = auth.LegacyAuthentication.makeAuthPart(sk, challengeText)
-    const authorization = `bearer ${authPart}`
-
     let address = sk.getAddress()
     let path = `/store/${address}/helloWorld`
     let prefix = ''
@@ -534,8 +531,11 @@ function testHttpPost() {
       .expect(200)
       .then((response) => {
         prefix = JSON.parse(response.text).read_url_prefix
+        challenge = JSON.parse(response.text).challenge_text
+        const authPart = auth.V1Authentication.makeAuthPart(sk, challenge)
+        return `bearer ${authPart}`
       })
-      .then(() => request(app).post(path)
+      .then((authorization) => request(app).post(path)
             .set('Content-Type', 'application/octet-stream')
             .set('Authorization', authorization)
             .send(blob)
@@ -555,31 +555,6 @@ function testHttpPost() {
       .catch(() => t.false(true, `Unexpected err: ${err}`))
       .then(() => { FetchMock.restore; t.end() })
   })
-}
-
-function testBadSig(done, configObj) {
-  configObj = Object.assign({}, {proofsConfig : {proofsRequired : 0}}, configObj)
-  const conf = config(configObj)
-
-  let app = new HubServer({}, {}, conf)
-  let sk = testPairs[1]
-  let fileContents = sk.toWIF()
-  let blob = Buffer(fileContents)
-
-  const challengeText = auth.getChallengeText()
-  const authPart = auth.LegacyAuthentication.makeAuthPart(testPairs[0], challengeText)
-  const authorization = `bearer ${authPart}`
-
-  let address = bitcoin.ECPair.makeRandom().getAddress()
-  let path = `/store/${address}/helloWorld`
-  request(app).post(path)
-    .set('Content-Type', 'application/octet-stream')
-    .set('Authorization', authorization)
-    .send(blob)
-    .expect(401)
-    .then((response) => {
-      done()
-    })
 }
 
 testServer()
