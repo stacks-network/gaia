@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "engines": {
-    "node": "^9"
+    "node": "^8"
   },
   "dependencies": {
     "@google-cloud/storage": "^1.6.0",
