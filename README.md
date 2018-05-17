@@ -268,8 +268,12 @@ Returns a JSON object:
 {
  "challenge_text": "text-which-must-be-signed-to-validate-requests",
  "read_url_prefix": "${read-url-prefix}"
+ "latest_auth_version": "v1"
 }
 ```
+
+The latest auth version allows the client to figure out which auth versions the
+gaia hub supports.
 
 # Future Design Goals
 
