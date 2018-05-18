@@ -82,6 +82,9 @@ export function makeHttpServer(config: Object) {
   app.get('/hub_info/', (req: express.request,
                          res: express.response) => {
     const challengeText = getChallengeText(server.serverName)
+    if (challengeText.length < 10) {
+      return writeResponse(res, { message: 'Server challenge text misconfigured' }, 500)
+    }
     const readURLPrefix = driver.getReadURLPrefix()
     writeResponse(res, { 'challenge_text': challengeText,
                          'latest_auth_version': LATEST_AUTH_VERSION,
