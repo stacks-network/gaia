@@ -25,7 +25,12 @@ export class V1Authentication {
       throw new ValidationError('Authorization header should start with v1:')
     }
     const token = authPart.slice('v1:'.length)
-    const decodedToken = decodeToken(token)
+    let decodedToken
+    try {
+      decodedToken = decodeToken(token)
+    } catch (e) {
+      throw new ValidationError('Failed to decode authentication JWT')
+    }
     const publicKey = decodedToken.payload.iss
     if (!publicKey || !decodedToken) {
       throw new ValidationError('Auth token should be a JWT with at least an `iss` claim')
@@ -53,7 +58,13 @@ export class V1Authentication {
     }
     options = Object.assign({}, defaults, options)
 
-    const decodedToken = decodeToken(this.token)
+    let decodedToken
+    try {
+      decodedToken = decodeToken(this.token)
+    } catch (e) {
+      throw new ValidationError('Failed to decode authentication JWT')
+    }
+
     const publicKey = decodedToken.payload.iss
     const gaiaChallenge = decodedToken.payload.gaiaChallenge
 
