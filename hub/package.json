@@ -3,18 +3,21 @@
   "version": "1.1.0",
   "description": "",
   "main": "index.js",
+  "engines": {
+    "node": "^8"
+  },
   "dependencies": {
     "@google-cloud/storage": "^1.6.0",
     "aws-sdk": "^2.114.0",
     "azure-storage": "^2.5.0",
     "bigi": "^1.4.2",
     "bitcoinjs-lib": "^3.1.1",
-    "blockstack": "^0.11.1",
+    "blockstack": "^17.2.0",
     "body-parser": "^1.18.1",
     "cors": "^2.8.4",
     "express": "^4.15.4",
     "express-winston": "^2.4.0",
-    "jsontokens": "^0.7.6",
+    "jsontokens": "^0.7.7",
     "node-fetch": "^2.0.0",
     "npm": "^5.5.1",
     "winston": "^2.3.1"
@@ -26,11 +29,12 @@
     "babel-preset-flow": "^6.23.0",
     "eslint": "^4.18.1",
     "eslint-plugin-flowtype": "^2.46.3",
+    "fetch-mock": "^6.4.2",
     "flow-bin": "^0.71.0",
     "mocha": "^3.5.3",
     "nock": "^9.1.9",
     "nyc": "^11.4.1",
-    "request": "^2.81.0",
+    "proxyquire": "^2.0.1",
     "supertest": "^3.0.0",
     "tape": "^4.9.0"
   },
