@@ -102,6 +102,37 @@ achieved via an authentication token, which is a message _signed_ by
 the private-key associated with that address. The message itself is a
 challenge-text, returned via the `/hub_info/` endpoint.
 
+## V1 Authentication Scheme
+
+The V1 authentication scheme uses a JWT, prefixed with `v1:` as a
+bearer token in the HTTP authorization field. The expected JWT payload
+structure is:
+
+```
+{
+ 'type': 'object',
+ 'properties': {
+   'iss': { 'type': 'string' }
+   'exp': { 'type': 'IntDate' }
+   'gaiaChallenge': { 'type': 'string' }
+ }
+ 'required': [ 'iss', 'gaiaChallenge' ]
+}
+```
+
+In addition to `iss`, `exp`, and `gaiaChallenge` claims, clients may
+add other properties (e.g., a `salt` field) to the payload, and they will
+not affect the validity of the JWT. Rather, the validity of the JWT is checked
+by ensuring:
+
+1. That the JWT is signed correctly by verifying with the pubkey hex provided as
+`iss`
+2. That `iss` matches the address associated with the bucket.
+3. That `gaiaChallenge` is equal to the server's challenge text.
+4. That the epoch time `exp` is greater than the server's current epoch time.
+
+## Legacy authentication scheme
+
 In more detail, this signed message is:
 
 ```
@@ -237,8 +268,12 @@ Returns a JSON object:
 {
  "challenge_text": "text-which-must-be-signed-to-validate-requests",
  "read_url_prefix": "${read-url-prefix}"
+ "latest_auth_version": "v1"
 }
 ```
+
+The latest auth version allows the client to figure out which auth versions the
+gaia hub supports.
 
 # Future Design Goals
 
