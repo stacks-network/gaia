@@ -29,6 +29,12 @@ export class HubServer {
     validateAuthorizationHeader(requestHeaders.authorization, this.serverName, address)
   }
 
+  handleListFiles(address: string,
+                  requestHeaders: { authorization: string }) {
+    this.validate(address, requestHeaders)
+    return this.driver.listFiles(address)
+  }
+
   handleRequest(address: string, path: string,
                 requestHeaders: {'content-type': string,
                                  'content-length': string,

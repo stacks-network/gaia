@@ -79,9 +79,28 @@ export function makeHttpServer(config: Object) {
       })
   })
 
+  app.post(
+      /^\/list-files\/([a-zA-Z0-9]+)\/?/,
+    (req: express.request, res: express.response) =>
+      {
+        const address = req.params[0]
+        server.handleListFiles(address, req.headers)
+          .then((filenames) => {
+            writeResponse(res, { files }, 202)
+          })
+          .catch((err) => {
+            logger.error(err)
+            if (err.name === 'ValidationError') {
+              writeResponse(res, { message: err.message }, 401)
+            } else {
+              writeResponse(res, { message: 'Server Error' }, 500)
+            }
+          })
+      })
+
   app.get('/hub_info/', (req: express.request,
                          res: express.response) => {
-    const challengeText = getChallengeText(server.serverName)
+                           const challengeText = getChallengeText(server.serverName)
     if (challengeText.length < 10) {
       return writeResponse(res, { message: 'Server challenge text misconfigured' }, 500)
     }
