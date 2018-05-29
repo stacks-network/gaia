@@ -85,7 +85,7 @@ export function makeHttpServer(config: Object) {
       {
         const address = req.params[0]
         server.handleListFiles(address, req.headers)
-          .then((filenames) => {
+          .then((files) => {
             writeResponse(res, { files }, 202)
           })
           .catch((err) => {
