@@ -70,7 +70,7 @@ class AzDriver implements DriverModel {
             return resolve({ attempts: prior.attempts + 1,
                              prefix: prior.prefix,
                              aggregate,
-                             continuationToken: results.entries.continuationToken })
+                             continuationToken: results.continuationToken })
           })
       })
         .then(current => this.innerListBlob(reducer, current))
