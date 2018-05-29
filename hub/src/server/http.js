@@ -6,7 +6,7 @@ import logger from 'winston'
 import cors from 'cors'
 
 import { ProofChecker } from './ProofChecker'
-import { StorageAuthentication } from './StorageAuthentication'
+import { getChallengeText, LATEST_AUTH_VERSION } from './authentication'
 import { HubServer } from './server'
 
 function writeResponse(res: express.response, data: Object, statusCode: number) {
@@ -32,6 +32,8 @@ export function makeHttpServer(config: Object) {
   } else if (config.driver === 'google-cloud') {
     const GcDriver = require('./drivers/GcDriver')
     driver = new GcDriver(config)
+  } else if (config.driverClass) {
+    driver = new config.driverClass(config)
   } else {
     logger.error('Failed to load driver. Check driver configuration.')
     throw new Error('Failed to load driver')
@@ -41,6 +43,7 @@ export function makeHttpServer(config: Object) {
   const server = new HubServer(driver, proofChecker, config)
 
   app.config = config
+  app.driver = driver
 
   // Instantiate server logging with Winston
   app.use(expressWinston.logger({
@@ -78,10 +81,14 @@ export function makeHttpServer(config: Object) {
 
   app.get('/hub_info/', (req: express.request,
                          res: express.response) => {
-    const challengeText = StorageAuthentication.challengeText(server.serverName)
+    const challengeText = getChallengeText(server.serverName)
+    if (challengeText.length < 10) {
+      return writeResponse(res, { message: 'Server challenge text misconfigured' }, 500)
+    }
     const readURLPrefix = driver.getReadURLPrefix()
-    writeResponse(res, { 'challenge_text' : challengeText,
-                         'read_url_prefix' : readURLPrefix }, 200)
+    writeResponse(res, { 'challenge_text': challengeText,
+                         'latest_auth_version': LATEST_AUTH_VERSION,
+                         'read_url_prefix': readURLPrefix }, 200)
   })
 
   // Instantiate express application
