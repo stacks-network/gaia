@@ -8,21 +8,17 @@ import { NotEnoughProofError } from './errors'
 
 export class ProofChecker {
   proofsRequired: number
-  storageDriver: Object
 
-  constructor(proofsConfig: ?{proofsRequired: number},
-              storageDriver: Object) {
+  constructor(proofsConfig: ?{proofsRequired: number}) {
     if (!proofsConfig) {
       this.proofsRequired = 0
     } else {
       this.proofsRequired = proofsConfig.proofsRequired
     }
-    this.storageDriver = storageDriver
   }
 
-  fetchProfile(address: string) {
+  fetchProfile(address: string, readURL: string) {
     const filename = `${address}/profile.json`
-    const readURL = this.storageDriver.getReadURLPrefix()
     const url = `${readURL}${filename}`
 
     return fetch(url)
@@ -37,11 +33,11 @@ export class ProofChecker {
     return (validProofs.length >= this.proofsRequired)
   }
 
-  checkProofs(address: string, filename: string) {
+  checkProofs(address: string, filename: string, readURL: string) {
     if (this.proofsRequired == 0 || filename.endsWith('/profile.json')) {
       return Promise.resolve(true)
     }
-    return this.fetchProfile(address)
+    return this.fetchProfile(address, readURL)
       .then(profile =>
             blockstack.validateProofs(profile, address, undefined) )
       .catch(error => {
