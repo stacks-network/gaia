@@ -31,7 +31,6 @@
     "eslint-plugin-flowtype": "^2.46.3",
     "fetch-mock": "^6.4.2",
     "flow-bin": "^0.71.0",
-    "mocha": "^3.5.3",
     "nock": "^9.1.9",
     "nyc": "^11.4.1",
     "proxyquire": "^2.0.1",
