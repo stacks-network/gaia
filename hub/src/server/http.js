@@ -32,6 +32,9 @@ export function makeHttpServer(config: Object) {
   } else if (config.driver === 'google-cloud') {
     const GcDriver = require('./drivers/GcDriver')
     driver = new GcDriver(config)
+  } else if (config.driver === 'dropbox') {
+    const DBXDriver = require('./drivers/DBXDriver')
+    driver = new DBXDriver(config)
   } else if (config.driverClass) {
     driver = new config.driverClass(config)
   } else {

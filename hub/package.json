@@ -15,6 +15,7 @@
     "blockstack": "^17.2.0",
     "body-parser": "^1.18.1",
     "cors": "^2.8.4",
+    "dropbox": "^4.0.7",
     "express": "^4.15.4",
     "express-winston": "^2.4.0",
     "jsontokens": "^0.7.7",
