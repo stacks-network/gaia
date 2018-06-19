@@ -94,6 +94,31 @@ export function makeHttpServer(config: Object) {
                          'read_url_prefix': readURLPrefix }, 200)
   })
 
+  app.get(/^\/read\/([a-zA-Z0-9]+)\/(.+)/, (req: express.request, res: express.response) => {
+    let filename = req.params[1]
+    if (filename.endsWith('/')) {
+      filename = filename.substring(0, filename.length - 1)
+    }
+    const address = req.params[0]
+
+    server.handleGetFileRequest(address, filename, req.headers)
+      .then(content => {
+        writeResponse(res, {content}, 301)
+      })
+      .catch(err => {
+        logger.error(err)
+        if (err.name === 'ValidationError') {
+          writeResponse(res, {message: err.message}, 401)
+        } else if (err.name === 'BadPathError') {
+          writeResponse(res, {message: err.message}, 403)
+        } else if (err.name === 'NotEnoughProofError') {
+          writeResponse(res, {message: err.message}, 402)
+        } else {
+          writeResponse(res, {message: 'Server Error'}, 500)
+        }
+      })
+  })
+
   // Instantiate express application
   return app
 }

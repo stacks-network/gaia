@@ -50,8 +50,23 @@ class DBXDriver implements DriverModel {
   }
 
   getReadURLPrefix (): string {
-    //TODO (djs): check how to return file/content
-    return `https://www.dropbox.com/home`
+    return `https://${this.readURL}/`
+  }
+
+  performRead (args: { path: string, storageTopLevel: string }) {
+    const {path, storageTopLevel} = args
+    const filePath = `${this.storageRootDirectory}${storageTopLevel}/${path}`
+
+    return new Promise((resolve, reject) => {
+      this.dbx.filesDownload({path: filePath})
+        .then(file => {
+          return resolve(file.fileBinary.toString('utf-8'))
+        })
+        .catch(error => {
+          return reject(new Error('Dropbox storage failure: failed to read file ' +
+            `${path} in ${filePath}: ${JSON.stringify(error)}`))
+        })
+    })
   }
 
   performWrite (args: {
