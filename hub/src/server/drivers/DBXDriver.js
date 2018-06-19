@@ -76,6 +76,9 @@ class DBXDriver implements DriverModel {
         dbxParams.autorename = true
       }
 
+      // TODO (djs):
+      // Do not use this to upload a file larger than 150 MB.
+      // Instead, create an upload session with uploadSessionStart().
       this.dbx.filesUpload(dbxParams)
         .then(data => {
           return resolve(data.path_display)
