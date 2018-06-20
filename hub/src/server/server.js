@@ -50,11 +50,9 @@ export class HubServer {
       .then(() => this.driver.performWrite(writeCommand))
   }
 
-  handleGetFileRequest(address: string, path: string,
-                       requestHeaders: {'content-type': string,
-                                        'content-length': string,
-                                        'authorization': string},) {
-    this.validate(address, requestHeaders)
+  handleGetFileRequest(address: string, path: string) {
+    // TODO (djs): should think about authorization
+    // this.validate(address, requestHeaders)
     const readCommand = { storageTopLevel: address, path}
 
     return this.proofChecker.checkProofs(address, path)

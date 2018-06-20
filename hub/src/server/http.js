@@ -15,6 +15,28 @@ function writeResponse(res: express.response, data: Object, statusCode: number) 
   res.end()
 }
 
+function writeErrorResponse(res: express.response, error) {
+  if (error.name === 'ValidationError') {
+    writeResponse(res, { message: error.message }, 401)
+  } else if (error.name === 'BadPathError') {
+    writeResponse(res, { message: error.message }, 403)
+  } else if (error.name === 'NotEnoughProofError') {
+    writeResponse(res, { message: error.message }, 402)
+  } else {
+    writeResponse(res, { message: 'Server Error' }, 500)
+  }
+}
+
+function getAddressAndFileName(request: express.request): Object {
+  let filename = request.params[1]
+  if (filename.endsWith('/')) {
+    filename = filename.substring(0, filename.length - 1)
+  }
+  const address = request.params[0]
+
+  return {address, filename}
+}
+
 export function makeHttpServer(config: Object) {
   const app = express()
 
@@ -56,13 +78,8 @@ export function makeHttpServer(config: Object) {
 
   // sadly, express doesn't like to capture slashes.
   //  but that's okay! regexes solve that problem
-  app.post(/^\/store\/([a-zA-Z0-9]+)\/(.+)/, (req: express.request,
-                                              res: express.response) => {
-    let filename = req.params[1]
-    if (filename.endsWith('/')){
-      filename = filename.substring(0, filename.length - 1)
-    }
-    const address = req.params[0]
+  app.post(/^\/store\/([a-zA-Z0-9]+)\/(.+)/, (req: express.request, res: express.response) => {
+    const {address, filename} = getAddressAndFileName(req)
 
     server.handleRequest(address, filename, req.headers, req)
       .then((publicURL) => {
@@ -70,15 +87,7 @@ export function makeHttpServer(config: Object) {
       })
       .catch((err) => {
         logger.error(err)
-        if (err.name === 'ValidationError') {
-          writeResponse(res, { message: err.message }, 401)
-        } else if (err.name === 'BadPathError') {
-          writeResponse(res, { message: err.message }, 403)
-        } else if (err.name === 'NotEnoughProofError') {
-          writeResponse(res, { message: err.message }, 402)
-        } else {
-          writeResponse(res, { message: 'Server Error' }, 500)
-        }
+        writeErrorResponse(res, err)
       })
   })
 
@@ -95,27 +104,16 @@ export function makeHttpServer(config: Object) {
   })
 
   app.get(/^\/read\/([a-zA-Z0-9]+)\/(.+)/, (req: express.request, res: express.response) => {
-    let filename = req.params[1]
-    if (filename.endsWith('/')) {
-      filename = filename.substring(0, filename.length - 1)
-    }
-    const address = req.params[0]
+    const {address, filename} = getAddressAndFileName(req)
 
-    server.handleGetFileRequest(address, filename, req.headers)
+    server.handleGetFileRequest(address, filename)
       .then(content => {
-        writeResponse(res, {content}, 301)
+        res.writeHead(200, {'Content-Type' : 'text/plain'})
+        res.end(content, 'binary')
       })
       .catch(err => {
         logger.error(err)
-        if (err.name === 'ValidationError') {
-          writeResponse(res, {message: err.message}, 401)
-        } else if (err.name === 'BadPathError') {
-          writeResponse(res, {message: err.message}, 403)
-        } else if (err.name === 'NotEnoughProofError') {
-          writeResponse(res, {message: err.message}, 402)
-        } else {
-          writeResponse(res, {message: 'Server Error'}, 500)
-        }
+        writeErrorResponse(res, err)
       })
   })
 

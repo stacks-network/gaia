@@ -8,5 +8,5 @@ export interface DriverModel {
                        contentLength: number,
                        contentType: string }): Promise<string>;
   performRead(args: { path: string,
-                      storageTopLevel: string }): Promise<any>;
+                      storageTopLevel: string }): Promise<Buffer>;
 }
