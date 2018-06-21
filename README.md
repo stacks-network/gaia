@@ -13,6 +13,8 @@ If you would like to deploy your own you can easily do so using Heroku:
 
 [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/blockstack/gaia/)
 
+Instructions on setting up and configuring a Gaia Hub can be found in [this readme](https://github.com/blockstack/gaia/blob/master/hub/README.md).
+
 # Overview
 
 <!--- I swapped these two paragraphs and did some word-smithing (jcn) -->
