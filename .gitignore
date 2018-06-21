@@ -66,3 +66,7 @@ target/
 *.swo
 *.swn
 hub/.nyc_output/
+
+
+#IDEs
+.idea/
