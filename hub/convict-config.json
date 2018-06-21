@@ -25,8 +25,8 @@
   },
   "readURL": {
     "doc": "The readURL.",
-    "format": "url",
-    "default": "http://localhost:3000/read/",
+    "format": "String",
+    "default": "",
     "env": "gaia_readURL"
   },
   "whitelist": {
