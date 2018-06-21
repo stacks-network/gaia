@@ -10,7 +10,6 @@ import type { Readable } from 'stream'
 type AZ_CONFIG_TYPE = { azCredentials: { accountName: string,
                                          accountKey: string },
                         bucket: string,
-                        readURL?: string,
                         cacheControl?: string }
 
 // The AzDriver utilized the azure nodejs sdk to write files to azure blob storage
@@ -47,9 +46,6 @@ class AzDriver implements DriverModel {
   }
 
   getReadURLPrefix () {
-    if (this.readURL) {
-      return `https://${this.readURL}/${this.bucket}/`
-    }
     return `https://${this.accountName}.blob.core.windows.net/${this.bucket}/`
   }
 
