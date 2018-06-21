@@ -8,18 +8,15 @@ import type { DriverModel } from '../driverModel'
 import type { Readable } from 'stream'
 
 type GC_CONFIG_TYPE = { gcCredentials?: Object,
-                        bucket: string,
-                        readURL?: string }
+                        bucket: string }
 
 class GcDriver implements DriverModel {
   bucket: string
-  readURL: ?string
   storage: Storage
 
   constructor (config: GC_CONFIG_TYPE) {
     this.storage =  new Storage(config.gcCredentials)
     this.bucket = config.bucket
-    this.readURL = config.readURL
 
     this.createIfNeeded()
   }
@@ -30,9 +27,6 @@ class GcDriver implements DriverModel {
   }
 
   getReadURLPrefix () {
-    if (this.readURL) {
-      return `https://${this.readURL}/`
-    }
     return `https://storage.googleapis.com/${this.bucket}/`
   }
 

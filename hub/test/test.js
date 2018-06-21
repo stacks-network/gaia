@@ -152,6 +152,9 @@ class MockDriver {
   constructor() {
     this.lastWrite = null
   }
+  getReadURLPrefix() {
+    return 'http://test.com/'
+  }
   performWrite(write) {
     this.lastWrite = write
     return Promise.resolve(`http://test.com/${write.storageTopLevel}/${write.path}`)

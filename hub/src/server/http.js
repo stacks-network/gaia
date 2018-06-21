@@ -39,7 +39,7 @@ export function makeHttpServer(config: Object) {
     throw new Error('Failed to load driver')
   }
 
-  const proofChecker = new ProofChecker(config.proofsConfig, driver)
+  const proofChecker = new ProofChecker(config.proofsConfig)
   const server = new HubServer(driver, proofChecker, config)
 
   app.config = config
@@ -85,7 +85,7 @@ export function makeHttpServer(config: Object) {
     if (challengeText.length < 10) {
       return writeResponse(res, { message: 'Server challenge text misconfigured' }, 500)
     }
-    const readURLPrefix = driver.getReadURLPrefix()
+    const readURLPrefix = server.getReadURLPrefix()
     writeResponse(res, { 'challenge_text': challengeText,
                          'latest_auth_version': LATEST_AUTH_VERSION,
                          'read_url_prefix': readURLPrefix }, 200)
