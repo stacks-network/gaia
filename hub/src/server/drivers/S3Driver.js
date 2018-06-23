@@ -9,18 +9,15 @@ import type { DriverModel } from '../driverModel'
 import type { Readable } from 'stream'
 
 type S3_CONFIG_TYPE = { awsCredentials: Object,
-                        bucket: string,
-                        readURL?: string }
+                        bucket: string }
 
 class S3Driver implements DriverModel {
   s3: S3
   bucket: string
-  readURL: ?string
 
   constructor (config: S3_CONFIG_TYPE) {
     this.s3 = new S3(config.awsCredentials)
     this.bucket = config.bucket
-    this.readURL = config.readURL
 
     this.createIfNeeded()
   }
@@ -31,9 +28,6 @@ class S3Driver implements DriverModel {
   }
 
   getReadURLPrefix(): string {
-    if (this.readURL) {
-      return `https://${this.readURL}/`
-    }
     return `https://${this.bucket}.s3.amazonaws.com/`
   }
 

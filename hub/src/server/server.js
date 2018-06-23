@@ -12,11 +12,12 @@ export class HubServer {
   whitelist: Array<string>
   serverName: string
   constructor(driver: DriverModel, proofChecker: Object,
-              config: { whitelist: Array<string>, servername: string }) {
+              config: { whitelist: Array<string>, servername: string, readURL?: string }) {
     this.driver = driver
     this.proofChecker = proofChecker
     this.whitelist = config.whitelist
     this.serverName = config.servername
+    this.readURL = config.readURL
   }
 
   // throws exception on validation error
@@ -33,6 +34,14 @@ export class HubServer {
                   requestHeaders: { authorization: string }) {
     this.validate(address, requestHeaders)
     return this.driver.listFiles(address)
+  }
+
+  getReadURLPrefix() {
+    if (this.readURL) {
+      return this.readURL
+    } else {
+      return this.driver.getReadURLPrefix()
+    }
   }
 
   handleRequest(address: string, path: string,
@@ -52,7 +61,7 @@ export class HubServer {
                            path, stream, contentType,
                            contentLength: parseInt(requestHeaders['content-length']) }
 
-    return this.proofChecker.checkProofs(address, path)
+    return this.proofChecker.checkProofs(address, path, this.getReadURLPrefix())
       .then(() => this.driver.performWrite(writeCommand))
   }
 }
