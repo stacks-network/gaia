@@ -57,5 +57,14 @@ export class HubServer {
 
     return this.proofChecker.checkProofs(address, path, this.getReadURLPrefix())
       .then(() => this.driver.performWrite(writeCommand))
+      .then((readURL) => {
+        const driverPrefix = this.driver.getReadURLPrefix()
+        const readURLPrefix = this.getReadURLPrefix()
+        if (readURLPrefix !== driverPrefix && readURL.startsWith(driverPrefix)) {
+          const postFix = readURL.slice(driverPrefix.length)
+          return `${readURLPrefix}${postFix}`
+        }
+        return readURL
+      })
   }
 }
