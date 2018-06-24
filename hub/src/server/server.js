@@ -31,9 +31,10 @@ export class HubServer {
   }
 
   handleListFiles(address: string,
+                  page: string,
                   requestHeaders: { authorization: string }) {
     this.validate(address, requestHeaders)
-    return this.driver.listFiles(address)
+    return this.driver.listFiles(address, page)
   }
 
   getReadURLPrefix() {
