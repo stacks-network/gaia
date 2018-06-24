@@ -8,7 +8,12 @@ import { BadPathError } from '../errors'
 import type { DriverModel } from '../driverModel'
 import type { Readable } from 'stream'
 
-type S3_CONFIG_TYPE = { awsCredentials: Object,
+type S3_CONFIG_TYPE = { awsCredentials: {
+                          accessKeyId?: string, 
+                          secretAccessKey?: string,
+                          sessionToken?: string
+                        },
+                        pageSize?: number,
                         bucket: string }
 
 class S3Driver implements DriverModel {
@@ -18,6 +23,7 @@ class S3Driver implements DriverModel {
   constructor (config: S3_CONFIG_TYPE) {
     this.s3 = new S3(config.awsCredentials)
     this.bucket = config.bucket
+    this.pageSize = config.pageSize ? config.pageSize : 100
 
     this.createIfNeeded()
   }
@@ -53,6 +59,35 @@ class S3Driver implements DriverModel {
         logger.info(`connected to s3 bucket: ${this.bucket}`)
       }
     })
+  }
+
+  listAllKeys(prefix: string, page: string) {
+    // returns {'entries': [...], 'page': next_page}
+    const opts = {
+      Bucket: this.bucket,
+      MaxKeys: this.pageSize,
+      Prefix: prefix
+    }
+    if (page) {
+      opts.ContinuationToken = page
+    }
+    return new Promise((resolve, reject) => {
+      this.s3.listObjectsV2(opts, (err, data) => {
+        if (err) {
+          return reject(err)
+        }
+        const res = {
+          entries: data.Contents.map((e) => e.Key.slice(prefix.length + 1)),
+          page: data.isTruncated ? data.NextContinuationToken : null
+        }
+        return resolve(res)
+      })
+    })
+  }
+        
+  listFiles(prefix: string, page: string) {
+    // returns {'entries': [...], 'page': next_page}
+    return this.listAllKeys(prefix, page)
   }
 
   performWrite(args: { path: string,
