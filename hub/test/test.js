@@ -1,5 +1,6 @@
 const test = require('tape')
 
+const realFetch = require('isomorphic-fetch')
 const proxyquire = require('proxyquire')
 const FetchMock = require('fetch-mock')
 
@@ -310,8 +311,8 @@ function testAzDriver() {
       .then((resptxt) => t.equal(resptxt, 'hello world', `Must get back hello world: got back: ${resptxt}`))
       .then(() => driver.listFiles('12345'))
       .then((files) => {
-        t.equal(files.length, 1, 'Should return one file')
-        t.equal(files[0], 'foo.txt', 'Should be foo.txt!')
+        t.equal(files.entries.length, 1, 'Should return one file')
+        t.equal(files.entries[0], 'foo.txt', 'Should be foo.txt!')
       })
       .catch((err) => t.false(true, `Unexpected err: ${err}`))
       .then(() => { FetchMock.restore; t.end() })
@@ -325,7 +326,7 @@ function testS3Driver() {
   let mockTest = true
 
   if (awsConfigPath) {
-    const config = JSON.parse(fs.readFileSync(awsConfigPath))
+    config = JSON.parse(fs.readFileSync(awsConfigPath))
     mockTest = false
   }
 
@@ -358,14 +359,26 @@ function testS3Driver() {
           contentType: 'application/octet-stream',
           contentLength: 12 }))
       .then((readUrl) => {
+        let fetcher
         if (mockTest) {
           addMockFetches(prefix, dataMap)
+          fetcher = fetch
+        }
+        else {
+          fetcher = realFetch
         }
         t.ok(readUrl.startsWith(prefix + '12345'), `${readUrl} must start with readUrlPrefix ${prefix}12345`)
-        return fetch(readUrl)
+        return fetcher(readUrl)
       })
       .then((resp) => resp.text())
       .then((resptxt) => t.equal(resptxt, 'hello world', `Must get back hello world: got back: ${resptxt}`))
+      .then(() => driver.listFiles('12345'))
+      .then((files) => {
+        t.equal(files.entries.length, 1, 'Should return one file')
+        t.equal(files.entries[0], 'foo.txt', 'Should be foo.txt!')
+      })
+      .catch((err) => t.false(true, `Unexpected err: ${err}`))
+      .then(() => { FetchMock.restore; if(mockTest) { t.end(); } })
       .catch(() => t.false(true, `Unexpected err: ${err}`))
       .then(() => { FetchMock.restore; t.end() })
   })
@@ -380,9 +393,11 @@ function testDiskDriver() {
     return
   }
   const config = JSON.parse(fs.readFileSync(diskConfigPath))
+  const diskDriverImport = '../lib/server/drivers/diskDriver'
+  const DiskDriver = require(diskDriverImport)
 
   test('diskDriver', (t) => {
-    t.plan(3)
+    t.plan(4)
     const driver = new DiskDriver(config)
     const prefix = driver.getReadURLPrefix()
     const s = new Readable()
@@ -402,10 +417,12 @@ function testDiskDriver() {
           contentLength: 12 }))
       .then((readUrl) => {
         t.ok(readUrl.startsWith(prefix + '12345'), `${readUrl} must start with readUrlPrefix ${prefix}12345`)
-        return fetch(readUrl)
       })
-      .then((resp) => resp.text())
-      .then((resptxt) => t.equal(resptxt, 'hello world', `Must get back hello world: got back: ${resptxt}`))
+      .then(() => driver.listFiles('12345'))
+      .then((files) => {
+        t.equal(files.entries.length, 1, 'Should return one file')
+        t.equal(files.entries[0], 'foo.txt', 'Should be foo.txt!')
+      })
   })
 }
 
@@ -416,7 +433,7 @@ function testGcDriver() {
   let mockTest = true
 
   if (gcConfigPath) {
-    const config = JSON.parse(fs.readFileSync(gcConfigPath))
+    config = JSON.parse(fs.readFileSync(gcConfigPath))
     mockTest = false
   }
 
@@ -449,15 +466,25 @@ function testGcDriver() {
           contentType: 'application/octet-stream',
           contentLength: 12 }))
       .then((readUrl) => {
+        let fetcher
         if (mockTest) {
           addMockFetches(prefix, dataMap)
+          fetcher = fetch
+        }
+        else {
+          fetcher = realFetch
         }
         t.ok(readUrl.startsWith(prefix + '12345'), `${readUrl} must start with readUrlPrefix ${prefix}12345`)
-        return fetch(readUrl)
+        return fetcher(readUrl)
       })
       .then((resp) => resp.text())
       .then((resptxt) => t.equal(resptxt, 'hello world', `Must get back hello world: got back: ${resptxt}`))
-      .catch(() => t.false(true, `Unexpected err: ${err}`))
+      .then(() => driver.listFiles('12345'))
+      .then((files) => {
+        t.equal(files.entries.length, 1, 'Should return one file')
+        t.equal(files.entries[0], 'foo.txt', 'Should be foo.txt!')
+      })
+      .catch((err) => t.false(true, `Unexpected err: ${err}`))
       .then(() => { FetchMock.restore; t.end() })
   })
 }
