@@ -52,35 +52,25 @@ class AzDriver implements DriverModel {
     return `https://${this.accountName}.blob.core.windows.net/${this.bucket}/`
   }
 
-  innerListBlob(reducer, prior) {
-    if (prior.attempts >= this.maximumListAttempts) {
-      return Promise.reject(new Error('Too many files returned.'))
-    }
-    if (prior.attempts === 0 || prior.continuationToken != null) {
-      return new Promise((resolve, reject) => {
-        this.blobService.listBlobsSegmentedWithPrefix(
-          this.bucket, prior.prefix, prior.continuationToken, null, (err, results) => {
-            if (err) {
-              return reject(err)
-            }
-            const aggregate = results.entries.reduce(reducer, prior.aggregate)
-            return resolve({ attempts: prior.attempts + 1,
-                             prefix: prior.prefix,
-                             aggregate,
-                             continuationToken: results.continuationToken })
+  listBlobs(prefix: string, page: string) {
+    // page is the continuationToken for Azure
+    return new Promise((resolve, reject) => {
+      this.blobService.listBlobsSegmentedWithPrefix(
+        this.bucket, prefix, page, null, (err, results) => {
+          if (err) {
+            return reject(err)
+          }
+          return resolve({
+            entries: results.entries.map((e) => e.name.slice(prefix.length + 1)),
+            page: results.continuationToken
           })
-      })
-        .then(current => this.innerListBlob(reducer, current))
-    } else {
-      return Promise.resolve(prior.aggregate)
-    }
+        })
+    })
   }
 
-  listFiles(prefix: string) {
-    return this.innerListBlob((agg, entry) => {
-      agg.push(entry.name.slice(prefix.length + 1))
-      return agg
-    }, { attempts: 0, prefix, aggregate: [], continuationToken: null })
+  listFiles(prefix: string, page: string) {
+    // returns {'entries': [...], 'page': next_page}
+    return this.listBlobs(prefix, page)
   }
 
   performWrite(args: { path: string,
