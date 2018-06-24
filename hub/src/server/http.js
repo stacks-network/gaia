@@ -50,6 +50,7 @@ export function makeHttpServer(config: Object) {
     transports: logger.loggers.default.transports }))
 
   app.use(cors())
+  app.use(express.json())
 
   // sadly, express doesn't like to capture slashes.
   //  but that's okay! regexes solve that problem
@@ -84,7 +85,8 @@ export function makeHttpServer(config: Object) {
     (req: express.request, res: express.response) =>
       {
         const address = req.params[0]
-        server.handleListFiles(address, req.headers)
+        const page = req.body.page
+        server.handleListFiles(address, page, req.headers)
           .then((files) => {
             writeResponse(res, { files }, 202)
           })
