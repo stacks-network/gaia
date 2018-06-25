@@ -469,6 +469,45 @@ function testServer() {
     }
   })
 
+  test('handle request with readURL', (t) => {
+    t.plan(8)
+    const mockDriver = new MockDriver()
+    const server = new HubServer(mockDriver, new MockProofs(),
+                                 { whitelist: [testAddrs[0]], readURL: 'http://potato.com/' })
+    const challengeText = auth.getChallengeText()
+    const authPart = auth.LegacyAuthentication.makeAuthPart(testPairs[0], challengeText)
+    const authorization = `bearer ${authPart}`
+
+    const s = new Readable()
+    s._read = function noop() {}
+    s.push('hello world')
+    s.push(null)
+    const s2 = new Readable()
+    s2._read = function noop() {}
+    s2.push('hello world')
+    s2.push(null)
+
+    server.handleRequest(testAddrs[0], 'foo.txt',
+                         { 'content-type' : 'text/text',
+                           'content-length': 4,
+                           authorization }, s)
+      .then(path => {
+        t.equal(path, `http://potato.com/${testAddrs[0]}/foo.txt`)
+        t.equal(mockDriver.lastWrite.path, 'foo.txt')
+        t.equal(mockDriver.lastWrite.storageTopLevel, testAddrs[0])
+        t.equal(mockDriver.lastWrite.contentType, 'text/text')
+      })
+      .then(() => server.handleRequest(testAddrs[0], 'foo.txt',
+                         { 'content-length': 4,
+                           authorization }, s2))
+      .then(path => {
+        t.equal(path, `http://potato.com/${testAddrs[0]}/foo.txt`)
+        t.equal(mockDriver.lastWrite.path, 'foo.txt')
+        t.equal(mockDriver.lastWrite.storageTopLevel, testAddrs[0])
+        t.equal(mockDriver.lastWrite.contentType, 'application/octet-stream')
+      })
+  })
+
   test('handle request', (t) => {
     t.plan(8)
     const mockDriver = new MockDriver()
