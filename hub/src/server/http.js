@@ -85,10 +85,10 @@ export function makeHttpServer(config: Object) {
     (req: express.request, res: express.response) =>
       {
         const address = req.params[0]
-        const page = req.body.page
+        const page = req.body && req.body.page ? req.body.page : null
         server.handleListFiles(address, page, req.headers)
           .then((files) => {
-            writeResponse(res, { files }, 202)
+            writeResponse(res, { entries: files.entries, page: files.page }, 202)
           })
           .catch((err) => {
             logger.error(err)
