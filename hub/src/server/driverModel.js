@@ -7,5 +7,6 @@ export interface DriverModel {
                        stream: Readable,
                        contentLength: number,
                        contentType: string }): Promise<string>;
-  listFiles(storageTopLevel: string): Promise<Array<string>>;
+  listFiles(storageTopLevel: string, page: string): 
+             Promise<{ entries: Array<string>, page: string} >;
 }
