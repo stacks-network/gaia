@@ -102,6 +102,16 @@ function makeMockedS3Driver() {
         cb()
       })
     }
+    listObjectsV2(options, cb) {
+      const contents = dataMap
+      .filter((entry) => {
+        return (entry.key.slice(0, options.Prefix.length) === options.Prefix)
+      })
+      .map((entry) => {
+        return { Key: entry.key }
+      })
+      cb(null, { Contents: contents, isTruncated: false })
+    }
   }
 
   driver = proxyquire('../lib/server/drivers/S3Driver', {
@@ -149,7 +159,14 @@ function makeMockedGcDriver() {
           throw new Error(`Unexpected bucket name: ${bucketName}. Expected ${myName}`)
         }
       }
-      return { file, exists }
+      return { file, exists, getFiles: this.getFiles }
+    }
+
+    getFiles(options, cb) {
+      const files = dataMap.map((entry) => {
+        return { name: entry.key }
+      })
+      cb(null, files, null)
     }
   }
 
@@ -378,7 +395,7 @@ function testS3Driver() {
         t.equal(files.entries[0], 'foo.txt', 'Should be foo.txt!')
       })
       .catch((err) => t.false(true, `Unexpected err: ${err}`))
-      .then(() => { FetchMock.restore; if(mockTest) { t.end(); } })
+      .then(() => { FetchMock.restore; })
       .catch(() => t.false(true, `Unexpected err: ${err}`))
       .then(() => { FetchMock.restore; t.end() })
   })
@@ -586,7 +603,9 @@ function testHttpPost() {
 
     let address = sk.getAddress()
     let path = `/store/${address}/helloWorld`
+    let listPath = `/list-files/${address}`
     let prefix = ''
+    let authorizationHeader = ''
 
     request(app).get('/hub_info/')
       .expect(200)
@@ -596,11 +615,14 @@ function testHttpPost() {
         const authPart = auth.V1Authentication.makeAuthPart(sk, challenge)
         return `bearer ${authPart}`
       })
-      .then((authorization) => request(app).post(path)
+      .then((authorization) => {
+        authorizationHeader = authorization
+        return request(app).post(path)
             .set('Content-Type', 'application/octet-stream')
             .set('Authorization', authorization)
             .send(blob)
-            .expect(202))
+            .expect(202)
+      })
       .then((response) => {
         if (mockTest) {
           addMockFetches(prefix, dataMap)
@@ -614,9 +636,21 @@ function testHttpPost() {
           .then(text => t.equal(text, fileContents, 'Contents returned must be correct'))
       })
       .catch(() => t.false(true, `Unexpected err: ${err}`))
+      .then(() => request(app).post(listPath)
+            .set('Content-Type', 'application/json')
+            .set('Authorization', authorizationHeader)
+            .expect(202)
+      )
+      .then((filesResponse) => {
+        const files = JSON.parse(filesResponse.text)
+        t.equal(files.entries.length, 1, 'Should return one file')
+        t.equal(files.entries[0], 'helloWorld', 'Should be helloworld')
+        t.ok(files.hasOwnProperty('page'), 'Response is missing a page')
+      })
       .then(() => { FetchMock.restore; t.end() })
   })
 }
+
 
 testServer()
 testAuth()
