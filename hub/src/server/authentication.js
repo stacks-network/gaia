@@ -52,7 +52,9 @@ export class V1Authentication {
   }
 
   isAuthenticationValid(address: string, challengeText: string,
-                        options?: { throwOnFailure?: boolean }) {
+                        options?: { throwOnFailure?: boolean,
+                                    requireCorrectHubUrl?: boolean,
+                                    validHubUrls?: Array<string> }) {
     const defaults = {
       throwOnFailure: true
     }
@@ -77,6 +79,27 @@ export class V1Authentication {
 
       if (issuerAddress !== address) {
         throw new ValidationError('Address not allowed to write on this path')
+      }
+
+      if (options.requireCorrectHubUrl) {
+        let claimedHub = decodedToken.payload.hubURL
+        if (claimedHub.endsWith('/')) {
+          claimedHub = claimedHub.slice(0, -1)
+        }
+        const validHubUrls = options.validHubUrls
+        if (!claimedHub) {
+          throw new ValidationError(
+            'Authentication must provide a claimed hub. You may need to update blockstack.js.')
+        }
+        if (!validHubUrls) {
+          throw new ValidationError(
+            'Configuration error on the gaia hub. validHubUrls must be supplied.')
+        }
+        if (validHubUrls.indexOf(claimedHub) < 0) {
+          throw new ValidationError(
+            `Auth token's claimed hub url '${claimedHub}' not found` +
+              ` in this hubs set: ${JSON.stringify(validHubUrls)}`)
+        }
       }
 
       const verified = new TokenVerifier('ES256K', publicKey).verify(this.token)
@@ -185,7 +208,15 @@ export function parseAuthHeader(authHeader: string) {
 }
 
 export function validateAuthorizationHeader(authHeader: string, serverName: string,
-                                            address: string) {
+                                            address: string, requireCorrectHubUrl?: boolean = false,
+                                            validHubUrls?: Array<string>) {
+  const serverNameHubUrl = `https://${serverName}`
+  if (!validHubUrls) {
+    validHubUrls = [ serverNameHubUrl ]
+  } else if (validHubUrls.indexOf(serverNameHubUrl) < 0) {
+    validHubUrls.push(serverNameHubUrl)
+  }
+
   let authObject = null
   try {
     authObject = parseAuthHeader(authHeader)
@@ -198,5 +229,5 @@ export function validateAuthorizationHeader(authHeader: string, serverName: stri
   }
 
   const challengeText = getChallengeText(serverName)
-  authObject.isAuthenticationValid(address, challengeText)
+  authObject.isAuthenticationValid(address, challengeText, { validHubUrls, requireCorrectHubUrl })
 }

@@ -11,13 +11,20 @@ export class HubServer {
   proofChecker: Object
   whitelist: Array<string>
   serverName: string
+  readURL: ?string
+  requireCorrectHubUrl: boolean
+  validHubUrls: ?Array<string>
   constructor(driver: DriverModel, proofChecker: Object,
-              config: { whitelist: Array<string>, servername: string, readURL?: string }) {
+              config: { whitelist: Array<string>, servername: string,
+                        readURL?: string, requireCorrectHubUrl?: boolean,
+                        validHubUrls?: Array<string> }) {
     this.driver = driver
     this.proofChecker = proofChecker
     this.whitelist = config.whitelist
     this.serverName = config.servername
+    this.validHubUrls = config.validHubUrls
     this.readURL = config.readURL
+    this.requireCorrectHubUrl = config.requireCorrectHubUrl || false
   }
 
   // throws exception on validation error
@@ -27,7 +34,8 @@ export class HubServer {
       throw new ValidationError('Address not authorized for writes')
     }
 
-    validateAuthorizationHeader(requestHeaders.authorization, this.serverName, address)
+    validateAuthorizationHeader(requestHeaders.authorization, this.serverName, address,
+                                this.requireCorrectHubUrl, this.validHubUrls)
   }
 
   getReadURLPrefix() {
