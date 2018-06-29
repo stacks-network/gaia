@@ -1,6 +1,6 @@
 {
   "name": "gaia-hub",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "",
   "main": "index.js",
   "engines": {
@@ -17,9 +17,9 @@
     "cors": "^2.8.4",
     "express": "^4.15.4",
     "express-winston": "^2.4.0",
-    "jsontokens": "^0.7.7",
+    "jsontokens": "^0.7.8",
     "node-fetch": "^2.0.0",
-    "npm": "^5.5.1",
+    "npm": "^6.1.0",
     "winston": "^2.3.1"
   },
   "devDependencies": {
@@ -32,7 +32,7 @@
     "fetch-mock": "^6.4.2",
     "flow-bin": "^0.71.0",
     "nock": "^9.1.9",
-    "nyc": "^11.4.1",
+    "nyc": "^13.0.0",
     "proxyquire": "^2.0.1",
     "supertest": "^3.0.0",
     "tape": "^4.9.0"
