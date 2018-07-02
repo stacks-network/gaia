@@ -50,7 +50,6 @@ export function makeHttpServer(config: Object) {
     transports: logger.loggers.default.transports }))
 
   app.use(cors())
-  app.use(express.json())
 
   // sadly, express doesn't like to capture slashes.
   //  but that's okay! regexes solve that problem
@@ -81,11 +80,19 @@ export function makeHttpServer(config: Object) {
   })
 
   app.post(
-      /^\/list-files\/([a-zA-Z0-9]+)\/?/,
+      /^\/list-files\/([a-zA-Z0-9]+)\/?/, express.json(), 
     (req: express.request, res: express.response) =>
       {
+        // sanity check...
+        if (req.headers['content-length'] > 4096) {
+          writeResponse(res, { mesasge: 'Invalid JSON: too long'}, 400)
+          return
+        }
+
         const address = req.params[0]
-        const page = req.body && req.body.page ? req.body.page : null
+        const requestBody = req.body
+        const page = requestBody.page ? requestBody.page : null
+
         server.handleListFiles(address, page, req.headers)
           .then((files) => {
             writeResponse(res, { entries: files.entries, page: files.page }, 202)
