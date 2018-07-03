@@ -82,7 +82,7 @@ export class V1Authentication {
       }
 
       if (options.requireCorrectHubUrl) {
-        let claimedHub = decodedToken.payload.hubURL
+        let claimedHub = decodedToken.payload.hubUrl
         if (claimedHub.endsWith('/')) {
           claimedHub = claimedHub.slice(0, -1)
         }
