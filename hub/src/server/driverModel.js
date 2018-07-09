@@ -7,4 +7,6 @@ export interface DriverModel {
                        stream: Readable,
                        contentLength: number,
                        contentType: string }): Promise<string>;
+  performRead(args: { path: string,
+                      storageTopLevel: string }): Promise<Buffer>;
 }
