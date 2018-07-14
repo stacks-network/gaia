@@ -6,7 +6,7 @@ import logger from 'winston'
 import cors from 'cors'
 
 import { ProofChecker } from './ProofChecker'
-import { StorageAuthentication } from './StorageAuthentication'
+import { getChallengeText, LATEST_AUTH_VERSION } from './authentication'
 import { HubServer } from './server'
 
 function writeResponse(res: express.response, data: Object, statusCode: number) {
@@ -40,10 +40,11 @@ export function makeHttpServer(config: Object) {
     throw new Error('Failed to load driver')
   }
 
-  const proofChecker = new ProofChecker(config.proofsConfig, driver)
+  const proofChecker = new ProofChecker(config.proofsConfig)
   const server = new HubServer(driver, proofChecker, config)
 
   app.config = config
+  app.driver = driver
 
   // Instantiate server logging with Winston
   app.use(expressWinston.logger({
@@ -81,10 +82,14 @@ export function makeHttpServer(config: Object) {
 
   app.get('/hub_info/', (req: express.request,
                          res: express.response) => {
-    const challengeText = StorageAuthentication.challengeText(server.serverName)
-    const readURLPrefix = driver.getReadURLPrefix()
-    writeResponse(res, { 'challenge_text' : challengeText,
-                         'read_url_prefix' : readURLPrefix }, 200)
+    const challengeText = getChallengeText(server.serverName)
+    if (challengeText.length < 10) {
+      return writeResponse(res, { message: 'Server challenge text misconfigured' }, 500)
+    }
+    const readURLPrefix = server.getReadURLPrefix()
+    writeResponse(res, { 'challenge_text': challengeText,
+                         'latest_auth_version': LATEST_AUTH_VERSION,
+                         'read_url_prefix': readURLPrefix }, 200)
   })
 
   // Instantiate express application

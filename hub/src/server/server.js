@@ -1,8 +1,7 @@
 /* @flow */
 
-import { StorageAuthentication as StorageAuth } from './StorageAuthentication'
+import { validateAuthorizationHeader } from './authentication'
 import { ValidationError } from './errors'
-import logger from 'winston'
 
 import type { Readable } from 'stream'
 import type { DriverModel } from './driverModel'
@@ -13,11 +12,12 @@ export class HubServer {
   whitelist: Array<string>
   serverName: string
   constructor(driver: DriverModel, proofChecker: Object,
-              config: { whitelist: Array<string>, servername: string }) {
+              config: { whitelist: Array<string>, servername: string, readURL?: string }) {
     this.driver = driver
     this.proofChecker = proofChecker
     this.whitelist = config.whitelist
     this.serverName = config.servername
+    this.readURL = config.readURL
   }
 
   // throws exception on validation error
@@ -27,18 +27,15 @@ export class HubServer {
       throw new ValidationError('Address not authorized for writes')
     }
 
-    let authObject = null
-    try {
-      authObject = StorageAuth.fromAuthHeader(requestHeaders.authorization, this.serverName)
-    } catch (err) {
-      logger.error(err)
-    }
+    validateAuthorizationHeader(requestHeaders.authorization, this.serverName, address)
+  }
 
-    if (!authObject) {
-      throw new ValidationError('Failed to parse authentication header.')
+  getReadURLPrefix() {
+    if (this.readURL) {
+      return this.readURL
+    } else {
+      return this.driver.getReadURLPrefix()
     }
-
-    authObject.isAuthenticationValid(address, true)
   }
 
   handleRequest(address: string, path: string,
@@ -58,7 +55,16 @@ export class HubServer {
                            path, stream, contentType,
                            contentLength: parseInt(requestHeaders['content-length']) }
 
-    return this.proofChecker.checkProofs(address, path)
+    return this.proofChecker.checkProofs(address, path, this.getReadURLPrefix())
       .then(() => this.driver.performWrite(writeCommand))
+      .then((readURL) => {
+        const driverPrefix = this.driver.getReadURLPrefix()
+        const readURLPrefix = this.getReadURLPrefix()
+        if (readURLPrefix !== driverPrefix && readURL.startsWith(driverPrefix)) {
+          const postFix = readURL.slice(driverPrefix.length)
+          return `${readURLPrefix}${postFix}`
+        }
+        return readURL
+      })
   }
 }
