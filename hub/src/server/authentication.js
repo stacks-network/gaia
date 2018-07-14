@@ -16,6 +16,8 @@ function pubkeyHexToECPair (pubkeyHex) {
 }
 
 export class V1Authentication {
+  token: string
+
   constructor(token: string) {
     this.token = token
   }

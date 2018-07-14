@@ -63,8 +63,18 @@ function makeMockedAzureDriver() {
       cb()
     })
   }
+  const listBlobsSegmentedWithPrefix = function(getBucket, prefix, continuation, data, cb) {
+    const outBlobs = []
+    dataMap.forEach(x => {
+      if (x.key.startsWith(prefix)) {
+        outBlobs.push({name: x.key})
+      }
+    })
+    cb(null, {entries: outBlobs, continuationToken: null})
+  }
+
   const createBlobService = function() {
-    return { createContainerIfNotExists, createBlockBlobFromStream }
+    return { createContainerIfNotExists, createBlockBlobFromStream, listBlobsSegmentedWithPrefix }
   }
 
   AzDriver = proxyquire('../lib/server/drivers/AzDriver', {
@@ -90,6 +100,16 @@ function makeMockedS3Driver() {
         dataMap.push({ data: buffer.toString(), key: options.Key })
         cb()
       })
+    }
+    listObjectsV2(options, cb) {
+      const contents = dataMap
+      .filter((entry) => {
+        return (entry.key.slice(0, options.Prefix.length) === options.Prefix)
+      })
+      .map((entry) => {
+        return { Key: entry.key }
+      })
+      cb(null, { Contents: contents, isTruncated: false })
     }
   }
 
@@ -138,7 +158,14 @@ function makeMockedGcDriver() {
           throw new Error(`Unexpected bucket name: ${bucketName}. Expected ${myName}`)
         }
       }
-      return { file, exists }
+      return { file, exists, getFiles: this.getFiles }
+    }
+
+    getFiles(options, cb) {
+      const files = dataMap.map((entry) => {
+        return { name: entry.key }
+      })
+      cb(null, files, null)
     }
   }
 
@@ -298,8 +325,13 @@ function testAzDriver() {
       })
       .then((resp) => resp.text())
       .then((resptxt) => t.equal(resptxt, 'hello world', `Must get back hello world: got back: ${resptxt}`))
-      .catch(() => t.false(true, `Unexpected err: ${err}`))
-      .then(() => { FetchMock.restore; t.end() })
+      .then(() => driver.listFiles('12345'))
+      .then((files) => {
+        t.equal(files.entries.length, 1, 'Should return one file')
+        t.equal(files.entries[0], 'foo.txt', 'Should be foo.txt!')
+      })
+      .catch((err) => t.false(true, `Unexpected err: ${err}`))
+      .then(() => { FetchMock.restore(); t.end() })
   })
 }
 
@@ -310,7 +342,7 @@ function testS3Driver() {
   let mockTest = true
 
   if (awsConfigPath) {
-    const config = JSON.parse(fs.readFileSync(awsConfigPath))
+    config = JSON.parse(fs.readFileSync(awsConfigPath))
     mockTest = false
   }
 
@@ -346,13 +378,22 @@ function testS3Driver() {
         if (mockTest) {
           addMockFetches(prefix, dataMap)
         }
+        else {
+        }
         t.ok(readUrl.startsWith(prefix + '12345'), `${readUrl} must start with readUrlPrefix ${prefix}12345`)
         return fetch(readUrl)
       })
       .then((resp) => resp.text())
       .then((resptxt) => t.equal(resptxt, 'hello world', `Must get back hello world: got back: ${resptxt}`))
+      .then(() => driver.listFiles('12345'))
+      .then((files) => {
+        t.equal(files.entries.length, 1, 'Should return one file')
+        t.equal(files.entries[0], 'foo.txt', 'Should be foo.txt!')
+      })
+      .catch((err) => t.false(true, `Unexpected err: ${err}`))
+      .then(() => { FetchMock.restore(); })
       .catch(() => t.false(true, `Unexpected err: ${err}`))
-      .then(() => { FetchMock.restore; t.end() })
+      .then(() => { FetchMock.restore(); t.end() })
   })
 }
 
@@ -365,9 +406,11 @@ function testDiskDriver() {
     return
   }
   const config = JSON.parse(fs.readFileSync(diskConfigPath))
+  const diskDriverImport = '../lib/server/drivers/diskDriver'
+  const DiskDriver = require(diskDriverImport)
 
   test('diskDriver', (t) => {
-    t.plan(3)
+    t.plan(4)
     const driver = new DiskDriver(config)
     const prefix = driver.getReadURLPrefix()
     const s = new Readable()
@@ -387,10 +430,12 @@ function testDiskDriver() {
           contentLength: 12 }))
       .then((readUrl) => {
         t.ok(readUrl.startsWith(prefix + '12345'), `${readUrl} must start with readUrlPrefix ${prefix}12345`)
-        return fetch(readUrl)
       })
-      .then((resp) => resp.text())
-      .then((resptxt) => t.equal(resptxt, 'hello world', `Must get back hello world: got back: ${resptxt}`))
+      .then(() => driver.listFiles('12345'))
+      .then((files) => {
+        t.equal(files.entries.length, 1, 'Should return one file')
+        t.equal(files.entries[0], 'foo.txt', 'Should be foo.txt!')
+      })
   })
 }
 
@@ -401,7 +446,7 @@ function testGcDriver() {
   let mockTest = true
 
   if (gcConfigPath) {
-    const config = JSON.parse(fs.readFileSync(gcConfigPath))
+    config = JSON.parse(fs.readFileSync(gcConfigPath))
     mockTest = false
   }
 
@@ -442,8 +487,13 @@ function testGcDriver() {
       })
       .then((resp) => resp.text())
       .then((resptxt) => t.equal(resptxt, 'hello world', `Must get back hello world: got back: ${resptxt}`))
-      .catch(() => t.false(true, `Unexpected err: ${err}`))
-      .then(() => { FetchMock.restore; t.end() })
+      .then(() => driver.listFiles('12345'))
+      .then((files) => {
+        t.equal(files.entries.length, 1, 'Should return one file')
+        t.equal(files.entries[0], 'foo.txt', 'Should be foo.txt!')
+      })
+      .catch((err) => t.false(true, `Unexpected err: ${err}`))
+      .then(() => { FetchMock.restore(); t.end() })
   })
 }
 
@@ -566,6 +616,7 @@ function testHttpPost() {
 
   let dataMap = []
   let AzDriver
+  const azDriverImport = '../lib/server/drivers/AzDriver'
   if (mockTest) {
     mockedObj = makeMockedAzureDriver()
     dataMap = mockedObj.dataMap
@@ -583,7 +634,9 @@ function testHttpPost() {
 
     let address = sk.getAddress()
     let path = `/store/${address}/helloWorld`
+    let listPath = `/list-files/${address}`
     let prefix = ''
+    let authorizationHeader = ''
 
     request(app).get('/hub_info/')
       .expect(200)
@@ -593,11 +646,14 @@ function testHttpPost() {
         const authPart = auth.V1Authentication.makeAuthPart(sk, challenge)
         return `bearer ${authPart}`
       })
-      .then((authorization) => request(app).post(path)
+      .then((authorization) => {
+        authorizationHeader = authorization
+        return request(app).post(path)
             .set('Content-Type', 'application/octet-stream')
             .set('Authorization', authorization)
             .send(blob)
-            .expect(202))
+            .expect(202)
+      })
       .then((response) => {
         if (mockTest) {
           addMockFetches(prefix, dataMap)
@@ -611,9 +667,21 @@ function testHttpPost() {
           .then(text => t.equal(text, fileContents, 'Contents returned must be correct'))
       })
       .catch(() => t.false(true, `Unexpected err: ${err}`))
-      .then(() => { FetchMock.restore; t.end() })
+      .then(() => request(app).post(listPath)
+            .set('Content-Type', 'application/json')
+            .set('Authorization', authorizationHeader)
+            .expect(202)
+      )
+      .then((filesResponse) => {
+        const files = JSON.parse(filesResponse.text)
+        t.equal(files.entries.length, 1, 'Should return one file')
+        t.equal(files.entries[0], 'helloWorld', 'Should be helloworld')
+        t.ok(files.hasOwnProperty('page'), 'Response is missing a page')
+      })
+      .then(() => { FetchMock.restore(); t.end() })
   })
 }
+
 
 testServer()
 testAuth()

@@ -226,6 +226,15 @@ performWrite (options: { path, contentType,
  * @returns {String} the read url prefix.
  */
 getReadURLPrefix ()
+
+/**
+ * Return a list of files beginning with the given prefix,
+ * as well as a driver-specific page identifier for requesting
+ * the next page of entries.  The return structure should
+ * take the form { "entries": [string], "page": string }
+ * @returns {Promise} the list of files and a page identifier.
+ */
+listFiles(prefix: string, page: string)
 ```
 
 # HTTP API
