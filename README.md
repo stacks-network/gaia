@@ -232,7 +232,7 @@ getReadURLPrefix ()
  * as well as a driver-specific page identifier for requesting
  * the next page of entries.  The return structure should
  * take the form { "entries": [string], "page": string }
- * @returns {Object} the list of files and a page identifier.
+ * @returns {Promise} the list of files and a page identifier.
  */
 listFiles(prefix: string, page: string)
 ```
