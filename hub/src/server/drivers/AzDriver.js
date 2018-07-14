@@ -11,8 +11,7 @@ type AZ_CONFIG_TYPE = { azCredentials: { accountName: string,
                                          accountKey: string },
                         bucket: string,
                         readURL?: string,
-                        cacheControl?: string,
-                        maximumListAttempts?: number }
+                        cacheControl?: string }
 
 // The AzDriver utilized the azure nodejs sdk to write files to azure blob storage
 class AzDriver implements DriverModel {
@@ -28,7 +27,6 @@ class AzDriver implements DriverModel {
     this.accountName = config.azCredentials.accountName
     this.readURL = config.readURL
     this.cacheControl = config.cacheControl
-    this.maximumListAttempts = config.maximumListAttempts || 5
 
     // Check for container(bucket), create it if does not exist
     // Set permissions to 'blob' to allow public reads
@@ -52,7 +50,7 @@ class AzDriver implements DriverModel {
     return `https://${this.accountName}.blob.core.windows.net/${this.bucket}/`
   }
 
-  listBlobs(prefix: string, page: string) {
+  listBlobs(prefix: string, page: ?string) {
     // page is the continuationToken for Azure
     return new Promise((resolve, reject) => {
       this.blobService.listBlobsSegmentedWithPrefix(
@@ -68,7 +66,7 @@ class AzDriver implements DriverModel {
     })
   }
 
-  listFiles(prefix: string, page: string) {
+  listFiles(prefix: string, page: ?string) {
     // returns {'entries': [...], 'page': next_page}
     return this.listBlobs(prefix, page)
   }

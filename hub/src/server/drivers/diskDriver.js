@@ -14,6 +14,7 @@ type DISK_CONFIG_TYPE = { diskSettings: { storageRootDirectory?: string },
 class DiskDriver implements DriverModel {
   storageRootDirectory: string
   readURL: string
+  pageSize: number
 
   constructor (config: DISK_CONFIG_TYPE) {
     if (!config.readURL) {
@@ -87,7 +88,7 @@ class DiskDriver implements DriverModel {
     })
   }
 
-  listFiles(prefix: string, page: string) {
+  listFiles(prefix: string, page: ?string) {
     // returns {'entries': [...], 'page': next_page}
     let pageNum
     const listPath = `${this.storageRootDirectory}/${prefix}`

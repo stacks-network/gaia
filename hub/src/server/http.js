@@ -80,7 +80,7 @@ export function makeHttpServer(config: Object) {
   })
 
   app.post(
-      /^\/list-files\/([a-zA-Z0-9]+)\/?/, express.json(), 
+      /^\/list-files\/([a-zA-Z0-9]+)\/?/, express.json(),
     (req: express.request, res: express.response) =>
       {
         // sanity check...

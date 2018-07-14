@@ -9,7 +9,7 @@ import type { DriverModel } from '../driverModel'
 import type { Readable } from 'stream'
 
 type S3_CONFIG_TYPE = { awsCredentials: {
-                          accessKeyId?: string, 
+                          accessKeyId?: string,
                           secretAccessKey?: string,
                           sessionToken?: string
                         },
@@ -19,6 +19,7 @@ type S3_CONFIG_TYPE = { awsCredentials: {
 class S3Driver implements DriverModel {
   s3: S3
   bucket: string
+  pageSize: number
 
   constructor (config: S3_CONFIG_TYPE) {
     this.s3 = new S3(config.awsCredentials)
@@ -61,9 +62,9 @@ class S3Driver implements DriverModel {
     })
   }
 
-  listAllKeys(prefix: string, page: string) {
+  listAllKeys(prefix: string, page: ?string) {
     // returns {'entries': [...], 'page': next_page}
-    const opts = {
+    const opts : { Bucket: string, MaxKeys: number, Prefix: string, ContinuationToken?: string } = {
       Bucket: this.bucket,
       MaxKeys: this.pageSize,
       Prefix: prefix
@@ -84,8 +85,8 @@ class S3Driver implements DriverModel {
       })
     })
   }
-        
-  listFiles(prefix: string, page: string) {
+
+  listFiles(prefix: string, page: ?string) {
     // returns {'entries': [...], 'page': next_page}
     return this.listAllKeys(prefix, page)
   }

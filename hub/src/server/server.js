@@ -11,6 +11,7 @@ export class HubServer {
   proofChecker: Object
   whitelist: Array<string>
   serverName: string
+  readURL: ?string
   constructor(driver: DriverModel, proofChecker: Object,
               config: { whitelist: Array<string>, servername: string, readURL?: string }) {
     this.driver = driver
@@ -31,7 +32,7 @@ export class HubServer {
   }
 
   handleListFiles(address: string,
-                  page: string,
+                  page: ?string,
                   requestHeaders: { authorization: string }) {
     this.validate(address, requestHeaders)
     return this.driver.listFiles(address, page)

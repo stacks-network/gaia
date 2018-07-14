@@ -1,6 +1,5 @@
 const test = require('tape')
 
-const realFetch = require('isomorphic-fetch')
 const proxyquire = require('proxyquire')
 const FetchMock = require('fetch-mock')
 
@@ -332,7 +331,7 @@ function testAzDriver() {
         t.equal(files.entries[0], 'foo.txt', 'Should be foo.txt!')
       })
       .catch((err) => t.false(true, `Unexpected err: ${err}`))
-      .then(() => { FetchMock.restore; t.end() })
+      .then(() => { FetchMock.restore(); t.end() })
   })
 }
 
@@ -376,16 +375,13 @@ function testS3Driver() {
           contentType: 'application/octet-stream',
           contentLength: 12 }))
       .then((readUrl) => {
-        let fetcher
         if (mockTest) {
           addMockFetches(prefix, dataMap)
-          fetcher = fetch
         }
         else {
-          fetcher = realFetch
         }
         t.ok(readUrl.startsWith(prefix + '12345'), `${readUrl} must start with readUrlPrefix ${prefix}12345`)
-        return fetcher(readUrl)
+        return fetch(readUrl)
       })
       .then((resp) => resp.text())
       .then((resptxt) => t.equal(resptxt, 'hello world', `Must get back hello world: got back: ${resptxt}`))
@@ -395,9 +391,9 @@ function testS3Driver() {
         t.equal(files.entries[0], 'foo.txt', 'Should be foo.txt!')
       })
       .catch((err) => t.false(true, `Unexpected err: ${err}`))
-      .then(() => { FetchMock.restore; })
+      .then(() => { FetchMock.restore(); })
       .catch(() => t.false(true, `Unexpected err: ${err}`))
-      .then(() => { FetchMock.restore; t.end() })
+      .then(() => { FetchMock.restore(); t.end() })
   })
 }
 
@@ -483,16 +479,11 @@ function testGcDriver() {
           contentType: 'application/octet-stream',
           contentLength: 12 }))
       .then((readUrl) => {
-        let fetcher
         if (mockTest) {
           addMockFetches(prefix, dataMap)
-          fetcher = fetch
-        }
-        else {
-          fetcher = realFetch
         }
         t.ok(readUrl.startsWith(prefix + '12345'), `${readUrl} must start with readUrlPrefix ${prefix}12345`)
-        return fetcher(readUrl)
+        return fetch(readUrl)
       })
       .then((resp) => resp.text())
       .then((resptxt) => t.equal(resptxt, 'hello world', `Must get back hello world: got back: ${resptxt}`))
@@ -502,7 +493,7 @@ function testGcDriver() {
         t.equal(files.entries[0], 'foo.txt', 'Should be foo.txt!')
       })
       .catch((err) => t.false(true, `Unexpected err: ${err}`))
-      .then(() => { FetchMock.restore; t.end() })
+      .then(() => { FetchMock.restore(); t.end() })
   })
 }
 
@@ -625,6 +616,7 @@ function testHttpPost() {
 
   let dataMap = []
   let AzDriver
+  const azDriverImport = '../lib/server/drivers/AzDriver'
   if (mockTest) {
     mockedObj = makeMockedAzureDriver()
     dataMap = mockedObj.dataMap
@@ -686,7 +678,7 @@ function testHttpPost() {
         t.equal(files.entries[0], 'helloWorld', 'Should be helloworld')
         t.ok(files.hasOwnProperty('page'), 'Response is missing a page')
       })
-      .then(() => { FetchMock.restore; t.end() })
+      .then(() => { FetchMock.restore(); t.end() })
   })
 }
 

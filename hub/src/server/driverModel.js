@@ -1,3 +1,5 @@
+/* @flow */
+
 import type { Readable } from 'stream'
 
 export interface DriverModel {
@@ -7,6 +9,6 @@ export interface DriverModel {
                        stream: Readable,
                        contentLength: number,
                        contentType: string }): Promise<string>;
-  listFiles(storageTopLevel: string, page: string): 
-             Promise<{ entries: Array<string>, page: string} >;
+  listFiles(storageTopLevel: string, page: ?string):
+             Promise<{ entries: Array<string>, page: ?string} >;
 }

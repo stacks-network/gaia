@@ -1,4 +1,5 @@
 /* @flow */
+
 import Storage from '@google-cloud/storage'
 import logger from 'winston'
 
@@ -22,6 +23,7 @@ type GC_CONFIG_TYPE = { gcCredentials?: {
 class GcDriver implements DriverModel {
   bucket: string
   storage: Storage
+  pageSize: number
 
   constructor (config: GC_CONFIG_TYPE) {
     this.storage =  new Storage(config.gcCredentials)
@@ -64,9 +66,9 @@ class GcDriver implements DriverModel {
     })
   }
 
-  listAllObjects(prefix: string, page: string) {
+  listAllObjects(prefix: string, page: ?string) {
     // returns {'entries': [...], 'page': next_page}
-    const opts = {
+    const opts : { prefix: string, maxResults: number, pageToken?: string } = {
       prefix: prefix,
       maxResults: this.pageSize
     }
@@ -83,7 +85,8 @@ class GcDriver implements DriverModel {
           fileNames.push(file.name.slice(prefix.length + 1))
         })
         const ret = {
-          entries: fileNames
+          entries: fileNames,
+          page: null
         }
         if (nextQuery && nextQuery.pageToken) {
           ret.page = nextQuery.pageToken
@@ -93,7 +96,7 @@ class GcDriver implements DriverModel {
     })
   }
 
-  listFiles(prefix: string, page: string) {
+  listFiles(prefix: string, page: ?string) {
     // returns {'entries': [...], 'page': next_page}
     return this.listAllObjects(prefix, page)
   }
