@@ -3,7 +3,7 @@
 To get started running a gaia hub, execute the following:
 
 ```bash
-$ git clone git@github.com:blockstack/gaia.git
+$ git clone https://github.com/blockstack/gaia.git
 $ cd gaia/hub/
 $ npm install
 $ cp ./config.sample.json ./config.json
