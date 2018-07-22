@@ -32,6 +32,12 @@ const testWIFs = [
 const testPairs = testWIFs.map(x => bitcoin.ECPair.fromWIF(x))
 const testAddrs = testPairs.map(x => x.getAddress())
 
+const Promise = require('bluebird');
+Promise.onPossiblyUnhandledRejection(function(error){
+    throw error;
+});
+
+
 function addMockFetches(prefix, dataMap) {
   dataMap.forEach( item => {
     FetchMock.get(`${prefix}${item.key}`, item.data)
@@ -595,6 +601,115 @@ function testServer() {
         t.equal(mockDriver.lastWrite.storageTopLevel, testAddrs[0])
         t.equal(mockDriver.lastWrite.contentType, 'application/octet-stream')
       })
+  })
+
+  test('handle admin whitelist', (t) => {
+    t.plan(20)
+    const mockDriver = new MockDriver()
+    const server = new HubServer(mockDriver, new MockProofs(),
+                                 {adminList: [testAddrs[1]], whitelist: [testAddrs[2]] })
+    const challengeText = auth.getChallengeText()
+
+    let sk = testPairs[0]
+    let authPart = auth.V1Authentication.makeAuthPart(sk, challengeText)
+    let authorization = `bearer ${authPart}`
+
+    const s = new Readable()
+    s._read = function noop() {}
+    s.push('hello world')
+    s.push(null)
+    const s2 = new Readable()
+    s2._read = function noop() {}
+    s2.push('hello world')
+    s2.push(null)
+
+    return new Promise((resolve, reject) => {
+      try {
+        return server.handleRequest(testAddrs[0], 'foo.txt',
+                                   { 'content-type': 'text/text',
+                                     'content-length': 4,
+                                      authorization }, s)
+          .then(() => reject(new Error('accidentally wrote foo.txt from non-whitelisted addr')))
+      } catch(e) {
+        // should fail because testAddrs[0] is not whitelisted
+        t.equal(e.name, 'ValidationError')
+        t.ok(server.whitelist.length === 1 && server.whitelist[0] === testAddrs[2], testAddrs[2])
+        t.ok(server.adminList.length === 1 && server.adminList[0] === testAddrs[1], testAddrs[1])
+
+        sk = testPairs[1]
+        authPart = auth.V1Authentication.makeAuthPart(sk, challengeText)
+        authorization = `bearer ${authPart}`
+        resolve(server.handleRequest(testAddrs[1], 'foo.txt',
+                                    { 'content-type': 'text/text',
+                                      'content-length': 4,
+                                       authorization }, s))
+      }
+    })
+    .then(path => {
+      return new Promise((resolve2, reject2) => {
+        // should succeed since admin addresses are always permitted 
+        t.equal(path, `http://test.com/${testAddrs[1]}/foo.txt`)
+        t.equal(mockDriver.lastWrite.path, 'foo.txt')
+        t.equal(mockDriver.lastWrite.storageTopLevel, testAddrs[1])
+        t.equal(mockDriver.lastWrite.contentType, 'text/text')
+        t.ok(server.whitelist.length === 1 && server.whitelist[0] === testAddrs[2], testAddrs[2])
+        t.ok(server.adminList.length === 1 && server.adminList[0] === testAddrs[1], testAddrs[1])
+
+        sk = testPairs[0]
+        authPart = auth.V1Authentication.makeAuthPart(sk, challengeText)
+        authorization = `bearer ${authPart}`
+        try {
+          server.handleWhitelist(testAddrs[0], [testAddrs[1]], 
+                                { 'content-type': 'application/json',
+                                  'content-length': JSON.stringify([testAddrs[1]]),
+                                  authorization }, s2)
+            .then(() => reject2(new Error('Accidentally set whitelist from non-admin addr')))
+        } catch(e) {
+          // should fail because testAddrs[0] is not an admin address
+          t.equal(e.name, 'ValidationError')
+          t.ok(server.whitelist.length === 1 && 
+            server.whitelist[0] === testAddrs[2], testAddrs[2])
+          t.ok(server.adminList.length === 1 && 
+            server.adminList[0] === testAddrs[1], testAddrs[1])
+        
+          sk = testPairs[1]
+          authPart = auth.V1Authentication.makeAuthPart(sk, challengeText)
+          authorization = `bearer ${authPart}`
+          resolve2(server.handleWhitelist(testAddrs[1], [testAddrs[0], testAddrs[1], testAddrs[2]], 
+                                        { 'content-type': 'application/json',
+                                          'content-length': JSON.stringify([testAddrs[1]]),
+                                          authorization }, s2))
+        }
+      })
+    })
+    .then(() => {
+      // should succeed since testAddrs[1] is an admin address 
+      t.ok(server.whitelist.length === 3 && 
+        server.whitelist.includes(testAddrs[0]) &&
+        server.whitelist.includes(testAddrs[1]) && 
+        server.whitelist.includes(testAddrs[2]), 'whitelist has 3 addresses')
+      t.ok(server.adminList.length === 1 && server.adminList[0] === testAddrs[1], testAddrs[1])
+
+      sk = testPairs[0]
+      authPart = auth.V1Authentication.makeAuthPart(sk, challengeText)
+      authorization = `bearer ${authPart}`
+      return server.handleRequest(testAddrs[0], 'foo2.txt',
+                                 { 'content-type': 'text/text',
+                                   'content-length': 4,
+                                   authorization }, s2)
+    })
+    .then((path) => {
+      // should succeed since testAddrs[0] is now whitelisted
+      t.equal(path, `http://test.com/${testAddrs[0]}/foo2.txt`)
+      t.equal(mockDriver.lastWrite.path, 'foo2.txt')
+      t.equal(mockDriver.lastWrite.storageTopLevel, testAddrs[0])
+      t.equal(mockDriver.lastWrite.contentType, 'text/text')
+      t.ok(server.whitelist.length === 3 && 
+        server.whitelist.includes(testAddrs[0]) &&
+        server.whitelist.includes(testAddrs[1]) && 
+        server.whitelist.includes(testAddrs[2]), 'whitelist has 3 addresses')
+      t.ok(server.adminList.length === 1 && server.adminList[0] === testAddrs[1], testAddrs[1])
+    })
   })
 }
 
