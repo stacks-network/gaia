@@ -6,17 +6,26 @@ import { ValidationError } from './errors'
 import type { Readable } from 'stream'
 import type { DriverModel } from './driverModel'
 
+type ConfigType = {
+  whitelist: Array<string>,
+  adminList?: Array<string>,
+  servername: string,
+  readURL?: string
+}
+
 export class HubServer {
   driver: DriverModel
   proofChecker: Object
   whitelist: Array<string>
+  adminList: Array<string>
   serverName: string
   readURL: ?string
   constructor(driver: DriverModel, proofChecker: Object,
-              config: { whitelist: Array<string>, servername: string, readURL?: string }) {
+              config: ConfigType) {
     this.driver = driver
     this.proofChecker = proofChecker
     this.whitelist = config.whitelist
+    this.adminList = config.adminList
     this.serverName = config.servername
     this.readURL = config.readURL
   }
@@ -25,7 +34,10 @@ export class HubServer {
   //   otherwise returns void.
   validate(address: string, requestHeaders: { authorization: string }) {
     if (this.whitelist && !(this.whitelist.includes(address))) {
-      throw new ValidationError('Address not authorized for writes')
+      // admins don't need to be whitelisted
+      if (!this.adminList || !(this.adminList.includes(address))) {
+        throw new ValidationError('Address not authorized for writes')
+      }
     }
 
     validateAuthorizationHeader(requestHeaders.authorization, this.serverName, address)
@@ -36,6 +48,20 @@ export class HubServer {
                   requestHeaders: { authorization: string }) {
     this.validate(address, requestHeaders)
     return this.driver.listFiles(address, page)
+  }
+
+  handleWhitelist(address: string,
+                  newWhiteList: Array<string>,
+                  requestHeaders: {'content-type': string,
+                                   'content-length': string,
+                                   authorization: string}) {
+
+    this.validate(address, requestHeaders)
+    if (!this.adminList || !this.adminList.includes(address)) {
+      throw new ValidationError('Address is not in the admin list')
+    }
+    this.whitelist = newWhiteList
+    return Promise.resolve()
   }
 
   getReadURLPrefix() {
