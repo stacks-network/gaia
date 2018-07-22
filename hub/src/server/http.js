@@ -4,10 +4,27 @@ import express from 'express'
 import expressWinston from 'express-winston'
 import logger from 'winston'
 import cors from 'cors'
+import Ajv from 'ajv'
 
 import { ProofChecker } from './ProofChecker'
 import { getChallengeText, LATEST_AUTH_VERSION } from './authentication'
 import { HubServer } from './server'
+
+const schemas = {
+  adminWhitelist: {
+    type: 'object',
+    properties: {
+      whitelist: {
+        type: 'array',
+        items: {
+          type: 'string',
+          pattern: /^[a-zA-Z0-9]$/
+        }
+      },
+      required: [ 'whitelist' ]
+    }
+  }
+}
 
 function writeResponse(res: express.response, data: Object, statusCode: number) {
   res.writeHead(statusCode, {'Content-Type' : 'application/json'})
@@ -106,6 +123,40 @@ export function makeHttpServer(config: Object) {
             }
           })
       })
+
+  app.post(
+    /^\/admin\/([a-zA-Z0-9]+)\/whitelist\/?/, express.json(),
+    (req: express.request, res: express.response) => {
+      // sanity check...
+      if (req.headers['content-length'] > 4096) {
+        writeResponse(res, { message: 'Invalid JSON: too long'}, 400)
+        return 
+      }
+
+      const address = req.params[0]
+
+      // must be { 'whitelist': [address, address...] }
+      const ajv = new Ajv()
+      const valid = ajv.validate(schemas.adminWhitelist, req.body)
+      if (!valid) {
+        writeResponse(res, { message: 'Invalid whitelist request' }, 400)
+        return
+      }
+
+      server.handleWhitelist(address, req.body.whitelist, req.headers)
+        .then(() => {
+          logger.info(`Whitelist changed to ${req.body.whitelist.join(',')}`)
+          writeResponse(res, { 'status': true }, 200)
+        })
+        .catch((err) => {
+          logger.error(err)
+          if (err.name === 'ValidationError') {
+            writeResponse(res, { message: err.message }, 401)
+          } else {
+            writeResponse(res, { message: 'Server error' }, 500)
+          }
+        })
+    })
 
   app.get('/hub_info/', (req: express.request,
                          res: express.response) => {
