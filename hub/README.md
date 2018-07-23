@@ -32,6 +32,8 @@ Set the driver you wish to use in your `config.json` file with the `driver` para
 
 These driver may require you to provide additional credentials for performing writes to the backends. See `config.sample.json` for fields for those credentials. In some cases, the driver can use a system configured credential for the backend (e.g., if you are logged into your AWS CLI account, and run the hub from that environment, it won't need to read credentials from your `config.json`).
 
+*Note:* The disk driver requires a *nix like filesystem interface, and will not work correctly when trying to run in a Windows environment.
+
 ### The readURL parameter
 
 By default, the gaia hub drivers will return read URLs which point directly at the written content. For example, an S3 driver would return the URL directly to the S3 file. However, if you configure a CDN or domain to point at that same bucket, you can use the `readURL` parameter to tell the gaia hub that files can be read from the given URL. For example, the `hub.blockstack.org` Gaia Hub is configured to return a read URL that looks like `https://gaia.blockstack.org/hub/`.
