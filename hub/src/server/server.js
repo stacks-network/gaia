@@ -24,11 +24,12 @@ export class HubServer {
   // throws exception on validation error
   //   otherwise returns void.
   validate(address: string, requestHeaders: { authorization: string }) {
-    if (this.whitelist && !(this.whitelist.includes(address))) {
-      throw new ValidationError('Address not authorized for writes')
-    }
+    const signingAddress = validateAuthorizationHeader(requestHeaders.authorization, 
+      this.serverName, address)
 
-    validateAuthorizationHeader(requestHeaders.authorization, this.serverName, address)
+    if (this.whitelist && !(this.whitelist.includes(signingAddress))) {
+      throw new ValidationError(`Address ${signingAddress} not authorized for writes`)
+    }
   }
 
   handleListFiles(address: string,
