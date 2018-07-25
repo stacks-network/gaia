@@ -31,6 +31,9 @@ export class V1Authentication {
     try {
       decodedToken = decodeToken(token)
     } catch (e) {
+      
+      logger.error(e)
+      logger.error('fromAuthPart')
       throw new ValidationError('Failed to decode authentication JWT')
     }
     const publicKey = decodedToken.payload.iss
@@ -40,19 +43,113 @@ export class V1Authentication {
     return new V1Authentication(token)
   }
 
-  static makeAuthPart(secretKey: bitcoin.ECPair, challengeText: string) {
+  static makeAuthPart(secretKey: bitcoin.ECPair, challengeText: string,
+                     associationToken?: string) {
+
     const FOUR_MONTH_SECONDS = 60 * 60 * 24 * 31 * 4
     const publicKeyHex = secretKey.getPublicKeyBuffer().toString('hex')
     const salt = crypto.randomBytes(16).toString('hex')
     const payload = { gaiaChallenge: challengeText,
                       iss: publicKeyHex,
                       exp: FOUR_MONTH_SECONDS + (new Date()/1000),
+                      associationToken,
                       salt }
     const signerKeyHex = ecPairToHexString(secretKey).slice(0, 64)
     const token = new TokenSigner('ES256K', signerKeyHex).sign(payload)
     return `v1:${token}`
   }
 
+  static makeAssociationToken(secretKey: bitcoin.ECPair, childPublicKey: string) {
+    const FOUR_MONTH_SECONDS = 60 * 60 * 24 * 31 * 4
+    const publicKeyHex = secretKey.getPublicKeyBuffer().toString('hex')
+    const salt = crypto.randomBytes(16).toString('hex')
+    const payload = { childToAssociate: childPublicKey,
+                      iss: publicKeyHex,
+                      exp: FOUR_MONTH_SECONDS + (new Date()/1000),
+                      salt }
+    const signerKeyHex = ecPairToHexString(secretKey).slice(0, 64)
+    const token = new TokenSigner('ES256K', signerKeyHex).sign(payload)
+    return token
+  }
+
+  checkAssociationToken(token: string, bearerAddress: string, 
+                        options?: { throwOnFailure?: boolean }) {
+    // a JWT can have an `associationToken` that was signed by one of the
+    // whitelisted addresses on this server.  This method checks a given
+    // associationToken and verifies that it authorizes the "outer"
+    // JWT's address (`bearerAddress`)
+    const defaults = {
+      throwOnFailure: true
+    }
+    options = Object.assign({}, defaults, options)
+    
+    let associationToken
+    try {
+      associationToken = decodeToken(token)
+    } catch (e) {
+      throw new ValidationError('Failed to decode association token in JWT')
+    }
+
+    // publicKey (the issuer of the association token)
+    // will be the whitelisted address (i.e. the identity address)
+    const publicKey = associationToken.payload.iss
+    const childPublicKey = associationToken.payload.childToAssociate
+    const expiresAt = associationToken.payload.exp
+
+    try {
+      if (! publicKey) {
+        throw new ValidationError('Must provide `iss` claim in association JWT.')
+      }
+
+      if (! childPublicKey) {
+        throw new ValidationError('Must provide `childToAssociate` claim in association JWT.')
+      }
+      
+      if (! expiresAt) {
+        throw new ValidationError('Must provide `exp` claim in association JWT.')
+      }
+      
+      const verified = new TokenVerifier('ES256K', publicKey).verify(token)
+      if (!verified) {
+        throw new ValidationError('Failed to verify association JWT: invalid issuer')
+      }
+
+      if (expiresAt < (new Date()/1000)) {
+        throw new ValidationError(
+          `Expired association token: expire time of ${expiresAt} (secs since epoch)`)
+      }
+
+      // the bearer of the association token must have authorized the bearer
+      const childAddress = pubkeyHexToECPair(childPublicKey).getAddress()
+      if (childAddress !== bearerAddress) {
+        throw new ValidationError(
+          `Association token child key ${childPublicKey} does not match ${bearerAddress}`)
+      }
+
+      const signerAddress = pubkeyHexToECPair(publicKey).getAddress()
+      return signerAddress
+    } catch (err) {
+      if (!options.throwOnFailure) {
+        return false
+      } else {
+        throw err
+      }
+    }
+  }
+      
+  /*
+   * Determine if the authentication token is valid:
+   * * must have signed the given `challengeText`
+   * * must not be expired
+   * * if it contains an associationToken, then the associationToken must
+   *   authorize the given address.
+   *
+   * Returns the address that signed off on this token, which will be 
+   * checked against the server's whitelist.
+   * * If this token has an associationToken, then the signing address
+   *   is the address that signed the associationToken.
+   * * Otherwise, the signing address is the given address.
+   */
   isAuthenticationValid(address: string, challengeText: string,
                         options?: { throwOnFailure?: boolean }) {
     const defaults = {
@@ -64,6 +161,8 @@ export class V1Authentication {
     try {
       decodedToken = decodeToken(this.token)
     } catch (e) {
+      logger.error(this.token)
+      logger.error('isAuthenticationValid')
       throw new ValidationError('Failed to decode authentication JWT')
     }
 
@@ -95,7 +194,15 @@ export class V1Authentication {
         throw new ValidationError(
           `Expired authentication token: expire time of ${expiresAt} (secs since epoch)`)
       }
-      return true
+
+      if (decodedToken.payload.hasOwnProperty('associationToken') &&
+          decodedToken.payload.associationToken) {
+        const authAddress = this.checkAssociationToken(
+          decodedToken.payload.associationToken, address, options)
+        return authAddress
+      } else {
+        return address
+      }
     } catch (err) {
       if (!options.throwOnFailure) {
         return false
@@ -153,7 +260,7 @@ export class LegacyAuthentication {
       logger.debug(`Failed to validate with challenge text: ${challengeText}`)
       throw new ValidationError('Invalid signature or expired authentication token.')
     }
-    return valid
+    return address
   }
 }
 
@@ -187,7 +294,7 @@ export function parseAuthHeader(authHeader: string) {
 }
 
 export function validateAuthorizationHeader(authHeader: string, serverName: string,
-                                            address: string) {
+                                            address: string) : string {
   let authObject = null
   try {
     authObject = parseAuthHeader(authHeader)
@@ -200,5 +307,5 @@ export function validateAuthorizationHeader(authHeader: string, serverName: stri
   }
 
   const challengeText = getChallengeText(serverName)
-  authObject.isAuthenticationValid(address, challengeText)
+  return authObject.isAuthenticationValid(address, challengeText)
 }
