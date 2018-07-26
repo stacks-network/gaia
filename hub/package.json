@@ -12,7 +12,7 @@
     "azure-storage": "^2.5.0",
     "bigi": "^1.4.2",
     "bitcoinjs-lib": "^3.1.1",
-    "blockstack": "^17.2.0",
+    "blockstack": "^18.0.0",
     "body-parser": "^1.18.1",
     "cors": "^2.8.4",
     "express": "^4.15.4",
@@ -42,7 +42,7 @@
   },
   "scripts": {
     "start": "npm run build && node lib/index.js",
-    "build": "npm run lint && babel src -d lib",
+    "build": "npm run lint && babel src -d lib && chmod +x lib/index.js",
     "flow": "flow",
     "lint": "eslint src",
     "test-inner": "npm run build && node ./test/test.js",
@@ -54,6 +54,7 @@
   },
   "authors": [
     "Aaron Blankstein (aaron@blockstack.com)",
-    "Jack Zampolin (jack@blockstack.com)"
+    "Jack Zampolin (jack@blockstack.com)",
+    "Jude Nelson (jude@blockstack.com)"
   ]
 }
