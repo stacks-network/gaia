@@ -220,9 +220,7 @@ function testAuth() {
              errors.ValidationError, 'Wrong address must throw')
     t.throws(() => authenticator.isAuthenticationValid(testAddrs[0], 'potatos'),
              errors.ValidationError, 'Wrong challenge text must throw')
-    t.ok(!authenticator.isAuthenticationValid(testAddrs[1], challengeText, { throwOnFailure: false }),
-         'Wrong address must fail')
-    t.ok(authenticator.isAuthenticationValid(testAddrs[0], challengeText, { throwOnFailure: false }),
+    t.ok(authenticator.isAuthenticationValid(testAddrs[0], challengeText),
          'Good signature must pass')
 
     const pkBad = bitcoin.ECPair.fromPublicKeyBuffer(testPairs[1].getPublicKeyBuffer())
@@ -230,8 +228,6 @@ function testAuth() {
 
     t.throws(() => authenticator.isAuthenticationValid(testAddrs[1], challengeText),
              'Bad signature must throw')
-    t.ok(!authenticator.isAuthenticationValid(testAddrs[1], challengeText, { throwOnFailure: false }),
-         'Bad signature must fail')
     t.end()
   })
 
@@ -245,13 +241,11 @@ function testAuth() {
              errors.ValidationError, 'Wrong address must throw')
     t.throws(() => authenticator.isAuthenticationValid(testAddrs[0], 'potatos are tasty'),
              errors.ValidationError, 'Wrong challenge text must throw')
-    t.ok(!authenticator.isAuthenticationValid(testAddrs[1], challengeText, { throwOnFailure: false }),
-         'Wrong address must fail')
-    t.ok(authenticator.isAuthenticationValid(testAddrs[0], challengeText, { throwOnFailure: false }),
+    t.ok(authenticator.isAuthenticationValid(testAddrs[0], challengeText),
          'Good signature must pass')
 
     // signer address was from the v1 token
-    t.equal(authenticator.isAuthenticationValid(testAddrs[0], challengeText, { throwsOnFailure: false}), testAddrs[0])
+    t.equal(authenticator.isAuthenticationValid(testAddrs[0], challengeText), testAddrs[0])
 
     const signerKeyHex = testPairs[0].d.toHex()
     const tokenWithoutIssuer = new TokenSigner('ES256K', signerKeyHex).sign(
@@ -285,13 +279,11 @@ function testAuth() {
              errors.ValidationError, 'Wrong address must throw')
     t.throws(() => authenticator.isAuthenticationValid(testAddrs[0], 'potatos are tasty'),
              errors.ValidationError, 'Wrong challenge text must throw')
-    t.ok(!authenticator.isAuthenticationValid(testAddrs[1], challengeText, { throwOnFailure: false }),
-         'Wrong address must fail')
-    t.ok(authenticator.isAuthenticationValid(testAddrs[0], challengeText, { throwOnFailure: false }),
+    t.ok(authenticator.isAuthenticationValid(testAddrs[0], challengeText),
          'Good signature must pass')
 
     // signer address was from the association token
-    t.equal(authenticator.isAuthenticationValid(testAddrs[0], challengeText, { throwsOnFailure: false}), testAddrs[1])
+    t.equal(authenticator.isAuthenticationValid(testAddrs[0], challengeText), testAddrs[1])
 
     // failures should work the same if the outer JWT is invalid
     const signerKeyHex = testPairs[0].d.toHex()
