@@ -31,7 +31,6 @@ export class V1Authentication {
     try {
       decodedToken = decodeToken(token)
     } catch (e) {
-      
       logger.error(e)
       logger.error('fromAuthPart')
       throw new ValidationError('Failed to decode authentication JWT')
@@ -72,17 +71,12 @@ export class V1Authentication {
     return token
   }
 
-  checkAssociationToken(token: string, bearerAddress: string, 
-                        options?: { throwOnFailure?: boolean }) {
+  checkAssociationToken(token: string, bearerAddress: string) {
     // a JWT can have an `associationToken` that was signed by one of the
     // whitelisted addresses on this server.  This method checks a given
     // associationToken and verifies that it authorizes the "outer"
     // JWT's address (`bearerAddress`)
-    const defaults = {
-      throwOnFailure: true
-    }
-    options = Object.assign({}, defaults, options)
-    
+
     let associationToken
     try {
       associationToken = decodeToken(token)
@@ -96,47 +90,40 @@ export class V1Authentication {
     const childPublicKey = associationToken.payload.childToAssociate
     const expiresAt = associationToken.payload.exp
 
-    try {
-      if (! publicKey) {
-        throw new ValidationError('Must provide `iss` claim in association JWT.')
-      }
-
-      if (! childPublicKey) {
-        throw new ValidationError('Must provide `childToAssociate` claim in association JWT.')
-      }
-      
-      if (! expiresAt) {
-        throw new ValidationError('Must provide `exp` claim in association JWT.')
-      }
-      
-      const verified = new TokenVerifier('ES256K', publicKey).verify(token)
-      if (!verified) {
-        throw new ValidationError('Failed to verify association JWT: invalid issuer')
-      }
-
-      if (expiresAt < (new Date()/1000)) {
-        throw new ValidationError(
-          `Expired association token: expire time of ${expiresAt} (secs since epoch)`)
-      }
-
-      // the bearer of the association token must have authorized the bearer
-      const childAddress = pubkeyHexToECPair(childPublicKey).getAddress()
-      if (childAddress !== bearerAddress) {
-        throw new ValidationError(
-          `Association token child key ${childPublicKey} does not match ${bearerAddress}`)
-      }
-
-      const signerAddress = pubkeyHexToECPair(publicKey).getAddress()
-      return signerAddress
-    } catch (err) {
-      if (!options.throwOnFailure) {
-        return false
-      } else {
-        throw err
-      }
+    if (! publicKey) {
+      throw new ValidationError('Must provide `iss` claim in association JWT.')
     }
+
+    if (! childPublicKey) {
+      throw new ValidationError('Must provide `childToAssociate` claim in association JWT.')
+    }
+
+    if (! expiresAt) {
+      throw new ValidationError('Must provide `exp` claim in association JWT.')
+    }
+
+    const verified = new TokenVerifier('ES256K', publicKey).verify(token)
+    if (!verified) {
+      throw new ValidationError('Failed to verify association JWT: invalid issuer')
+    }
+
+    if (expiresAt < (new Date()/1000)) {
+      throw new ValidationError(
+        `Expired association token: expire time of ${expiresAt} (secs since epoch)`)
+    }
+
+    // the bearer of the association token must have authorized the bearer
+    const childAddress = pubkeyHexToECPair(childPublicKey).getAddress()
+    if (childAddress !== bearerAddress) {
+      throw new ValidationError(
+        `Association token child key ${childPublicKey} does not match ${bearerAddress}`)
+    }
+
+    const signerAddress = pubkeyHexToECPair(publicKey).getAddress()
+    return signerAddress
+
   }
-      
+
   /*
    * Determine if the authentication token is valid:
    * * must have signed the given `challengeText`
@@ -144,19 +131,15 @@ export class V1Authentication {
    * * if it contains an associationToken, then the associationToken must
    *   authorize the given address.
    *
-   * Returns the address that signed off on this token, which will be 
+   * Returns the address that signed off on this token, which will be
    * checked against the server's whitelist.
    * * If this token has an associationToken, then the signing address
    *   is the address that signed the associationToken.
    * * Otherwise, the signing address is the given address.
+   *
+   * this throws a ValidationError if the authentication is invalid
    */
-  isAuthenticationValid(address: string, challengeText: string,
-                        options?: { throwOnFailure?: boolean }) {
-    const defaults = {
-      throwOnFailure: true
-    }
-    options = Object.assign({}, defaults, options)
-
+  isAuthenticationValid(address: string, challengeText: string): string {
     let decodedToken
     try {
       decodedToken = decodeToken(this.token)
@@ -169,46 +152,37 @@ export class V1Authentication {
     const publicKey = decodedToken.payload.iss
     const gaiaChallenge = decodedToken.payload.gaiaChallenge
 
-    try {
-      if (! publicKey) {
-        throw new ValidationError('Must provide `iss` claim in JWT.')
-      }
+    if (! publicKey) {
+      throw new ValidationError('Must provide `iss` claim in JWT.')
+    }
 
-      const issuerAddress = pubkeyHexToECPair(publicKey).getAddress()
+    const issuerAddress = pubkeyHexToECPair(publicKey).getAddress()
 
-      if (issuerAddress !== address) {
-        throw new ValidationError('Address not allowed to write on this path')
-      }
+    if (issuerAddress !== address) {
+      throw new ValidationError('Address not allowed to write on this path')
+    }
 
-      const verified = new TokenVerifier('ES256K', publicKey).verify(this.token)
-      if (!verified) {
-        throw new ValidationError('Failed to verify supplied authentication JWT')
-      }
+    const verified = new TokenVerifier('ES256K', publicKey).verify(this.token)
+    if (!verified) {
+      throw new ValidationError('Failed to verify supplied authentication JWT')
+    }
 
-      if (gaiaChallenge !== challengeText) {
-        throw new ValidationError(`Invalid gaiaChallenge text in supplied JWT: ${gaiaChallenge}`)
-      }
+    if (gaiaChallenge !== challengeText) {
+      throw new ValidationError(`Invalid gaiaChallenge text in supplied JWT: ${gaiaChallenge}`)
+    }
 
-      const expiresAt = decodedToken.payload.exp
-      if (expiresAt && expiresAt < (new Date()/1000)) {
-        throw new ValidationError(
-          `Expired authentication token: expire time of ${expiresAt} (secs since epoch)`)
-      }
+    const expiresAt = decodedToken.payload.exp
+    if (expiresAt && expiresAt < (new Date()/1000)) {
+      throw new ValidationError(
+        `Expired authentication token: expire time of ${expiresAt} (secs since epoch)`)
+    }
 
-      if (decodedToken.payload.hasOwnProperty('associationToken') &&
-          decodedToken.payload.associationToken) {
-        const authAddress = this.checkAssociationToken(
-          decodedToken.payload.associationToken, address, options)
-        return authAddress
-      } else {
-        return address
-      }
-    } catch (err) {
-      if (!options.throwOnFailure) {
-        return false
-      } else {
-        throw err
-      }
+    if (decodedToken.payload.hasOwnProperty('associationToken') &&
+        decodedToken.payload.associationToken) {
+      return this.checkAssociationToken(
+        decodedToken.payload.associationToken, address)
+    } else {
+      return address
     }
   }
 }
@@ -239,24 +213,15 @@ export class LegacyAuthentication {
     return Buffer.from(JSON.stringify(authObj)).toString('base64')
   }
 
-  isAuthenticationValid(address: string, challengeText: string,
-                        options?: { throwOnFailure?: boolean }) {
-    const defaults = {
-      throwOnFailure: true
-    }
-    options = Object.assign({}, defaults, options)
-
+  isAuthenticationValid(address: string, challengeText: string) {
     if (this.publickey.getAddress() !== address) {
-      if (options.throwOnFailure) {
-        throw new ValidationError('Address not allowed to write on this path')
-      }
-      return false
+      throw new ValidationError('Address not allowed to write on this path')
     }
 
     const digest = bitcoin.crypto.sha256(challengeText)
     const valid = (this.publickey.verify(digest, this.signature) === true)
 
-    if (options.throwOnFailure && !valid) {
+    if (!valid) {
       logger.debug(`Failed to validate with challenge text: ${challengeText}`)
       throw new ValidationError('Invalid signature or expired authentication token.')
     }
