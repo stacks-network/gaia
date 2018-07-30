@@ -164,7 +164,7 @@ export class V1Authentication {
       throw new ValidationError('Address not allowed to write on this path')
     }
 
-    if (options.requireCorrectHubUrl) {
+    if (options && options.requireCorrectHubUrl) {
       let claimedHub = decodedToken.payload.hubUrl
       if (claimedHub.endsWith('/')) {
         claimedHub = claimedHub.slice(0, -1)
@@ -236,7 +236,8 @@ export class LegacyAuthentication {
     return Buffer.from(JSON.stringify(authObj)).toString('base64')
   }
 
-  isAuthenticationValid(address: string, challengeText: string) {
+  isAuthenticationValid(address: string, challengeText: string,
+                        options? : {}) { //  eslint-disable-line no-unused-vars
     if (this.publickey.getAddress() !== address) {
       throw new ValidationError('Address not allowed to write on this path')
     }
@@ -283,7 +284,7 @@ export function parseAuthHeader(authHeader: string) {
 
 export function validateAuthorizationHeader(authHeader: string, serverName: string,
                                             address: string, requireCorrectHubUrl?: boolean = false,
-                                            validHubUrls?: Array<string>) : string {
+                                            validHubUrls?: ?Array<string> = null) : string {
   const serverNameHubUrl = `https://${serverName}`
   if (!validHubUrls) {
     validHubUrls = [ serverNameHubUrl ]
