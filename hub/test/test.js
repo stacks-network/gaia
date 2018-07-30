@@ -220,9 +220,7 @@ function testAuth() {
              errors.ValidationError, 'Wrong address must throw')
     t.throws(() => authenticator.isAuthenticationValid(testAddrs[0], 'potatos'),
              errors.ValidationError, 'Wrong challenge text must throw')
-    t.ok(!authenticator.isAuthenticationValid(testAddrs[1], challengeText, { throwOnFailure: false }),
-         'Wrong address must fail')
-    t.ok(authenticator.isAuthenticationValid(testAddrs[0], challengeText, { throwOnFailure: false }),
+    t.ok(authenticator.isAuthenticationValid(testAddrs[0], challengeText),
          'Good signature must pass')
 
     const pkBad = bitcoin.ECPair.fromPublicKeyBuffer(testPairs[1].getPublicKeyBuffer())
@@ -230,8 +228,6 @@ function testAuth() {
 
     t.throws(() => authenticator.isAuthenticationValid(testAddrs[1], challengeText),
              'Bad signature must throw')
-    t.ok(!authenticator.isAuthenticationValid(testAddrs[1], challengeText, { throwOnFailure: false }),
-         'Bad signature must fail')
     t.end()
   })
 
@@ -245,10 +241,11 @@ function testAuth() {
              errors.ValidationError, 'Wrong address must throw')
     t.throws(() => authenticator.isAuthenticationValid(testAddrs[0], 'potatos are tasty'),
              errors.ValidationError, 'Wrong challenge text must throw')
-    t.ok(!authenticator.isAuthenticationValid(testAddrs[1], challengeText, { throwOnFailure: false }),
-         'Wrong address must fail')
-    t.ok(authenticator.isAuthenticationValid(testAddrs[0], challengeText, { throwOnFailure: false }),
+    t.ok(authenticator.isAuthenticationValid(testAddrs[0], challengeText),
          'Good signature must pass')
+
+    // signer address was from the v1 token
+    t.equal(authenticator.isAuthenticationValid(testAddrs[0], challengeText), testAddrs[0])
 
     const signerKeyHex = testPairs[0].d.toHex()
     const tokenWithoutIssuer = new TokenSigner('ES256K', signerKeyHex).sign(
@@ -267,6 +264,80 @@ function testAuth() {
              errors.ValidationError, 'Invalid signature')
     t.ok(new auth.V1Authentication(goodTokenWithoutExp).isAuthenticationValid(testAddrs[0], challengeText),
          'Valid token without expiration should pass')
+
+    t.end()
+  })
+
+  test('v1 storage validation with association token', (t) => {
+    const challengeText = 'bananas are tasty'
+    const associationToken = auth.V1Authentication.makeAssociationToken(testPairs[1], testPairs[0].getPublicKeyBuffer().toString('hex'))
+    const authPart = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText, associationToken)
+    console.log(`V1 storage validation: ${authPart}`)
+    const authorization = `bearer ${authPart}`
+    const authenticator = auth.parseAuthHeader(authorization)
+    t.throws(() => authenticator.isAuthenticationValid(testAddrs[1], challengeText),
+             errors.ValidationError, 'Wrong address must throw')
+    t.throws(() => authenticator.isAuthenticationValid(testAddrs[0], 'potatos are tasty'),
+             errors.ValidationError, 'Wrong challenge text must throw')
+    t.ok(authenticator.isAuthenticationValid(testAddrs[0], challengeText),
+         'Good signature must pass')
+
+    // signer address was from the association token
+    t.equal(authenticator.isAuthenticationValid(testAddrs[0], challengeText), testAddrs[1])
+
+    // failures should work the same if the outer JWT is invalid
+    const signerKeyHex = testPairs[0].d.toHex()
+    const tokenWithoutIssuer = new TokenSigner('ES256K', signerKeyHex).sign(
+      { garbage: 'in' })
+    const goodTokenWithoutExp = new TokenSigner('ES256K', signerKeyHex).sign(
+      { gaiaChallenge: challengeText, iss: testPairs[0].getPublicKeyBuffer().toString('hex') })
+    const expiredToken = new TokenSigner('ES256K', signerKeyHex).sign(
+      { gaiaChallenge: challengeText, iss: testPairs[0].getPublicKeyBuffer().toString('hex'), exp: 1 })
+    const wrongIssuerToken = new TokenSigner('ES256K', signerKeyHex).sign(
+      { gaiaChallenge: challengeText, iss: testPairs[1].getPublicKeyBuffer().toString('hex'), exp: 1 })
+    t.throws(() => new auth.V1Authentication(tokenWithoutIssuer).isAuthenticationValid(testAddrs[0], challengeText),
+             errors.ValidationError, 'No `iss`, should fail')
+    t.throws(() => new auth.V1Authentication(expiredToken).isAuthenticationValid(testAddrs[0], challengeText),
+             errors.ValidationError, 'Expired token should fail')
+    t.throws(() => new auth.V1Authentication(wrongIssuerToken).isAuthenticationValid(testAddrs[1], challengeText),
+             errors.ValidationError, 'Invalid signature')
+    t.ok(new auth.V1Authentication(goodTokenWithoutExp).isAuthenticationValid(testAddrs[0], challengeText),
+         'Valid token without expiration should pass')
+
+    // invalid associationTokens should cause a well-formed outer JWT to fail authentication
+    const ownerKeyHex = testPairs[0].d.toHex()
+    const appKeyHex = testPairs[1].d.toHex()
+    const associationTokenWithoutIssuer = new TokenSigner('ES256K', ownerKeyHex).sign(
+      { garbage: 'in' })
+    const associationTokenWithoutExp = new TokenSigner('ES256K', ownerKeyHex).sign(
+      { childToAssociate: testPairs[1].getPublicKeyBuffer().toString('hex'), iss: testPairs[0].getPublicKeyBuffer().toString('hex') })
+    const expiredAssociationToken = new TokenSigner('ES256K', ownerKeyHex).sign(
+      { childToAssociate: testPairs[1].getPublicKeyBuffer().toString('hex'), iss: testPairs[0].getPublicKeyBuffer().toString('hex'), exp: 1 })
+    const wrongIssuerAssociationToken = new TokenSigner('ES256K', ownerKeyHex).sign(
+      { childToAssociate: testPairs[1].getPublicKeyBuffer().toString('hex'), iss: testPairs[1].getPublicKeyBuffer().toString('hex'), exp: (new Date()/1000) * 2 })
+    const wrongBearerAddressAssociationToken = new TokenSigner('ES256K', ownerKeyHex).sign(
+      { childToAssociate: testPairs[0].getPublicKeyBuffer().toString('hex'), iss: testPairs[0].getPublicKeyBuffer().toString('hex'), exp: (new Date()/1000) * 2 })
+
+    function makeAssocAuthToken(keypair, ct, assocJWT) {
+      return new auth.V1Authentication(auth.V1Authentication.fromAuthPart(auth.V1Authentication.makeAuthPart(keypair, ct, assocJWT)).token)
+    }
+    
+    // makeAssocAuthToken(testPairs[1], challengeText, associationTokenWithoutIssuer).isAuthenticationValid(testAddrs[1], challengeText)
+    // makeAssocAuthToken(testPairs[1], challengeText, associationTokenWithoutExp).isAuthenticationValid(testAddrs[1], challengeText)
+    // makeAssocAuthToken(testPairs[1], challengeText, expiredAssociationToken).isAuthenticationValid(testAddrs[1], challengeText)
+    // makeAssocAuthToken(testPairs[1], challengeText, wrongIssuerAssociationToken).isAuthenticationValid(testAddrs[1], challengeText)
+    // makeAssocAuthToken(testPairs[1], challengeText, wrongBearerAddressAssociationToken).isAuthenticationValid(testAddrs[1], challengeText)
+
+    t.throws(() => makeAssocAuthToken(testPairs[1], challengeText, associationTokenWithoutIssuer).isAuthenticationValid(testAddrs[1], challengeText),
+             errors.ValidationError, 'No `iss` in association token, should fail')
+    t.throws(() => makeAssocAuthToken(testPairs[1], challengeText, associationTokenWithoutExp).isAuthenticationValid(testAddrs[1], challengeText),
+             errors.ValidationError, 'Association token without exp should fail')
+    t.throws(() => makeAssocAuthToken(testPairs[1], challengeText, expiredAssociationToken).isAuthenticationValid(testAddrs[1], challengeText),
+             errors.ValidationError, 'Expired association token should fail')
+    t.throws(() => makeAssocAuthToken(testPairs[1], challengeText, wrongIssuerAssociationToken).isAuthenticationValid(testAddrs[1], challengeText),
+             errors.ValidationError, 'Wrong association token issuer, should fail')
+    t.throws(() => makeAssocAuthToken(testPairs[1], challengeText, wrongBearerAddressAssociationToken).isAuthenticationValid(testAddrs[1], challengeText),
+             errors.ValidationError, 'Wrong bearer address for association token, should fail')
 
     t.end()
   })
