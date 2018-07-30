@@ -8,11 +8,13 @@ import type { DriverModel } from '../driverModel'
 import type { Readable } from 'stream'
 
 type DISK_CONFIG_TYPE = { diskSettings: { storageRootDirectory?: string },
+                          pageSize?: number,
                           readURL?: string }
 
 class DiskDriver implements DriverModel {
   storageRootDirectory: string
   readURL: string
+  pageSize: number
 
   constructor (config: DISK_CONFIG_TYPE) {
     if (!config.readURL) {
@@ -29,6 +31,7 @@ class DiskDriver implements DriverModel {
       this.readURL = `${this.readURL}/`
     }
 
+    this.pageSize = config.pageSize ? config.pageSize : 100
     this.mkdirs(this.storageRootDirectory)
   }
 
@@ -71,6 +74,44 @@ class DiskDriver implements DriverModel {
       }
       tmpPath = `${tmpPath}/${pathParts[i]}`
     }
+  }
+
+  listFilesInDirectory(listPath: string, pageNum: number) {
+    // returns {'entries': [...], 'page': next_page}
+    const names = fs.readdirSync(listPath)
+    return Promise.resolve().then(() => {
+      const res = {
+        entries: names.slice(pageNum * this.pageSize, (pageNum + 1) * this.pageSize),
+        page: `${pageNum + 1}`
+      }
+      return res
+    })
+  }
+
+  listFiles(prefix: string, page: ?string) {
+    // returns {'entries': [...], 'page': next_page}
+    let pageNum
+    const listPath = `${this.storageRootDirectory}/${prefix}`
+    try {
+      if (page) {
+        if (!page.match(/^[0-9]+$/)) {
+          throw new Error('Invalid page number')
+        }
+        pageNum = parseInt(page)
+      }
+      else {
+        pageNum = 0
+      }
+      const stat = fs.statSync(listPath)
+      if (!stat.isDirectory()) {
+        throw new Error('Not a directory')
+      }
+    }
+    catch(e) {
+      throw new Error('Invalid arguments: invalid page or not a directory')
+    }
+
+    return this.listFilesInDirectory(listPath, pageNum)
   }
 
   performWrite(args: { path: string,
