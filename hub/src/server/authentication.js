@@ -43,7 +43,7 @@ export class V1Authentication {
   }
 
   static makeAuthPart(secretKey: bitcoin.ECPair, challengeText: string,
-                     associationToken?: string) {
+                      associationToken?: string, hubUrl: string) {
 
     const FOUR_MONTH_SECONDS = 60 * 60 * 24 * 31 * 4
     const publicKeyHex = secretKey.getPublicKeyBuffer().toString('hex')
@@ -52,7 +52,7 @@ export class V1Authentication {
                       iss: publicKeyHex,
                       exp: FOUR_MONTH_SECONDS + (new Date()/1000),
                       associationToken,
-                      salt }
+                      hubUrl, salt }
     const signerKeyHex = ecPairToHexString(secretKey).slice(0, 64)
     const token = new TokenSigner('ES256K', signerKeyHex).sign(payload)
     return `v1:${token}`
@@ -166,14 +166,14 @@ export class V1Authentication {
 
     if (options && options.requireCorrectHubUrl) {
       let claimedHub = decodedToken.payload.hubUrl
-      if (claimedHub.endsWith('/')) {
-        claimedHub = claimedHub.slice(0, -1)
-      }
-      const validHubUrls = options.validHubUrls
       if (!claimedHub) {
         throw new ValidationError(
           'Authentication must provide a claimed hub. You may need to update blockstack.js.')
       }
+      if (claimedHub.endsWith('/')) {
+        claimedHub = claimedHub.slice(0, -1)
+      }
+      const validHubUrls = options.validHubUrls
       if (!validHubUrls) {
         throw new ValidationError(
           'Configuration error on the gaia hub. validHubUrls must be supplied.')

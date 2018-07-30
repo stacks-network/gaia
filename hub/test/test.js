@@ -268,6 +268,43 @@ function testAuth() {
     t.end()
   })
 
+  test('v1 storage validation with hubUrls required', (t) => {
+    const challengeText = 'bananas are tasty'
+    const authPart = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText)
+    console.log(`V1 storage validation: ${authPart}`)
+    const authorization = `bearer ${authPart}`
+    const authenticator = auth.parseAuthHeader(authorization)
+    t.throws(() => authenticator.isAuthenticationValid(testAddrs[1], challengeText),
+             errors.ValidationError, 'Wrong address must throw')
+    t.throws(() => authenticator.isAuthenticationValid(testAddrs[0], 'potatos are tasty'),
+             errors.ValidationError, 'Wrong challenge text must throw')
+    t.ok(authenticator.isAuthenticationValid(testAddrs[0], challengeText),
+         'Good signature must pass')
+
+    // signer address was from the v1 token
+    t.equal(authenticator.isAuthenticationValid(testAddrs[0], challengeText), testAddrs[0])
+
+    const signerKeyHex = testPairs[0].d.toHex()
+    const tokenWithoutIssuer = new TokenSigner('ES256K', signerKeyHex).sign(
+      { garbage: 'in' })
+    const goodTokenWithoutExp = new TokenSigner('ES256K', signerKeyHex).sign(
+      { gaiaChallenge: challengeText, iss: testPairs[0].getPublicKeyBuffer().toString('hex') })
+    const expiredToken = new TokenSigner('ES256K', signerKeyHex).sign(
+      { gaiaChallenge: challengeText, iss: testPairs[0].getPublicKeyBuffer().toString('hex'), exp: 1 })
+    const wrongIssuerToken = new TokenSigner('ES256K', signerKeyHex).sign(
+      { gaiaChallenge: challengeText, iss: testPairs[1].getPublicKeyBuffer().toString('hex'), exp: 1 })
+    t.throws(() => new auth.V1Authentication(tokenWithoutIssuer).isAuthenticationValid(testAddrs[0], challengeText),
+             errors.ValidationError, 'No `iss`, should fail')
+    t.throws(() => new auth.V1Authentication(expiredToken).isAuthenticationValid(testAddrs[0], challengeText),
+             errors.ValidationError, 'Expired token should fail')
+    t.throws(() => new auth.V1Authentication(wrongIssuerToken).isAuthenticationValid(testAddrs[1], challengeText),
+             errors.ValidationError, 'Invalid signature')
+    t.ok(new auth.V1Authentication(goodTokenWithoutExp).isAuthenticationValid(testAddrs[0], challengeText),
+         'Valid token without expiration should pass')
+
+    t.end()
+  })
+
   test('v1 storage validation with association token', (t) => {
     const challengeText = 'bananas are tasty'
     const associationToken = auth.V1Authentication.makeAssociationToken(testPairs[1], testPairs[0].getPublicKeyBuffer().toString('hex'))
@@ -321,7 +358,7 @@ function testAuth() {
     function makeAssocAuthToken(keypair, ct, assocJWT) {
       return new auth.V1Authentication(auth.V1Authentication.fromAuthPart(auth.V1Authentication.makeAuthPart(keypair, ct, assocJWT)).token)
     }
-    
+
     // makeAssocAuthToken(testPairs[1], challengeText, associationTokenWithoutIssuer).isAuthenticationValid(testAddrs[1], challengeText)
     // makeAssocAuthToken(testPairs[1], challengeText, associationTokenWithoutExp).isAuthenticationValid(testAddrs[1], challengeText)
     // makeAssocAuthToken(testPairs[1], challengeText, expiredAssociationToken).isAuthenticationValid(testAddrs[1], challengeText)
@@ -588,6 +625,39 @@ function testServer() {
     } catch (err) {
       t.fail('White-listed address with good auth header should pass')
     }
+  })
+
+  test('validation with huburl tests', (t) => {
+    t.plan(4)
+    const server = new HubServer(new MockDriver(), new MockProofs(),
+                                 { whitelist: [testAddrs[0]], requireCorrectHubUrl: true,
+                                   validHubUrls: ['https://testserver.com'] })
+
+    const challengeText = auth.getChallengeText()
+
+    const authPartGood1 = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText, undefined, 'https://testserver.com/')
+    const authPartGood2 = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText, undefined, 'https://testserver.com')
+    const authPartBad1 = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText, undefined, undefined)
+    const authPartBad2 = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText, undefined, 'testserver.com')
+
+    t.throws(() => server.validate(testAddrs[0], { authorization: `bearer ${authPartBad1}` }),
+             errors.ValidationError, 'Auth must include a hubUrl')
+    t.throws(() => server.validate(testAddrs[0], { authorization: `bearer ${authPartBad2}` }),
+             errors.ValidationError, 'Auth must include correct hubUrl')
+
+    try {
+      server.validate(testAddrs[0], { authorization: `bearer ${authPartGood1}` })
+      t.pass('Address with good auth header should pass')
+    } catch (err) {
+      t.fail('Address with good auth header should pass')
+    }
+    try {
+      server.validate(testAddrs[0], { authorization: `bearer ${authPartGood2}` })
+      t.pass('Address with good auth header should pass')
+    } catch (err) {
+      t.fail('Address with good auth header should pass')
+    }
+
   })
 
   test('handle request with readURL', (t) => {
