@@ -43,7 +43,7 @@ export class V1Authentication {
   }
 
   static makeAuthPart(secretKey: bitcoin.ECPair, challengeText: string,
-                      associationToken?: string, hubUrl: string) {
+                      associationToken?: string, hubUrl?: string) {
 
     const FOUR_MONTH_SECONDS = 60 * 60 * 24 * 31 * 4
     const publicKeyHex = secretKey.getPublicKeyBuffer().toString('hex')
