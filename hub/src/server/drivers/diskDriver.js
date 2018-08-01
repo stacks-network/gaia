@@ -76,9 +76,30 @@ class DiskDriver implements DriverModel {
     }
   }
 
-  listFilesInDirectory(listPath: string, pageNum: number) {
-    // returns {'entries': [...], 'page': next_page}
+  findAllFiles(listPath: string) : Array<string> {
+    // returns a list of files prefixed by listPath
     const names = fs.readdirSync(listPath)
+    const fileNames = []
+    for (let i = 0; i < names.length; i++) {
+      const fileOrDir = `${listPath}/${names[i]}`
+      const stat = fs.statSync(fileOrDir)
+      if (stat.isDirectory()) {
+        const childNames = this.findAllFiles(fileOrDir)
+        for (let j = 0; j < childNames.length; j++) {
+          fileNames.push(childNames[j])
+        }
+      }
+      else {
+        fileNames.push(fileOrDir)
+      }
+    }
+    return fileNames
+  }
+
+  listFilesInDirectory(listPath: string, pageNum: number) {
+    const names = this.findAllFiles(listPath).map((fileName) => {
+      return fileName.slice(listPath.length + 1)
+    })
     return Promise.resolve().then(() => {
       const res = {
         entries: names.slice(pageNum * this.pageSize, (pageNum + 1) * this.pageSize),
