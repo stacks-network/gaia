@@ -58,14 +58,12 @@ class DiskDriver implements DriverModel {
         if ((statInfo.mode & fs.constants.S_IFDIR) === 0) {
           throw new Error(`Not a directory: ${tmpPath}`)
         }
-      }
-      catch (e) {
+      } catch (e) {
         if (e.code === 'ENOENT') {
           // need to create
           logger.debug(`mkdir ${tmpPath}`)
           fs.mkdirSync(tmpPath)
-        }
-        else {
+        } else {
           throw e
         }
       }
@@ -88,25 +86,20 @@ class DiskDriver implements DriverModel {
         for (let j = 0; j < childNames.length; j++) {
           fileNames.push(childNames[j])
         }
-      }
-      else {
+      } else {
         fileNames.push(fileOrDir)
       }
     }
     return fileNames
   }
 
-  listFilesInDirectory(listPath: string, pageNum: number) {
-    const names = this.findAllFiles(listPath).map((fileName) => {
-      return fileName.slice(listPath.length + 1)
-    })
-    return Promise.resolve().then(() => {
-      const res = {
-        entries: names.slice(pageNum * this.pageSize, (pageNum + 1) * this.pageSize),
-        page: `${pageNum + 1}`
-      }
-      return res
-    })
+  listFilesInDirectory(listPath: string, pageNum: number) : Promise<{entries: Array<string>, page: ?string}> {
+    const names = this.findAllFiles(listPath).map(
+      (fileName) => fileName.slice(listPath.length + 1))
+    return Promise.resolve().then(() => ({
+      entries: names.slice(pageNum * this.pageSize, (pageNum + 1) * this.pageSize),
+      page: `${pageNum + 1}`
+    }))
   }
 
   listFiles(prefix: string, page: ?string) {
@@ -119,16 +112,14 @@ class DiskDriver implements DriverModel {
           throw new Error('Invalid page number')
         }
         pageNum = parseInt(page)
-      }
-      else {
+      } else {
         pageNum = 0
       }
       const stat = fs.statSync(listPath)
       if (!stat.isDirectory()) {
         throw new Error('Not a directory')
       }
-    }
-    catch(e) {
+    } catch(e) {
       throw new Error('Invalid arguments: invalid page or not a directory')
     }
 
