@@ -43,7 +43,7 @@ export class V1Authentication {
   }
 
   static makeAuthPart(secretKey: bitcoin.ECPair, challengeText: string,
-                     associationToken?: string) {
+                      associationToken?: string, hubUrl?: string) {
 
     const FOUR_MONTH_SECONDS = 60 * 60 * 24 * 31 * 4
     const publicKeyHex = secretKey.getPublicKeyBuffer().toString('hex')
@@ -52,7 +52,7 @@ export class V1Authentication {
                       iss: publicKeyHex,
                       exp: FOUR_MONTH_SECONDS + (new Date()/1000),
                       associationToken,
-                      salt }
+                      hubUrl, salt }
     const signerKeyHex = ecPairToHexString(secretKey).slice(0, 64)
     const token = new TokenSigner('ES256K', signerKeyHex).sign(payload)
     return `v1:${token}`
@@ -139,7 +139,9 @@ export class V1Authentication {
    *
    * this throws a ValidationError if the authentication is invalid
    */
-  isAuthenticationValid(address: string, challengeText: string): string {
+  isAuthenticationValid(address: string, challengeText: string,
+                        options?: { requireCorrectHubUrl?: boolean,
+                                    validHubUrls?: Array<string> }) : string {
     let decodedToken
     try {
       decodedToken = decodeToken(this.token)
@@ -160,6 +162,27 @@ export class V1Authentication {
 
     if (issuerAddress !== address) {
       throw new ValidationError('Address not allowed to write on this path')
+    }
+
+    if (options && options.requireCorrectHubUrl) {
+      let claimedHub = decodedToken.payload.hubUrl
+      if (!claimedHub) {
+        throw new ValidationError(
+          'Authentication must provide a claimed hub. You may need to update blockstack.js.')
+      }
+      if (claimedHub.endsWith('/')) {
+        claimedHub = claimedHub.slice(0, -1)
+      }
+      const validHubUrls = options.validHubUrls
+      if (!validHubUrls) {
+        throw new ValidationError(
+          'Configuration error on the gaia hub. validHubUrls must be supplied.')
+      }
+      if (validHubUrls.indexOf(claimedHub) < 0) {
+        throw new ValidationError(
+          `Auth token's claimed hub url '${claimedHub}' not found` +
+            ` in this hubs set: ${JSON.stringify(validHubUrls)}`)
+      }
     }
 
     const verified = new TokenVerifier('ES256K', publicKey).verify(this.token)
@@ -213,7 +236,8 @@ export class LegacyAuthentication {
     return Buffer.from(JSON.stringify(authObj)).toString('base64')
   }
 
-  isAuthenticationValid(address: string, challengeText: string) {
+  isAuthenticationValid(address: string, challengeText: string,
+                        options? : {}) { //  eslint-disable-line no-unused-vars
     if (this.publickey.getAddress() !== address) {
       throw new ValidationError('Address not allowed to write on this path')
     }
@@ -259,7 +283,15 @@ export function parseAuthHeader(authHeader: string) {
 }
 
 export function validateAuthorizationHeader(authHeader: string, serverName: string,
-                                            address: string) : string {
+                                            address: string, requireCorrectHubUrl?: boolean = false,
+                                            validHubUrls?: ?Array<string> = null) : string {
+  const serverNameHubUrl = `https://${serverName}`
+  if (!validHubUrls) {
+    validHubUrls = [ serverNameHubUrl ]
+  } else if (validHubUrls.indexOf(serverNameHubUrl) < 0) {
+    validHubUrls.push(serverNameHubUrl)
+  }
+
   let authObject = null
   try {
     authObject = parseAuthHeader(authHeader)
@@ -272,5 +304,5 @@ export function validateAuthorizationHeader(authHeader: string, serverName: stri
   }
 
   const challengeText = getChallengeText(serverName)
-  return authObject.isAuthenticationValid(address, challengeText)
+  return authObject.isAuthenticationValid(address, challengeText, { validHubUrls, requireCorrectHubUrl })
 }
