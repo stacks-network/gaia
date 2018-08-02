@@ -17,17 +17,17 @@ class IPFSDriver implements DriverModel {
   ipnsId: string
 
   constructor(config: IPFS_CONFIG_TYPE) {
-    const {configuration, ipnsPath, peerKeyName, providerReadUrl} = config.ipfs
+    const { configuration, ipnsPath, peerKeyName, providerReadUrl } = config.ipfs
     if (!configuration || Object.keys(configuration).length === 0) {
       throw new Error('Config is missing for IPFS driver!')
     }
 
     if (IPFSDriver.isPathValid(providerReadUrl)) {
-      throw new BadPathError(`Invalid readProviderUrl path! Use without '/' at the end!`)
+      throw new BadPathError('Invalid readProviderUrl path! Use without \'/\' at the end!')
     }
 
     if (IPFSDriver.isPathValid(ipnsPath)) {
-      throw new BadPathError(`Invalid ipnsPath path! Use without '/' at the end!`)
+      throw new BadPathError('Invalid ipnsPath path! Use without \'/\' at the end!')
     }
 
     this.readURL = providerReadUrl
@@ -46,16 +46,16 @@ class IPFSDriver implements DriverModel {
         if (error) throw new Error(`failed to load IPFS peer identity: ${error}`)
 
         if (keys.length) {
-          let keyName = peerKeyName || 'self' // self key is created by default when you init IPFS
-          let peerKey = this.getPeerKey(keys, keyName)
+          const keyName = peerKeyName || 'self' // self key is created by default when you init IPFS
+          const peerKey = this.getPeerKey(keys, keyName)
 
           if (!peerKey) {
-            throw new Error(`Invalid a peer key name!`)
+            throw new Error('Invalid a peer key name!')
           }
 
           this.ipnsId = peerKey.id
         } else {
-          throw new Error(`Please generate peer key. Check IPFS documentation (https://ipfs.io/docs/commands/#ipfs-key-gen).`)
+          throw new Error('Please generate peer key. Check IPFS documentation (https://ipfs.io/docs/commands/#ipfs-key-gen).')
         }
       })
     })
@@ -83,11 +83,8 @@ class IPFSDriver implements DriverModel {
   }
 
   getReadURLPrefix(): string {
-    if (!this.readURL) {
-      this.readURL = 'https://gateway.ipfs.io'
-    }
-
-    return `${this.readURL}/ipns/${this.ipnsId}/`
+    const gateway = 'https://gateway.ipfs.io'
+    return `${gateway}/ipns/${this.ipnsId}/`
   }
 
   performWrite(args: {
