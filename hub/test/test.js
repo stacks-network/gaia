@@ -531,7 +531,7 @@ function testDiskDriver() {
       .then(() => t.ok(false, 'Should have thrown'))
       .catch((err) => t.equal(err.message, 'Invalid Path', 'Should throw bad path'))
       .then(() => driver.performWrite(
-        { path: 'foo.txt',
+        { path: 'foo/bar.txt',
           storageTopLevel: '12345',
           stream: s,
           contentType: 'application/octet-stream',
@@ -542,7 +542,7 @@ function testDiskDriver() {
       .then(() => driver.listFiles('12345'))
       .then((files) => {
         t.equal(files.entries.length, 1, 'Should return one file')
-        t.equal(files.entries[0], 'foo.txt', 'Should be foo.txt!')
+        t.equal(files.entries[0], 'foo/bar.txt', 'Should be foo.txt!')
       })
   })
 }
