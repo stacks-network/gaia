@@ -25,6 +25,7 @@
     "prefer-const": 2,
     "new-cap": 0,
     "camelcase": 2,
+    "brace-style": 2,
     "semi": [2, "never"],
     "flowtype/define-flow-type": 1,
     "valid-jsdoc": ["error"]

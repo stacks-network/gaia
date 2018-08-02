@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Added
+- Option for requiring that a client supply a `hubURL` claim in their
+  authentication payload.
+- List files endpoint for authenticated users to list all the contents
+  of a given bucket.
+- Support for association tokens in authentication to interact with white
+  lists.
+
 ## [2.1.0]
 ### Changed
 - The `readURL` config parameter is now treated consistently by the

@@ -63,8 +63,18 @@ function makeMockedAzureDriver() {
       cb()
     })
   }
+  const listBlobsSegmentedWithPrefix = function(getBucket, prefix, continuation, data, cb) {
+    const outBlobs = []
+    dataMap.forEach(x => {
+      if (x.key.startsWith(prefix)) {
+        outBlobs.push({name: x.key})
+      }
+    })
+    cb(null, {entries: outBlobs, continuationToken: null})
+  }
+
   const createBlobService = function() {
-    return { createContainerIfNotExists, createBlockBlobFromStream }
+    return { createContainerIfNotExists, createBlockBlobFromStream, listBlobsSegmentedWithPrefix }
   }
 
   AzDriver = proxyquire('../lib/server/drivers/AzDriver', {
@@ -90,6 +100,16 @@ function makeMockedS3Driver() {
         dataMap.push({ data: buffer.toString(), key: options.Key })
         cb()
       })
+    }
+    listObjectsV2(options, cb) {
+      const contents = dataMap
+      .filter((entry) => {
+        return (entry.key.slice(0, options.Prefix.length) === options.Prefix)
+      })
+      .map((entry) => {
+        return { Key: entry.key }
+      })
+      cb(null, { Contents: contents, isTruncated: false })
     }
   }
 
@@ -138,7 +158,14 @@ function makeMockedGcDriver() {
           throw new Error(`Unexpected bucket name: ${bucketName}. Expected ${myName}`)
         }
       }
-      return { file, exists }
+      return { file, exists, getFiles: this.getFiles }
+    }
+
+    getFiles(options, cb) {
+      const files = dataMap.map((entry) => {
+        return { name: entry.key }
+      })
+      cb(null, files, null)
     }
   }
 
@@ -193,9 +220,7 @@ function testAuth() {
              errors.ValidationError, 'Wrong address must throw')
     t.throws(() => authenticator.isAuthenticationValid(testAddrs[0], 'potatos'),
              errors.ValidationError, 'Wrong challenge text must throw')
-    t.ok(!authenticator.isAuthenticationValid(testAddrs[1], challengeText, { throwOnFailure: false }),
-         'Wrong address must fail')
-    t.ok(authenticator.isAuthenticationValid(testAddrs[0], challengeText, { throwOnFailure: false }),
+    t.ok(authenticator.isAuthenticationValid(testAddrs[0], challengeText),
          'Good signature must pass')
 
     const pkBad = bitcoin.ECPair.fromPublicKeyBuffer(testPairs[1].getPublicKeyBuffer())
@@ -203,8 +228,6 @@ function testAuth() {
 
     t.throws(() => authenticator.isAuthenticationValid(testAddrs[1], challengeText),
              'Bad signature must throw')
-    t.ok(!authenticator.isAuthenticationValid(testAddrs[1], challengeText, { throwOnFailure: false }),
-         'Bad signature must fail')
     t.end()
   })
 
@@ -218,10 +241,11 @@ function testAuth() {
              errors.ValidationError, 'Wrong address must throw')
     t.throws(() => authenticator.isAuthenticationValid(testAddrs[0], 'potatos are tasty'),
              errors.ValidationError, 'Wrong challenge text must throw')
-    t.ok(!authenticator.isAuthenticationValid(testAddrs[1], challengeText, { throwOnFailure: false }),
-         'Wrong address must fail')
-    t.ok(authenticator.isAuthenticationValid(testAddrs[0], challengeText, { throwOnFailure: false }),
+    t.ok(authenticator.isAuthenticationValid(testAddrs[0], challengeText),
          'Good signature must pass')
+
+    // signer address was from the v1 token
+    t.equal(authenticator.isAuthenticationValid(testAddrs[0], challengeText), testAddrs[0])
 
     const signerKeyHex = testPairs[0].d.toHex()
     const tokenWithoutIssuer = new TokenSigner('ES256K', signerKeyHex).sign(
@@ -240,6 +264,117 @@ function testAuth() {
              errors.ValidationError, 'Invalid signature')
     t.ok(new auth.V1Authentication(goodTokenWithoutExp).isAuthenticationValid(testAddrs[0], challengeText),
          'Valid token without expiration should pass')
+
+    t.end()
+  })
+
+  test('v1 storage validation with hubUrls required', (t) => {
+    const challengeText = 'bananas are tasty'
+    const authPart = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText)
+    console.log(`V1 storage validation: ${authPart}`)
+    const authorization = `bearer ${authPart}`
+    const authenticator = auth.parseAuthHeader(authorization)
+    t.throws(() => authenticator.isAuthenticationValid(testAddrs[1], challengeText),
+             errors.ValidationError, 'Wrong address must throw')
+    t.throws(() => authenticator.isAuthenticationValid(testAddrs[0], 'potatos are tasty'),
+             errors.ValidationError, 'Wrong challenge text must throw')
+    t.ok(authenticator.isAuthenticationValid(testAddrs[0], challengeText),
+         'Good signature must pass')
+
+    // signer address was from the v1 token
+    t.equal(authenticator.isAuthenticationValid(testAddrs[0], challengeText), testAddrs[0])
+
+    const signerKeyHex = testPairs[0].d.toHex()
+    const tokenWithoutIssuer = new TokenSigner('ES256K', signerKeyHex).sign(
+      { garbage: 'in' })
+    const goodTokenWithoutExp = new TokenSigner('ES256K', signerKeyHex).sign(
+      { gaiaChallenge: challengeText, iss: testPairs[0].getPublicKeyBuffer().toString('hex') })
+    const expiredToken = new TokenSigner('ES256K', signerKeyHex).sign(
+      { gaiaChallenge: challengeText, iss: testPairs[0].getPublicKeyBuffer().toString('hex'), exp: 1 })
+    const wrongIssuerToken = new TokenSigner('ES256K', signerKeyHex).sign(
+      { gaiaChallenge: challengeText, iss: testPairs[1].getPublicKeyBuffer().toString('hex'), exp: 1 })
+    t.throws(() => new auth.V1Authentication(tokenWithoutIssuer).isAuthenticationValid(testAddrs[0], challengeText),
+             errors.ValidationError, 'No `iss`, should fail')
+    t.throws(() => new auth.V1Authentication(expiredToken).isAuthenticationValid(testAddrs[0], challengeText),
+             errors.ValidationError, 'Expired token should fail')
+    t.throws(() => new auth.V1Authentication(wrongIssuerToken).isAuthenticationValid(testAddrs[1], challengeText),
+             errors.ValidationError, 'Invalid signature')
+    t.ok(new auth.V1Authentication(goodTokenWithoutExp).isAuthenticationValid(testAddrs[0], challengeText),
+         'Valid token without expiration should pass')
+
+    t.end()
+  })
+
+  test('v1 storage validation with association token', (t) => {
+    const challengeText = 'bananas are tasty'
+    const associationToken = auth.V1Authentication.makeAssociationToken(testPairs[1], testPairs[0].getPublicKeyBuffer().toString('hex'))
+    const authPart = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText, associationToken)
+    console.log(`V1 storage validation: ${authPart}`)
+    const authorization = `bearer ${authPart}`
+    const authenticator = auth.parseAuthHeader(authorization)
+    t.throws(() => authenticator.isAuthenticationValid(testAddrs[1], challengeText),
+             errors.ValidationError, 'Wrong address must throw')
+    t.throws(() => authenticator.isAuthenticationValid(testAddrs[0], 'potatos are tasty'),
+             errors.ValidationError, 'Wrong challenge text must throw')
+    t.ok(authenticator.isAuthenticationValid(testAddrs[0], challengeText),
+         'Good signature must pass')
+
+    // signer address was from the association token
+    t.equal(authenticator.isAuthenticationValid(testAddrs[0], challengeText), testAddrs[1])
+
+    // failures should work the same if the outer JWT is invalid
+    const signerKeyHex = testPairs[0].d.toHex()
+    const tokenWithoutIssuer = new TokenSigner('ES256K', signerKeyHex).sign(
+      { garbage: 'in' })
+    const goodTokenWithoutExp = new TokenSigner('ES256K', signerKeyHex).sign(
+      { gaiaChallenge: challengeText, iss: testPairs[0].getPublicKeyBuffer().toString('hex') })
+    const expiredToken = new TokenSigner('ES256K', signerKeyHex).sign(
+      { gaiaChallenge: challengeText, iss: testPairs[0].getPublicKeyBuffer().toString('hex'), exp: 1 })
+    const wrongIssuerToken = new TokenSigner('ES256K', signerKeyHex).sign(
+      { gaiaChallenge: challengeText, iss: testPairs[1].getPublicKeyBuffer().toString('hex'), exp: 1 })
+    t.throws(() => new auth.V1Authentication(tokenWithoutIssuer).isAuthenticationValid(testAddrs[0], challengeText),
+             errors.ValidationError, 'No `iss`, should fail')
+    t.throws(() => new auth.V1Authentication(expiredToken).isAuthenticationValid(testAddrs[0], challengeText),
+             errors.ValidationError, 'Expired token should fail')
+    t.throws(() => new auth.V1Authentication(wrongIssuerToken).isAuthenticationValid(testAddrs[1], challengeText),
+             errors.ValidationError, 'Invalid signature')
+    t.ok(new auth.V1Authentication(goodTokenWithoutExp).isAuthenticationValid(testAddrs[0], challengeText),
+         'Valid token without expiration should pass')
+
+    // invalid associationTokens should cause a well-formed outer JWT to fail authentication
+    const ownerKeyHex = testPairs[0].d.toHex()
+    const appKeyHex = testPairs[1].d.toHex()
+    const associationTokenWithoutIssuer = new TokenSigner('ES256K', ownerKeyHex).sign(
+      { garbage: 'in' })
+    const associationTokenWithoutExp = new TokenSigner('ES256K', ownerKeyHex).sign(
+      { childToAssociate: testPairs[1].getPublicKeyBuffer().toString('hex'), iss: testPairs[0].getPublicKeyBuffer().toString('hex') })
+    const expiredAssociationToken = new TokenSigner('ES256K', ownerKeyHex).sign(
+      { childToAssociate: testPairs[1].getPublicKeyBuffer().toString('hex'), iss: testPairs[0].getPublicKeyBuffer().toString('hex'), exp: 1 })
+    const wrongIssuerAssociationToken = new TokenSigner('ES256K', ownerKeyHex).sign(
+      { childToAssociate: testPairs[1].getPublicKeyBuffer().toString('hex'), iss: testPairs[1].getPublicKeyBuffer().toString('hex'), exp: (new Date()/1000) * 2 })
+    const wrongBearerAddressAssociationToken = new TokenSigner('ES256K', ownerKeyHex).sign(
+      { childToAssociate: testPairs[0].getPublicKeyBuffer().toString('hex'), iss: testPairs[0].getPublicKeyBuffer().toString('hex'), exp: (new Date()/1000) * 2 })
+
+    function makeAssocAuthToken(keypair, ct, assocJWT) {
+      return new auth.V1Authentication(auth.V1Authentication.fromAuthPart(auth.V1Authentication.makeAuthPart(keypair, ct, assocJWT)).token)
+    }
+
+    // makeAssocAuthToken(testPairs[1], challengeText, associationTokenWithoutIssuer).isAuthenticationValid(testAddrs[1], challengeText)
+    // makeAssocAuthToken(testPairs[1], challengeText, associationTokenWithoutExp).isAuthenticationValid(testAddrs[1], challengeText)
+    // makeAssocAuthToken(testPairs[1], challengeText, expiredAssociationToken).isAuthenticationValid(testAddrs[1], challengeText)
+    // makeAssocAuthToken(testPairs[1], challengeText, wrongIssuerAssociationToken).isAuthenticationValid(testAddrs[1], challengeText)
+    // makeAssocAuthToken(testPairs[1], challengeText, wrongBearerAddressAssociationToken).isAuthenticationValid(testAddrs[1], challengeText)
+
+    t.throws(() => makeAssocAuthToken(testPairs[1], challengeText, associationTokenWithoutIssuer).isAuthenticationValid(testAddrs[1], challengeText),
+             errors.ValidationError, 'No `iss` in association token, should fail')
+    t.throws(() => makeAssocAuthToken(testPairs[1], challengeText, associationTokenWithoutExp).isAuthenticationValid(testAddrs[1], challengeText),
+             errors.ValidationError, 'Association token without exp should fail')
+    t.throws(() => makeAssocAuthToken(testPairs[1], challengeText, expiredAssociationToken).isAuthenticationValid(testAddrs[1], challengeText),
+             errors.ValidationError, 'Expired association token should fail')
+    t.throws(() => makeAssocAuthToken(testPairs[1], challengeText, wrongIssuerAssociationToken).isAuthenticationValid(testAddrs[1], challengeText),
+             errors.ValidationError, 'Wrong association token issuer, should fail')
+    t.throws(() => makeAssocAuthToken(testPairs[1], challengeText, wrongBearerAddressAssociationToken).isAuthenticationValid(testAddrs[1], challengeText),
+             errors.ValidationError, 'Wrong bearer address for association token, should fail')
 
     t.end()
   })
@@ -298,8 +433,13 @@ function testAzDriver() {
       })
       .then((resp) => resp.text())
       .then((resptxt) => t.equal(resptxt, 'hello world', `Must get back hello world: got back: ${resptxt}`))
-      .catch(() => t.false(true, `Unexpected err: ${err}`))
-      .then(() => { FetchMock.restore; t.end() })
+      .then(() => driver.listFiles('12345'))
+      .then((files) => {
+        t.equal(files.entries.length, 1, 'Should return one file')
+        t.equal(files.entries[0], 'foo.txt', 'Should be foo.txt!')
+      })
+      .catch((err) => t.false(true, `Unexpected err: ${err}`))
+      .then(() => { FetchMock.restore(); t.end() })
   })
 }
 
@@ -310,7 +450,7 @@ function testS3Driver() {
   let mockTest = true
 
   if (awsConfigPath) {
-    const config = JSON.parse(fs.readFileSync(awsConfigPath))
+    config = JSON.parse(fs.readFileSync(awsConfigPath))
     mockTest = false
   }
 
@@ -346,13 +486,22 @@ function testS3Driver() {
         if (mockTest) {
           addMockFetches(prefix, dataMap)
         }
+        else {
+        }
         t.ok(readUrl.startsWith(prefix + '12345'), `${readUrl} must start with readUrlPrefix ${prefix}12345`)
         return fetch(readUrl)
       })
       .then((resp) => resp.text())
       .then((resptxt) => t.equal(resptxt, 'hello world', `Must get back hello world: got back: ${resptxt}`))
+      .then(() => driver.listFiles('12345'))
+      .then((files) => {
+        t.equal(files.entries.length, 1, 'Should return one file')
+        t.equal(files.entries[0], 'foo.txt', 'Should be foo.txt!')
+      })
+      .catch((err) => t.false(true, `Unexpected err: ${err}`))
+      .then(() => { FetchMock.restore(); })
       .catch(() => t.false(true, `Unexpected err: ${err}`))
-      .then(() => { FetchMock.restore; t.end() })
+      .then(() => { FetchMock.restore(); t.end() })
   })
 }
 
@@ -365,9 +514,11 @@ function testDiskDriver() {
     return
   }
   const config = JSON.parse(fs.readFileSync(diskConfigPath))
+  const diskDriverImport = '../lib/server/drivers/diskDriver'
+  const DiskDriver = require(diskDriverImport)
 
   test('diskDriver', (t) => {
-    t.plan(3)
+    t.plan(4)
     const driver = new DiskDriver(config)
     const prefix = driver.getReadURLPrefix()
     const s = new Readable()
@@ -380,17 +531,19 @@ function testDiskDriver() {
       .then(() => t.ok(false, 'Should have thrown'))
       .catch((err) => t.equal(err.message, 'Invalid Path', 'Should throw bad path'))
       .then(() => driver.performWrite(
-        { path: 'foo.txt',
+        { path: 'foo/bar.txt',
           storageTopLevel: '12345',
           stream: s,
           contentType: 'application/octet-stream',
           contentLength: 12 }))
       .then((readUrl) => {
         t.ok(readUrl.startsWith(prefix + '12345'), `${readUrl} must start with readUrlPrefix ${prefix}12345`)
-        return fetch(readUrl)
       })
-      .then((resp) => resp.text())
-      .then((resptxt) => t.equal(resptxt, 'hello world', `Must get back hello world: got back: ${resptxt}`))
+      .then(() => driver.listFiles('12345'))
+      .then((files) => {
+        t.equal(files.entries.length, 1, 'Should return one file')
+        t.equal(files.entries[0], 'foo/bar.txt', 'Should be foo.txt!')
+      })
   })
 }
 
@@ -401,7 +554,7 @@ function testGcDriver() {
   let mockTest = true
 
   if (gcConfigPath) {
-    const config = JSON.parse(fs.readFileSync(gcConfigPath))
+    config = JSON.parse(fs.readFileSync(gcConfigPath))
     mockTest = false
   }
 
@@ -442,8 +595,13 @@ function testGcDriver() {
       })
       .then((resp) => resp.text())
       .then((resptxt) => t.equal(resptxt, 'hello world', `Must get back hello world: got back: ${resptxt}`))
-      .catch(() => t.false(true, `Unexpected err: ${err}`))
-      .then(() => { FetchMock.restore; t.end() })
+      .then(() => driver.listFiles('12345'))
+      .then((files) => {
+        t.equal(files.entries.length, 1, 'Should return one file')
+        t.equal(files.entries[0], 'foo.txt', 'Should be foo.txt!')
+      })
+      .catch((err) => t.false(true, `Unexpected err: ${err}`))
+      .then(() => { FetchMock.restore(); t.end() })
   })
 }
 
@@ -467,6 +625,39 @@ function testServer() {
     } catch (err) {
       t.fail('White-listed address with good auth header should pass')
     }
+  })
+
+  test('validation with huburl tests', (t) => {
+    t.plan(4)
+    const server = new HubServer(new MockDriver(), new MockProofs(),
+                                 { whitelist: [testAddrs[0]], requireCorrectHubUrl: true,
+                                   validHubUrls: ['https://testserver.com'] })
+
+    const challengeText = auth.getChallengeText()
+
+    const authPartGood1 = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText, undefined, 'https://testserver.com/')
+    const authPartGood2 = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText, undefined, 'https://testserver.com')
+    const authPartBad1 = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText, undefined, undefined)
+    const authPartBad2 = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText, undefined, 'testserver.com')
+
+    t.throws(() => server.validate(testAddrs[0], { authorization: `bearer ${authPartBad1}` }),
+             errors.ValidationError, 'Auth must include a hubUrl')
+    t.throws(() => server.validate(testAddrs[0], { authorization: `bearer ${authPartBad2}` }),
+             errors.ValidationError, 'Auth must include correct hubUrl')
+
+    try {
+      server.validate(testAddrs[0], { authorization: `bearer ${authPartGood1}` })
+      t.pass('Address with good auth header should pass')
+    } catch (err) {
+      t.fail('Address with good auth header should pass')
+    }
+    try {
+      server.validate(testAddrs[0], { authorization: `bearer ${authPartGood2}` })
+      t.pass('Address with good auth header should pass')
+    } catch (err) {
+      t.fail('Address with good auth header should pass')
+    }
+
   })
 
   test('handle request with readURL', (t) => {
@@ -566,6 +757,7 @@ function testHttpPost() {
 
   let dataMap = []
   let AzDriver
+  const azDriverImport = '../lib/server/drivers/AzDriver'
   if (mockTest) {
     mockedObj = makeMockedAzureDriver()
     dataMap = mockedObj.dataMap
@@ -583,7 +775,9 @@ function testHttpPost() {
 
     let address = sk.getAddress()
     let path = `/store/${address}/helloWorld`
+    let listPath = `/list-files/${address}`
     let prefix = ''
+    let authorizationHeader = ''
 
     request(app).get('/hub_info/')
       .expect(200)
@@ -593,11 +787,14 @@ function testHttpPost() {
         const authPart = auth.V1Authentication.makeAuthPart(sk, challenge)
         return `bearer ${authPart}`
       })
-      .then((authorization) => request(app).post(path)
+      .then((authorization) => {
+        authorizationHeader = authorization
+        return request(app).post(path)
             .set('Content-Type', 'application/octet-stream')
             .set('Authorization', authorization)
             .send(blob)
-            .expect(202))
+            .expect(202)
+      })
       .then((response) => {
         if (mockTest) {
           addMockFetches(prefix, dataMap)
@@ -611,9 +808,21 @@ function testHttpPost() {
           .then(text => t.equal(text, fileContents, 'Contents returned must be correct'))
       })
       .catch(() => t.false(true, `Unexpected err: ${err}`))
-      .then(() => { FetchMock.restore; t.end() })
+      .then(() => request(app).post(listPath)
+            .set('Content-Type', 'application/json')
+            .set('Authorization', authorizationHeader)
+            .expect(202)
+      )
+      .then((filesResponse) => {
+        const files = JSON.parse(filesResponse.text)
+        t.equal(files.entries.length, 1, 'Should return one file')
+        t.equal(files.entries[0], 'helloWorld', 'Should be helloworld')
+        t.ok(files.hasOwnProperty('page'), 'Response is missing a page')
+      })
+      .then(() => { FetchMock.restore(); t.end() })
   })
 }
+
 
 testServer()
 testAuth()
