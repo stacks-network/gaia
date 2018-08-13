@@ -2,7 +2,7 @@
 
 import crypto from 'crypto'
 import { ec as EllipticCurve } from 'elliptic'
-import { getPublicKeyFromPrivate } from './keys'
+import { getPublicKeyFromPrivate } from 'blockstack'
 
 const ecurve = new EllipticCurve('secp256k1')
 
@@ -11,7 +11,7 @@ export type CipherObject = { iv: string,
                              cipherText: string,
                              mac: string,
                              wasString: boolean,
-                             encoding?: string }
+                             encoding?: buffer$Encoding }
 
 function aes256CbcEncrypt(iv : Buffer, key : Buffer, plaintext : Buffer) {
   const cipher = crypto.createCipheriv('aes-256-cbc', key, iv)
@@ -66,14 +66,16 @@ export function getBufferFromBN(bnInput: Object) {
  * Encrypt content to elliptic curve publicKey using ECIES
  * @param {String} publicKey - secp256k1 public key hex string
  * @param {String | Buffer} content - content to encrypt
+ * @param {String} encoding - encoding for the ciphertext, default = 'hex'
  * @return {Object} Object containing (hex encoded):
  *  iv (initialization vector), cipherText (cipher text),
  *  mac (message authentication code), ephemeral public key
  *  wasString (boolean indicating with or not to return a buffer or string on decrypt)
+ *  encoding (the encoding used for the cipher text)
  *  @private
  */
 export function encryptECIES(publicKey: string, content: string | Buffer,
-                             encoding?: string = 'hex') : CipherObject {
+                             encoding?: buffer$Encoding = 'hex') : CipherObject {
   const wasString = (typeof (content) === 'string')
   const plainText = Buffer.from(content) // always copy to buffer
 
@@ -96,7 +98,7 @@ export function encryptECIES(publicKey: string, content: string | Buffer,
                                  cipherText])
   const mac = hmacSha256(sharedKeys.hmacKey, macData)
 
-  const encryptedBuffers = {
+  return {
     iv: initializationVector.toString(encoding),
     ephemeralPK: Buffer.from(ephemeralPK.encodeCompressed()).toString(encoding),
     cipherText: cipherText.toString(encoding),

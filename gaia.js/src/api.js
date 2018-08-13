@@ -1,12 +1,22 @@
+/* @flow */
+
+import { encryptECIES, decryptECIES, signECDSA } from './encryption'
+import { uploadToGaiaHub } from './wire'
+import { GaiaHubConfig } from './types'
+
+const SIGNATURE_FILE_SUFFIX = '.sig'
+
 /**
  * Encrypts the data provided with the app public key.
  * @param {String|Buffer} content - data to encrypt
- * @param {Object} [options=null] - options object
- * @param {String} options.publicKey - the hex string of the ECDSA public
+ * @param {String} publicKey - the hex string of the ECDSA public
  * key to use for encryption. If not provided, will use user's appPrivateKey.
+ * @param {Object} [options=null] - options object.
+ * @param {String} encoding - the encoding to use for the ciphertext, default is 'hex'
  * @return {String} Stringified ciphertext object
  */
-export function encryptContent(content: string | Buffer, publicKey: string, options?: {encoding?: string} = {}) {
+export function encryptContent(content: string | Buffer, publicKey: string,
+                               options?: { encoding?: buffer$Encoding } = {}) {
   const cipherObject = encryptECIES(publicKey, content, options.encoding)
   return JSON.stringify(cipherObject)
 }
@@ -15,8 +25,7 @@ export function encryptContent(content: string | Buffer, publicKey: string, opti
  * Decrypts data encrypted with `encryptContent` with the
  * transit private key.
  * @param {String|Buffer} content - encrypted content.
- * @param {Object} [options=null] - options object
- * @param {String} options.privateKey - the hex string of the ECDSA private
+ * @param {String} privateKey - the hex string of the ECDSA private
  * key to use for decryption. If not provided, will use user's appPrivateKey.
  * @return {String|Buffer} decrypted content.
  */
@@ -38,7 +47,8 @@ export function decryptContent(content: string, privateKey: string) {
  * (username, app) pair.
  * @private
  */
-function getGaiaAddress(app: string, username: ?string, zoneFileLookupURL: ?string) {
+/*
+export function getGaiaAddress(app: string, username: ?string, zoneFileLookupURL: ?string) {
   return Promise.resolve()
     .then(() => {
       if (username) {
@@ -56,34 +66,30 @@ function getGaiaAddress(app: string, username: ?string, zoneFileLookupURL: ?stri
       return matches[matches.length - 1]
     })
 }
+*/
 
 /**
  * Stores the data provided in the app's data store to to the file specified.
  * @param {String} path - the path to store the data in
  * @param {String|Buffer} content - the data to store in the file
+ * @param {GaiaHubConfig} hubConfig - the config object for communicating with the write-gaia hub.
  * @param {Object} [options=null] - options object
- * @param {Boolean|String} [options.encrypt=true] - encrypt the data with the app private key
- *                                                  or the provided public key
- * @param {Boolean} [options.sign=false] - sign the data using ECDSA on SHA256 hashes with
- *                                         the app private key
+ * @param {String} [options.encryptPublicKey=null] - if provided, encrypt data with the public key
+ * @param {String} [options.signSecretKey=null] - if provided, sign the data using ECDSA on
+ *      SHA256 hashes with the given private key
  * @return {Promise} that resolves if the operation succeed and rejects
  * if it failed
  */
-export function putFile(path: string, content: string | Buffer, privateKey: string,
+export function putFile(path: string, content: string | Buffer, hubConfig: GaiaHubConfig,
                         options?: {
-                          encrypt?: boolean | string,
-                          sign?: boolean | string,
+                          encryptPublicKey?: string,
+                          signSecretKey?: string,
                           contentType?: string
-                        }) {
-  const defaults = {
-    encrypt: true,
-    sign: false,
-    contentType: undefined
-  }
+                        } = {}) : Promise<string> {
 
-  const opt = Object.assign({}, defaults, options)
-
-  let contentType = opt.contentType
+  const signSecretKey = options.signSecretKey
+  const encryptPublicKey = options.encryptPublicKey
+  let contentType = options.contentType
   if (!contentType) {
     contentType = 'text/plain'
     if (typeof (content) !== 'string') {
@@ -91,41 +97,25 @@ export function putFile(path: string, content: string | Buffer, privateKey: stri
     }
   }
 
-  // First, let's figure out if we need to get public/private keys,
-  //  or if they were passed in
-
-  let publicKey = ''
-  if (opt.encrypt) {
-    if (typeof (opt.encrypt) === 'string') {
-      publicKey = opt.encrypt
-    } else {
-      publicKey = getPublicKeyFromPrivate(privateKey)
-    }
-  }
-
   // In the case of signing, but *not* encrypting,
-  //   we perform two uploads. So the control-flow
-  //   here will return there.
-  if (!opt.encrypt && opt.sign) {
-    const signingKey = (typeof (opt.sign) === 'string') ? opt.sign : privateKey
-
-    const signatureObject = signECDSA(signingKey, content)
+  //   we perform two uploads.
+  if (!encryptPublicKey && signSecretKey) {
+    const signatureObject = signECDSA(signSecretKey, content)
     const signatureContent = JSON.stringify(signatureObject)
-    return getOrSetLocalGaiaHubConnection()
-      .then(gaiaHubConfig => Promise.all([
-        uploadToGaiaHub(path, content, gaiaHubConfig, contentType),
-        uploadToGaiaHub(`${path}${SIGNATURE_FILE_SUFFIX}`,
-                        signatureContent, gaiaHubConfig, 'application/json')]))
+    return Promise.all([
+      uploadToGaiaHub(path, content, hubConfig, contentType),
+      uploadToGaiaHub(`${path}${SIGNATURE_FILE_SUFFIX}`,
+                      signatureContent, hubConfig, 'application/json')])
       .then(fileUrls => fileUrls[0])
   }
 
   // In all other cases, we only need one upload.
-  if (opt.encrypt && !opt.sign) {
-    content = encryptContent(content, { publicKey })
+  if (encryptPublicKey && !signSecretKey) {
+    content = encryptContent(content, encryptPublicKey)
     contentType = 'application/json'
-  } else if (opt.encrypt && opt.sign) {
-    const cipherText = encryptContent(content, { publicKey })
-    const signatureObject = signECDSA(privateKey, cipherText)
+  } else if (encryptPublicKey && signSecretKey) {
+    const cipherText = encryptContent(content, encryptPublicKey)
+    const signatureObject = signECDSA(signSecretKey, cipherText)
     const signedCipherObject = {
       signature: signatureObject.signature,
       publicKey: signatureObject.publicKey,
@@ -134,6 +124,5 @@ export function putFile(path: string, content: string | Buffer, privateKey: stri
     content = JSON.stringify(signedCipherObject)
     contentType = 'application/json'
   }
-  return getOrSetLocalGaiaHubConnection()
-    .then(gaiaHubConfig => uploadToGaiaHub(path, content, gaiaHubConfig, contentType))
+  return uploadToGaiaHub(path, content, hubConfig, contentType)
 }
