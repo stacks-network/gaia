@@ -1,10 +1,18 @@
 /* @flow */
+import fetch from 'cross-fetch'
+import { publicKeyToAddress } from 'blockstack'
 
-import { encryptECIES, decryptECIES, signECDSA } from './encryption'
+import { encryptECIES, decryptECIES, signECDSA, verifyECDSA } from './encryption'
 import { uploadToGaiaHub } from './wire'
 import { GaiaHubConfig } from './types'
+import { SignatureVerificationError } from './errors'
 
 const SIGNATURE_FILE_SUFFIX = '.sig'
+
+function isAddress(maybeAddress: string) {
+  const matches = maybeAddress.match(/^[13][a-km-zA-HJ-NP-Z0-9]{26,35}$/)
+  return !!matches
+}
 
 /**
  * Encrypts the data provided with the app public key.
@@ -43,30 +51,71 @@ export function decryptContent(content: string, privateKey: string) {
   }
 }
 
+function verifyContent(content: string | Buffer, verify: string, signature: string, signerPublicKey: string) {
+  const testAddress = isAddress(verify)
+
+  if (testAddress) {
+    const signerAddress = publicKeyToAddress(signerPublicKey)
+    if (signerAddress !== verify) {
+      throw new SignatureVerificationError(`Signer pubkey address (${signerAddress}) doesn't`
+                                           + ` match expected address (${verify})`)
+    }
+  } else {
+    if (signerPublicKey !== verify) {
+      throw new SignatureVerificationError(`Signer pubkey (${signerPublicKey}) doesn't`
+                                           + ` match expected pubkey (${verify})`)
+    }
+  }
+
+  if (!verifyECDSA(content, signerPublicKey, signature)) {
+    throw new SignatureVerificationError('Contents do not match ECDSA signature on file')
+  }
+
+  // passed all checks
+}
+
+export function decryptAndVerifyContent(content: string, privateKey: string, verify: string) {
+  let sigObject
+  try {
+    sigObject = JSON.parse(content)
+  } catch (err) {
+    if (err instanceof SyntaxError) {
+      throw new Error('Failed to parse encrypted, signed content JSON. The content may not '
+                      + 'be encrypted. If using getFile, try passing'
+                      + ' { verify: false, decrypt: false }.')
+    } else {
+      throw err
+    }
+  }
+
+  const signature = sigObject.signature
+  const signerPublicKey = sigObject.publicKey
+  const cipherText = sigObject.cipherText
+
+  if (!signerPublicKey || !cipherText || !signature) {
+    throw new SignatureVerificationError(
+      'Failed to get signature verification data from file.'
+    )
+  }
+
+  verifyContent(cipherText, verify, signature, signerPublicKey)
+  // passed all verifications, decrypt and return.
+  return decryptContent(cipherText, privateKey)
+}
+
 /* Get the gaia address used for servicing multiplayer reads for the given
  * (username, app) pair.
  * @private
  */
-/*
-export function getGaiaAddress(app: string, username: ?string, zoneFileLookupURL: ?string) {
-  return Promise.resolve()
-    .then(() => {
-      if (username) {
-        return getUserAppFileUrl('/', username, app, zoneFileLookupURL)
-      } else {
-        return getOrSetLocalGaiaHubConnection()
-          .then(gaiaHubConfig => getFullReadUrl('/', gaiaHubConfig))
-      }
-    })
-    .then((fileUrl) => {
-      const matches = fileUrl.match(/([13][a-km-zA-HJ-NP-Z0-9]{26,35})/)
-      if (!matches) {
-        throw new Error('Failed to parse gaia address')
-      }
-      return matches[matches.length - 1]
-    })
+
+export function getGaiaAddressPart(bucketURL: string) {
+  const matches = bucketURL.match(/([13][a-km-zA-HJ-NP-Z0-9]{26,35})/)
+  if (!matches) {
+    throw new Error(`Failed to parse gaia address from bucket URL: ${bucketURL}`)
+  }
+  return matches[matches.length - 1]
 }
-*/
+
 
 /**
  * Stores the data provided in the app's data store to to the file specified.
@@ -125,4 +174,115 @@ export function putFile(path: string, content: string | Buffer, hubConfig: GaiaH
     contentType = 'application/json'
   }
   return uploadToGaiaHub(path, content, hubConfig, contentType)
+}
+
+export function readAndCheckFileSignedUnencrypted(readURL: string, verify: string) {
+  return Promise.all([fetch(readURL), fetch(`${readURL}${SIGNATURE_FILE_SUFFIX}`)])
+    .then(([fileResp, signatureResp]) => {
+      if (!fileResp.ok) {
+        if (fileResp.status === 404) {
+          throw new Error(`404: No such file at ${readURL}`)
+        }
+        throw new Error(`Received invalid response on attempted read of ${readURL}: ${fileResp.status}`)
+      }
+      if (!signatureResp.ok) {
+        if (signatureResp.status === 404) {
+          throw new Error(`404: Failed to find signature file for ${readURL}. Was this file signed?`)
+        }
+        throw new Error('Received invalid response on attempted read of ' +
+                        `signature file ${readURL}${SIGNATURE_FILE_SUFFIX}: ${signatureResp.status}`)
+      }
+      let fileContentsPromise
+      const contentType = fileResp.headers.get('Content-Type')
+      if (contentType === null
+          || contentType.startsWith('text')
+          || contentType === 'application/json') {
+        fileContentsPromise = fileResp.text()
+      } else {
+        fileContentsPromise = fileResp.arrayBuffer()
+      }
+      return Promise.all([fileContentsPromise, signatureResp.text()])
+    })
+    .then(([fileContents, signatureContents]) => {
+      if (!fileContents) {
+        return fileContents
+      }
+      if (!signatureContents || typeof signatureContents !== 'string') {
+        throw new SignatureVerificationError('Failed to obtain signature for file: '
+                                             + `${readURL}\n Looked in ${readURL}${SIGNATURE_FILE_SUFFIX}`)
+      }
+      let signature
+      let publicKey
+      try {
+        const sigObject = JSON.parse(signatureContents)
+        signature = sigObject.signature
+        publicKey = sigObject.publicKey
+        if (!signature || !publicKey) {
+          throw new SyntaxError('publicKey or signature blank in signature object.')
+        }
+      } catch (err) {
+        if (err instanceof SyntaxError) {
+          throw new Error('Failed to parse signature content JSON '
+                          + `(path: ${readURL}${SIGNATURE_FILE_SUFFIX})`
+                          + ' The content may be corrupted.')
+        } else {
+          throw err
+        }
+      }
+
+      verifyContent(Buffer.from(fileContents), verify, signature, publicKey)
+
+      return fileContents
+    })
+}
+
+export function readFileFromPath(readURL: string,
+                                 verify?: string,
+                                 decrypt?: string) {
+  if (!decrypt && verify) {
+    readAndCheckFileSignedUnencrypted(readURL, verify)
+  }
+  return fetch(readURL)
+    .then(resp => {
+      if (!resp.ok) {
+        if (resp.status === 404) {
+          throw new Error(`404: No such file at ${readURL}`)
+        }
+        throw new Error(`Received invalid response on attempted read of ${readURL}`)
+      } else {
+        const forceText = !!decrypt || !!verify
+        const contentType = resp.headers.get('Content-Type')
+        if (forceText || contentType === null
+            || contentType.startsWith('text')
+            || contentType === 'application/json') {
+          return resp.text()
+        } else {
+          return resp.arrayBuffer()
+        }
+      }
+    })
+    .then(content => {
+      if (!decrypt && !verify) {
+        return content
+      } else if (decrypt && !verify) {
+        return decryptContent(content, decrypt)
+      } else if (decrypt && verify) {
+        return decryptAndVerifyContent(content, decrypt, verify)
+      }
+    })
+}
+
+export function readFile(path: string,
+                         bucketURL: string,
+                         verify?: boolean | string,
+                         decrypt?: string) {
+  Promise.resolve().then(() => {
+    let verifyWith = undefined
+    if (verify) {
+      verifyWith = (typeof verify === 'string') ?
+        verify :
+        getGaiaAddressPart(bucketURL)
+    }
+    return readFileFromPath(`${bucketURL}${path}`, verifyWith, decrypt)
+  })
 }
