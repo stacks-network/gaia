@@ -3,7 +3,7 @@
 To get started running a gaia hub, execute the following:
 
 ```bash
-$ git clone git@github.com:blockstack/gaia.git
+$ git clone https://github.com/blockstack/gaia.git
 $ cd gaia/hub/
 $ npm install
 $ cp ./config.sample.json ./config.json
@@ -31,6 +31,8 @@ The Gaia hub currently supports the following drivers:
 Set the driver you wish to use in your `config.json` file with the `driver` parameter. Many drivers additionally accept the `bucket` parameter, which controls the bucket name that files should be written to.
 
 These driver may require you to provide additional credentials for performing writes to the backends. See `config.sample.json` for fields for those credentials. In some cases, the driver can use a system configured credential for the backend (e.g., if you are logged into your AWS CLI account, and run the hub from that environment, it won't need to read credentials from your `config.json`).
+
+*Note:* The disk driver requires a *nix like filesystem interface, and will not work correctly when trying to run in a Windows environment.
 
 ### Require Correct Hub URL
 
