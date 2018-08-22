@@ -118,9 +118,11 @@ structure is:
 {
  'type': 'object',
  'properties': {
-   'iss': { 'type': 'string' }
-   'exp': { 'type': 'IntDate' }
-   'gaiaChallenge': { 'type': 'string' }
+   'iss': { 'type': 'string' },
+   'exp': { 'type': 'IntDate' },
+   'gaiaChallenge': { 'type': 'string' },
+   'associationToken': { 'type': 'string' },
+   'salt': { 'type': 'string' }
  }
  'required': [ 'iss', 'gaiaChallenge' ]
 }
@@ -136,6 +138,38 @@ by ensuring:
 2. That `iss` matches the address associated with the bucket.
 3. That `gaiaChallenge` is equal to the server's challenge text.
 4. That the epoch time `exp` is greater than the server's current epoch time.
+
+### Association Tokens
+
+Often times, a single user will use many different keys to
+store data.  These keys may be generated on-the-fly.  Instead of requiring the
+user to explicitly whitelist each key, the v1 authentication scheme allows
+the user to bind a key to an already-whitelisted key via an *association token*.
+
+An association token is a JWT signed by a whitelisted key that, in turn,
+contains the public key that signs the authentication JWT that contains it.  Put
+another way, the Gaia hub will accept a v1 authentication JWT if it contains an
+`associationToken` JWT that (1) was sigend by a whitelisted address, and (2)
+identifies the signer of the authentication JWT.
+
+The association token JWT has the following structure in its payload:
+
+```
+{
+  'type': 'object',
+  'properties': {
+    'iss': { 'type': 'string' },
+    'exp': { 'type': 'IntDate' },
+    'childToAssociate': { 'type': 'string' },
+    'salt': { 'type': 'string' },
+  },
+  'required': [ 'iss', 'exp', 'childToAssociate' ]
+}
+```
+
+Here, the `iss` field should be the public key of a whitelisted address.
+The `childtoAssociate` should be equal to the `iss` field of the authentication
+JWT.  Note that the `exp` field is *required* in association tokens.
 
 ## Legacy authentication scheme
 
@@ -183,9 +217,13 @@ A private hub services requests for a single user. This is controlled
 via _whitelisting_ the addresses allowed to write files. In order to
 support application storage, because each application uses a different
 app- and user-specific address, each application you wish to use must
-be added to the whitelist separately. An extensible authentication
-approach would obviate the need for this manual whitelisting, but that
-remains as future work.
+be added to the whitelist separately.
+
+Alternatively, the user's client must use the v1 authentication scheme and generate
+an association token for each app.  The user should whitelist her address, and
+use her associated private key to sign each app's association token.  This
+removes the need to whitelist each application, but with the caveat that the
+user needs to take care that her association tokens do not get misused.
 
 ### Open-membership hubs
 
@@ -230,6 +268,15 @@ performWrite (options: { path, contentType,
  * @returns {String} the read url prefix.
  */
 getReadURLPrefix ()
+
+/**
+ * Return a list of files beginning with the given prefix,
+ * as well as a driver-specific page identifier for requesting
+ * the next page of entries.  The return structure should
+ * take the form { "entries": [string], "page": string }
+ * @returns {Promise} the list of files and a page identifier.
+ */
+listFiles(prefix: string, page: string)
 ```
 
 # HTTP API
@@ -357,3 +404,24 @@ Our deployed service places some modest limitations on file uploads and rate lim
 Currently, the service will only allow up to 20 write requests per second and a maximum
 file size of 5MB. However, these limitations are only for our service, if you deploy
 your own Gaia hub, these limitations are not necessary.
+
+# Project Comparison
+
+Here's how Gaia stacks up against other decentralized storage systems.  Features
+that are common to all storage systems are omitted for brevity.
+
+| **Features**                | Gaia | [Sia](https://sia.tech/) | [Storj](https://storj.io/) | [IPFS](https://ipfs.io) | [DAT](https://datproject.org) | [SSB](https://www.scuttlebutt.nz/) |
+|-----------------------------|------|--------------------------|----------------------------|-------------------------|-------------------------------|------------------------------------|
+| User controls where data is hosted           | X |   |   |   |   |   |
+| Data can be viewed in a normal Web browser   | X |   |   | X |   |   |
+| Data is read/write                           | X |   |   |   | X | X |
+| Data can be deleted                          | X |   |   |   | X | X |
+| Data can be listed                           | X | X | X |   | X | X |
+| Deleted data space is reclaimed              | X | X | X | X |   |   | 
+| Data lookups have predictable performance    | X |   | X |   |   |   |
+| Writes permission can be delegated           | X |   |   |   |   |   |
+| Listing permission can be delegated          | X |   |   |   |   |   |
+| Supports multiple backends natively          | X |   | X |   |   |   |
+| Data is globally addressable                 | X | X | X | X | X |   | 
+| Needs a cryptocurrency to work               |   | X | X |   |   |   |
+| Data is content-addressed                    |   | X | X | X | X | X |

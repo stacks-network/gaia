@@ -11,23 +11,41 @@ export class HubServer {
   proofChecker: Object
   whitelist: Array<string>
   serverName: string
+  readURL: ?string
+  requireCorrectHubUrl: boolean
+  validHubUrls: ?Array<string>
   constructor(driver: DriverModel, proofChecker: Object,
-              config: { whitelist: Array<string>, servername: string, readURL?: string }) {
+              config: { whitelist: Array<string>, servername: string,
+                        readURL?: string, requireCorrectHubUrl?: boolean,
+                        validHubUrls?: Array<string> }) {
     this.driver = driver
     this.proofChecker = proofChecker
     this.whitelist = config.whitelist
     this.serverName = config.servername
+    this.validHubUrls = config.validHubUrls
     this.readURL = config.readURL
+    this.requireCorrectHubUrl = config.requireCorrectHubUrl || false
   }
 
   // throws exception on validation error
   //   otherwise returns void.
   validate(address: string, requestHeaders: { authorization: string }) {
-    if (this.whitelist && !(this.whitelist.includes(address))) {
-      throw new ValidationError('Address not authorized for writes')
-    }
+    const signingAddress = validateAuthorizationHeader(requestHeaders.authorization,
+                                                       this.serverName, address,
+                                                       this.requireCorrectHubUrl,
+                                                       this.validHubUrls)
 
-    validateAuthorizationHeader(requestHeaders.authorization, this.serverName, address)
+    if (this.whitelist && !(this.whitelist.includes(signingAddress))) {
+      throw new ValidationError(`Address ${signingAddress} not authorized for writes`)
+    }
+  }
+
+  handleListFiles(address: string,
+                  page: ?string,
+                  requestHeaders: { authorization: string }) {
+    this.validate(address, requestHeaders)
+
+    return this.driver.listFiles(address, page)
   }
 
   getReadURLPrefix() {

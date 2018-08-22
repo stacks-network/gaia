@@ -6,8 +6,10 @@
   "proofsConfig": {
     "proofsRequired" : 0
   },
-  "diskSettings": {
-     "storageRootDirectory": "/tmp/gaia-disk"
+  "pageSize": 20,
+  "bucket": "YOUR_BUCKET_NAME",
+  "gcCredentials": {
+     "keyFilename": "YOUR_KEY_FILE_PATH"
   },
   "argsTransport": {
     "level": "debug",

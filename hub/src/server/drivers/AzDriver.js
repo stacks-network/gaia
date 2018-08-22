@@ -10,6 +10,7 @@ import type { Readable } from 'stream'
 type AZ_CONFIG_TYPE = { azCredentials: { accountName: string,
                                          accountKey: string },
                         bucket: string,
+                        readURL?: string,
                         cacheControl?: string }
 
 // The AzDriver utilized the azure nodejs sdk to write files to azure blob storage
@@ -47,6 +48,27 @@ class AzDriver implements DriverModel {
 
   getReadURLPrefix () {
     return `https://${this.accountName}.blob.core.windows.net/${this.bucket}/`
+  }
+
+  listBlobs(prefix: string, page: ?string) {
+    // page is the continuationToken for Azure
+    return new Promise((resolve, reject) => {
+      this.blobService.listBlobsSegmentedWithPrefix(
+        this.bucket, prefix, page, null, (err, results) => {
+          if (err) {
+            return reject(err)
+          }
+          return resolve({
+            entries: results.entries.map((e) => e.name.slice(prefix.length + 1)),
+            page: results.continuationToken
+          })
+        })
+    })
+  }
+
+  listFiles(prefix: string, page: ?string) {
+    // returns {'entries': [...], 'page': next_page}
+    return this.listBlobs(prefix, page)
   }
 
   performWrite(args: { path: string,

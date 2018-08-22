@@ -34,6 +34,28 @@ These driver may require you to provide additional credentials for performing wr
 
 *Note:* The disk driver requires a *nix like filesystem interface, and will not work correctly when trying to run in a Windows environment.
 
+### Require Correct Hub URL
+
+If you turn on the `requireCorrectHubUrl` option in your `config.json`
+file, your Gaia hub will require that authentication requests
+correctly include the `hubURL` they are trying to connect with. This
+is used to prevent a malicious gaia hub from using an authentication
+token for itself on other Gaia hubs.
+
+By default, the Gaia hub will validate that the supplied URL matches
+`https://${config.servername}`, but if there are multiple valid URLs
+for clients to reach the hub at, you can include a list in your `config.json`:
+
+```javascript
+{
+  ....
+  servername: "normalserver.com"
+  validHubUrls: [ "https://specialserver.com/",
+                  "https://legacyurl.info" ]
+  ....
+}
+```
+
 ### The readURL parameter
 
 By default, the gaia hub drivers will return read URLs which point directly at the written content. For example, an S3 driver would return the URL directly to the S3 file. However, if you configure a CDN or domain to point at that same bucket, you can use the `readURL` parameter to tell the gaia hub that files can be read from the given URL. For example, the `hub.blockstack.org` Gaia Hub is configured to return a read URL that looks like `https://gaia.blockstack.org/hub/`.
