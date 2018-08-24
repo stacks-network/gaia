@@ -41,10 +41,10 @@
   },
   "scripts": {
     "start": "npm run build && node lib/index.js",
-    "build": "npm run lint && npm run flow && babel src -d lib && chmod +x lib/index.js",
+    "build": "npm run lint && babel src -d lib && chmod +x lib/index.js",
     "flow": "flow",
     "lint": "eslint src",
-    "test-inner": "npm run build && node ./test/test.js",
+    "test-inner": "npm run build && npm run flow && node ./test/test.js",
     "test": "nyc --reporter=text npm run test-inner"
   },
   "repository": {
