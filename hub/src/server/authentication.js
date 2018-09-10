@@ -15,6 +15,16 @@ function pubkeyHexToECPair (pubkeyHex) {
   return bitcoin.ECPair.fromPublicKeyBuffer(pkBuff)
 }
 
+export type AuthScopeType = {
+  scope: string,
+  domain: string
+}
+
+export const AuthScopes = [
+  'putFile',
+  'putFilePrefix'
+]
+
 export class V1Authentication {
   token: string
 
@@ -39,26 +49,36 @@ export class V1Authentication {
     if (!publicKey || !decodedToken) {
       throw new ValidationError('Auth token should be a JWT with at least an `iss` claim')
     }
+    const scopes = decodedToken.payload.scopes
+    if (scopes) {
+      validateScopes(scopes)
+    }
     return new V1Authentication(token)
   }
 
   static makeAuthPart(secretKey: bitcoin.ECPair, challengeText: string,
-                      associationToken?: string, hubUrl?: string) {
+                      associationToken?: string, hubUrl?: string, scopes?: Array<AuthScopeType>) {
 
     const FOUR_MONTH_SECONDS = 60 * 60 * 24 * 31 * 4
     const publicKeyHex = secretKey.getPublicKeyBuffer().toString('hex')
     const salt = crypto.randomBytes(16).toString('hex')
+
+    if (scopes) {
+      validateScopes(scopes)
+    }
+
     const payload = { gaiaChallenge: challengeText,
                       iss: publicKeyHex,
                       exp: FOUR_MONTH_SECONDS + (new Date()/1000),
                       associationToken,
-                      hubUrl, salt }
+                      hubUrl, salt, scopes }
+
     const signerKeyHex = ecPairToHexString(secretKey).slice(0, 64)
     const token = new TokenSigner('ES256K', signerKeyHex).sign(payload)
     return `v1:${token}`
   }
 
-  static makeAssociationToken(secretKey: bitcoin.ECPair, childPublicKey: string) {
+  static makeAssociationToken(secretKey: bitcoin.ECPair, childPublicKey: string) { 
     const FOUR_MONTH_SECONDS = 60 * 60 * 24 * 31 * 4
     const publicKeyHex = secretKey.getPublicKeyBuffer().toString('hex')
     const salt = crypto.randomBytes(16).toString('hex')
@@ -66,6 +86,7 @@ export class V1Authentication {
                       iss: publicKeyHex,
                       exp: FOUR_MONTH_SECONDS + (new Date()/1000),
                       salt }
+
     const signerKeyHex = ecPairToHexString(secretKey).slice(0, 64)
     const token = new TokenSigner('ES256K', signerKeyHex).sign(payload)
     return token
@@ -125,6 +146,41 @@ export class V1Authentication {
   }
 
   /*
+   * Get the authentication token's association token's scopes.
+   * Does not validate the authentication token or the association token
+   * (do that with isAuthenticationValid first).
+   *
+   * Returns the scopes, if there are any given.
+   * Returns [] if there is no association token, or if the association token has no scopes
+   */
+  getAuthenticationScopes() : Array<AuthScopeType> {
+    let decodedToken
+    try {
+      decodedToken = decodeToken(this.token)
+    } catch (e) {
+      logger.error(this.token)
+      logger.error('getAuthenticationScopes')
+      throw new ValidationError('Failed to decode authentication JWT')
+    }
+
+    if (!decodedToken.payload.hasOwnProperty('scopes')) {
+      // not given 
+      return []
+    }
+
+    // unambiguously convert to AuthScope
+    const scopes = decodedToken.payload.scopes.map((s) => {
+      const r = {
+        scope: String(s.scope),
+        domain: String(s.domain)
+      }
+      return r
+    })
+
+    return scopes
+  }
+
+  /*
    * Determine if the authentication token is valid:
    * * must have signed the given `challengeText`
    * * must not be expired
@@ -153,6 +209,7 @@ export class V1Authentication {
 
     const publicKey = decodedToken.payload.iss
     const gaiaChallenge = decodedToken.payload.gaiaChallenge
+    const scopes = decodedToken.payload.scopes
 
     if (! publicKey) {
       throw new ValidationError('Must provide `iss` claim in JWT.')
@@ -183,6 +240,10 @@ export class V1Authentication {
           `Auth token's claimed hub url '${claimedHub}' not found` +
             ` in this hubs set: ${JSON.stringify(validHubUrls)}`)
       }
+    }
+
+    if (scopes) {
+      validateScopes(scopes)
     }
 
     const verified = new TokenVerifier('ES256K', publicKey).verify(this.token)
@@ -234,6 +295,11 @@ export class LegacyAuthentication {
     const authObj = { publickey, signature }
 
     return Buffer.from(JSON.stringify(authObj)).toString('base64')
+  }
+
+  getAuthenticationScopes() : Array<AuthScopeType> {
+    // no scopes supported in this version
+    return []
   }
 
   isAuthenticationValid(address: string, challengeText: string,
@@ -305,4 +371,50 @@ export function validateAuthorizationHeader(authHeader: string, serverName: stri
 
   const challengeText = getChallengeText(serverName)
   return authObject.isAuthenticationValid(address, challengeText, { validHubUrls, requireCorrectHubUrl })
+}
+
+
+/*
+ * Get the authentication scopes from the authorization header.
+ * Does not check the authorization header or its association token
+ * (do that with validateAuthorizationHeader first).
+ *
+ * Returns the scopes on success
+ * Throws on malformed auth header
+ */
+export function getAuthenticationScopes(authHeader: string) {
+  const authObject = parseAuthHeader(authHeader)
+  return authObject.getAuthenticationScopes()
+}
+
+
+/*
+ * Validate authentication scopes.  They must be well-formed,
+ * and there can't be too many of them.
+ * Return true if valid.
+ * Throw ValidationError on error
+ */
+function validateScopes(scopes: Array<AuthScopeType>) {
+  if (scopes.length > 8) {
+    throw new ValidationError('Too many authentication scopes')
+  }
+
+  for (let i = 0; i < scopes.length; i++) {
+    const scope = scopes[i]
+    
+    // valid scope?
+    let valid = false
+    for (let j = 0; j < AuthScopes.length; j++) {
+      if (AuthScopes[j] === scope.scope) {
+        valid = true
+        break
+      }
+    }
+
+    if (!valid) {
+      throw new ValidationError(`Unrecognized scope ${scope.scope}`)
+    }
+  }
+  
+  return true
 }
