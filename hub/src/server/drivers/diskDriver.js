@@ -106,6 +106,16 @@ class DiskDriver implements DriverModel {
     // returns {'entries': [...], 'page': next_page}
     let pageNum
     const listPath = `${this.storageRootDirectory}/${prefix}`
+    const emptyResponse = {
+      entries: [],
+      page: page + 1
+    }
+
+    if (!fs.exists(listPath)) {
+      // nope 
+      return Promise.resolve().then(() => emptyResponse)
+    }
+      
     try {
       if (page) {
         if (!page.match(/^[0-9]+$/)) {
@@ -117,7 +127,8 @@ class DiskDriver implements DriverModel {
       }
       const stat = fs.statSync(listPath)
       if (!stat.isDirectory()) {
-        throw new Error('Not a directory')
+        // nope 
+        return Promise.resolve().then(() => emptyResponse)
       }
     } catch(e) {
       throw new Error('Invalid arguments: invalid page or not a directory')
