@@ -108,7 +108,7 @@ class DiskDriver implements DriverModel {
     const listPath = `${this.storageRootDirectory}/${prefix}`
     const emptyResponse = {
       entries: [],
-      page: page + 1
+      page: `${page + 1}`
     }
 
     if (!fs.exists(listPath)) {
