@@ -1,7 +1,7 @@
 {
   "servername": "localhost",
   "port": 4000,
-  "driver": "disk",
+  "driver": "aws",
   "readURL": "http://localhost:4000/",
   "proofsConfig": {
     "proofsRequired" : 0
