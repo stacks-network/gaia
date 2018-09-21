@@ -2,7 +2,7 @@
   "servername": "localhost",
   "port": 4000,
   "driver": "aws",
-  "readURL": "http://localhost:4000/",
+  "readURL": "https://YOUR_BUCKET_NAME.s3.amazonaws.com/",
   "proofsConfig": {
     "proofsRequired" : 0
   },
