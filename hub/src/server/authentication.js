@@ -403,15 +403,8 @@ function validateScopes(scopes: Array<AuthScopeType>) {
     const scope = scopes[i]
     
     // valid scope?
-    let valid = false
-    for (let j = 0; j < AuthScopes.length; j++) {
-      if (AuthScopes[j] === scope.scope) {
-        valid = true
-        break
-      }
-    }
-
-    if (!valid) {
+    const found = AuthScopes.find((s) => (s === scope.scope))
+    if (!found) {
       throw new ValidationError(`Unrecognized scope ${scope.scope}`)
     }
   }
