@@ -111,7 +111,7 @@ class DiskDriver implements DriverModel {
       page: `${page + 1}`
     }
 
-    if (!fs.exists(listPath)) {
+    if (!fs.existsSync(listPath)) {
       // nope 
       return Promise.resolve().then(() => emptyResponse)
     }
