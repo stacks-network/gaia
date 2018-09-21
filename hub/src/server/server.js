@@ -84,24 +84,11 @@ export class HubServer {
     if (writePrefixes.length > 0 || writePaths.length > 0) {
       // we're limited to a set of prefixes and paths.
       // does the given path match any prefixes?
-      let match = false
-      if (writePrefixes.length > 0) {
-        for (let i = 0; i < writePrefixes.length; i++) {
-          if (path.startsWith(writePrefixes[i])) {
-            match = true
-            break
-          }
-        }
-      }
+      let match = !!writePrefixes.find((p) => (path.startsWith(p)))
 
       if (!match) {
         // check for exact paths 
-        for (let i = 0; i < writePaths.length; i++) {
-          if (path === writePaths[i]) {
-            match = true
-            break
-          }
-        }
+        match = !!writePaths.find((p) => (path === p))
       }
 
       if (!match) {
