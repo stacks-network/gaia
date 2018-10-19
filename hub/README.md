@@ -6,6 +6,7 @@ To get started running a gaia hub, execute the following:
 $ git clone https://github.com/blockstack/gaia.git
 $ cd gaia/hub/
 $ npm install
+$ npm run build
 $ cp ./config.sample.json ./config.json
 # Edit the config file and add in your azure or aws credentials
 $ npm run start
@@ -73,6 +74,7 @@ testing), do the following:
 
 ```bash
 $ cd gaia/hub
+$ npm run build
 $ sudo npm i -g # or, "sudo npm link"
 $ which blockstack-gaia-hub
 /usr/bin/blockstack-gaia-hub
