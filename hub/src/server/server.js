@@ -1,6 +1,6 @@
 /* @flow */
 
-import { validateAuthorizationHeader } from './authentication'
+import { validateAuthorizationHeader, getAuthenticationScopes } from './authentication'
 import { ValidationError } from './errors'
 
 import type { Readable } from 'stream'
@@ -44,7 +44,6 @@ export class HubServer {
                   page: ?string,
                   requestHeaders: { authorization: string }) {
     this.validate(address, requestHeaders)
-
     return this.driver.listFiles(address, page)
   }
 
@@ -67,6 +66,35 @@ export class HubServer {
 
     if (contentType === null || contentType === undefined) {
       contentType = 'application/octet-stream'
+    }
+
+
+    // can the caller write? if so, in what paths?
+    const scopes = getAuthenticationScopes(requestHeaders.authorization)
+    const writePrefixes = []
+    const writePaths = []
+    for (let i = 0; i < scopes.length; i++) {
+      if (scopes[i].scope == 'putFilePrefix') {
+        writePrefixes.push(scopes[i].domain)
+      } else if (scopes[i].scope == 'putFile') {
+        writePaths.push(scopes[i].domain)
+      }
+    }
+
+    if (writePrefixes.length > 0 || writePaths.length > 0) {
+      // we're limited to a set of prefixes and paths.
+      // does the given path match any prefixes?
+      let match = !!writePrefixes.find((p) => (path.startsWith(p)))
+
+      if (!match) {
+        // check for exact paths 
+        match = !!writePaths.find((p) => (path === p))
+      }
+
+      if (!match) {
+        // not authorized to write to this path 
+        throw new ValidationError(`Address ${address} not authorized to write to ${path} by scopes`)
+      }
     }
 
     const writeCommand = { storageTopLevel: address,
