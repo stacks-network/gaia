@@ -208,6 +208,10 @@ function testAuth() {
                                                           legacyPart.serverName,
                                                           legacyPart.addr),
                    'legacy authentication token should work')
+    t.doesNotThrow(() => auth.validateAuthorizationHeader(`Bearer ${legacyPart.legacyAuth}`,
+      legacyPart.serverName,
+      legacyPart.addr),
+      'legacy authentication token should work with capitalized "Bearer"')
     t.end()
   })
 
