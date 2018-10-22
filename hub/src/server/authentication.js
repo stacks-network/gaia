@@ -264,7 +264,7 @@ export function getChallengeText(myURL: string = DEFAULT_STORAGE_URL) {
 }
 
 export function parseAuthHeader(authHeader: string) {
-  if (!authHeader.startsWith('bearer')) {
+  if (!authHeader || !authHeader.toLowerCase().startsWith('bearer')) {
     throw new ValidationError('Failed to parse authentication header.')
   }
   const authPart = authHeader.slice('bearer '.length)
