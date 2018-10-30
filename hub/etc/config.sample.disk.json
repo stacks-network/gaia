@@ -1,0 +1,21 @@
+{
+  "servername": "localhost",
+  "port": 4000,
+  "driver": "disk",
+  "readURL": "http://localhost:4001/",
+  "proofsConfig": {
+    "proofsRequired" : 0
+  },
+  "diskSettings": {
+     "storageRootDirectory": "/tmp/gaia-disk"
+  },
+  "pageSize": 20,
+  "argsTransport": {
+    "level": "debug",
+    "handleExceptions": true,
+    "stringify": true,
+    "timestamp": true,
+    "colorize": false,
+    "json": true
+  }
+}

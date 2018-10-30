@@ -3,9 +3,10 @@
 To get started running a gaia hub, execute the following:
 
 ```bash
-$ git clone git@github.com:blockstack/gaia.git
+$ git clone https://github.com/blockstack/gaia.git
 $ cd gaia/hub/
 $ npm install
+$ npm run build
 $ cp ./config.sample.json ./config.json
 # Edit the config file and add in your azure or aws credentials
 $ npm run start
@@ -32,6 +33,30 @@ Set the driver you wish to use in your `config.json` file with the `driver` para
 
 These driver may require you to provide additional credentials for performing writes to the backends. See `config.sample.json` for fields for those credentials. In some cases, the driver can use a system configured credential for the backend (e.g., if you are logged into your AWS CLI account, and run the hub from that environment, it won't need to read credentials from your `config.json`).
 
+*Note:* The disk driver requires a *nix like filesystem interface, and will not work correctly when trying to run in a Windows environment.
+
+### Require Correct Hub URL
+
+If you turn on the `requireCorrectHubUrl` option in your `config.json`
+file, your Gaia hub will require that authentication requests
+correctly include the `hubURL` they are trying to connect with. This
+is used to prevent a malicious gaia hub from using an authentication
+token for itself on other Gaia hubs.
+
+By default, the Gaia hub will validate that the supplied URL matches
+`https://${config.servername}`, but if there are multiple valid URLs
+for clients to reach the hub at, you can include a list in your `config.json`:
+
+```javascript
+{
+  ....
+  servername: "normalserver.com"
+  validHubUrls: [ "https://specialserver.com/",
+                  "https://legacyurl.info" ]
+  ....
+}
+```
+
 ### The readURL parameter
 
 By default, the gaia hub drivers will return read URLs which point directly at the written content. For example, an S3 driver would return the URL directly to the S3 file. However, if you configure a CDN or domain to point at that same bucket, you can use the `readURL` parameter to tell the gaia hub that files can be read from the given URL. For example, the `hub.blockstack.org` Gaia Hub is configured to return a read URL that looks like `https://gaia.blockstack.org/hub/`.
@@ -49,6 +74,7 @@ testing), do the following:
 
 ```bash
 $ cd gaia/hub
+$ npm run build
 $ sudo npm i -g # or, "sudo npm link"
 $ which blockstack-gaia-hub
 /usr/bin/blockstack-gaia-hub

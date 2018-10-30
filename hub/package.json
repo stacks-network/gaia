@@ -1,6 +1,6 @@
 {
   "name": "gaia-hub",
-  "version": "2.1.1",
+  "version": "2.2.1",
   "description": "",
   "main": "index.js",
   "engines": {
@@ -10,17 +10,16 @@
     "@google-cloud/storage": "^1.6.0",
     "ali-oss": "^5.1.1",
     "aws-sdk": "^2.114.0",
-    "azure-storage": "^2.5.0",
+    "azure-storage": "^2.10.2",
     "bigi": "^1.4.2",
     "bitcoinjs-lib": "^3.1.1",
-    "blockstack": "^17.2.0",
+    "blockstack": "^18.0.0",
     "body-parser": "^1.18.1",
     "cors": "^2.8.4",
     "express": "^4.15.4",
     "express-winston": "^2.4.0",
     "jsontokens": "^0.7.8",
     "node-fetch": "^2.0.0",
-    "npm": "^6.1.0",
     "winston": "^2.3.1"
   },
   "devDependencies": {
@@ -43,10 +42,10 @@
   },
   "scripts": {
     "start": "npm run build && node lib/index.js",
-    "build": "npm run lint && babel src -d lib",
+    "build": "npm run lint && babel src -d lib && chmod +x lib/index.js",
     "flow": "flow",
     "lint": "eslint src",
-    "test-inner": "npm run build && node ./test/test.js",
+    "test-inner": "npm run build && npm run flow && node ./test/test.js",
     "test": "nyc --reporter=text npm run test-inner"
   },
   "repository": {
@@ -55,6 +54,7 @@
   },
   "authors": [
     "Aaron Blankstein (aaron@blockstack.com)",
-    "Jack Zampolin (jack@blockstack.com)"
+    "Jack Zampolin (jack@blockstack.com)",
+    "Jude Nelson (jude@blockstack.com)"
   ]
 }

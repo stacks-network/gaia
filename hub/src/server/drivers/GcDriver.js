@@ -1,4 +1,5 @@
 /* @flow */
+
 import Storage from '@google-cloud/storage'
 import logger from 'winston'
 
@@ -7,16 +8,27 @@ import { BadPathError } from '../errors'
 import type { DriverModel } from '../driverModel'
 import type { Readable } from 'stream'
 
-type GC_CONFIG_TYPE = { gcCredentials?: Object,
+type GC_CONFIG_TYPE = { gcCredentials?: {
+                          email?: string,
+                          projectId?: string,
+                          keyFilename?: string,
+                          credentials?: {
+                            client_email?: string,
+                            private_key?: string
+                          }
+                        },
+                        pageSize?: number,
                         bucket: string }
 
 class GcDriver implements DriverModel {
   bucket: string
   storage: Storage
+  pageSize: number
 
   constructor (config: GC_CONFIG_TYPE) {
     this.storage =  new Storage(config.gcCredentials)
     this.bucket = config.bucket
+    this.pageSize = config.pageSize ? config.pageSize : 100
 
     this.createIfNeeded()
   }
@@ -52,6 +64,41 @@ class GcDriver implements DriverModel {
       logger.error(`failed to connect to google cloud storage bucket: ${err}`)
       process.exit()
     })
+  }
+
+  listAllObjects(prefix: string, page: ?string) {
+    // returns {'entries': [...], 'page': next_page}
+    const opts : { prefix: string, maxResults: number, pageToken?: string } = {
+      prefix: prefix,
+      maxResults: this.pageSize
+    }
+    if (page) {
+      opts.pageToken = page
+    }
+    return new Promise((resolve, reject) => {
+      return this.storage.bucket(this.bucket).getFiles(opts, (err, files, nextQuery) => {
+        if (err) {
+          return reject(err)
+        }
+        const fileNames = []
+        files.forEach(file => {
+          fileNames.push(file.name.slice(prefix.length + 1))
+        })
+        const ret = {
+          entries: fileNames,
+          page: null
+        }
+        if (nextQuery && nextQuery.pageToken) {
+          ret.page = nextQuery.pageToken
+        }
+        return resolve(ret)
+      })
+    })
+  }
+
+  listFiles(prefix: string, page: ?string) {
+    // returns {'entries': [...], 'page': next_page}
+    return this.listAllObjects(prefix, page)
   }
 
   performWrite(args: { path: string,

@@ -8,11 +8,13 @@ import type { DriverModel } from '../driverModel'
 import type { Readable } from 'stream'
 
 type DISK_CONFIG_TYPE = { diskSettings: { storageRootDirectory?: string },
+                          pageSize?: number,
                           readURL?: string }
 
 class DiskDriver implements DriverModel {
   storageRootDirectory: string
   readURL: string
+  pageSize: number
 
   constructor (config: DISK_CONFIG_TYPE) {
     if (!config.readURL) {
@@ -29,6 +31,7 @@ class DiskDriver implements DriverModel {
       this.readURL = `${this.readURL}/`
     }
 
+    this.pageSize = config.pageSize ? config.pageSize : 100
     this.mkdirs(this.storageRootDirectory)
   }
 
@@ -55,14 +58,12 @@ class DiskDriver implements DriverModel {
         if ((statInfo.mode & fs.constants.S_IFDIR) === 0) {
           throw new Error(`Not a directory: ${tmpPath}`)
         }
-      }
-      catch (e) {
+      } catch (e) {
         if (e.code === 'ENOENT') {
           // need to create
           logger.debug(`mkdir ${tmpPath}`)
           fs.mkdirSync(tmpPath)
-        }
-        else {
+        } else {
           throw e
         }
       }
@@ -71,6 +72,58 @@ class DiskDriver implements DriverModel {
       }
       tmpPath = `${tmpPath}/${pathParts[i]}`
     }
+  }
+
+  findAllFiles(listPath: string) : Array<string> {
+    // returns a list of files prefixed by listPath
+    const names = fs.readdirSync(listPath)
+    const fileNames = []
+    for (let i = 0; i < names.length; i++) {
+      const fileOrDir = `${listPath}/${names[i]}`
+      const stat = fs.statSync(fileOrDir)
+      if (stat.isDirectory()) {
+        const childNames = this.findAllFiles(fileOrDir)
+        for (let j = 0; j < childNames.length; j++) {
+          fileNames.push(childNames[j])
+        }
+      } else {
+        fileNames.push(fileOrDir)
+      }
+    }
+    return fileNames
+  }
+
+  listFilesInDirectory(listPath: string, pageNum: number) : Promise<{entries: Array<string>, page: ?string}> {
+    const names = this.findAllFiles(listPath).map(
+      (fileName) => fileName.slice(listPath.length + 1))
+    return Promise.resolve().then(() => ({
+      entries: names.slice(pageNum * this.pageSize, (pageNum + 1) * this.pageSize),
+      page: `${pageNum + 1}`
+    }))
+  }
+
+  listFiles(prefix: string, page: ?string) {
+    // returns {'entries': [...], 'page': next_page}
+    let pageNum
+    const listPath = `${this.storageRootDirectory}/${prefix}`
+    try {
+      if (page) {
+        if (!page.match(/^[0-9]+$/)) {
+          throw new Error('Invalid page number')
+        }
+        pageNum = parseInt(page)
+      } else {
+        pageNum = 0
+      }
+      const stat = fs.statSync(listPath)
+      if (!stat.isDirectory()) {
+        throw new Error('Not a directory')
+      }
+    } catch(e) {
+      throw new Error('Invalid arguments: invalid page or not a directory')
+    }
+
+    return this.listFilesInDirectory(listPath, pageNum)
   }
 
   performWrite(args: { path: string,
