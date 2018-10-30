@@ -32,7 +32,7 @@ export function makeHttpServer(config: Object) {
   } else if (config.driver === 'google-cloud') {
     const GcDriver = require('./drivers/GcDriver')
     driver = new GcDriver(config)
-  } else if (config.driver === 'google-cloud') {
+  } else if (config.driver === 'alibaba-cloud') {
     const AcDriver = require('./drivers/AcDriver')
     driver = new AcDriver(config)
   } else {
