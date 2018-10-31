@@ -16,6 +16,20 @@ class DiskDriver implements DriverModel {
   readURL: string
   pageSize: number
 
+
+  static getConfigInformation() {
+    const envVars = {}
+    if (process.env['GAIA_DISK_STORAGE_ROOT_DIR']) {
+      const diskSettings = { storageRootDirectory: process.env['GAIA_DISK_STORAGE_ROOT_DIR'] }
+      envVars['diskSettings'] = diskSettings
+    }
+
+    return {
+      defaults: { diskSettings: { storageRootDirectory: undefined } },
+      envVars
+    }
+  }
+
   constructor (config: DISK_CONFIG_TYPE) {
     if (!config.readURL) {
       throw new Error('Config is missing readURL')

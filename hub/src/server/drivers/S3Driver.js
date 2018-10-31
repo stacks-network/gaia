@@ -21,6 +21,29 @@ class S3Driver implements DriverModel {
   bucket: string
   pageSize: number
 
+
+  static getConfigInformation() {
+    const envVars = {}
+    const awsCredentials = {}
+    if (process.env['GAIA_S3_ACCESS_KEY_ID']) {
+      awsCredentials['accessKeyId'] = process.env['GAIA_S3_ACCESS_KEY_ID']
+      envVars['awsCredentials'] = awsCredentials
+    }
+    if (process.env['GAIA_S3_SECRET_ACCESS_KEY']) {
+      awsCredentials['secretAccessKey'] = process.env['GAIA_S3_SECRET_ACCESS_KEY']
+      envVars['awsCredentials'] = awsCredentials
+    }
+    if (process.env['GAIA_S3_SESSION_TOKEN']) {
+      awsCredentials['sessionToken'] = process.env['GAIA_S3_SESSION_TOKEN']
+      envVars['awsCredentials'] = awsCredentials
+    }
+
+    return {
+      defaults: { awsCredentials: undefined },
+      envVars
+    }
+  }
+
   constructor (config: S3_CONFIG_TYPE) {
     this.s3 = new S3(config.awsCredentials)
     this.bucket = config.bucket

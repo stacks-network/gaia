@@ -8,6 +8,7 @@ import cors from 'cors'
 import { ProofChecker } from './ProofChecker'
 import { getChallengeText, LATEST_AUTH_VERSION } from './authentication'
 import { HubServer } from './server'
+import { getDriverClass } from './utils'
 
 function writeResponse(res: express.response, data: Object, statusCode: number) {
   res.writeHead(statusCode, {'Content-Type' : 'application/json'})
@@ -19,31 +20,12 @@ export function makeHttpServer(config: Object) {
   const app = express()
 
   // Handle driver configuration
-  let driver
-  if (config.driver === 'aws') {
-    const S3Driver = require('./drivers/S3Driver')
-    driver = new S3Driver(config)
-  } else if (config.driver === 'azure') {
-    const AzDriver = require('./drivers/AzDriver')
-    driver = new AzDriver(config)
-  } else if (config.driver === 'disk') {
-    const DiskDriver = require('./drivers/diskDriver')
-    driver = new DiskDriver(config)
-  } else if (config.driver === 'google-cloud') {
-    const GcDriver = require('./drivers/GcDriver')
-    driver = new GcDriver(config)
-  } else if (config.driverClass) {
-    driver = new config.driverClass(config)
-  } else {
-    logger.error('Failed to load driver. Check driver configuration.')
-    throw new Error('Failed to load driver')
-  }
+  const driverClass = config.driverClass ? config.driverClass :
+        getDriverClass(config.driver)
+  const driver = new driverClass(config)
 
   const proofChecker = new ProofChecker(config.proofsConfig)
   const server = new HubServer(driver, proofChecker, config)
-
-  app.config = config
-  app.driver = driver
 
   // Instantiate server logging with Winston
   app.use(expressWinston.logger({

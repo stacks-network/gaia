@@ -25,6 +25,37 @@ class GcDriver implements DriverModel {
   storage: Storage
   pageSize: number
 
+  static getConfigInformation() {
+    const envVars = {}
+    const gcCredentials = {}
+    if (process.env['GAIA_GCP_EMAIL']) {
+      gcCredentials['email'] = process.env['GAIA_GCP_EMAIL']
+      envVars['gcCredentials'] = gcCredentials
+    }
+    if (process.env['GAIA_GCP_PROJECT_ID']) {
+      gcCredentials['projectId'] = process.env['GAIA_GCP_PROJECT_ID']
+      envVars['gcCredentials'] = gcCredentials
+    }
+    if (process.env['GAIA_GCP_KEY_FILENAME']) {
+      gcCredentials['email'] = process.env['GAIA_GCP_KEY_FILENAME']
+      envVars['gcCredentials'] = gcCredentials
+    }
+    if (process.env['GAIA_GCP_CLIENT_EMAIL']) {
+      gcCredentials['credentials'] = {}
+      gcCredentials['credentials']['client_email'] = process.env['GAIA_GCP_CLIENT_EMAIL']
+      if (process.env['GAIA_GCP_CLIENT_PRIVATE_KEY']) {
+        gcCredentials['credentials']['private_key'] = process.env['GAIA_GCP_CLIENT_PRIVATE_KEY']
+      }
+      envVars['gcCredentials'] = gcCredentials
+    }
+
+    return {
+      defaults: { gcCredentials: undefined },
+      envVars
+    }
+  }
+
+
   constructor (config: GC_CONFIG_TYPE) {
     this.storage =  new Storage(config.gcCredentials)
     this.bucket = config.bucket
