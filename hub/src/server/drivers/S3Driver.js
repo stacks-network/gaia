@@ -21,7 +21,7 @@ class S3Driver implements DriverModel {
   s3: S3
   bucket: string
   pageSize: number
-
+  cacheControl: ?string
 
   static getConfigInformation() {
     const envVars = {}
@@ -122,13 +122,13 @@ class S3Driver implements DriverModel {
                        contentLength: number,
                        contentType: string }) : Promise<string> {
     const s3key = `${args.storageTopLevel}/${args.path}`
-    const s3params = {
+    const s3params = Object.assign({}, {
       Bucket: this.bucket,
       Key: s3key,
       Body: args.stream,
       ContentType: args.contentType,
       ACL: 'public-read'
-    }
+    })
     if (this.cacheControl) {
       s3params.CacheControl = this.cacheControl
     }

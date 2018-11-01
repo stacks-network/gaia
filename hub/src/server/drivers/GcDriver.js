@@ -25,6 +25,7 @@ class GcDriver implements DriverModel {
   bucket: string
   storage: Storage
   pageSize: number
+  cacheControl: ?string
 
   static getConfigInformation() {
     const envVars = {}
