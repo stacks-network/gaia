@@ -17,6 +17,7 @@ type GC_CONFIG_TYPE = { gcCredentials?: {
                             private_key?: string
                           }
                         },
+                        cacheControl?: string,
                         pageSize?: number,
                         bucket: string }
 
@@ -37,7 +38,7 @@ class GcDriver implements DriverModel {
       envVars['gcCredentials'] = gcCredentials
     }
     if (process.env['GAIA_GCP_KEY_FILENAME']) {
-      gcCredentials['email'] = process.env['GAIA_GCP_KEY_FILENAME']
+      gcCredentials['keyFilename'] = process.env['GAIA_GCP_KEY_FILENAME']
       envVars['gcCredentials'] = gcCredentials
     }
     if (process.env['GAIA_GCP_CLIENT_EMAIL']) {
@@ -50,7 +51,7 @@ class GcDriver implements DriverModel {
     }
 
     return {
-      defaults: { gcCredentials: undefined },
+      defaults: { gcCredentials: {} },
       envVars
     }
   }
@@ -60,6 +61,7 @@ class GcDriver implements DriverModel {
     this.storage =  new Storage(config.gcCredentials)
     this.bucket = config.bucket
     this.pageSize = config.pageSize ? config.pageSize : 100
+    this.cacheControl = config.cacheControl
 
     this.createIfNeeded()
   }
@@ -144,6 +146,13 @@ class GcDriver implements DriverModel {
     const filename = `${args.storageTopLevel}/${args.path}`
     const publicURL = `${this.getReadURLPrefix()}${filename}`
 
+    const metadata = {}
+    metadata.contentType = args.contentType
+    if (this.cacheControl) {
+      metadata.cacheControl = this.cacheControl
+    }
+
+
     return new Promise((resolve, reject) => {
       const fileDestination = this.storage
             .bucket(this.bucket)
@@ -151,7 +160,7 @@ class GcDriver implements DriverModel {
       args.stream
         .pipe(fileDestination.createWriteStream({ public: true,
                                                   resumable: false,
-                                                  contentType: args.contentType }))
+                                                  metadata }))
         .on('error', (err) => {
           logger.error(`failed to store ${filename} in bucket ${this.bucket}`)
           reject(new Error('Google cloud storage failure: failed to store' +

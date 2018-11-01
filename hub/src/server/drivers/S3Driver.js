@@ -14,6 +14,7 @@ type S3_CONFIG_TYPE = { awsCredentials: {
                           sessionToken?: string
                         },
                         pageSize?: number,
+                        cacheControl?: string,
                         bucket: string }
 
 class S3Driver implements DriverModel {
@@ -48,6 +49,7 @@ class S3Driver implements DriverModel {
     this.s3 = new S3(config.awsCredentials)
     this.bucket = config.bucket
     this.pageSize = config.pageSize ? config.pageSize : 100
+    this.cacheControl = config.cacheControl
 
     this.createIfNeeded()
   }
@@ -126,6 +128,9 @@ class S3Driver implements DriverModel {
       Body: args.stream,
       ContentType: args.contentType,
       ACL: 'public-read'
+    }
+    if (this.cacheControl) {
+      s3params.CacheControl = this.cacheControl
     }
 
     if (!S3Driver.isPathValid(args.path)){

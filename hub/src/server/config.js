@@ -11,7 +11,7 @@ const configDefaults = {
     timestamp: true,
     stringify: true,
     colorize: true,
-    json: true
+    json: false
   },
   whitelist: null,
   readURL: null,
@@ -37,13 +37,24 @@ const globalEnvVars = { whitelist: 'GAIA_WHITELIST',
                         cacheControl: 'GAIA_CACHE_CONTROL',
                         port: 'GAIA_PORT' }
 
+const parseInts = [ 'port', 'pageSize', 'requireCorrectHubUrl' ]
+const parseLists = [ 'validHubUrls', 'whitelist' ]
+
 function getConfigEnv(envVars) {
 
   const configEnv = {}
   for (const name in envVars) {
     const envVar = envVars[name]
     if (process.env[envVar]) {
-      configEnv[envVar] = process.env[envVar]
+      configEnv[name] = process.env[envVar]
+      if (parseInts.indexOf(name) >= 0) {
+        configEnv[name] = parseInt(configEnv[name])
+        if (isNaN(configEnv[name])) {
+          throw new Error(`Passed a non-number input to: ${envVar}`)
+        }
+      } else if (parseLists.indexOf(name) >= 0) {
+        configEnv[name] = configEnv[name].split(',').map(x => x.trim())
+      }
     }
   }
   return configEnv
@@ -51,7 +62,20 @@ function getConfigEnv(envVars) {
 
 export function getConfig() {
   const configPath = process.env.CONFIG_PATH || process.argv[2] || './config.json'
-  const configJSON = configPath ? JSON.parse(fs.readFileSync(configPath)) : {}
+  let configJSON
+  try {
+    configJSON = JSON.parse(fs.readFileSync(configPath))
+  } catch (err) {
+    configJSON = {}
+  }
+
+  if (configJSON.servername) {
+    if (!configJSON.serverName) {
+      configJSON.serverName = configJSON.servername
+    }
+    delete configJSON.servername
+  }
+
   const configENV = getConfigEnv(globalEnvVars)
 
   const configGlobal = Object.assign({}, configDefaults, configJSON, configENV)
