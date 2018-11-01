@@ -4,7 +4,7 @@ import { BadPathError } from '../errors'
 import logger from 'winston'
 import Path from 'path'
 
-import type { DriverModel } from '../driverModel'
+import type { DriverModel, DriverStatics } from '../driverModel'
 import type { Readable } from 'stream'
 
 type DISK_CONFIG_TYPE = { diskSettings: { storageRootDirectory?: string },
@@ -192,6 +192,8 @@ class DiskDriver implements DriverModel {
     })
   }
 }
+
+(DiskDriver: DriverStatics)
 
 module.exports = DiskDriver
 

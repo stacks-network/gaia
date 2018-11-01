@@ -5,7 +5,7 @@ import logger from 'winston'
 
 import { BadPathError } from '../errors'
 
-import type { DriverModel } from '../driverModel'
+import type { DriverModel, DriverStatics } from '../driverModel'
 import type { Readable } from 'stream'
 
 type S3_CONFIG_TYPE = { awsCredentials: {
@@ -152,5 +152,7 @@ class S3Driver implements DriverModel {
     })
   }
 }
+
+(S3Driver: DriverStatics)
 
 module.exports = S3Driver

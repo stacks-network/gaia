@@ -5,7 +5,7 @@ import logger from 'winston'
 
 import { BadPathError } from '../errors'
 
-import type { DriverModel } from '../driverModel'
+import type { DriverModel, DriverStatics } from '../driverModel'
 import type { Readable } from 'stream'
 
 type GC_CONFIG_TYPE = { gcCredentials?: {
@@ -174,5 +174,7 @@ class GcDriver implements DriverModel {
     })
   }
 }
+
+(GcDriver: DriverStatics)
 
 module.exports = GcDriver
