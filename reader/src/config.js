@@ -16,7 +16,9 @@ const configDefaults = {
   regtest: false,
   testnet: false,
   port: 8008,
-  storageRootDirectory: '/tmp/gaia-disk'
+  diskSettings: {
+    storageRootDirectory: '/tmp/gaia-disk'
+  }
 }
 
 export function getConfig() {
