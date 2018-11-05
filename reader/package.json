@@ -1,0 +1,51 @@
+{
+  "name": "gaia-reader",
+  "version": "2.2.1",
+  "description": "",
+  "main": "index.js",
+  "engines": {
+    "node": "^8"
+  },
+  "dependencies": {
+    "body-parser": "^1.18.1",
+    "cors": "^2.8.4",
+    "express": "^4.15.4",
+    "express-winston": "^2.4.0",
+    "node-fetch": "^2.0.0",
+    "winston": "^2.3.1"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-eslint": "^8.2.2",
+    "babel-preset-env": "^1.6.1",
+    "babel-preset-flow": "^6.23.0",
+    "eslint": "^4.18.1",
+    "eslint-plugin-flowtype": "^2.46.3",
+    "fetch-mock": "^6.4.2",
+    "flow-bin": "^0.71.0",
+    "nock": "^9.1.9",
+    "nyc": "^13.0.0",
+    "proxyquire": "^2.0.1",
+    "supertest": "^3.0.0",
+    "tape": "^4.9.0"
+  },
+  "bin": {
+    "blockstack-gaia-reader": "./lib/index.js"
+  },
+  "scripts": {
+    "start": "npm run build && node lib/index.js",
+    "build": "npm run lint && babel src -d lib && chmod +x lib/index.js",
+    "flow": "flow",
+    "lint": "eslint src",
+    "test-inner": "npm run build && npm run flow && node ./test/test.js",
+    "test": "nyc --reporter=text npm run test-inner"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/blockstack/gaia.git"
+  },
+  "authors": [
+    "Aaron Blankstein (aaron@blockstack.com)",
+    "Jude Nelson (jude@blockstack.com)"
+  ]
+}
