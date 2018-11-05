@@ -1,6 +1,6 @@
 /* @flow */
 import fs from 'fs'
-import { BadPathError } from '../errors'
+import { BadPathError, InvalidInputError } from '../errors'
 import logger from 'winston'
 import Path from 'path'
 
@@ -10,6 +10,8 @@ import type { Readable } from 'stream'
 type DISK_CONFIG_TYPE = { diskSettings: { storageRootDirectory?: string },
                           pageSize?: number,
                           readURL?: string }
+
+const METADATA_DIRNAME = '.gaia-metadata'
 
 class DiskDriver implements DriverModel {
   storageRootDirectory: string
@@ -135,9 +137,15 @@ class DiskDriver implements DriverModel {
     .then(() => {
       const path = args.path
       const topLevelDir = args.storageTopLevel
+      const contentType = args.contentType
 
       if (!topLevelDir) {
         throw new BadPathError('Invalid Path')
+      }
+
+      if (contentType.length > 255) {
+        // no way this is valid 
+        throw new InvalidInputError('Invalid content-type')
       }
 
       const abspath = Path.join(this.storageRootDirectory, topLevelDir, path)
@@ -162,6 +170,17 @@ class DiskDriver implements DriverModel {
 
       const writePipe = fs.createWriteStream(abspath, { mode: 0o600, flags: 'w' })
       args.stream.pipe(writePipe)
+
+      // remember content type in $storageRootDir/.gaia-metadata/$address/$path
+      // (i.e. these files are outside the address bucket, and are thus hidden)
+      const contentTypePath = Path.join(
+        this.storageRootDirectory, METADATA_DIRNAME, topLevelDir, path)
+
+      const contentTypeDirPath = Path.dirname(contentTypePath)
+      this.mkdirs(contentTypeDirPath)
+
+      fs.writeFileSync(
+        contentTypePath, JSON.stringify({ 'content-type': contentType }), { mode: 0o600 })
 
       return `${this.readURL}${Path.join(topLevelDir, path)}`
     })
