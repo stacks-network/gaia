@@ -1,4 +1,3 @@
-import bitcoin from 'bitcoinjs-lib'
 import test  from 'tape'
 
 import * as auth from '../../lib/server/authentication'
@@ -6,13 +5,7 @@ import * as errors from '../../lib/server/errors'
 import { HubServer }  from '../../lib/server/server'
 import { Readable, Writable } from 'stream'
 
-const testWIFs = [
-  'L4kMoaVivcd1FMPPwRU9XT2PdKHPob3oo6YmgTBHrnBHMmo7GcCf',
-  'L3W7EzxYNdG3kBjtQmhKEq2iiZAwpiKEwMobXdaY9xueSUFPkQeH',
-  'KwzzsbVzMekdj9myzxojsgT6DQ6yRQKbWqSXQgo1YKsJcvFJhtRr',
-  'KxYYiJg9mJpCDHcyYMMvSfY4SWGwMofqavxG2ZyDNcXuY7ShBknK']
-const testPairs = testWIFs.map(x => bitcoin.ECPair.fromWIF(x))
-const testAddrs = testPairs.map(x => x.getAddress())
+import { testPairs, testAddrs} from './common'
 
 class MockDriver {
   constructor() {
