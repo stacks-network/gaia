@@ -23,12 +23,14 @@ class AzDriver implements DriverModel {
 
   static getConfigInformation() {
     const envVars = {}
+    const azCredentials = {}
     if (process.env['GAIA_AZURE_ACCOUNT_NAME']) {
-      envVars['azCredentials'] = {}
-      envVars['azCredentials']['accountName'] = process.env['GAIA_AZURE_ACCOUNT_NAME']
-      if (process.env['GAIA_AZURE_ACCOUNT_KEY']) {
-        envVars['azCredentials']['accountKey'] = process.env['GAIA_AZURE_ACCOUNT_KEY']
-      }
+      envVars['azCredentials'] = azCredentials
+      azCredentials['accountName'] = process.env['GAIA_AZURE_ACCOUNT_NAME']
+    }
+    if (process.env['GAIA_AZURE_ACCOUNT_KEY']) {
+      envVars['azCredentials'] = azCredentials
+      azCredentials['accountKey'] = process.env['GAIA_AZURE_ACCOUNT_KEY']
     }
     return {
       defaults: { azCredentials: { accountName: undefined,

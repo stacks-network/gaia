@@ -4,7 +4,7 @@ import process from 'process'
 
 import { getDriverClass } from './utils'
 
-const configDefaults = {
+export const configDefaults = {
   argsTransport: {
     level: 'warn',
     handleExceptions: true,
@@ -46,6 +46,7 @@ function getConfigEnv(envVars) {
   for (const name in envVars) {
     const envVar = envVars[name]
     if (process.env[envVar]) {
+      console.log(process.env[envVar])
       configEnv[name] = process.env[envVar]
       if (parseInts.indexOf(name) >= 0) {
         configEnv[name] = parseInt(configEnv[name])
@@ -58,6 +59,33 @@ function getConfigEnv(envVars) {
     }
   }
   return configEnv
+}
+
+// we deep merge so that if someone sets { field: {subfield: foo} }, it doesn't remove
+//                                       { field: {subfieldOther: bar} }
+function deepMerge(target, ...sources) {
+  function isObject(item) {
+    return (item && typeof item === 'object' && !Array.isArray(item))
+  }
+
+  if (sources.length === 0) {
+    return target
+  }
+
+  const source = sources.shift()
+
+  if (isObject(target) && isObject(source)) {
+    for (const key in source) {
+      if (isObject(source[key])) {
+        if (!target[key]) Object.assign(target, { [key]: {} })
+        deepMerge(target[key], source[key])
+      } else {
+        Object.assign(target, { [key]: source[key] })
+      }
+    }
+  }
+
+  return deepMerge(target, ...sources)
 }
 
 export function getConfig() {
@@ -78,13 +106,13 @@ export function getConfig() {
 
   const configENV = getConfigEnv(globalEnvVars)
 
-  const configGlobal = Object.assign({}, configDefaults, configJSON, configENV)
+  const configGlobal = deepMerge({}, configDefaults, configJSON, configENV)
 
   let config = configGlobal
   if (config.driver) {
     const driverClass = getDriverClass(config.driver)
     const driverConfigInfo = driverClass.getConfigInformation()
-    config = Object.assign({}, driverConfigInfo.defaults, configGlobal, driverConfigInfo.envVars)
+    config = deepMerge({}, driverConfigInfo.defaults, configGlobal, driverConfigInfo.envVars)
   }
 
   winston.configure({ transports: [
