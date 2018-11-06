@@ -12,7 +12,7 @@ import {
 
 export function makeHttpServer(config: Object) {
   const app = express()
-  const server = new GaiaDiskReader()
+  const server = new GaiaDiskReader(config)
 
   app.config = config
 
@@ -28,7 +28,7 @@ export function makeHttpServer(config: Object) {
     }
     const address = req.params[0]
 
-    return server.handleGet(config.storageRootDirectory, address, filename)
+    return server.handleGet(address, filename)
       .then((fileInfo) => {
         const exists = fileInfo.exists
         const contentType = fileInfo.contentType
