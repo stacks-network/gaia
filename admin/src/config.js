@@ -1,5 +1,3 @@
-/* @flow */
-
 import winston from 'winston'
 import fs from 'fs'
 import process from 'process'
@@ -16,10 +14,10 @@ const configDefaults = {
   regtest: false,
   testnet: false,
   port: 8009,
-  diskSettings: {
-    storageRootDirectory: '/tmp/gaia-disk'
+  apiKey: '',
+  gaiaSettings: {
+    configPath: '/tmp/gaia-config.json'
   },
-  apiKey,
   reloadSettings: {
     command: "",
     argv: [],
