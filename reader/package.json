@@ -1,5 +1,5 @@
 {
-  "name": "gaia-hub",
+  "name": "gaia-reader",
   "version": "2.2.2",
   "description": "",
   "main": "index.js",
@@ -7,17 +7,10 @@
     "node": "^8"
   },
   "dependencies": {
-    "@google-cloud/storage": "^1.7.0",
-    "aws-sdk": "^2.114.0",
-    "azure-storage": "^2.10.2",
-    "bigi": "^1.4.2",
-    "bitcoinjs-lib": "^3.1.1",
-    "blockstack": "^18.0.0",
     "body-parser": "^1.18.1",
     "cors": "^2.8.4",
     "express": "^4.15.4",
     "express-winston": "^2.4.0",
-    "jsontokens": "^0.7.8",
     "node-fetch": "^2.0.0",
     "winston": "^2.3.1"
   },
@@ -37,7 +30,7 @@
     "tape": "^4.9.0"
   },
   "bin": {
-    "blockstack-gaia-hub": "./lib/index.js"
+    "blockstack-gaia-reader": "./lib/index.js"
   },
   "scripts": {
     "start": "npm run build && node lib/index.js",
@@ -53,7 +46,6 @@
   },
   "authors": [
     "Aaron Blankstein (aaron@blockstack.com)",
-    "Jack Zampolin (jack@blockstack.com)",
     "Jude Nelson (jude@blockstack.com)"
   ]
 }
