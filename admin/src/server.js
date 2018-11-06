@@ -2,6 +2,9 @@
 
 import Path from 'path'
 import fs from 'fs'
+import logger from 'winston'
+import child_process from 'child_process'
+import Ajv from 'ajv'
 
 const METADATA_DIRNAME = '.gaia-metadata'
 
@@ -17,7 +20,9 @@ function runSubprocess(cmd: string, argv: Array<string>, env: Object, uid: ?numb
       ],
       detached: false,    // child will die with this process, if need be
       shell: false,
-      windowsHide: true
+      windowsHide: true,
+      setuid: undefined,
+      setgid: undefined
     }
 
     if (!!uid) {
@@ -28,51 +33,202 @@ function runSubprocess(cmd: string, argv: Array<string>, env: Object, uid: ?numb
       opts.setgid = gid
     }
    
-    const subproc = child_process.spawn(cmd, argv, opts)
-    
     return new Promise((resolve, reject) => {
-      subproc.on('exit', (code, signal) => {
-        if (code === 0) {
-          const ret = { 'statusCode': 200, 'status': 'OK' }
-          resolve(ret)
-        } else {
+      child_process.spawn(cmd, argv, opts)
+        .on('exit', (code, signal) => {
+          if (code === 0) {
+            const ret = { statusCode: 200, status: { result: 'OK' } }
+            resolve(ret)
+          } else {
+            const ret = { 
+              statusCode: 500, 
+              status: { error: `Command exited with code ${code} (signal=${signal})` }
+            }
+            resolve(ret)
+          }
+        })
+        .on('close', (code, signal) => {
+          if (code === 0) {
+            const ret = { statusCode: 200, status: { result: 'OK' } }
+            resolve(ret)
+          } else {
+            const ret = { 
+              statusCode: 500, 
+              status: { error: `Command closed with code ${code} (signal=${signal})` }
+            }
+            resolve(ret)
+          }
+        })  
+        .on('error', () => {
           const ret = { 
-            'statusCode': 500, 
-            'status': { 'error': `Command exited with code ${code} (signal=${signal})` }
+            statusCode: 500, 
+            status: { error: 'Command could not be spawned, killed, or signaled' }
           }
           resolve(ret)
-        }
-      })
-
-      subproc.on('close', (code, signal) => {
-        if (code === 0) {
-          const ret = { 'statusCode': 200, 'status': 'OK' }
-          resolve(ret)
-        } else {
-          const ret = { 
-            'statusCode': 500, 
-            'status': { 'error': `Command closed with code ${code} (signal=${signal})` }
-          }
-          resolve(ret)
-        }
-      })
-
-      subproc.on('error', () => {
-        const ret = { 
-          'statusCode': 500, 
-          'status': { 'error': 'Command could not be spawned, killed, or signaled' }
-        }
-        resolve(ret)
-      })
+        })
     })
 }
 
-export class AdminAPI {
-
-  constructor() {
+// atomically modify the config file.
+export function patchConfigFile(configFilePath: string, newFields: Object) {
+  if (!configFilePath) {
+    throw new Error('Config file not given')
   }
 
-  checkAuthorization(config: Object, authHeader: string) : Promise<boolean> {
+  try {
+    fs.accessSync(configFilePath, fs.constants.R_OK | fs.constants.W_OK)
+  } catch (e) {
+    logger.error(`Config file does not exist or cannot be read/written: ${configFilePath}`)
+    throw new Error('Config file does not exist or cannot be read/written')
+  }
+
+  let configData
+  let config
+
+  try {
+    configData = fs.readFileSync(configFilePath).toString()
+  } catch (e) {
+    logger.error(`Failed to read config file: ${e.message}`)
+    throw new Error('Failed to read config file')
+  }
+
+  try {
+    config = JSON.parse(configData)
+  } catch (e) {
+    logger.error(`Failed to parse config file: ${e.message}`)
+    throw new Error('Failed to parse config file')
+  }
+
+  config = Object.assign(config, newFields)
+  const tmpConfigPath = `${configFilePath}.new`
+
+  try {
+    fs.writeFileSync(tmpConfigPath, JSON.stringify(config, null, 2))
+  } catch (e) {
+    logger.error(`Failed to write config file: ${e.message}`)
+    throw new Error('Failed to write new config file')
+  }
+
+  try {
+    fs.renameSync(tmpConfigPath, configFilePath)
+  } catch (e) {
+    logger.error(`Failed to rename config file: ${e.message}`)
+    throw new Error('Failed to update config file')
+  }
+}
+
+// get part(s) of a config file 
+export function readConfigFileSections(configFilePath: string, fields: string | Array<string>) 
+: Object {
+
+  if (!configFilePath) {
+    throw new Error('Config file nto given')
+  }
+
+  try {
+    fs.accessSync(configFilePath, fs.constants.R_OK)
+  } catch (e) {
+    logger.error(`Config file does not exist or cannot be read: ${configFilePath}`)
+    throw new Error('Config file does not exist or cannot be read')
+  }
+
+  let configData
+  let config
+  let ret = {}
+
+  try {
+    configData = fs.readFileSync(configFilePath).toString()
+  } catch (e) {
+    logger.error(`Failed to read config file: ${e.message}`)
+    throw new Error('Failed to read config file')
+  }
+
+  try {
+    config = JSON.parse(configData)
+  } catch (e) {
+    logger.error(`Failed to parse config file: ${e.message}`)
+    throw new Error('Failed to parse config file')
+  }
+
+  if (typeof fields === 'string') {
+    fields = [fields]
+  }
+
+  for (let i = 0; i < fields.length; i++) {
+    if (config[fields[i]] !== undefined) {
+      ret[fields[i]] = config[fields[i]]
+    }
+  }
+
+  return ret
+}
+
+const GAIA_SETTINGS_SCHEMA = {
+  type: 'object',
+  properties: {
+    validHubUrls: {
+      type: 'array',
+      items: { type: 'string', pattern: '^http://.+|https://.+$' },
+    },
+    requireCorrectHubUrl: { type: 'boolean' },
+    serverName: { type: 'string', pattern: '.+' },
+    port: { type: 'integer', minimum: 1024, maximum: 65534 },
+    proofsConfig: { type: 'integer', minimum: 0 }
+  }
+}
+
+const WHITELIST_SETTINGS_SCHEMA = {
+  type: 'array',
+  items: {
+    type: 'string',
+    pattern: '^[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]+$'
+  }
+}
+
+const DRIVER_SETTINGS_SCHEMA = {
+  type: 'object',
+  properties: {
+    driver: { type: 'string', pattern: '.+' },
+    readURL: { type: 'string', pattern: '^http://.+$|https://.+$' },
+    pageSize: { type: 'integer', minimum: 1 },
+    bucket: { type: 'string', pattern: '.+' },
+    cacheControl: { type: 'string', pattern: '.+' },
+    azCredentials: {
+      accountName: { type: 'string', pattern: '.+' },
+      accountKey: { type: 'string', pattern: '.+' },
+    },
+    diskSettings: {
+      storageRootDirectory: { type: 'string' }
+    },
+    gcCredentials: {
+      email: { type: 'string' },
+      projectId: { type: 'string' },
+      keyFilename: { type: 'string' },
+      credentials: {
+        type: 'object',
+        properties: {
+          client_email: { type: 'string' },
+          private_key: { type: 'string' }
+        }
+      },
+    },
+    awsCredentials: {
+      assessKeyId: { type: 'string' },
+      secretAccessKey: { type: 'string' },
+      sessionToken: { type: 'string' }
+    }
+  }
+}   
+
+export class AdminAPI {
+
+  config: Object
+
+  constructor(config: Object) {
+    this.config = config
+  }
+
+  checkAuthorization(authHeader: string) : Promise<boolean> {
     return Promise.resolve().then(() => {
       if (!authHeader) {
         logger.error('No authorization header given')
@@ -84,7 +240,7 @@ export class AdminAPI {
       }
 
       const bearer = authHeader.toLowerCase().slice('bearer '.length)
-      if (!!config.apiKey && bearer === config.apiKey) {
+      if (!!this.config.apiKey && bearer === this.config.apiKey) {
         return true
       }
 
@@ -94,21 +250,118 @@ export class AdminAPI {
   }
   
   // Reloads the Gaia hub by launching the reload subprocess
-  handleReload(config: Object) : Promise<{ 'status': Object, 'statusCode': number }> {
-    if (!config.reloadSettings.command) {
+  handleReload() : Promise<{ status: Object, statusCode: number }> {
+    if (!this.config.reloadSettings.command) {
       // reload is not defined 
-      const ret = { 'statusCode': 404, 'status': { 'error': 'No reload command defined' } }
+      const ret = { statusCode: 404, status: { error: 'No reload command defined' } }
       return Promise.resolve().then(() => ret)
     }
 
-    const cmd = config.reloadSettings.command
-    const argv = config.reloadSettings.argv ? config.reloadSettings.argv : []
-    const env = config.reloadSettings.env ? config.reloadSettings.env : {}
-    const uid = config.reloadSettings.setuid
-    const gid = config.reloadSettings.setgid
+    const cmd = this.config.reloadSettings.command
+    const argv = this.config.reloadSettings.argv ? this.config.reloadSettings.argv : []
+    const env = this.config.reloadSettings.env ? this.config.reloadSettings.env : {}
+    const uid = this.config.reloadSettings.setuid
+    const gid = this.config.reloadSettings.setgid
 
     return runSubprocess(cmd, argv, env, uid, gid)
   }
 
-  // Sets 
+  // don't call this from outside this class
+  handleGetFields(fieldList: Array<string>) : Promise<{ status: Object, statusCode: number }> {
+    return Promise.resolve().then(() => {
+      const configPath = this.config.gaiaSettings.configPath
+      return readConfigFileSections(configPath, fieldList)
+    })
+    .then((fields) => {
+      return { statusCode: 200, status: { config: fields } }
+    })
+    .catch((e) => {
+      return { statusCode: 500, status: { error: e.message } }
+    })
+  }
+
+  // don't call this from outside this class
+  handleSetFields(newFields: Object, allowedFields: Array<string>) 
+  : Promise<{ status: Object, statusCode: number }> {
+    // only allow fields in allowedFields to be written
+    const fieldsToWrite = {}
+    for (let i = 0; i < allowedFields.length; i++) {
+      if (newFields.hasOwnProperty(allowedFields[i])) {
+        fieldsToWrite[allowedFields[i]] = newFields[allowedFields[i]]
+      }
+    }
+
+    if (Object.keys(fieldsToWrite).length == 0) {
+      const ret = { statusCode: 400, status: { error: 'No valid fields given' } }
+      return Promise.resolve().then(() => ret)
+    }
+
+    return Promise.resolve().then(() => {
+      const configPath = this.config.gaiaSettings.configPath
+      return patchConfigFile(configPath, newFields)
+    })
+    .then(() => {
+      const ret = { 
+        statusCode: 200, 
+        status: { 
+          message: 'Config updated -- you should reload your Gaia hub now.'
+        }
+      }
+      return ret
+    })
+    .catch((e) => {
+      const ret = {
+        statusCode: 500,
+        status: {
+          error: e.message
+        }
+      }
+      return ret
+    })
+  }
+
+  handleGetWhitelist(): Promise<{ status: Object, statusCode: number }> {
+    return this.handleGetFields(['whitelist'])
+  }
+
+  handleSetWhitelist(whitelist: Array<string>): Promise<{ status: Object, statusCode: number }> {
+    const ajv = new Ajv()
+    const valid = ajv.validate(WHITELIST_SETTINGS_SCHEMA, whitelist)
+    if (!valid) {
+      logger.error(`Failed to validate whitelist settings: ${JSON.stringify(ajv.errors)}`)
+      const ret = { statusCode: 400, status: { error: 'Invalid whitelist' } }
+      return Promise.resolve().then(() => ret)
+    }
+    return this.handleSetFields({ whitelist }, ['whitelist'])
+  }
+
+  handleGetDriverSettings(): Promise<{ status: Object, statusCode: number }> {
+    return this.handleGetFields(Object.keys(DRIVER_SETTINGS_SCHEMA.properties))
+  }
+
+  handleSetDriverSettings(opts: Object): Promise<{ status: Object, statusCode: number }> {
+    const ajv = new Ajv()
+    const valid = ajv.validate(DRIVER_SETTINGS_SCHEMA, opts)
+    if (!valid) {
+      logger.error(`Failed to validate driver settings: ${JSON.stringify(ajv.errors)}`)
+      const ret = { statusCode: 400, status: { error: 'Invalid driver configuration' } }
+      return Promise.resolve().then(() => ret)
+    }
+    return this.handleSetFields(opts, Object.keys(DRIVER_SETTINGS_SCHEMA.properties))
+  }
+
+  handleGetGaiaSettings(): Promise<{ status: Object, statusCode: number }> {
+    return this.handleGetFields(Object.keys(GAIA_SETTINGS_SCHEMA.properties))
+  }
+  
+  handleSetGaiaSettings(opts: Object): Promise<{ status: Object, statusCode: number }> {
+    const ajv = new Ajv()
+    const valid = ajv.validate(GAIA_SETTINGS_SCHEMA, opts)
+    if (!valid) {
+      logger.error(`Failed to validate Gaia settings: ${JSON.stringify(ajv.errors)}`)
+      const ret = { statusCode: 400, status: { error: 'Invalid Gaia hub configuration' } }
+      return Promise.resolve().then(() => ret)
+    }
+    return this.handleSetFields(opts, Object.keys(GAIA_SETTINGS_SCHEMA.properties))
+  }
 }
