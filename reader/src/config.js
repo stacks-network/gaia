@@ -1,5 +1,3 @@
-/* @flow */
-
 import winston from 'winston'
 import fs from 'fs'
 import process from 'process'
