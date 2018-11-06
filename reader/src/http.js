@@ -6,7 +6,7 @@ import logger from 'winston'
 import cors from 'cors'
 import Path from 'path'
 
-import { 
+import {
   GaiaDiskReader
 } from './server'
 
@@ -46,6 +46,10 @@ export function makeHttpServer(config: Object) {
         const path = Path.join(address, filename)
 
         return res.sendFile(path, opts)
+      })
+      .catch((err) => {
+        logger.error(err)
+        return res.status(400).send('Could not return file')
       })
   })
 
