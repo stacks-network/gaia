@@ -21,4 +21,10 @@ export class NotEnoughProofError {
   }
 }
 
-
+export class InvalidInputError {
+  constructor (message) {
+    this.name = 'InvalidInputError'
+    this.message = message
+    this.stack = (new Error(message)).stack
+  }
+}

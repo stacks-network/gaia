@@ -6,6 +6,7 @@ const FetchMock = require('fetch-mock')
 let request = require('supertest')
 let bitcoin = require('bitcoinjs-lib')
 let fs = require('fs')
+let Path = require('path')
 
 const { Readable, Writable } = require('stream');
 
@@ -534,9 +535,10 @@ function testDiskDriver() {
   const DiskDriver = require(diskDriverImport)
 
   test('diskDriver', (t) => {
-    t.plan(4)
+    t.plan(5)
     const driver = new DiskDriver(config)
     const prefix = driver.getReadURLPrefix()
+    const storageDir = driver.storageRootDirectory
     const s = new Readable()
     s._read = function noop() {}
     s.push('hello world')
@@ -553,7 +555,11 @@ function testDiskDriver() {
           contentType: 'application/octet-stream',
           contentLength: 12 }))
       .then((readUrl) => {
+        const filePath = Path.join(storageDir, '12345', 'foo/bar.txt')
+        const metadataPath = Path.join(storageDir, '.gaia-metadata', '12345', 'foo/bar.txt')
         t.ok(readUrl.startsWith(prefix + '12345'), `${readUrl} must start with readUrlPrefix ${prefix}12345`)
+        t.equal(JSON.parse(fs.readFileSync(metadataPath).toString())['content-type'], 'application/octet-stream',
+          'Content-type metadata was written')
       })
       .then(() => driver.listFiles('12345'))
       .then((files) => {
