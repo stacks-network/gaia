@@ -9,16 +9,15 @@
   },
   "scripts": {
     "compile": "rm -rf lib; babel src -d lib",
-    "compile-tests": "rm -rf tests/unitTests/lib; babel tests/unitTests/src -d tests/unitTests/lib;",
     "prepublish": "npm run build",
-    "unit-test": "npm run flow && npm run compile && npm run compile-tests && node ./tests/test.js",
+    "unit-test": "npm run flow && npm run compile && node ./test/test.js",
     "build": "npm run flow && npm run compile",
     "flow": "flow",
     "test": "nyc --reporter=text npm run unit-test",
     "start": "npm run build && node lib/index.js"
   },
   "bin": {
-    "gaia-gateway": "lib/index.js"
+    "blockstack-gaia-admin": "lib/index.js"
   },
   "repository": {
     "type": "git",
@@ -34,6 +33,7 @@
     "url": "https://github.com/blockstack/gaia"
   },
   "dependencies": {
+    "ajv": "^6.5.5",
     "body-parser": "^1.18.1",
     "cors": "^2.8.4",
     "cross-fetch": "^2.2.2",
