@@ -4,7 +4,7 @@ import azure from 'azure-storage'
 import logger from 'winston'
 import { BadPathError } from '../errors'
 
-import type { DriverModel } from '../driverModel'
+import type { DriverModel, DriverStatics } from '../driverModel'
 import type { Readable } from 'stream'
 
 type AZ_CONFIG_TYPE = { azCredentials: { accountName: string,
@@ -21,8 +21,27 @@ class AzDriver implements DriverModel {
   readURL: ?string
   cacheControl: ?string
 
+  static getConfigInformation() {
+    const envVars = {}
+    const azCredentials = {}
+    if (process.env['GAIA_AZURE_ACCOUNT_NAME']) {
+      envVars['azCredentials'] = azCredentials
+      azCredentials['accountName'] = process.env['GAIA_AZURE_ACCOUNT_NAME']
+    }
+    if (process.env['GAIA_AZURE_ACCOUNT_KEY']) {
+      envVars['azCredentials'] = azCredentials
+      azCredentials['accountKey'] = process.env['GAIA_AZURE_ACCOUNT_KEY']
+    }
+    return {
+      defaults: { azCredentials: { accountName: undefined,
+                                   accountKey: undefined } },
+      envVars
+    }
+  }
+
   constructor (config: AZ_CONFIG_TYPE) {
-    this.blobService = azure.createBlobService(config.azCredentials.accountName,config.azCredentials.accountKey)
+    this.blobService = azure.createBlobService(config.azCredentials.accountName,
+                                               config.azCredentials.accountKey)
     this.bucket = config.bucket
     this.accountName = config.azCredentials.accountName
     this.readURL = config.readURL
@@ -112,5 +131,7 @@ class AzDriver implements DriverModel {
     })
   }
 }
+
+(AzDriver: DriverStatics)
 
 module.exports = AzDriver

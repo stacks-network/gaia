@@ -4,7 +4,7 @@ import { BadPathError, InvalidInputError } from '../errors'
 import logger from 'winston'
 import Path from 'path'
 
-import type { DriverModel } from '../driverModel'
+import type { DriverModel, DriverStatics } from '../driverModel'
 import type { Readable } from 'stream'
 
 type DISK_CONFIG_TYPE = { diskSettings: { storageRootDirectory?: string },
@@ -17,6 +17,20 @@ class DiskDriver implements DriverModel {
   storageRootDirectory: string
   readURL: string
   pageSize: number
+
+
+  static getConfigInformation() {
+    const envVars = {}
+    if (process.env['GAIA_DISK_STORAGE_ROOT_DIR']) {
+      const diskSettings = { storageRootDirectory: process.env['GAIA_DISK_STORAGE_ROOT_DIR'] }
+      envVars['diskSettings'] = diskSettings
+    }
+
+    return {
+      defaults: { diskSettings: { storageRootDirectory: undefined } },
+      envVars
+    }
+  }
 
   constructor (config: DISK_CONFIG_TYPE) {
     if (!config.readURL) {
@@ -108,6 +122,16 @@ class DiskDriver implements DriverModel {
     // returns {'entries': [...], 'page': next_page}
     let pageNum
     const listPath = `${this.storageRootDirectory}/${prefix}`
+    const emptyResponse = {
+      entries: [],
+      page: `${page + 1}`
+    }
+
+    if (!fs.existsSync(listPath)) {
+      // nope 
+      return Promise.resolve().then(() => emptyResponse)
+    }
+      
     try {
       if (page) {
         if (!page.match(/^[0-9]+$/)) {
@@ -119,7 +143,8 @@ class DiskDriver implements DriverModel {
       }
       const stat = fs.statSync(listPath)
       if (!stat.isDirectory()) {
-        throw new Error('Not a directory')
+        // nope 
+        return Promise.resolve().then(() => emptyResponse)
       }
     } catch(e) {
       throw new Error('Invalid arguments: invalid page or not a directory')
@@ -186,6 +211,8 @@ class DiskDriver implements DriverModel {
     })
   }
 }
+
+(DiskDriver: DriverStatics)
 
 module.exports = DiskDriver
 
