@@ -15,13 +15,13 @@ export class HubServer {
   requireCorrectHubUrl: boolean
   validHubUrls: ?Array<string>
   constructor(driver: DriverModel, proofChecker: Object,
-              config: { whitelist: Array<string>, servername: string,
+              config: { whitelist: Array<string>, serverName: string,
                         readURL?: string, requireCorrectHubUrl?: boolean,
                         validHubUrls?: Array<string> }) {
     this.driver = driver
     this.proofChecker = proofChecker
     this.whitelist = config.whitelist
-    this.serverName = config.servername
+    this.serverName = config.serverName
     this.validHubUrls = config.validHubUrls
     this.readURL = config.readURL
     this.requireCorrectHubUrl = config.requireCorrectHubUrl || false

@@ -44,7 +44,7 @@
     "build": "npm run lint && babel src -d lib && chmod +x lib/index.js",
     "flow": "flow",
     "lint": "eslint src",
-    "test-inner": "npm run build && npm run flow && node ./test/test.js",
+    "test-inner": "npm run build && npm run flow && babel ./test/src -d ./test/lib/ && node ./test/lib/index.js",
     "test": "nyc --reporter=text npm run test-inner"
   },
   "repository": {

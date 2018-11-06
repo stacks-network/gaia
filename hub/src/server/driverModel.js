@@ -12,3 +12,8 @@ export interface DriverModel {
   listFiles(storageTopLevel: string, page: ?string):
              Promise<{ entries: Array<string>, page: ?string} >;
 }
+
+export interface DriverStatics {
+  getConfigInformation(): { defaults: Object,
+                            envVars: Object }
+}

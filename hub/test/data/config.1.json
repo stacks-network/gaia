@@ -1,0 +1,4 @@
+{
+  "driver": "azure",
+  "azCredentials": { "accountName": "pancakes" }
+}

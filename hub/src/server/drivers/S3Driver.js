@@ -5,7 +5,7 @@ import logger from 'winston'
 
 import { BadPathError } from '../errors'
 
-import type { DriverModel } from '../driverModel'
+import type { DriverModel, DriverStatics } from '../driverModel'
 import type { Readable } from 'stream'
 
 type S3_CONFIG_TYPE = { awsCredentials: {
@@ -14,17 +14,42 @@ type S3_CONFIG_TYPE = { awsCredentials: {
                           sessionToken?: string
                         },
                         pageSize?: number,
+                        cacheControl?: string,
                         bucket: string }
 
 class S3Driver implements DriverModel {
   s3: S3
   bucket: string
   pageSize: number
+  cacheControl: ?string
+
+  static getConfigInformation() {
+    const envVars = {}
+    const awsCredentials = {}
+    if (process.env['GAIA_S3_ACCESS_KEY_ID']) {
+      awsCredentials['accessKeyId'] = process.env['GAIA_S3_ACCESS_KEY_ID']
+      envVars['awsCredentials'] = awsCredentials
+    }
+    if (process.env['GAIA_S3_SECRET_ACCESS_KEY']) {
+      awsCredentials['secretAccessKey'] = process.env['GAIA_S3_SECRET_ACCESS_KEY']
+      envVars['awsCredentials'] = awsCredentials
+    }
+    if (process.env['GAIA_S3_SESSION_TOKEN']) {
+      awsCredentials['sessionToken'] = process.env['GAIA_S3_SESSION_TOKEN']
+      envVars['awsCredentials'] = awsCredentials
+    }
+
+    return {
+      defaults: { awsCredentials: undefined },
+      envVars
+    }
+  }
 
   constructor (config: S3_CONFIG_TYPE) {
     this.s3 = new S3(config.awsCredentials)
     this.bucket = config.bucket
     this.pageSize = config.pageSize ? config.pageSize : 100
+    this.cacheControl = config.cacheControl
 
     this.createIfNeeded()
   }
@@ -97,12 +122,15 @@ class S3Driver implements DriverModel {
                        contentLength: number,
                        contentType: string }) : Promise<string> {
     const s3key = `${args.storageTopLevel}/${args.path}`
-    const s3params = {
+    const s3params = Object.assign({}, {
       Bucket: this.bucket,
       Key: s3key,
       Body: args.stream,
       ContentType: args.contentType,
       ACL: 'public-read'
+    })
+    if (this.cacheControl) {
+      s3params.CacheControl = this.cacheControl
     }
 
     if (!S3Driver.isPathValid(args.path)){
@@ -124,5 +152,7 @@ class S3Driver implements DriverModel {
     })
   }
 }
+
+(S3Driver: DriverStatics)
 
 module.exports = S3Driver
