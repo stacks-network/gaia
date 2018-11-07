@@ -8,7 +8,7 @@ function testServer() {
     t.plan(4)
 
     const config = {
-      apiKey: 'potatoes',
+      apiKeys: ['potatoes'],
     }
 
     let server = new AdminAPI(config)
@@ -39,7 +39,7 @@ function testServer() {
     t.plan(6)
 
     const config = {
-      apiKey: 'potatoes',
+      apiKeys: ['potatoes'],
       reloadSettings: {
         command: '/bin/sh',
         argv: ["-c", "echo \"$HELLO\" > /tmp/gaia-admin-test.txt"],
