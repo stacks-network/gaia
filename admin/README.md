@@ -139,7 +139,7 @@ This section is derived from the `src/server.js` file.
 
 The data accepted on `POST` must match this schema:
 
-```json
+```
 {
   type: 'object',
   properties: {
@@ -200,7 +200,7 @@ This section is derived from the `src/server.js` file.
 
 The data accepted on `POST` must match this schema:
 
-```json
+```
 {
   type: 'object',
   properties: {
@@ -274,7 +274,7 @@ This section is derived from the `src/server.js` file.
 
 The data accepted on `POST` must match this schema:
 
-```json
+```
 {
   type: 'array',
   items: {
