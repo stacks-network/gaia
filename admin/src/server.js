@@ -240,8 +240,12 @@ export class AdminAPI {
       }
 
       const bearer = authHeader.toLowerCase().slice('bearer '.length)
-      if (!!this.config.apiKey && bearer === this.config.apiKey) {
-        return true
+      if (!!this.config.apiKeys) {
+        for (let i = 0; i < this.config.apiKeys.length; i++) {
+          if (bearer === this.config.apiKeys[i]) {
+            return true
+          }
+        }
       }
 
       logger.error('Invalid authorization header')

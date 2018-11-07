@@ -14,7 +14,7 @@ const configDefaults = {
   regtest: false,
   testnet: false,
   port: 8009,
-  apiKey: '',
+  apiKeys: [],
   gaiaSettings: {
     configPath: '/tmp/gaia-config.json'
   },
