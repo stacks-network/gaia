@@ -14,8 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The S3 and GCP drivers now respect the Cache-Control setting (the Azure
   driver already did).
 
+## [2.2.2]
+### Added
+- Reader service for serving reads for a disk-backed Gaia hub. This
+  respects Content-Type metadata.
+
 ## [2.2.1]
-### Changes
+### Changed
 - Allow multiple cases in "bearer" authentication prefix.
 
 ## [2.2.0]
