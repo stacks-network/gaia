@@ -29,7 +29,7 @@ To install this service as the `blockstack-gaia-admin` program in your `$PATH`:
 ```
 $ sudo npm install -g
 $ which blockstack-gaia-admin
-/usr/bin/admin
+/usr/bin/blockstack-gaia-admin
 ```
 
 ## Configuration
