@@ -40,7 +40,7 @@ export function makeHttpServer(config: Object) {
       .then(reloadStatus => writeResponse(res, reloadStatus.status, reloadStatus.statusCode))
   })
 
-  app.get(/\v1\/admin\/whitelist/, (req: express.request, res: express.response) => {
+  app.get(/\/v1\/admin\/whitelist/, (req: express.request, res: express.response) => {
     return server.checkAuthorization(req.headers['authorization'])
       .then((authResult) => {
         if (!authResult) {
