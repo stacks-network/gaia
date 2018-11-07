@@ -21,13 +21,15 @@ $ npm run build
 To run in place:
 
 ```
-$ node lib/index.js
+$ node lib/index.js [/path/to/config.json]
 ```
 
 To install this service as the `blockstack-gaia-admin` program in your `$PATH`:
 
 ```
 $ sudo npm install -g
+$ which blockstack-gaia-admin
+/usr/bin/admin
 ```
 
 ## Configuration
