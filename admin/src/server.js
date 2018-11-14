@@ -163,9 +163,10 @@ export function readConfigFileSections(configFilePath: string, fields: string | 
   return ret
 }
 
-const GAIA_SETTINGS_SCHEMA = {
+const GAIA_CONFIG_SCHEMA = {
   type: 'object',
   properties: {
+    // generic gaia settings
     validHubUrls: {
       type: 'array',
       items: { type: 'string', pattern: '^http://.+|https://.+$' },
@@ -173,21 +174,18 @@ const GAIA_SETTINGS_SCHEMA = {
     requireCorrectHubUrl: { type: 'boolean' },
     serverName: { type: 'string', pattern: '.+' },
     port: { type: 'integer', minimum: 1024, maximum: 65534 },
-    proofsConfig: { type: 'integer', minimum: 0 }
-  }
-}
+    proofsConfig: { type: 'integer', minimum: 0 },
 
-const WHITELIST_SETTINGS_SCHEMA = {
-  type: 'array',
-  items: {
-    type: 'string',
-    pattern: '^[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]+$'
-  }
-}
+    // whitelist
+    whitelist: {
+      type: 'array',
+      items: {
+        type: 'string',
+        pattern: '^[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]+$'
+      }
+    },
 
-const DRIVER_SETTINGS_SCHEMA = {
-  type: 'object',
-  properties: {
+    // driver settings & credentials
     driver: { type: 'string', pattern: '.+' },
     readURL: { type: 'string', pattern: '^http://.+$|https://.+$' },
     pageSize: { type: 'integer', minimum: 1 },
@@ -218,7 +216,7 @@ const DRIVER_SETTINGS_SCHEMA = {
       sessionToken: { type: 'string' }
     }
   }
-}   
+}
 
 export class AdminAPI {
 
@@ -324,48 +322,24 @@ export class AdminAPI {
     })
   }
 
-  handleGetWhitelist(): Promise<{ status: Object, statusCode: number }> {
-    return this.handleGetFields(['whitelist'])
+  handleGetConfig(): Promise<{ status: Object, statusCode: number }> {
+    return this.handleGetFields(Object.keys(GAIA_CONFIG_SCHEMA.properties))
   }
 
-  handleSetWhitelist(whitelist: Array<string>): Promise<{ status: Object, statusCode: number }> {
+  handleSetConfig(newConfig: Object): Promise<{ status: Object, statusCode: number }> {
     const ajv = new Ajv()
-    const valid = ajv.validate(WHITELIST_SETTINGS_SCHEMA, whitelist)
+    const valid = ajv.validate(GAIA_CONFIG_SCHEMA, newConfig)
     if (!valid) {
-      logger.error(`Failed to validate whitelist settings: ${JSON.stringify(ajv.errors)}`)
-      const ret = { statusCode: 400, status: { error: 'Invalid whitelist' } }
+      logger.error(`Failed to validate Gaia configuration: ${JSON.stringify(ajv.errors)}`)
+      const ret = { 
+        statusCode: 400, 
+        status: { 
+          error: 'Invalid Gaia configuration',
+          more: JSON.parse(JSON.stringify(ajv.errors))
+        }
+      }
       return Promise.resolve().then(() => ret)
     }
-    return this.handleSetFields({ whitelist }, ['whitelist'])
-  }
-
-  handleGetDriverSettings(): Promise<{ status: Object, statusCode: number }> {
-    return this.handleGetFields(Object.keys(DRIVER_SETTINGS_SCHEMA.properties))
-  }
-
-  handleSetDriverSettings(opts: Object): Promise<{ status: Object, statusCode: number }> {
-    const ajv = new Ajv()
-    const valid = ajv.validate(DRIVER_SETTINGS_SCHEMA, opts)
-    if (!valid) {
-      logger.error(`Failed to validate driver settings: ${JSON.stringify(ajv.errors)}`)
-      const ret = { statusCode: 400, status: { error: 'Invalid driver configuration' } }
-      return Promise.resolve().then(() => ret)
-    }
-    return this.handleSetFields(opts, Object.keys(DRIVER_SETTINGS_SCHEMA.properties))
-  }
-
-  handleGetGaiaSettings(): Promise<{ status: Object, statusCode: number }> {
-    return this.handleGetFields(Object.keys(GAIA_SETTINGS_SCHEMA.properties))
-  }
-  
-  handleSetGaiaSettings(opts: Object): Promise<{ status: Object, statusCode: number }> {
-    const ajv = new Ajv()
-    const valid = ajv.validate(GAIA_SETTINGS_SCHEMA, opts)
-    if (!valid) {
-      logger.error(`Failed to validate Gaia settings: ${JSON.stringify(ajv.errors)}`)
-      const ret = { statusCode: 400, status: { error: 'Invalid Gaia hub configuration' } }
-      return Promise.resolve().then(() => ret)
-    }
-    return this.handleSetFields(opts, Object.keys(GAIA_SETTINGS_SCHEMA.properties))
+    return this.handleSetFields(newConfig, Object.keys(GAIA_CONFIG_SCHEMA.properties))
   }
 }

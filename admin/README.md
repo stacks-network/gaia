@@ -77,7 +77,9 @@ $ cat /tmp/gaia-admin.json
 In the following usage examples, we assume that the Gaia admin service runs on
 `http://localhost:8009`.
 
-## `/v1/admin/reload`: Restarting the Gaia Hub
+## Restarting the Gaia Hub
+
+### `POST /v1/admin/reload`
 
 The admin service will make changes to the Gaia hub's config file, but the
 changes will only take effect when the Gaia hub is reloaded.  You can do this
@@ -111,7 +113,8 @@ This endpoint can return a HTTP 500 if the reload command fails.  If this
 happens, you will get back the command's exit code and possibly the signal that
 killed it.
 
-## `/v1/admin/gaia`: Get/Set Gaia Hub Settings
+## Get/Set Gaia Hub Settings
+### `GET /v1/admin/config`
 
 This endpoint is used to read and write a Gaia hub's non-driver-related
 settings.  These include the port it listens on, and its proof-checking
@@ -121,9 +124,11 @@ To read the Gaia hub settings, you would run the following:
 
 ```bash
 $ export API_KEY="hello"
-$ curl -H "Authorization: bearer $API_KEY" http://localhost:8009/v1/admin/gaia
+$ curl -H "Authorization: bearer $API_KEY" http://localhost:8009/v1/admin/config
 {"config":{"port":4000,"proofsConfig":{"proofsRequired":0}}}
 ```
+
+### `POST /v1/admin/config`
 
 To set Gaia hub settings, you simply `POST` the changed JSON fields to this
 endpoint.  If the settings were successfully applied, you will be informed to
@@ -131,7 +136,7 @@ reload your Gaia hub:
 
 ```bash
 $ export API_KEY="hello"
-$ curl -H "Authorization: bearer $API_KEY" -H 'Content-Type: application/json' -X POST --data-raw '{"port": 3001}' http://localhost:8009/v1/admin/gaia
+$ curl -H "Authorization: bearer $API_KEY" -H 'Content-Type: application/json' -X POST --data-raw '{"port": 3001}' http://localhost:8009/v1/admin/config
 {"message":"Config updated -- you should reload your Gaia hub now."}
 ```
 
@@ -142,17 +147,53 @@ This section is derived from the `src/server.js` file.
 The data accepted on `POST` must match this schema:
 
 ```
-{
-  type: 'object',
+const GAIA_CONFIG_SCHEMA = {
+  type: "object",
   properties: {
     validHubUrls: {
-      type: 'array',
-      items: { type: 'string', pattern: '^http://.+|https://.+$' },
+      type: "array",
+      items: { type: "string", pattern: "^http://.+|https://.+$" },
     },
-    requireCorrectHubUrl: { type: 'boolean' },
-    serverName: { type: 'string', pattern: '.+' },
-    port: { type: 'integer', minimum: 1024, maximum: 65534 },
-    proofsConfig: { type: 'integer', minimum: 0 }
+    requireCorrectHubUrl: { type: "boolean" },
+    serverName: { type: "string", pattern: ".+" },
+    port: { type: "integer", minimum: 1024, maximum: 65534 },
+    proofsConfig: { type: "integer", minimum: 0 },
+    whitelist: {
+      type: "array",
+      items: {
+        type: "string",
+        pattern: "^[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]+$"
+      }
+    },
+    driver: { type: "string", pattern: ".+" },
+    readURL: { type: "string", pattern: "^http://.+$|https://.+$" },
+    pageSize: { type: "integer", minimum: 1 },
+    bucket: { type: "string", pattern: ".+" },
+    cacheControl: { type: "string", pattern: ".+" },
+    azCredentials: {
+      accountName: { type: "string", pattern: ".+" },
+      accountKey: { type: "string", pattern: ".+" },
+    },
+    diskSettings: {
+      storageRootDirectory: { type: "string" }
+    },
+    gcCredentials: {
+      email: { type: "string" },
+      projectId: { type: "string" },
+      keyFilename: { type: "string" },
+      credentials: {
+        type: "object",
+        properties: {
+          client_email: { type: "string" },
+          private_key: { type: "string" }
+        }
+      },
+    },
+    awsCredentials: {
+      assessKeyId: { type: "string" },
+      secretAccessKey: { type: "string" },
+      sessionToken: { type: "string" }
+    }
   }
 }
 ```
@@ -167,7 +208,10 @@ If you do not supply a valid API key, both the `GET` and `POST` method fail with
 Only relevant Gaia hub config fields will be set.  If you `POST` invalid settings values, 
 you will get an HTTP 400 error.
 
-## `/v1/admin/driver`: Get/Set Storage Driver Settings
+
+## Examples
+
+### Reading and Writing Driver Settings
 
 This endpoint is used to read and write storage driver settings, including:
 
@@ -182,7 +226,7 @@ To get the current driver settings, you would run:
 
 ```bash
 $ export API_KEY="hello"
-$ curl -H "Authorization: bearer $API_KEY" http://localhost:8009/v1/admin/driver
+$ curl -H "Authorization: bearer $API_KEY" http://localhost:8009/v1/admin/config
 {"config":{"driver":"disk","readURL":"http://localhost:4001/","pageSize":20,"diskSettings":{"storageRootDirectory":"/tmp/gaia-disk"}}}
 ```
 
@@ -192,62 +236,11 @@ To update the driver settings, you would run:
 $ export API_KEY="hello"
 $ export AWS_ACCESS_KEY="<hidden>"
 $ export AWS_SECRET_KEY="<hidden>"
-$ curl -H "Authorization: bearer $API_KEY" -H 'Content-Type: application/json' -X POST --data-raw "{\"driver\": \"aws\", \"awsCredentials\": {\"accessKeyId\": \"$AWS_ACCESS_KEY\", \"secretAccessKey\": \"$AWS_SECRET_KEY\"}}" http://localhost:8009/v1/admin/driver
+$ curl -H "Authorization: bearer $API_KEY" -H 'Content-Type: application/json' -X POST --data-raw "{\"driver\": \"aws\", \"awsCredentials\": {\"accessKeyId\": \"$AWS_ACCESS_KEY\", \"secretAccessKey\": \"$AWS_SECRET_KEY\"}}" http://localhost:8009/v1/admin/config
 {"message":"Config updated -- you should reload your Gaia hub now."}
 ```
 
-### Message Formats
-
-This section is derived from the `src/server.js` file.
-
-The data accepted on `POST` must match this schema:
-
-```
-{
-  type: 'object',
-  properties: {
-    driver: { type: 'string', pattern: '.+' },
-    readURL: { type: 'string', pattern: '^http://.+$|https://.+$' },
-    pageSize: { type: 'integer', minimum: 1 },
-    bucket: { type: 'string', pattern: '.+' },
-    cacheControl: { type: 'string', pattern: '.+' },
-    azCredentials: {
-      accountName: { type: 'string', pattern: '.+' },
-      accountKey: { type: 'string', pattern: '.+' },
-    },
-    diskSettings: {
-      storageRootDirectory: { type: 'string' }
-    },
-    gcCredentials: {
-      email: { type: 'string' },
-      projectId: { type: 'string' },
-      keyFilename: { type: 'string' },
-      credentials: {
-        type: 'object',
-        properties: {
-          client_email: { type: 'string' },
-          private_key: { type: 'string' }
-        }
-      },
-    },
-    awsCredentials: {
-      assessKeyId: { type: 'string' },
-      secretAccessKey: { type: 'string' },
-      sessionToken: { type: 'string' }
-    }
-  }
-}
-```
-
-The same fields will be returned on `GET`, but will be bundled in a `config`
-object.
-
-### Errors
-
-Only relevant driver config fields will be set.  If you `POST` invalid driver settings values, 
-you will get an HTTP 400 error.
-
-## `/v1/admin/whitelist`: Get/Set Whitelisted Writers
+### Reading and Writing the Whitelist
 
 This endpoint lets you read and write the `whitelist` section of a Gaia hub, in
 order to control who can write to it and list its files.
@@ -256,7 +249,7 @@ To get the current whitelist, you would run the following:
 
 ```bash
 $ export API_KEY="hello"
-$ curl -H "Authorization: bearer $API_KEY" http://localhost:8009/v1/admin/whitelist
+$ curl -H "Authorization: bearer $API_KEY" http://localhost:8009/v1/admin/config
 {"config":{"whitelist":["15hUKXg1URbQsmaEHKFV2vP9kCeCsT8gUu"]}}
 ```
 
@@ -264,34 +257,9 @@ To set the whitelist, you would run the following:
 
 ```bash
 $ export API_KEY="hello"
-$ curl -H "Authorization: bearer $API_KEY" -H 'Content-Type: application/json' -X POST --data-raw '["1KDcaHsYJqD7pwHtpDn6sujCVQCY2e1ktw", "15hUKXg1URbQsmaEHKFV2vP9kCeCsT8gUu"]' http://localhost:8009/v1/admin/whitelist
+$ curl -H "Authorization: bearer $API_KEY" -H 'Content-Type: application/json' -X POST --data-raw '["1KDcaHsYJqD7pwHtpDn6sujCVQCY2e1ktw", "15hUKXg1URbQsmaEHKFV2vP9kCeCsT8gUu"]' http://localhost:8009/v1/admin/config
 {"message":"Config updated -- you should reload your Gaia hub now."}
 ```
 
 Note that you must set the *entire* whitelist.
 
-### Message Formats
-
-This section is derived from the `src/server.js` file.
-
-The data accepted on `POST` must match this schema:
-
-```
-{
-  type: 'array',
-  items: {
-    type: 'string',
-    pattern: '^[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]+$'
-  }
-}
-```
-
-The same fields will be returned on `GET`, but will be bundled in a `config`
-object.
-
-### Errors
-
-If you do not supply a valid API key, both the `GET` and `POST` method fail with HTTP 403.
-
-Only relevant Gaia hub config fields will be set.  If you `POST` invalid settings values, 
-you will get an HTTP 400 error.

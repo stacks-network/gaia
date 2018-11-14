@@ -11,8 +11,6 @@ const configDefaults = {
     colorize: true,
     json: true
   },
-  regtest: false,
-  testnet: false,
   port: 8009,
   apiKeys: [],
   gaiaSettings: {

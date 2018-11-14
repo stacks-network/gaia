@@ -128,16 +128,16 @@ function testServer() {
     }
 
     let server = new AdminAPI(config)
-    server.handleGetWhitelist()
+    server.handleGetConfig()
       .then((result) => {
         t.equal(result.statusCode, 200, 'handleGetWhitelist status 200')
         t.deepEqual(result.status.config.whitelist, [], 'handleGetWhitelist gives []')
 
-        return server.handleSetWhitelist(['1MCY4XvmhxDkDxw786P3nM5hmA9XJdmjhe'])
+        return server.handleSetConfig({whitelist: ['1MCY4XvmhxDkDxw786P3nM5hmA9XJdmjhe']})
       })
       .then((result) => {
         t.equal(result.statusCode, 200, 'handleSetWhitelist status 200')
-        return server.handleGetWhitelist()
+        return server.handleGetConfig()
       })
       .then((result) => {
         t.equal(result.statusCode, 200, 'handleGetWhitelist status 200 again')
@@ -149,7 +149,7 @@ function testServer() {
         t.deepEqual(newConfig.whitelist, ['1MCY4XvmhxDkDxw786P3nM5hmA9XJdmjhe'],
           'Gaia config file matches new whitelist')
 
-        return server.handleSetWhitelist(['invalid address'])
+        return server.handleSetConfig({whitelist: ['invalid address']})
       })
       .then((result) => {
         t.equal(result.statusCode, 400, 'handleGetWhitelist status 400 on bad address')
@@ -164,7 +164,7 @@ function testServer() {
       })
   })
 
-  test('get/set Gaia settings', (t) => {
+  test('get/set generic Gaia settings', (t) => {
   
     t.plan(9)
 
@@ -203,22 +203,22 @@ function testServer() {
     }
 
     let server = new AdminAPI(config)
-    server.handleGetGaiaSettings()
+    server.handleGetConfig()
       .then((result) => {
         t.equal(result.statusCode, 200, 'handleGetGaiaSettings status 200')
         t.deepEqual(result.status.config, gaiaConfig, 'handleGetGaiaSettings matches gaia config')
 
-        return server.handleSetGaiaSettings(newGaiaConfig)
+        return server.handleSetConfig(newGaiaConfig)
       })
       .then((result) => {
         t.equal(result.statusCode, 200, 'handleSetGaiaSettings status 200')
-        return server.handleGetGaiaSettings()
+        return server.handleGetConfig()
       })
       .then((result) => {
         t.equal(result.statusCode, 200, 'handleGetGaiaSettings status 200 again')
         t.deepEqual(result.status.config, newGaiaConfig)
         
-        return server.handleSetGaiaSettings(badGaiaConfig)
+        return server.handleSetConfig(badGaiaConfig)
       })
       .then((result) => {
         t.equal(result.statusCode, 400, 'handleSetGaiaSettings status 400 on invalid config values')
@@ -228,7 +228,7 @@ function testServer() {
         const storedConfig = JSON.parse(storedConfigJSON)
         t.deepEqual(storedConfig, newGaiaConfig, 'Gaia config unchanged')
 
-        return server.handleSetGaiaSettings({not: 'a', valid: 'config', structure: '!'})
+        return server.handleSetConfig({not: 'a', valid: 'config', structure: '!'})
       })
       .then((result) => {
         t.equal(result.statusCode, 400, 'handleSetGaiaSettings status 400 on invalid struct')
@@ -332,23 +332,23 @@ function testServer() {
       }
 
       let server = new AdminAPI(config)
-      server.handleGetDriverSettings()
+      server.handleGetConfig()
         .then((result) => {
           t.equal(result.statusCode, 200, 'handleGetDriverSettings status 200')
           t.deepEqual(result.status.config, gaiaConfig, 
             `handleGetDriverSettings matches driver config for ${gaiaConfig.driver}`)
 
-          return server.handleSetDriverSettings(newGaiaConfig)
+          return server.handleSetConfig(newGaiaConfig)
         })
         .then((result) => {
           t.equal(result.statusCode, 200, 'handleSetDriverSettings status 200')
-          return server.handleGetDriverSettings()
+          return server.handleGetConfig()
         })
         .then((result) => {
           t.equal(result.statusCode, 200, 'handleGetDriverSettings status 200 again')
           t.deepEqual(result.status.config, newGaiaConfig)
           
-          return server.handleSetDriverSettings(badGaiaConfig)
+          return server.handleSetConfig(badGaiaConfig)
         })
         .then((result) => {
           t.equal(result.statusCode, 400, 'handleSetDriverSettings status 400 on invalid config values')
@@ -358,7 +358,7 @@ function testServer() {
           const storedConfig = JSON.parse(storedConfigJSON)
           t.deepEqual(storedConfig, newGaiaConfig, 'Gaia config unchanged')
 
-          return server.handleSetDriverSettings({not: 'a', valid: 'config', structure: '!'})
+          return server.handleSetConfig({not: 'a', valid: 'config', structure: '!'})
         })
         .then((result) => {
           t.equal(result.statusCode, 400, 'handleSetDriverSettings status 400 on invalid struct')
