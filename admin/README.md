@@ -57,8 +57,6 @@ $ cat /tmp/gaia-admin.json
     "colorize": true,
     "json": true
   },
-  "regtest": false,
-  "testnet": false,
   "port": 8009,
   "apiKeys": ["hello"],
   "gaiaSettings": {
