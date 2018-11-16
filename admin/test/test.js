@@ -1,9 +1,59 @@
 const test = require('tape')
 const fs = require('fs')
 
-const { AdminAPI } = require('../lib/server.js')
+const { AdminAPI, patchConfigFile, readConfigFileSections } = require('../lib/server.js')
 
 function testServer() {
+  test('patch config file only sets top-level fields', (t) => {
+    t.plan(2)
+    const config_1 = {
+      a: 'b',
+      c: {
+        d: 'e',
+        f: 'g'
+      }
+    }
+
+    const config_2 = {
+      c: {
+        h: 'i'
+      }
+    }
+   
+    // config 1 + config 2
+    const config_1_2 = {
+      a: 'b',
+      c: {
+        h: 'i'
+      }
+    }
+
+    configPath = '/tmp/test-gaia-admin-config.json'
+    try {
+      fs.unlinkSync(configPath)
+    }
+    catch (e) {
+    }
+
+    fs.writeFileSync(configPath, '{}')
+
+    patchConfigFile(configPath, config_1)
+    const data_1 = readConfigFileSections(configPath, ['a', 'c'])
+
+    t.deepEqual(data_1, config_1, 'read complete config file')
+
+    patchConfigFile(configPath, config_2)
+    const data_2 = readConfigFileSections(configPath, ['a', 'c'])
+
+    t.deepEqual(data_2, config_1_2, 'patched config file has different section')
+
+    try {
+      fs.unlinkSync(configPath)
+    }
+    catch (e) {
+    }
+  })
+
   test('check authorization api key', (t) => {
     t.plan(4)
 
