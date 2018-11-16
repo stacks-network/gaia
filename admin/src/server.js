@@ -69,7 +69,12 @@ function runSubprocess(cmd: string, argv: Array<string>, env: Object, uid: ?numb
     })
 }
 
-// atomically modify the config file.
+// Atomically modify the config file.
+// The Gaia config file is a set of key/value pairs, where each top-level key is one aspect
+// of its configuration.  THis method "patches" the set of key/value pairs with `newFields`.
+// The set of top-level key/value pairs in the existing config file and `newFields` will be merged,
+// but if key1 === key2, then value2 overwrites value1 completely (even if value1 and value2 are
+// objects with their own key/value pairs).
 export function patchConfigFile(configFilePath: string, newFields: Object) {
   if (!configFilePath) {
     throw new Error('Config file not given')
