@@ -1,0 +1,54 @@
+{
+  "name": "gaia-admin",
+  "version": "0.0.1",
+  "description": "Service for administrating a Gaia hub",
+  "main": "lib/index.js",
+  "engines": {
+    "node": "^8",
+    "npm": ">=6"
+  },
+  "scripts": {
+    "compile": "rm -rf lib; babel src -d lib",
+    "prepublish": "npm run build",
+    "unit-test": "npm run flow && npm run compile && node ./test/test.js",
+    "build": "npm run flow && npm run compile",
+    "flow": "flow",
+    "test": "nyc --reporter=text npm run unit-test",
+    "start": "npm run build && node lib/index.js"
+  },
+  "bin": {
+    "blockstack-gaia-admin": "lib/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/blockstack/gaia"
+  },
+  "keywords": [
+    "decentralized",
+    "storage"
+  ],
+  "author": "Jude Nelson",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/blockstack/gaia"
+  },
+  "dependencies": {
+    "ajv": "^6.5.5",
+    "body-parser": "^1.18.1",
+    "cors": "^2.8.4",
+    "cross-fetch": "^2.2.2",
+    "express": "^4.15.4",
+    "express-winston": "^2.4.0",
+    "winston": "^2.3.1"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-preset-env": "^1.6.1",
+    "babel-preset-flow": "^6.23.0",
+    "bluebird": "^3.5.1",
+    "flow-bin": "^0.71.0",
+    "nyc": "^13.0.0",
+    "tape": "^4.9.0"
+  },
+  "homepage": "https://github.com/blockstack/gaia"
+}
