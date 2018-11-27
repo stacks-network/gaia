@@ -1,9 +1,2 @@
-FROM node:8-alpine
-
-WORKDIR /src/hub
-
-COPY . .
-
-RUN npm install
-
-CMD ["npm", "run", "start"]
+FROM quay.io/blockstack/gaia-hub:develop
+ADD . ./
