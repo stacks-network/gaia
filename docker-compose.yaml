@@ -1,0 +1,26 @@
+services:
+
+  hub:
+    build:
+    restart: always
+      context: ./hub/
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./config.json:/src/hub/config.json
+
+  reader:
+    build:
+      context: ./reader/
+    ports:
+      - "xxx"
+    links:
+      - hub
+
+  nginx:
+    restart: always
+    build: ./nginx/
+    ports:
+      - "xxx"
+    links:
+      - reader
