@@ -1,3 +1,9 @@
+# docker-compose setup to run develop branch sidecar serving to an external ssl terminux hosting gaia on a local disk 
+related to packerized images install scripts and output images will be hosted somewhere (TBD)
+
+
+The rest of this will probably be refactored
+
 # Running the Gaia Hub
 
 To get started running a gaia hub, execute the following:
