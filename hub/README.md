@@ -1,12 +1,3 @@
-# docker-compose setup to run develop branch sidecar serving to an external ssl terminux hosting gaia on a local disk 
-related to packerized images install scripts and output images will be hosted somewhere (TBD)
-
-# todo
-refactor setup of first service & properly confirm it uses ELB 
-add nginx config to docker-compose 
-
-
-
 The rest of this will probably be refactored
 
 # Running the Gaia Hub
