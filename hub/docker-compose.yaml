@@ -1,15 +1,28 @@
-version: '3'
+version: "3.3"
 
 services:
   hub:
-    build:
-      context: ./
-    hostname: hub
-    environment:
-      - CONFIG_PATH=/src/hub/config.json
+    image: quay.io/blockstack/gaia-hub:develop
+    volumes:
+      - "./config.json:/src/hub/config.json:ro"
     ports:
       - "3000:3000"
-    restart: always
+    environment:
+      CONFIG_PATH: "/src/hub/config.json"
+    networks:
+      - gaia
+
+  nginx:
+    image: nginx:alpine
     volumes:
-      # Mount config from current directory
-      - ./config.json:/src/hub/config.json
+      - "./nginx.conf:/etc/nginx/conf.d/default.conf"
+    ports:
+      - "80:80"
+    networks:
+      - gaia
+    depends_on:
+      - hub
+
+networks:
+  gaia:
+    driver: bridge
