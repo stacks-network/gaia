@@ -21,6 +21,6 @@ services:
     restart: always
     build: ./nginx/
     ports:
-      - "xxx"
+      - "80:80"
     links:
       - reader
