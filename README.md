@@ -141,6 +141,10 @@ by ensuring:
 
 ### Association Tokens
 
+The association token specification is considered private, as it is mostly used
+for internal Gaia use cases. This means that this specification can change or
+become deprecated in the future.
+
 Often times, a single user will use many different keys to
 store data.  These keys may be generated on-the-fly.  Instead of requiring the
 user to explicitly whitelist each key, the v1 authentication scheme allows
