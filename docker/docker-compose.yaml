@@ -2,13 +2,35 @@ version: "3.3"
 
 services:
   hub:
-    image: quay.io/blockstack/gaia-hub:develop
+    image: gaia-hub:latest
     volumes:
       - "./config.json:/src/hub/config.json:ro"
     ports:
       - "3000:3000"
     environment:
       CONFIG_PATH: "/src/hub/config.json"
+    networks:
+      - gaia
+
+  admin:
+    image: gaia-hub:admin
+    volumes:
+      - "./admin.json:/src/admin/config.json:ro"
+    ports:
+      - "8009:8009"
+    environment:
+      CONFIG_PATH: "/src/admin/config.json"
+    networks:
+      - gaia
+
+  reader:
+    image: gaia-hub:reader
+    volumes:
+      - "./reader.json:/src/reader/config.json:ro"
+    ports:
+      - "8008:8008"
+    environment:
+      CONFIG_PATH: "/src/reader/config.json"
     networks:
       - gaia
 
@@ -20,9 +42,4 @@ services:
       - "80:80"
     networks:
       - gaia
-    depends_on:
-      - hub
 
-networks:
-  gaia:
-    driver: bridge
