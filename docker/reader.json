@@ -1,0 +1,6 @@
+{
+   "port": 8008,
+   "diskSettings": {
+      "storageRootDirectory": "/tmp/gaia-disk"
+   }
+}
