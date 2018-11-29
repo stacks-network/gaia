@@ -42,4 +42,9 @@ services:
       - "80:80"
     networks:
       - gaia
+    depends_on:
+      - hub
 
+networks:
+  gaia:
+    driver: bridge
