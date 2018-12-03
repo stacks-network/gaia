@@ -2,7 +2,7 @@ version: "3.3"
 
 services:
   hub:
-    image: gaia-hub:latest
+    image: quay.io/blockstack/gaia-hub:latest
     volumes:
       - "./config.json:/src/hub/config.json:ro"
     ports:
@@ -13,7 +13,7 @@ services:
       - gaia
 
   admin:
-    image: gaia-hub:admin
+    image: quay.io/blockstack/gaia-hub:admin
     volumes:
       - "./admin.json:/src/admin/config.json:ro"
     ports:
@@ -24,7 +24,7 @@ services:
       - gaia
 
   reader:
-    image: gaia-hub:reader
+    image: quay.io/blockstack/gaia-hub:reader
     volumes:
       - "./reader.json:/src/reader/config.json:ro"
     ports:
