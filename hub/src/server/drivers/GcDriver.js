@@ -100,7 +100,7 @@ class GcDriver implements DriverModel {
     })
   }
 
-  listAllObjects(prefix: string, page: ?string) {
+  listAllObjects(prefix: string, page: ?string) : Promise<{entries: Array<string>, page: any}> {
     // returns {'entries': [...], 'page': next_page}
     const opts : { prefix: string, maxResults: number, pageToken?: string } = {
       prefix: prefix,

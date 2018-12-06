@@ -69,7 +69,7 @@ class AzDriver implements DriverModel {
     return `https://${this.accountName}.blob.core.windows.net/${this.bucket}/`
   }
 
-  listBlobs(prefix: string, page: ?string) {
+  listBlobs(prefix: string, page: ?string) : Promise<{ entries: Array<string>, page: any }> {
     // page is the continuationToken for Azure
     return new Promise((resolve, reject) => {
       this.blobService.listBlobsSegmentedWithPrefix(

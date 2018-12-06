@@ -87,7 +87,7 @@ class S3Driver implements DriverModel {
     })
   }
 
-  listAllKeys(prefix: string, page: ?string) {
+  listAllKeys(prefix: string, page: ?string) : Promise<{entries: Array<string>, page: any}> {
     // returns {'entries': [...], 'page': next_page}
     const opts : { Bucket: string, MaxKeys: number, Prefix: string, ContinuationToken?: string } = {
       Bucket: this.bucket,
