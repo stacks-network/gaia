@@ -66,3 +66,5 @@ target/
 *.swo
 *.swn
 hub/.nyc_output/
+*/node_modules/*
+tmp/gaia-disk
