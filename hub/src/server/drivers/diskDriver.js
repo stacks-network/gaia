@@ -1,5 +1,5 @@
 /* @flow */
-import fs from 'fs'
+import fs from 'fs-extra'
 import { BadPathError, InvalidInputError } from '../errors'
 import logger from 'winston'
 import Path from 'path'
@@ -66,28 +66,8 @@ class DiskDriver implements DriverModel {
   }
 
   mkdirs(path: string) {
-    const pathParts = path.replace(/^\//, '').split('/')
-    let tmpPath = '/'
-    for (let i = 0; i <= pathParts.length; i++) {
-      try {
-        const statInfo = fs.lstatSync(tmpPath)
-        if ((statInfo.mode & fs.constants.S_IFDIR) === 0) {
-          throw new Error(`Not a directory: ${tmpPath}`)
-        }
-      } catch (e) {
-        if (e.code === 'ENOENT') {
-          // need to create
-          logger.debug(`mkdir ${tmpPath}`)
-          fs.mkdirSync(tmpPath)
-        } else {
-          throw e
-        }
-      }
-      if (i === pathParts.length) {
-        break
-      }
-      tmpPath = `${tmpPath}/${pathParts[i]}`
-    }
+    const normalizedPath = Path.normalize(path)
+    fs.ensureDirSync(normalizedPath)
   }
 
   findAllFiles(listPath: string) : Array<string> {
