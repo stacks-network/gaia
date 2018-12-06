@@ -53,7 +53,15 @@ class DiskDriver implements DriverModel {
 
   mkdirs(path: string) {
     const normalizedPath = Path.normalize(path)
-    fs.ensureDirSync(normalizedPath)
+    // Check if directory exists.
+    if (!fs.existsSync(normalizedPath)) {
+      // If it doesn't, create it - this is done recursively similar to `mkdir -p`.
+      fs.ensureDirSync(normalizedPath)
+      logger.debug(`mkdir ${normalizedPath}`)
+    } else if (!fs.lstatSync(normalizedPath).isDirectory()) {
+      // Ensure path is a directory.
+      throw new Error(`Not a directory: ${normalizedPath}`)
+    }
   }
 
   findAllFiles(listPath: string) : Array<string> {
