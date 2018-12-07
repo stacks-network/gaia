@@ -15,22 +15,22 @@ services:
   admin:
     image: quay.io/blockstack/gaia-hub:admin
     volumes:
-      - "./admin-config:/src/admin/etc:rw"
+      - "./admin-config:/src/admin/etc"
     ports:
       - "8009:8009"
     environment:
-      CONFIG_PATH: "/src/admin/etc/config.json"
+      CONFIG_PATH: "/src/admin/etc/config.json:rw"
     networks:
       - gaia
 
   reader:
     image: quay.io/blockstack/gaia-hub:reader
     volumes:
-      - "./reader-config:/src/reader/etc:rw"
+      - "./reader-config:/src/reader/etc"
     ports:
       - "8008:8008"
     environment:
-      CONFIG_PATH: "/src/reader/etc/config.json"
+      CONFIG_PATH: "/src/reader/etc/config.json:rw"
     networks:
       - gaia
 

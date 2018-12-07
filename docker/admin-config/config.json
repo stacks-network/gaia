@@ -1,5 +1,5 @@
 {
-   "argsTransport": {
+  "argsTransport": {
     "level": "debug",
     "handleExceptions": true,
     "timestamp": true,
@@ -7,14 +7,19 @@
     "colorize": true,
     "json": true
   },
-  "port": 8009,
-  "apiKeys": ["hello"],
+  "port": 3001,
+  "apiKeys": [
+    "hello"
+  ],
   "gaiaSettings": {
-    "configPath": "./config.json"
+    "configPath": "./etc/config.json"
   },
   "reloadSettings": {
     "command": "/bin/sh",
-    "argv": ["-c", "pkill -9 blockstack-gaia-hub; nohup /usr/bin/blockstack-gaia-hub /tmp/gaia-config.json &"],
+    "argv": [
+      "-c",
+      "pkill -9 blockstack-gaia-hub; nohup /usr/bin/blockstack-gaia-hub /tmp/gaia-config.json &"
+    ],
     "env": {},
     "setuid": 1000,
     "setgid": 1000
