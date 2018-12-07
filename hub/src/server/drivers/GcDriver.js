@@ -5,7 +5,7 @@ import logger from 'winston'
 
 import { BadPathError } from '../errors'
 
-import type { DriverModel, DriverStatics } from '../driverModel'
+import type { DriverModel, DriverStatics, ListFilesResult } from '../driverModel'
 import type { Readable } from 'stream'
 
 type GC_CONFIG_TYPE = { gcCredentials?: {
@@ -100,7 +100,7 @@ class GcDriver implements DriverModel {
     })
   }
 
-  listAllObjects(prefix: string, page: ?string) : Promise<{entries: Array<string>, page: any}> {
+  listAllObjects(prefix: string, page: ?string) : Promise<ListFilesResult> {
     // returns {'entries': [...], 'page': next_page}
     const opts : { prefix: string, maxResults: number, pageToken?: string } = {
       prefix: prefix,
@@ -118,7 +118,7 @@ class GcDriver implements DriverModel {
         files.forEach(file => {
           fileNames.push(file.name.slice(prefix.length + 1))
         })
-        const ret = {
+        const ret : ListFilesResult = {
           entries: fileNames,
           page: null
         }

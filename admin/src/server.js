@@ -2,8 +2,7 @@
 
 import fs from 'fs'
 import logger from 'winston'
-/* eslint-disable-next-line camelcase */
-import child_process from 'child_process'
+import childProcess from 'child_process'
 import Ajv from 'ajv'
 
 function runSubprocess(cmd: string, argv: Array<string>, env: Object, uid: ?number, gid: ?number) 
@@ -32,8 +31,7 @@ function runSubprocess(cmd: string, argv: Array<string>, env: Object, uid: ?numb
     }
    
     return new Promise((resolve) => {
-      /* eslint-disable-next-line camelcase */
-      child_process.spawn(cmd, argv, opts)
+      childProcess.spawn(cmd, argv, opts)
         .on('exit', (code, signal) => {
           if (code === 0) {
             const ret = { statusCode: 200, status: { result: 'OK' } }
