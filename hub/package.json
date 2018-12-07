@@ -17,6 +17,7 @@
     "cors": "^2.8.4",
     "express": "^4.15.4",
     "express-winston": "^2.4.0",
+    "fs-extra": "^7.0.1",
     "jsontokens": "^0.7.8",
     "node-fetch": "^2.0.0",
     "winston": "^2.3.1"
