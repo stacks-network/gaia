@@ -38,7 +38,7 @@ export function makeHttpServer(config: Object) {
         }
 
         const opts = {
-          root: config.storageRootDirectory,
+          root: config.diskSettings.storageRootDirectory,
           headers: {
             'content-type': contentType
           }
