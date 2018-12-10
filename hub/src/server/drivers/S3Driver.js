@@ -5,7 +5,7 @@ import logger from 'winston'
 
 import { BadPathError } from '../errors'
 
-import type { DriverModel, DriverStatics } from '../driverModel'
+import type { DriverModel, DriverStatics, ListFilesResult } from '../driverModel'
 import type { Readable } from 'stream'
 
 type S3_CONFIG_TYPE = { awsCredentials: {
@@ -87,7 +87,7 @@ class S3Driver implements DriverModel {
     })
   }
 
-  listAllKeys(prefix: string, page: ?string) {
+  listAllKeys(prefix: string, page: ?string) : Promise<ListFilesResult> {
     // returns {'entries': [...], 'page': next_page}
     const opts : { Bucket: string, MaxKeys: number, Prefix: string, ContinuationToken?: string } = {
       Bucket: this.bucket,
@@ -102,7 +102,7 @@ class S3Driver implements DriverModel {
         if (err) {
           return reject(err)
         }
-        const res = {
+        const res : ListFilesResult = {
           entries: data.Contents.map((e) => e.Key.slice(prefix.length + 1)),
           page: data.isTruncated ? data.NextContinuationToken : null
         }

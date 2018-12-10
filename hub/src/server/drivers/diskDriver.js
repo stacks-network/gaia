@@ -4,7 +4,7 @@ import { BadPathError, InvalidInputError } from '../errors'
 import logger from 'winston'
 import Path from 'path'
 
-import type { DriverModel, DriverStatics } from '../driverModel'
+import type { DriverModel, DriverStatics, ListFilesResult } from '../driverModel'
 import type { Readable } from 'stream'
 
 type DISK_CONFIG_TYPE = { diskSettings: { storageRootDirectory?: string },
@@ -97,7 +97,7 @@ class DiskDriver implements DriverModel {
     return fileNames
   }
 
-  listFilesInDirectory(listPath: string, pageNum: number) : Promise<{entries: Array<string>, page: ?string}> {
+  listFilesInDirectory(listPath: string, pageNum: number) : Promise<ListFilesResult> {
     const names = this.findAllFiles(listPath).map(
       (fileName) => fileName.slice(listPath.length + 1))
     return Promise.resolve().then(() => ({
@@ -110,7 +110,7 @@ class DiskDriver implements DriverModel {
     // returns {'entries': [...], 'page': next_page}
     let pageNum
     const listPath = `${this.storageRootDirectory}/${prefix}`
-    const emptyResponse = {
+    const emptyResponse : ListFilesResult = {
       entries: [],
       page: `${page + 1}`
     }

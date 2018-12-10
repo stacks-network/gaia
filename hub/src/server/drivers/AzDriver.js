@@ -4,7 +4,7 @@ import azure from 'azure-storage'
 import logger from 'winston'
 import { BadPathError } from '../errors'
 
-import type { DriverModel, DriverStatics } from '../driverModel'
+import type { DriverModel, DriverStatics, ListFilesResult } from '../driverModel'
 import type { Readable } from 'stream'
 
 type AZ_CONFIG_TYPE = { azCredentials: { accountName: string,
@@ -69,7 +69,7 @@ class AzDriver implements DriverModel {
     return `https://${this.accountName}.blob.core.windows.net/${this.bucket}/`
   }
 
-  listBlobs(prefix: string, page: ?string) {
+  listBlobs(prefix: string, page: ?string) : Promise<ListFilesResult> {
     // page is the continuationToken for Azure
     return new Promise((resolve, reject) => {
       this.blobService.listBlobsSegmentedWithPrefix(
