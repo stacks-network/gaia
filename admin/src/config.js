@@ -17,7 +17,7 @@ const configDefaults = {
     configPath: '/tmp/gaia-config.json'
   },
   reloadSettings: {
-    command: "",
+    command: '',
     argv: [],
     env: {},
     setuid: 1000,
