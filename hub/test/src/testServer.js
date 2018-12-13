@@ -4,10 +4,12 @@ import * as auth from '../../src/server/authentication'
 import * as errors from '../../src/server/errors'
 import { HubServer }  from '../../src/server/server'
 import { Readable } from 'stream'
+import type { DriverModel, ListFilesResult } from '../../src/server/driverModel'
 
 import { testPairs, testAddrs} from './common'
 
-class MockDriver {
+class MockDriver implements DriverModel {
+  lastWrite: any
   constructor() {
     this.lastWrite = null
   }
@@ -18,8 +20,10 @@ class MockDriver {
     this.lastWrite = write
     return Promise.resolve(`http://test.com/${write.storageTopLevel}/${write.path}`)
   }
-}
-
+  listFiles(storageTopLevel: string, page: ?string): Promise<ListFilesResult> {
+    return Promise.resolve({entries: [], page: page})
+  }
+  
 class MockProofs {
   checkProofs() {
     return Promise.resolve()

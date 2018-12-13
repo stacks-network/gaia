@@ -68,7 +68,7 @@ export class HubServer {
                 stream: Readable) {
 
     const requiredAuthNumber = await this.authNumberCache.getAuthNumber(address)
-    await this.validate(address, requestHeaders, requiredAuthNumber)
+    this.validate(address, requestHeaders, requiredAuthNumber)
 
     let contentType = requestHeaders['content-type']
 
