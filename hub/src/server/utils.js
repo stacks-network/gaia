@@ -1,5 +1,9 @@
 /* @flow */
 
+// TODO: Remove this if it remains unused.
+
+import type { Readable } from 'stream'
+
 export function getDriverClass(driver: string) {
   if (driver === 'aws') {
     return require('./drivers/S3Driver')
@@ -15,7 +19,7 @@ export function getDriverClass(driver: string) {
 }
 
 
-export function readStream(stream: readable, size: number): Promise<Buffer> {
+export function readStream(stream: Readable, size: number): Promise<Buffer> {
   const outBuffer = Buffer.alloc(size)
   let bufferIndex = 0
   let finished = false
@@ -24,13 +28,11 @@ export function readStream(stream: readable, size: number): Promise<Buffer> {
     stream.on('data', (chunk) => {
       if (!Buffer.isBuffer(chunk)) {
         finished = true
-        stream.destroy()
         return reject(new Error('Stream must be passed without encoding set'))
       }
       const chunkLength = chunk.length
       if (bufferIndex + chunkLength > size) {
         finished = true
-        stream.destroy()
         return reject(new Error('Too much data in stream or incorrect size passed to readStream()'))
       }
       chunk.copy(outBuffer, bufferIndex)

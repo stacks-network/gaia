@@ -4,7 +4,7 @@ import bitcoin from 'bitcoinjs-lib'
 import crypto from 'crypto'
 import { decodeToken, TokenSigner, TokenVerifier } from 'jsontokens'
 import { ecPairToHexString } from 'blockstack'
-import { ValidationError } from './errors'
+import { ValidationError, AuthTokenNumberValidationError } from './errors'
 import logger from 'winston'
 
 const DEFAULT_STORAGE_URL = 'storage.blockstack.org'
@@ -212,23 +212,24 @@ export class V1Authentication {
     const gaiaChallenge = decodedToken.payload.gaiaChallenge
     const scopes = decodedToken.payload.scopes
 
-    if (! publicKey) {
+    if (!publicKey) {
       throw new ValidationError('Must provide `iss` claim in JWT.')
     }
 
     // check for revocations
-    if (options.authTokenNumber) {
+    if (options && options.authTokenNumber) {
       const tokenAuthNumber = parseInt(decodedToken.payload.authNumber)
+      const requiredAuthTokenNumber : number = options.authTokenNumber || 0
       if (!tokenAuthNumber) {
-        const message = `Gaia bucket requires auth token number of ${options.authTokenNumber}` +
+        const message = `Gaia bucket requires auth token number of ${requiredAuthTokenNumber}` +
               ' but this token has no auth number. This token may have been revoked by the user.'
-        throw new ValidationError({ message, correctAuthNumber: options.authTokenNumber })
+        throw new AuthTokenNumberValidationError(message, requiredAuthTokenNumber)
       }
       if (tokenAuthNumber !== options.authTokenNumber) {
-        const message = `Gaia bucket requires auth token number of ${options.authTokenNumber}` +
+        const message = `Gaia bucket requires auth token number of ${requiredAuthTokenNumber}` +
               ` but this token has auth number ${tokenAuthNumber}.` +
               ' This token may have been revoked by the user.'
-        throw new ValidationError({ message, correctAuthNumber: options.authTokenNumber })
+        throw new AuthTokenNumberValidationError(message, requiredAuthTokenNumber)
       }
     }
 
@@ -367,7 +368,8 @@ export function parseAuthHeader(authHeader: string) {
 
 export function validateAuthorizationHeader(authHeader: string, serverName: string,
                                             address: string, requireCorrectHubUrl?: boolean = false,
-                                            validHubUrls?: ?Array<string> = null) : string {
+                                            validHubUrls?: ?Array<string> = null,
+                                            requiredAuthTokenNumber?: number) : string {
   const serverNameHubUrl = `https://${serverName}`
   if (!validHubUrls) {
     validHubUrls = [ serverNameHubUrl ]
@@ -387,7 +389,8 @@ export function validateAuthorizationHeader(authHeader: string, serverName: stri
   }
 
   const challengeText = getChallengeText(serverName)
-  return authObject.isAuthenticationValid(address, challengeText, { validHubUrls, requireCorrectHubUrl })
+
+  return authObject.isAuthenticationValid(address, challengeText, { validHubUrls, requireCorrectHubUrl, authTokenNumber: requiredAuthTokenNumber })
 }
 
 
