@@ -1,25 +1,27 @@
 import test  from 'tape'
 
-import * as auth from '../../lib/server/authentication'
+import * as auth from '../../src/server/authentication'
 import fs from 'fs'
 import request from 'supertest'
 
 import FetchMock from 'fetch-mock'
+import * as NodeFetch from 'node-fetch'
+const fetch = FetchMock.sandbox(NodeFetch)
 
-import { makeHttpServer } from '../../lib/server/http.js'
+import { makeHttpServer } from '../../src/server/http.js'
 import { makeMockedAzureDriver, addMockFetches } from './testDrivers'
 
-import { testPairs, testAddrs} from './common'
+import { testPairs } from './common'
 
 const azConfigPath = process.env.AZ_CONFIG_PATH
 
 export function testHttp() {
   let config = {
-    "azCredentials": {
-      "accountName": "mock-azure",
-      "accountKey": "mock-azure-key"
+    'azCredentials': {
+      'accountName': 'mock-azure',
+      'accountKey': 'mock-azure-key'
     },
-    "bucket": "spokes"
+    'bucket': 'spokes'
   }
   let mockTest = true
 
@@ -31,7 +33,7 @@ export function testHttp() {
 
   let dataMap = []
   let AzDriver
-  const azDriverImport = '../../lib/server/drivers/AzDriver'
+  const azDriverImport = '../../src/server/drivers/AzDriver'
   if (mockTest) {
     const mockedObj = makeMockedAzureDriver()
     dataMap = mockedObj.dataMap
@@ -42,14 +44,14 @@ export function testHttp() {
   }
 
   test('handle request', (t) => {
-    let app = makeHttpServer(config)
-    let sk = testPairs[1]
-    let fileContents = sk.toWIF()
-    let blob = Buffer(fileContents)
+    const app = makeHttpServer(config)
+    const sk = testPairs[1]
+    const fileContents = sk.toWIF()
+    const blob = Buffer(fileContents)
 
-    let address = sk.getAddress()
-    let path = `/store/${address}/helloWorld`
-    let listPath = `/list-files/${address}`
+    const address = sk.getAddress()
+    const path = `/store/${address}/helloWorld`
+    const listPath = `/list-files/${address}`
     let prefix = ''
     let authorizationHeader = ''
 
@@ -71,10 +73,10 @@ export function testHttp() {
       })
       .then((response) => {
         if (mockTest) {
-          addMockFetches(prefix, dataMap)
+          addMockFetches(fetch, prefix, dataMap)
         }
 
-        let url = JSON.parse(response.text).publicURL
+        const url = JSON.parse(response.text).publicURL
         t.ok(url, 'Must return URL')
         console.log(url)
         fetch(url)
@@ -93,6 +95,9 @@ export function testHttp() {
         t.equal(files.entries[0], 'helloWorld', 'Should be helloworld')
         t.ok(files.hasOwnProperty('page'), 'Response is missing a page')
       })
-      .then(() => { FetchMock.restore(); t.end() })
+      .then(() => {
+        fetch.restore()
+        t.end()
+      })
   })
 }
