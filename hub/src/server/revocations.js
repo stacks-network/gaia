@@ -38,7 +38,7 @@ export class AuthNumberCache {
     try {
       const authNumberFileUrl = `${readUrlPrefix}${authNumberDir}/${AUTH_NUMBER_FILE_NAME}`
       const fetchResult = await fetch(authNumberFileUrl)
-      const authNumberText = fetchResult.text()
+      const authNumberText = await fetchResult.text()
       const authNumber = parseInt(authNumberText)
       return authNumber
     } catch (err) {
