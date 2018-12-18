@@ -281,7 +281,7 @@ export function testServer() {
                                  { whitelist: [testAddrs[1]] })
     const challengeText = auth.getChallengeText()
 
-    const associationToken = auth.V1Authentication.makeAssociationToken(testPairs[1], testPairs[0].getPublicKeyBuffer().toString('hex'))
+    const associationToken = auth.V1Authentication.makeAssociationToken(testPairs[1], testPairs[0].publicKey.toString('hex'))
     const authPart = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText, associationToken, undefined, writeScopes)
 
     console.log(`V1 storage validation: ${authPart}`)

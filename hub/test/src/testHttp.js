@@ -3,6 +3,7 @@ import test  from 'tape'
 import * as auth from '../../src/server/authentication'
 import fs from 'fs'
 import request from 'supertest'
+import { ecPairToAddress } from 'blockstack'
 
 import FetchMock from 'fetch-mock'
 import * as NodeFetch from 'node-fetch'
@@ -49,7 +50,7 @@ export function testHttp() {
     const fileContents = sk.toWIF()
     const blob = Buffer(fileContents)
 
-    const address = sk.getAddress()
+    const address = ecPairToAddress(sk)
     const path = `/store/${address}/helloWorld`
     const listPath = `/list-files/${address}`
     let prefix = ''
