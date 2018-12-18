@@ -11,11 +11,17 @@ const configDefaults = {
     colorize: true,
     json: true
   },
-  regtest: false,
-  testnet: false,
-  port: 8008,
-  diskSettings: {
-    storageRootDirectory: '/tmp/gaia-disk'
+  port: 8009,
+  apiKeys: [],
+  gaiaSettings: {
+    configPath: '/tmp/gaia-config.json'
+  },
+  reloadSettings: {
+    command: '',
+    argv: [],
+    env: {},
+    setuid: 1000,
+    setgid: 1000
   }
 }
 
@@ -27,10 +33,6 @@ export function getConfig() {
       {}, configDefaults, JSON.parse(fs.readFileSync(configPath).toString()))
   } catch (e) {
     config = Object.assign({}, configDefaults)
-  }
-
-  if (process.env['GAIA_DISK_STORAGE_ROOT_DIR']) {
-    config.diskSettings.storageRootDirectory = process.env['GAIA_DISK_STORAGE_ROOT_DIR']
   }
 
   winston.configure({ transports: [

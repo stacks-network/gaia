@@ -5,7 +5,7 @@ import logger from 'winston'
 
 import { BadPathError } from '../errors'
 
-import type { DriverModel } from '../driverModel'
+import type { DriverModel, DriverStatics, ListFilesResult } from '../driverModel'
 import type { Readable } from 'stream'
 
 type GC_CONFIG_TYPE = { gcCredentials?: {
@@ -17,6 +17,7 @@ type GC_CONFIG_TYPE = { gcCredentials?: {
                             private_key?: string
                           }
                         },
+                        cacheControl?: string,
                         pageSize?: number,
                         bucket: string }
 
@@ -24,11 +25,44 @@ class GcDriver implements DriverModel {
   bucket: string
   storage: Storage
   pageSize: number
+  cacheControl: ?string
+
+  static getConfigInformation() {
+    const envVars = {}
+    const gcCredentials = {}
+    if (process.env['GAIA_GCP_EMAIL']) {
+      gcCredentials['email'] = process.env['GAIA_GCP_EMAIL']
+      envVars['gcCredentials'] = gcCredentials
+    }
+    if (process.env['GAIA_GCP_PROJECT_ID']) {
+      gcCredentials['projectId'] = process.env['GAIA_GCP_PROJECT_ID']
+      envVars['gcCredentials'] = gcCredentials
+    }
+    if (process.env['GAIA_GCP_KEY_FILENAME']) {
+      gcCredentials['keyFilename'] = process.env['GAIA_GCP_KEY_FILENAME']
+      envVars['gcCredentials'] = gcCredentials
+    }
+    if (process.env['GAIA_GCP_CLIENT_EMAIL']) {
+      gcCredentials['credentials'] = {}
+      gcCredentials['credentials']['client_email'] = process.env['GAIA_GCP_CLIENT_EMAIL']
+      if (process.env['GAIA_GCP_CLIENT_PRIVATE_KEY']) {
+        gcCredentials['credentials']['private_key'] = process.env['GAIA_GCP_CLIENT_PRIVATE_KEY']
+      }
+      envVars['gcCredentials'] = gcCredentials
+    }
+
+    return {
+      defaults: { gcCredentials: {} },
+      envVars
+    }
+  }
+
 
   constructor (config: GC_CONFIG_TYPE) {
     this.storage =  new Storage(config.gcCredentials)
     this.bucket = config.bucket
     this.pageSize = config.pageSize ? config.pageSize : 100
+    this.cacheControl = config.cacheControl
 
     this.createIfNeeded()
   }
@@ -66,7 +100,7 @@ class GcDriver implements DriverModel {
     })
   }
 
-  listAllObjects(prefix: string, page: ?string) {
+  listAllObjects(prefix: string, page: ?string) : Promise<ListFilesResult> {
     // returns {'entries': [...], 'page': next_page}
     const opts : { prefix: string, maxResults: number, pageToken?: string } = {
       prefix: prefix,
@@ -84,7 +118,7 @@ class GcDriver implements DriverModel {
         files.forEach(file => {
           fileNames.push(file.name.slice(prefix.length + 1))
         })
-        const ret = {
+        const ret : ListFilesResult = {
           entries: fileNames,
           page: null
         }
@@ -113,6 +147,13 @@ class GcDriver implements DriverModel {
     const filename = `${args.storageTopLevel}/${args.path}`
     const publicURL = `${this.getReadURLPrefix()}${filename}`
 
+    const metadata = {}
+    metadata.contentType = args.contentType
+    if (this.cacheControl) {
+      metadata.cacheControl = this.cacheControl
+    }
+
+
     return new Promise((resolve, reject) => {
       const fileDestination = this.storage
             .bucket(this.bucket)
@@ -120,7 +161,7 @@ class GcDriver implements DriverModel {
       args.stream
         .pipe(fileDestination.createWriteStream({ public: true,
                                                   resumable: false,
-                                                  contentType: args.contentType }))
+                                                  metadata }))
         .on('error', (err) => {
           logger.error(`failed to store ${filename} in bucket ${this.bucket}`)
           reject(new Error('Google cloud storage failure: failed to store' +
@@ -133,5 +174,7 @@ class GcDriver implements DriverModel {
     })
   }
 }
+
+(GcDriver: DriverStatics)
 
 module.exports = GcDriver

@@ -1,0 +1,49 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "gaia-reader",
+            "program": "${workspaceFolder}/reader/src/index.js",
+            "cwd": "${workspaceFolder}/reader",
+            "runtimeArgs": ["-r", "@babel/register"],
+            "outputCapture": "std",
+            "env": { 
+                "GAIA_DISK_STORAGE_ROOT_DIR": "${workspaceFolder}/tmp/gaia-disk"
+             }
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "gaia-hub",
+            "program": "${workspaceFolder}/hub/src/index.js",
+            "cwd": "${workspaceFolder}/hub",
+            "runtimeArgs": ["-r", "@babel/register"],
+            "outputCapture": "std",
+            "env": { 
+                "GAIA_READ_URL": "http://127.0.0.1:8008/",
+                "GAIA_DRIVER": "disk",
+                "GAIA_DISK_STORAGE_ROOT_DIR": "${workspaceFolder}/tmp/gaia-disk"
+             }
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "gaia-admin",
+            "program": "${workspaceFolder}/admin/src/index.js",
+            "cwd": "${workspaceFolder}/admin",
+            "runtimeArgs": ["-r", "@babel/register"],
+            "outputCapture": "std"
+        }
+    ],
+    "compounds": [
+        {
+            "name": "All",
+            "configurations": ["gaia-reader", "gaia-hub", "gaia-admin"]
+        }
+    ]
+}

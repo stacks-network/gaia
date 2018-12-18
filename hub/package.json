@@ -1,6 +1,6 @@
 {
   "name": "gaia-hub",
-  "version": "2.2.2",
+  "version": "2.3.0",
   "description": "",
   "main": "index.js",
   "engines": {
@@ -23,14 +23,16 @@
     "winston": "^2.3.1"
   },
   "devDependencies": {
-    "babel-cli": "^6.26.0",
-    "babel-eslint": "^8.2.2",
-    "babel-preset-env": "^1.6.1",
-    "babel-preset-flow": "^6.23.0",
-    "eslint": "^4.18.1",
-    "eslint-plugin-flowtype": "^2.46.3",
+    "@babel/cli": "^7.2.0",
+    "@babel/core": "^7.2.0",
+    "@babel/plugin-transform-modules-commonjs": "^7.2.0",
+    "@babel/preset-flow": "^7.0.0",
+    "@babel/register": "^7.0.0",
+    "babel-eslint": "^10.0.1",
+    "eslint": "^5.9.0",
+    "eslint-plugin-flowtype": "^3.2.0",
     "fetch-mock": "^6.4.2",
-    "flow-bin": "^0.71.0",
+    "flow-bin": "^0.87.0",
     "nock": "^9.1.9",
     "nyc": "^13.0.0",
     "proxyquire": "^2.0.1",
@@ -45,7 +47,7 @@
     "build": "npm run lint && babel src -d lib && chmod +x lib/index.js",
     "flow": "flow",
     "lint": "eslint src",
-    "test-inner": "npm run build && npm run flow && node ./test/test.js",
+    "test-inner": "npm run build && npm run flow && babel ./test/src -d ./test/lib/ && node ./test/lib/index.js",
     "test": "nyc --reporter=text npm run test-inner"
   },
   "repository": {

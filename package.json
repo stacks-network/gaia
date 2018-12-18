@@ -4,6 +4,7 @@
     "node": "8.1.x"
   },
   "scripts": {
-    "postinstall": "NODE_ENV=development npm install --prefix hub && NODE_ENV=development npm install --prefix reader"
+    "postinstall": "NODE_ENV=development npm install --prefix hub && NODE_ENV=development npm install --prefix reader && NODE_ENV=development npm install --prefix admin",
+    "test": "npm test --prefix hub && npm test --prefix reader &&  npm test --prefix admin"
   }
 }

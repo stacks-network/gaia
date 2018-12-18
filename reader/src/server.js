@@ -1,7 +1,7 @@
 /* @flow */
 
 import Path from 'path'
-import fs from 'fs'
+import fs from 'fs-extra'
 
 const METADATA_DIRNAME = '.gaia-metadata'
 
@@ -11,6 +11,10 @@ export class GaiaDiskReader {
 
   constructor(config: Object) {
     this.config = config
+
+    // Ensure the configured storage directory exists
+    fs.ensureDirSync(config.diskSettings.storageRootDirectory)
+
   }
 
   handleGet(topLevelDir: string, filename: string)
