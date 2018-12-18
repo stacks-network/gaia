@@ -1,9 +1,8 @@
-import bitcoin from 'bitcoinjs-lib'
 import test  from 'tape'
 import { TokenSigner } from 'jsontokens'
 
-import * as auth from '../../lib/server/authentication'
-import * as errors from '../../lib/server/errors'
+import * as auth from '../../src/server/authentication'
+import * as errors from '../../src/server/errors'
 
 
 import { testPairs, testAddrs} from './common'
@@ -52,9 +51,6 @@ export function testAuth() {
              errors.ValidationError, 'Wrong challenge text must throw')
     t.ok(authenticator.isAuthenticationValid(testAddrs[0], challengeText),
          'Good signature must pass')
-
-    const pkBad = bitcoin.ECPair.fromPublicKeyBuffer(testPairs[1].getPublicKeyBuffer())
-    const authBad = new auth.LegacyAuthentication(pkBad, authenticator.signature)
 
     t.throws(() => authenticator.isAuthenticationValid(testAddrs[1], challengeText),
              'Bad signature must throw')
@@ -173,7 +169,6 @@ export function testAuth() {
 
     // invalid associationTokens should cause a well-formed outer JWT to fail authentication
     const ownerKeyHex = testPairs[0].d.toHex()
-    const appKeyHex = testPairs[1].d.toHex()
     const associationTokenWithoutIssuer = new TokenSigner('ES256K', ownerKeyHex).sign(
       { garbage: 'in' })
     const associationTokenWithoutExp = new TokenSigner('ES256K', ownerKeyHex).sign(
@@ -208,7 +203,7 @@ export function testAuth() {
     const writeScopes = [
       {
         scope: 'putFile',
-        domain: '/foo/bar',
+        domain: '/foo/bar'
       },
       {
         scope: 'putFile',
@@ -219,14 +214,14 @@ export function testAuth() {
     const writeScopesInvalid = [
       {
         scope: 'invalid',
-        domain: 'nope',
+        domain: 'nope'
       }
     ]
 
     const writeScopesTooLong = [
       {
         scope: 'putFile',
-        domain: '/0',
+        domain: '/0'
       },
       {
         scope: 'putFile',
