@@ -7,7 +7,7 @@
     "colorize": true,
     "json": true
   },
-  "port": 3001,
+  "port": 8009,
   "apiKeys": [
     "hello"
   ],
