@@ -14,7 +14,7 @@ services:
       GAIA_PORT: 3000
       GAIA_DRIVER: disk
       GAIA_BUCKET_NAME: hub
-      GAIA_READ_URL: http://localhost:80/hub/
+      GAIA_READ_URL: http://localhost/hub/
       GAIA_CACHE_CONTROL: "public, max-age=1"
       GAIA_DISK_STORAGE_ROOT_DIR: /tmp/gaia-storage
       GAIA_PAGE_SIZE: 20
