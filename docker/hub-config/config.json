@@ -1,26 +1,6 @@
 {
-  "servername": "hub",
-  "port": "3000",
-  "driver": "disk",
-  "bucket": "hub",
-  "readURL": "http://localhost:80/hub/",
-  "cacheControl": "public, max-age=1",
-  "pageSize": 20,
-  "diskSettings": {
-    "storageRootDirectory": "/tmp/gaia-disk"
-  },
-  "awsCredentials": {
-    "accessKeyId": "",
-    "secretAccessKey": ""
-  },
-
   "proofsConfig": {
     "proofsRequired" : 0
-  },
-
-  "azCredentials": {
-    "accountName": "",
-    "accountKey": ""
   },
 
   "argsTransport": {
