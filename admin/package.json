@@ -11,8 +11,9 @@
     "compile": "rm -rf lib; babel src -d lib",
     "prepublish": "npm run build",
     "unit-test": "npm run flow && npm run compile && node ./test/test.js",
-    "build": "npm run flow && npm run compile",
+    "build": "npm run lint && npm run flow && npm run compile",
     "flow": "flow",
+    "lint": "eslint src",
     "test": "nyc --reporter=text npm run unit-test",
     "start": "npm run build && node lib/index.js"
   },
@@ -42,11 +43,15 @@
     "winston": "^2.3.1"
   },
   "devDependencies": {
-    "babel-cli": "^6.26.0",
-    "babel-preset-env": "^1.6.1",
-    "babel-preset-flow": "^6.23.0",
-    "bluebird": "^3.5.1",
-    "flow-bin": "^0.71.0",
+    "@babel/cli": "^7.2.0",
+    "@babel/core": "^7.2.0",
+    "@babel/plugin-transform-modules-commonjs": "^7.2.0",
+    "@babel/preset-flow": "^7.0.0",
+    "@babel/register": "^7.0.0",
+    "babel-eslint": "^10.0.1",
+    "eslint": "^5.9.0",
+    "eslint-plugin-flowtype": "^3.2.0",
+    "flow-bin": "^0.87.0",
     "nyc": "^13.0.0",
     "tape": "^4.9.0"
   },

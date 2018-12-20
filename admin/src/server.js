@@ -1,12 +1,9 @@
 /* @flow */
 
-import Path from 'path'
 import fs from 'fs'
 import logger from 'winston'
-import child_process from 'child_process'
+import childProcess from 'child_process'
 import Ajv from 'ajv'
-
-const METADATA_DIRNAME = '.gaia-metadata'
 
 function runSubprocess(cmd: string, argv: Array<string>, env: Object, uid: ?number, gid: ?number) 
 : Promise<{ 'status': Object, 'statusCode': number }> {
@@ -33,8 +30,8 @@ function runSubprocess(cmd: string, argv: Array<string>, env: Object, uid: ?numb
       opts.setgid = gid
     }
    
-    return new Promise((resolve, reject) => {
-      child_process.spawn(cmd, argv, opts)
+    return new Promise((resolve) => {
+      childProcess.spawn(cmd, argv, opts)
         .on('exit', (code, signal) => {
           if (code === 0) {
             const ret = { statusCode: 200, status: { result: 'OK' } }
@@ -139,7 +136,7 @@ export function readConfigFileSections(configFilePath: string, fields: string | 
 
   let configData
   let config
-  let ret = {}
+  const ret = {}
 
   try {
     configData = fs.readFileSync(configFilePath).toString()
@@ -174,7 +171,7 @@ const GAIA_CONFIG_SCHEMA = {
     // generic gaia settings
     validHubUrls: {
       type: 'array',
-      items: { type: 'string', pattern: '^http://.+|https://.+$' },
+      items: { type: 'string', pattern: '^http://.+|https://.+$' }
     },
     requireCorrectHubUrl: { type: 'boolean' },
     serverName: { type: 'string', pattern: '.+' },
@@ -198,7 +195,7 @@ const GAIA_CONFIG_SCHEMA = {
     cacheControl: { type: 'string', pattern: '.+' },
     azCredentials: {
       accountName: { type: 'string', pattern: '.+' },
-      accountKey: { type: 'string', pattern: '.+' },
+      accountKey: { type: 'string', pattern: '.+' }
     },
     diskSettings: {
       storageRootDirectory: { type: 'string' }
@@ -210,10 +207,12 @@ const GAIA_CONFIG_SCHEMA = {
       credentials: {
         type: 'object',
         properties: {
+          /* eslint-disable-next-line camelcase */
           client_email: { type: 'string' },
+          /* eslint-disable-next-line camelcase */
           private_key: { type: 'string' }
         }
-      },
+      }
     },
     awsCredentials: {
       assessKeyId: { type: 'string' },

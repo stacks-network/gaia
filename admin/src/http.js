@@ -4,7 +4,6 @@ import express from 'express'
 import expressWinston from 'express-winston'
 import logger from 'winston'
 import cors from 'cors'
-import Path from 'path'
 
 import { 
   AdminAPI

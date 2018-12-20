@@ -1,10 +1,10 @@
 /* @flow */
-import fs from 'fs'
+import fs from 'fs-extra'
 import { BadPathError, InvalidInputError } from '../errors'
 import logger from 'winston'
 import Path from 'path'
 
-import type { DriverModel, DriverStatics } from '../driverModel'
+import type { DriverModel, DriverStatics, ListFilesResult } from '../driverModel'
 import type { Readable } from 'stream'
 
 type DISK_CONFIG_TYPE = { diskSettings: { storageRootDirectory?: string },
@@ -66,27 +66,15 @@ class DiskDriver implements DriverModel {
   }
 
   mkdirs(path: string) {
-    const pathParts = path.replace(/^\//, '').split('/')
-    let tmpPath = '/'
-    for (let i = 0; i <= pathParts.length; i++) {
-      try {
-        const statInfo = fs.lstatSync(tmpPath)
-        if ((statInfo.mode & fs.constants.S_IFDIR) === 0) {
-          throw new Error(`Not a directory: ${tmpPath}`)
-        }
-      } catch (e) {
-        if (e.code === 'ENOENT') {
-          // need to create
-          logger.debug(`mkdir ${tmpPath}`)
-          fs.mkdirSync(tmpPath)
-        } else {
-          throw e
-        }
-      }
-      if (i === pathParts.length) {
-        break
-      }
-      tmpPath = `${tmpPath}/${pathParts[i]}`
+    const normalizedPath = Path.normalize(path)
+    // Check if directory exists.
+    if (!fs.existsSync(normalizedPath)) {
+      // If it doesn't, create it - this is done recursively similar to `mkdir -p`.
+      fs.ensureDirSync(normalizedPath)
+      logger.debug(`mkdir ${normalizedPath}`)
+    } else if (!fs.lstatSync(normalizedPath).isDirectory()) {
+      // Ensure path is a directory.
+      throw new Error(`Not a directory: ${normalizedPath}`)
     }
   }
 
@@ -109,7 +97,7 @@ class DiskDriver implements DriverModel {
     return fileNames
   }
 
-  listFilesInDirectory(listPath: string, pageNum: number) : Promise<{entries: Array<string>, page: ?string}> {
+  listFilesInDirectory(listPath: string, pageNum: number) : Promise<ListFilesResult> {
     const names = this.findAllFiles(listPath).map(
       (fileName) => fileName.slice(listPath.length + 1))
     return Promise.resolve().then(() => ({
@@ -122,7 +110,7 @@ class DiskDriver implements DriverModel {
     // returns {'entries': [...], 'page': next_page}
     let pageNum
     const listPath = `${this.storageRootDirectory}/${prefix}`
-    const emptyResponse = {
+    const emptyResponse : ListFilesResult = {
       entries: [],
       page: `${page + 1}`
     }

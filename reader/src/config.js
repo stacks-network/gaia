@@ -29,6 +29,10 @@ export function getConfig() {
     config = Object.assign({}, configDefaults)
   }
 
+  if (process.env['GAIA_DISK_STORAGE_ROOT_DIR']) {
+    config.diskSettings.storageRootDirectory = process.env['GAIA_DISK_STORAGE_ROOT_DIR']
+  }
+
   winston.configure({ transports: [
     new winston.transports.Console(config.argsTransport) ] })
 

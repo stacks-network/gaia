@@ -4,7 +4,7 @@
   "env": {
     "browser": false,
     "es6": true,
-    "node": true,
+    "node": true
   },
   "rules": {
     "comma-dangle": ["error", "never"],
