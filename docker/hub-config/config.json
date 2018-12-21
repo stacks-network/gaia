@@ -3,7 +3,7 @@
   "port": "3000",
   "driver": "disk",
   "bucket": "hub",
-  "readURL": "http://localhost:80/hub/",
+  "readURL": "http://localhost/hub/",
   "cacheControl": "public, max-age=1",
   "pageSize": 20,
   "diskSettings": {
