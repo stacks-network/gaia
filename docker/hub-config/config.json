@@ -1,14 +1,27 @@
 {
-  "proofsConfig": {
-    "proofsRequired" : 0
-  },
-
   "argsTransport": {
     "level": "debug",
     "handleExceptions": true,
-    "stringify": true,
     "timestamp": true,
+    "stringify": true,
     "colorize": true,
     "json": true
+  },
+  "port": 8009,
+  "apiKeys": [
+    "hello"
+  ],
+  "gaiaSettings": {
+    "configPath": "./etc/config.json"
+  },
+  "reloadSettings": {
+    "command": "/bin/sh",
+    "argv": [
+      "-c",
+      "pkill -9 blockstack-gaia-hub; nohup /usr/bin/blockstack-gaia-hub /tmp/gaia-config.json &"
+    ],
+    "env": {},
+    "setuid": 1000,
+    "setgid": 1000
   }
 }
