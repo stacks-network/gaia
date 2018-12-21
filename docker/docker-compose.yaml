@@ -9,15 +9,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      CONFIG_PATH: /src/hub/etc/config.json
-      GAIA_SERVER_NAME: hub
-      GAIA_PORT: 3000
-      GAIA_DRIVER: disk
-      GAIA_BUCKET_NAME: hub
-      GAIA_READ_URL: http://localhost/hub/
-      GAIA_CACHE_CONTROL: "public, max-age=1"
-      GAIA_DISK_STORAGE_ROOT_DIR: /tmp/gaia-storage
-      GAIA_PAGE_SIZE: 20
+     GAIA_DISK_STORAGE_ROOT_DIR: /tmp/gaia-storage
     networks:
       - gaia
 
