@@ -91,12 +91,13 @@ export function testServer() {
   })
 
   test('validation with 2018 challenge texts', (t) => {
-    t.plan(4)
+    t.plan(5)
     const server = new HubServer(new MockDriver(), new MockProofs(),
                                  { whitelist: [testAddrs[0]], requireCorrectHubUrl: true,
                                    validHubUrls: ['https://testserver.com'] })
 
     const challengeTexts = auth.getChallengeTexts()
+    t.ok(challengeTexts[1].indexOf('2018') > 0, '2018 challenge text')
 
     const authPartGood1 = auth.V1Authentication.makeAuthPart(testPairs[0], challengeTexts[1], undefined, 'https://testserver.com/')
     const authPartGood2 = auth.V1Authentication.makeAuthPart(testPairs[0], challengeTexts[1], undefined, 'https://testserver.com')
