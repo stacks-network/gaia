@@ -386,6 +386,10 @@ export function validateAuthorizationHeader(authHeader: string, serverName: stri
       const valid = authObject.isAuthenticationValid(address, challengeTexts[i], 
         { validHubUrls, requireCorrectHubUrl })
 
+      if (challengeTexts[i].indexOf('2019') < 0) {
+        logger.warn('Legacy authentication text from earlier than 2019')
+      }
+
       if (valid) {
         return valid
       }
