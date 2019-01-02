@@ -397,7 +397,7 @@ export function validateAuthorizationHeader(authHeader: string, serverName: stri
       }
     }
   }
-  return false
+  throw new ValidationError('Invalid gaiaChallenge text in supplied JWT')
 }
 
 
