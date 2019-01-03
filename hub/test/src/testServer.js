@@ -96,8 +96,12 @@ export function testServer() {
                                  { whitelist: [testAddrs[0]], requireCorrectHubUrl: true,
                                    validHubUrls: ['https://testserver.com'] })
 
-    const challengeTexts = auth.getChallengeTexts()
-    t.ok(challengeTexts[1].indexOf('2018') > 0, '2018 challenge text')
+    const challengeTexts = []
+    challengeTexts.push(auth.getChallengeText())
+    auth.getLegacyChallengeTexts().forEach(challengeText => challengeTexts.push(challengeText))
+
+    const challenge2018 = challengeTexts.find(x => x.indexOf('2018') > 0)
+    t.ok(challenge2018, 'Should find a valid 2018 challenge text')
 
     const authPartGood1 = auth.V1Authentication.makeAuthPart(testPairs[0], challengeTexts[1], undefined, 'https://testserver.com/')
     const authPartGood2 = auth.V1Authentication.makeAuthPart(testPairs[0], challengeTexts[1], undefined, 'https://testserver.com')
