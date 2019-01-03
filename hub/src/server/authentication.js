@@ -252,9 +252,6 @@ export class V1Authentication {
     }
 
     if (!challengeTexts.includes(gaiaChallenge)) {
-      console.log(challengeTexts)
-      console.log(gaiaChallenge)
-      console.log(challengeTexts.includes(gaiaChallenge))
       throw new ValidationError(`Invalid gaiaChallenge text in supplied JWT: "${gaiaChallenge}"` +
                                 ` not found in ${JSON.stringify(challengeTexts)}`)
     }
