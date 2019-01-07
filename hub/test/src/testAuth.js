@@ -25,6 +25,38 @@ export function testAuth() {
     t.end()
   })
 
+  test('blacklist authentication', (t) => {
+    const legacyPart = {
+      wif: 'Kzp44Hhp6SFUXMuMi6MUDTqyfcNyyjntrphEHVMsiitRrjMyoV4p',
+      addr: '1AotVNASQouiNiBtfxv49WWvSNcQUzGYuU',
+      serverName: 'storage.blockstack.org',
+      legacyAuth: 'eyJwdWJsaWNrZXkiOiIwMjQxYTViMDQ2Mjg1ZjVlMjgwMDRmOTJjY2M0MjNmY2RkODYyZmYzY' +
+        'jgwODUwNzE4MDY4MGIyNDA3ZTIyOWE3NzgiLCJzaWduYXR1cmUiOiIzMDQ0MDIyMDY5ODUwNmNjYjg3MDg1Zm' +
+        'Y5ZGI3ZTc4MTIwYTVmMjY1YzExZmY0ODc4OTBlNDQ1MWZjYWM3NjA4NTkyMDhjZWMwMjIwNTZkY2I0OGUyYzE' +
+        '4Y2YwZjQ1NDZiMmQ3M2I2MDY4MWM5ODEyMzQyMmIzOTRlZjRkMWI2MjE3NTYyODQ4MzUwNCJ9' }
+
+    const blacklist = new Map()
+    t.doesNotThrow(() => auth.validateAuthorizationHeader(`bearer ${legacyPart.legacyAuth}`,
+                                                          legacyPart.serverName,
+                                                          legacyPart.addr),
+                   'authentication token should work without blacklist')
+    blacklist.set('asdjsdja', true)
+
+    t.doesNotThrow(() => auth.validateAuthorizationHeader(`bearer ${legacyPart.legacyAuth}`,
+                                                          legacyPart.serverName,
+                                                          legacyPart.addr, undefined, undefined, blacklist),
+                   'authentication token should work without being in the blacklist')
+
+    blacklist.set(legacyPart.legacyAuth, true)
+
+    t.throws(() => auth.validateAuthorizationHeader(`bearer ${legacyPart.legacyAuth}`,
+                                                    legacyPart.serverName,
+                                                    legacyPart.addr,
+                                                    undefined, undefined, blacklist),
+             'blacklisted authentication token should throw')
+    t.end()
+  })
+
   test('authentication legacy/regression with multi-case bearer', (t) => {
     const legacyPart = {
       wif: 'Kzp44Hhp6SFUXMuMi6MUDTqyfcNyyjntrphEHVMsiitRrjMyoV4p',

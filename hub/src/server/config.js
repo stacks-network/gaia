@@ -14,6 +14,7 @@ export const configDefaults = {
     json: false
   },
   whitelist: null,
+  tokenBlacklist: null,
   readURL: null,
   driver: undefined,
   validHubUrls: undefined,
@@ -27,6 +28,7 @@ export const configDefaults = {
 }
 
 const globalEnvVars = { whitelist: 'GAIA_WHITELIST',
+                        tokenBlacklist: 'GAIA_TOKEN_BLACKLIST',
                         readURL: 'GAIA_READ_URL',
                         driver: 'GAIA_DRIVER',
                         validHubUrls: 'GAIA_VALID_HUB_URLS',
@@ -38,7 +40,7 @@ const globalEnvVars = { whitelist: 'GAIA_WHITELIST',
                         port: 'GAIA_PORT' }
 
 const parseInts = [ 'port', 'pageSize', 'requireCorrectHubUrl' ]
-const parseLists = [ 'validHubUrls', 'whitelist' ]
+const parseLists = [ 'validHubUrls', 'whitelist', 'tokenBlacklist' ]
 
 function getConfigEnv(envVars) {
 

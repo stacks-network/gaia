@@ -10,17 +10,23 @@ export class HubServer {
   driver: DriverModel
   proofChecker: Object
   whitelist: Array<string>
+  blacklist: Map<string, boolean>
   serverName: string
   readURL: ?string
   requireCorrectHubUrl: boolean
   validHubUrls: ?Array<string>
   constructor(driver: DriverModel, proofChecker: Object,
               config: { whitelist: Array<string>, serverName: string,
+                        tokenBlacklist: Array<string>,
                         readURL?: string, requireCorrectHubUrl?: boolean,
                         validHubUrls?: Array<string> }) {
     this.driver = driver
     this.proofChecker = proofChecker
     this.whitelist = config.whitelist
+    this.blacklist = new Map()
+    if (config.tokenBlacklist) {
+      config.tokenBlacklist.forEach(x => this.blacklist.set(x, true))
+    }
     this.serverName = config.serverName
     this.validHubUrls = config.validHubUrls
     this.readURL = config.readURL
@@ -33,7 +39,8 @@ export class HubServer {
     const signingAddress = validateAuthorizationHeader(requestHeaders.authorization,
                                                        this.serverName, address,
                                                        this.requireCorrectHubUrl,
-                                                       this.validHubUrls)
+                                                       this.validHubUrls,
+                                                       this.blacklist)
 
     if (this.whitelist && !(this.whitelist.includes(signingAddress))) {
       throw new ValidationError(`Address ${signingAddress} not authorized for writes`)

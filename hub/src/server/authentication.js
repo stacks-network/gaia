@@ -359,15 +359,30 @@ export function parseAuthHeader(authHeader: string) {
   }
 }
 
+export function isBlackListedAuthorization(authHeader: string, blacklist: ?Map<string, boolean>) {
+  if (!blacklist)
+    return
+  if (!authHeader || !authHeader.toLowerCase().startsWith('bearer')) {
+    throw new ValidationError('Failed to parse authentication header.')
+  }
+  const authPart = authHeader.slice('bearer '.length)
+  if (blacklist.has(authPart)) {
+    throw new ValidationError('Supplied auth token is blacklisted, and was likely revoked.')
+  }
+}
+
 export function validateAuthorizationHeader(authHeader: string, serverName: string,
                                             address: string, requireCorrectHubUrl?: boolean = false,
-                                            validHubUrls?: ?Array<string> = null) : string {
+                                            validHubUrls?: ?Array<string> = null,
+                                            blacklist?: ?Map<string, boolean> = null): string {
   const serverNameHubUrl = `https://${serverName}`
   if (!validHubUrls) {
     validHubUrls = [ serverNameHubUrl ]
   } else if (validHubUrls.indexOf(serverNameHubUrl) < 0) {
     validHubUrls.push(serverNameHubUrl)
   }
+
+  isBlackListedAuthorization(authHeader, blacklist)
 
   let authObject = null
   try {

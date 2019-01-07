@@ -124,6 +124,64 @@ export function testServer() {
 
   })
 
+  test('blacklisting', (t) => {
+    t.plan(7)
+    const legacyAuth = {
+      wif: 'Kzp44Hhp6SFUXMuMi6MUDTqyfcNyyjntrphEHVMsiitRrjMyoV4p',
+      addr: '1AotVNASQouiNiBtfxv49WWvSNcQUzGYuU',
+      serverName: 'storage.blockstack.org',
+      legacyAuth: 'eyJwdWJsaWNrZXkiOiIwMjQxYTViMDQ2Mjg1ZjVlMjgwMDRmOTJjY2M0MjNmY2RkODYyZmYzY' +
+        'jgwODUwNzE4MDY4MGIyNDA3ZTIyOWE3NzgiLCJzaWduYXR1cmUiOiIzMDQ0MDIyMDY5ODUwNmNjYjg3MDg1Zm' +
+        'Y5ZGI3ZTc4MTIwYTVmMjY1YzExZmY0ODc4OTBlNDQ1MWZjYWM3NjA4NTkyMDhjZWMwMjIwNTZkY2I0OGUyYzE' +
+        '4Y2YwZjQ1NDZiMmQ3M2I2MDY4MWM5ODEyMzQyMmIzOTRlZjRkMWI2MjE3NTYyODQ4MzUwNCJ9' }
+
+    const serverNoBlackList = new HubServer(new MockDriver(), new MockProofs(),
+                                 { whitelist: false, requireCorrectHubUrl: true,
+                                   tokenBlacklist: [],
+                                   validHubUrls: ['https://testserver.com'] })
+
+    const server = new HubServer(new MockDriver(), new MockProofs(),
+                                 { whitelist: false, requireCorrectHubUrl: true,
+                                   tokenBlacklist: [legacyAuth.legacyAuth],
+                                   validHubUrls: ['https://testserver.com'] })
+
+    const challengeTexts = auth.getChallengeTexts()
+    t.ok(challengeTexts[1].indexOf('2018') > 0, '2018 challenge text')
+
+    const authPartGood1 = auth.V1Authentication.makeAuthPart(testPairs[0], challengeTexts[1], undefined, 'https://testserver.com/')
+    const authPartGood2 = auth.V1Authentication.makeAuthPart(testPairs[0], challengeTexts[1], undefined, 'https://testserver.com')
+    const authPartBad1 = auth.V1Authentication.makeAuthPart(testPairs[0], challengeTexts[1], undefined, undefined)
+    const authPartBad2 = auth.V1Authentication.makeAuthPart(testPairs[0], challengeTexts[1], undefined, 'testserver.com')
+
+    try {
+      serverNoBlackList.validate(legacyAuth.addr, { authorization: `bearer ${legacyAuth.legacyAuth}` })
+      t.pass('Legacy auth should pass with no blacklist')
+    } catch (err) {
+      t.fail('Legacy auth should pass with no blacklist')
+    }
+
+    t.throws(() => server.validate(legacyAuth.addr, { authorization: `bearer ${legacyAuth.legacyAuth}` }))
+
+    t.throws(() => server.validate(testAddrs[0], { authorization: `bearer ${authPartBad1}` }),
+             errors.ValidationError, 'Auth must include a hubUrl')
+    t.throws(() => server.validate(testAddrs[0], { authorization: `bearer ${authPartBad2}` }),
+             errors.ValidationError, 'Auth must include correct hubUrl')
+
+    try {
+      server.validate(testAddrs[0], { authorization: `bearer ${authPartGood1}` })
+      t.pass('Address with good auth header should pass')
+    } catch (err) {
+      t.fail('Address with good auth header should pass')
+    }
+    try {
+      server.validate(testAddrs[0], { authorization: `bearer ${authPartGood2}` })
+      t.pass('Address with good auth header should pass')
+    } catch (err) {
+      t.fail('Address with good auth header should pass')
+    }
+
+  })
+
   test('handle request with readURL', (t) => {
     t.plan(8)
     const mockDriver = new MockDriver()
