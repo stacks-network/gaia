@@ -35,19 +35,19 @@ export function testAuth() {
         'Y5ZGI3ZTc4MTIwYTVmMjY1YzExZmY0ODc4OTBlNDQ1MWZjYWM3NjA4NTkyMDhjZWMwMjIwNTZkY2I0OGUyYzE' +
         '4Y2YwZjQ1NDZiMmQ3M2I2MDY4MWM5ODEyMzQyMmIzOTRlZjRkMWI2MjE3NTYyODQ4MzUwNCJ9' }
 
-    const blacklist = new Map()
+    const blacklist = new Set()
     t.doesNotThrow(() => auth.validateAuthorizationHeader(`bearer ${legacyPart.legacyAuth}`,
                                                           legacyPart.serverName,
                                                           legacyPart.addr),
                    'authentication token should work without blacklist')
-    blacklist.set('asdjsdja', true)
+    blacklist.add('asdjsdja')
 
     t.doesNotThrow(() => auth.validateAuthorizationHeader(`bearer ${legacyPart.legacyAuth}`,
                                                           legacyPart.serverName,
                                                           legacyPart.addr, undefined, undefined, blacklist),
                    'authentication token should work without being in the blacklist')
 
-    blacklist.set(legacyPart.legacyAuth, true)
+    blacklist.add(legacyPart.legacyAuth)
 
     t.throws(() => auth.validateAuthorizationHeader(`bearer ${legacyPart.legacyAuth}`,
                                                     legacyPart.serverName,

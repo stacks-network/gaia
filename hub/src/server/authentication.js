@@ -359,7 +359,7 @@ export function parseAuthHeader(authHeader: string) {
   }
 }
 
-export function isBlackListedAuthorization(authHeader: string, blacklist: ?Map<string, boolean>) {
+export function isBlackListedAuthorization(authHeader: string, blacklist: ?Set<string>) {
   if (!blacklist)
     return
   if (!authHeader || !authHeader.toLowerCase().startsWith('bearer')) {
@@ -374,7 +374,7 @@ export function isBlackListedAuthorization(authHeader: string, blacklist: ?Map<s
 export function validateAuthorizationHeader(authHeader: string, serverName: string,
                                             address: string, requireCorrectHubUrl?: boolean = false,
                                             validHubUrls?: ?Array<string> = null,
-                                            blacklist?: ?Map<string, boolean> = null): string {
+                                            blacklist?: ?Set<string> = null): string {
   const serverNameHubUrl = `https://${serverName}`
   if (!validHubUrls) {
     validHubUrls = [ serverNameHubUrl ]

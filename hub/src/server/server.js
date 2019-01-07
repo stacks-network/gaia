@@ -10,7 +10,7 @@ export class HubServer {
   driver: DriverModel
   proofChecker: Object
   whitelist: Array<string>
-  blacklist: Map<string, boolean>
+  blacklist: Set<string>
   serverName: string
   readURL: ?string
   requireCorrectHubUrl: boolean
@@ -23,9 +23,9 @@ export class HubServer {
     this.driver = driver
     this.proofChecker = proofChecker
     this.whitelist = config.whitelist
-    this.blacklist = new Map()
+    this.blacklist = new Set()
     if (config.tokenBlacklist) {
-      config.tokenBlacklist.forEach(x => this.blacklist.set(x, true))
+      config.tokenBlacklist.forEach(x => this.blacklist.add(x))
     }
     this.serverName = config.serverName
     this.validHubUrls = config.validHubUrls
