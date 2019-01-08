@@ -246,7 +246,13 @@ export class V1Authentication {
       validateScopes(scopes)
     }
 
-    const verified = new TokenVerifier('ES256K', publicKey).verify(this.token)
+    let verified
+    try {
+      verified = new TokenVerifier('ES256K', publicKey).verify(this.token)
+    } catch (err) {
+      throw new ValidationError('Failed to verify supplied authentication JWT')
+    }
+
     if (!verified) {
       throw new ValidationError('Failed to verify supplied authentication JWT')
     }
