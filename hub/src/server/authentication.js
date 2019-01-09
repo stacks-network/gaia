@@ -246,7 +246,13 @@ export class V1Authentication {
       validateScopes(scopes)
     }
 
-    const verified = new TokenVerifier('ES256K', publicKey).verify(this.token)
+    let verified
+    try {
+      verified = new TokenVerifier('ES256K', publicKey).verify(this.token)
+    } catch (err) {
+      throw new ValidationError('Failed to verify supplied authentication JWT')
+    }
+
     if (!verified) {
       throw new ValidationError('Failed to verify supplied authentication JWT')
     }
@@ -329,6 +335,17 @@ export function getChallengeText(myURL: string = DEFAULT_STORAGE_URL) {
   return JSON.stringify( [header, allowedSpan, myURL, myChallenge] )
 }
 
+export function getChallengeTexts(myURL: string = DEFAULT_STORAGE_URL) {
+  const curChallengeText = getChallengeText(myURL)
+  
+  // make previous year's challenge text
+  const header = 'gaiahub'
+  const myChallenge = 'blockstack_storage_please_sign'
+  const prevChallengeText = JSON.stringify( [header, '2018', myURL, myChallenge] )
+
+  return [curChallengeText, prevChallengeText]
+}
+
 export function parseAuthHeader(authHeader: string) {
   if (!authHeader || !authHeader.toLowerCase().startsWith('bearer')) {
     throw new ValidationError('Failed to parse authentication header.')
@@ -369,8 +386,24 @@ export function validateAuthorizationHeader(authHeader: string, serverName: stri
     throw new ValidationError('Failed to parse authentication header.')
   }
 
-  const challengeText = getChallengeText(serverName)
-  return authObject.isAuthenticationValid(address, challengeText, { validHubUrls, requireCorrectHubUrl })
+  const challengeTexts = getChallengeTexts(serverName)
+  for (let i = 0; i < challengeTexts.length; i++) {
+    try {
+      const valid = authObject.isAuthenticationValid(address, challengeTexts[i], 
+        { validHubUrls, requireCorrectHubUrl })
+
+      if (valid) {
+        return valid
+      }
+    } catch (err) {
+      if (err instanceof ValidationError) {
+        continue
+      } else {
+        throw err
+      }
+    }
+  }
+  throw new ValidationError('Invalid gaiaChallenge text in supplied JWT')
 }
 
 
