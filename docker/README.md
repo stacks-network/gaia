@@ -1,6 +1,4 @@
-### .env 
-
-### testing 
+### .env testing 
 
 #### macosx 
 `export LOCAL_DISK=/tmp` <br>
