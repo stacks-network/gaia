@@ -1,3 +1,12 @@
-Default configuration in .env file is configured to run on aws image testing by default. 
+### .env 
 
-The variables need to be set to wherever the user may want to host the data in their own file system storage.
+### testing 
+
+### macosx 
+export LOCAL_DISK=/tmp
+export GAIA_DISK_STORAGE_ROOT_DIR=./gaia-storage
+docker-compose up -d
+
+### cloud images
+configured to auto mount in img executable 
+
