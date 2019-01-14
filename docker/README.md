@@ -3,8 +3,8 @@
 ### testing 
 
 ### macosx 
-export LOCAL_DISK=/tmp
-export GAIA_DISK_STORAGE_ROOT_DIR=./gaia-storage
+export LOCAL_DISK=/tmp \newline
+export GAIA_DISK_STORAGE_ROOT_DIR=./gaia-storage \newline
 docker-compose up -d
 
 ### cloud images
