@@ -1,13 +1,23 @@
 version: "3.3"
-# test
+
 services:
   hub:
     image: quay.io/blockstack/gaia-hub:develop
     volumes:
       - "./hub-config:/src/hub/etc"
-      - "${GAIA_DISK_STORAGE_ROOT_DIR}:${LOCAL_DISK}"
+      - "./gaia-storage:/tmp/gaia-storage"
     ports:
       - "3000:3000"
+    environment:
+      CONFIG_PATH: /src/hub/etc/config.json
+      GAIA_SERVER_NAME: hub
+      GAIA_PORT: 3000
+      GAIA_DRIVER: disk
+      GAIA_BUCKET_NAME: hub
+      GAIA_READ_URL: http://localhost:80/hub/
+      GAIA_CACHE_CONTROL: "public, max-age=1"
+      GAIA_DISK_STORAGE_ROOT_DIR: /tmp/gaia-storage
+      GAIA_PAGE_SIZE: 20
     networks:
       - gaia
 
@@ -26,11 +36,12 @@ services:
     image: quay.io/blockstack/gaia-hub:reader
     volumes:
       - "./reader-config:/src/reader/etc"
-      - "${GAIA_DISK_STORAGE_ROOT_DIR}:${LOCAL_DISK}"
+      - "./gaia-storage:/tmp/gaia-storage"
     ports:
       - "8008:8008"
     environment:
       CONFIG_PATH: "/src/reader/etc/config.json"
+      GAIA_DISK_STORAGE_ROOT_DIR: "/tmp/gaia-storage"
     networks:
       - gaia
 
