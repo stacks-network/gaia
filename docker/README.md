@@ -8,3 +8,5 @@
 #### cloud images
 configured to auto mount in img executable 
 
+current aws image: <link to aws marketplace image id>
+
