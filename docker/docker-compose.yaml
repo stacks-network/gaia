@@ -25,6 +25,7 @@ services:
     image: quay.io/blockstack/gaia-hub:admin
     volumes:
       - "./admin-config:/src/admin/etc"
+      - "./hub-config:/tmp/hub"
     ports:
       - "8009:8009"
     environment:

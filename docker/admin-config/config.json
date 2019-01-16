@@ -12,7 +12,7 @@
     "hello"
   ],
   "gaiaSettings": {
-    "configPath": "./etc/config.json"
+    "configPath": "/tmp/hub/config.json"
   },
   "reloadSettings": {
     "command": "/bin/sh",
