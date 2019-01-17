@@ -179,12 +179,13 @@ function testAzDriver() {
   }
 
   let AzDriver, dataMap
+  const azDriverImport = '../../src/server/drivers/AzDriver'
   if (mockTest) {
     const mockedObj = makeMockedAzureDriver()
     dataMap = mockedObj.dataMap
     AzDriver = mockedObj.AzDriver
   } else {
-    AzDriver = require('../../src/server/drivers/AzDriver')
+    AzDriver = require(azDriverImport)
   }
 
   test('azDriver', (t) => {

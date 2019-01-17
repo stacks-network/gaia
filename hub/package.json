@@ -1,6 +1,6 @@
 {
   "name": "gaia-hub",
-  "version": "2.2.2",
+  "version": "2.3.4",
   "description": "",
   "main": "index.js",
   "engines": {
@@ -11,8 +11,8 @@
     "aws-sdk": "^2.114.0",
     "azure-storage": "^2.10.2",
     "bigi": "^1.4.2",
-    "bitcoinjs-lib": "^3.1.1",
-    "blockstack": "^18.0.0",
+    "bitcoinjs-lib": "^4.0.2",
+    "blockstack": "^18.1.0",
     "body-parser": "^1.18.1",
     "cors": "^2.8.4",
     "express": "^4.15.4",
@@ -50,7 +50,7 @@
     "build": "npm run lint && babel src -d lib && chmod +x lib/index.js",
     "flow": "flow",
     "lint": "eslint src && eslint test/src",
-    "test": "npm run flow && NODE_ENV=test nyc --reporter=text --reporter=html tape ./test/src/index.js"
+    "test": "npm run flow && NODE_ENV=test nyc --reporter=text --reporter=html node ./test/src/index.js"
   },
   "repository": {
     "type": "git",

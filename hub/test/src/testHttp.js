@@ -6,9 +6,11 @@ import * as auth from '../../src/server/authentication'
 import os from 'os'
 import fs from 'fs'
 import request from 'supertest'
+import { ecPairToAddress } from 'blockstack'
 
 import FetchMock from 'fetch-mock'
 import * as NodeFetch from 'node-fetch'
+const fetch = FetchMock.sandbox(NodeFetch)
 
 import { makeHttpServer } from '../../src/server/http.js'
 import DiskDriver from '../../src/server/drivers/diskDriver'
@@ -131,6 +133,42 @@ function testHttpWithAzure() {
 
   }
 
+  test('auth failure', (t) => {
+    let app = makeHttpServer(config)
+    let sk = testPairs[1]
+    let fileContents = sk.toWIF()
+    let blob = Buffer(fileContents)
+
+    let address = ecPairToAddress(sk)
+    let path = `/store/${address}/helloWorld`
+    let listPath = `/list-files/${address}`
+    let prefix = ''
+    let authorizationHeader = ''
+
+    request(app).get('/hub_info/')
+      .expect(200)
+      .then((response) => {
+        prefix = JSON.parse(response.text).read_url_prefix
+        const challenge = JSON.parse(response.text).challenge_text
+        const authPart = auth.V1Authentication.makeAuthPart(sk, challenge + 'f')
+        return `bearer ${authPart}`
+      })
+      .then((authorization) => {
+        authorizationHeader = authorization
+        return request(app).post(path)
+            .set('Content-Type', 'application/octet-stream')
+            .set('Authorization', authorization)
+            .send(blob)
+            .expect(401)
+      })
+      .then((response) => {
+        let json = JSON.parse(response.text)
+        t.ok(json, 'Must return json')
+        console.log(json)
+      })
+      .catch((err) => t.false(true, `Unexpected err: ${err}`))
+      .then(() => { FetchMock.restore(); t.end() })
+  })
 
   test('handle request', (t) => {
     const fetch = FetchMock.sandbox(NodeFetch)
@@ -139,7 +177,7 @@ function testHttpWithAzure() {
     const fileContents = sk.toWIF()
     const blob = Buffer.from(fileContents)
 
-    const address = sk.getAddress()
+    let address = ecPairToAddress(sk)
     const path = `/store/${address}/helloWorld`
     const listPath = `/list-files/${address}`
     let prefix = ''

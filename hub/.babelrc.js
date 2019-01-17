@@ -1,27 +1,15 @@
 module.exports = (api) => {
-
-  api.cache.invalidate(() => true)
-
-  const isTestEnv = api.env('test')
-  console.log(`[Babel] Running for env: ${api.env()}`)
-
+  api.cache.using(() => process.env.NODE_ENV)
   const opts = {
     presets: [
       '@babel/preset-flow'
     ],
     plugins: [
-      [
-        '@babel/plugin-transform-modules-commonjs',
-        {
-          loose: true
-        }
-      ]
+      '@babel/plugin-transform-modules-commonjs'
     ]
   }
-
-  if (isTestEnv) {
+  if (api.env('test')) {
     opts.plugins.push('istanbul');
   }
-
   return opts;
 }

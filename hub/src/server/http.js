@@ -47,7 +47,7 @@ export function makeHttpServer(config: MakeHttpServerConfig) : express.Applicati
 
   // Instantiate server logging with Winston
   app.use(expressWinston.logger({
-    transports: logger.loggers.default.transports }))
+    winstonInstance: logger }))
 
   app.use(cors())
 

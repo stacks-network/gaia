@@ -3,7 +3,7 @@
 import bitcoin from 'bitcoinjs-lib'
 import crypto from 'crypto'
 import { decodeToken, TokenSigner, TokenVerifier } from 'jsontokens'
-import { ecPairToHexString } from 'blockstack'
+import { ecPairToHexString, ecPairToAddress } from 'blockstack'
 import { ValidationError, AuthTokenNumberValidationError } from './errors'
 import logger from 'winston'
 
@@ -12,7 +12,7 @@ export const LATEST_AUTH_VERSION = 'v1'
 
 function pubkeyHexToECPair (pubkeyHex) {
   const pkBuff = Buffer.from(pubkeyHex, 'hex')
-  return bitcoin.ECPair.fromPublicKeyBuffer(pkBuff)
+  return bitcoin.ECPair.fromPublicKey(pkBuff)
 }
 
 export type AuthScopeType = {
@@ -60,7 +60,7 @@ export class V1Authentication {
                       associationToken?: string, hubUrl?: string, scopes?: Array<AuthScopeType>) {
 
     const FOUR_MONTH_SECONDS = 60 * 60 * 24 * 31 * 4
-    const publicKeyHex = secretKey.getPublicKeyBuffer().toString('hex')
+    const publicKeyHex = secretKey.publicKey.toString('hex')
     const salt = crypto.randomBytes(16).toString('hex')
 
     if (scopes) {
@@ -80,7 +80,7 @@ export class V1Authentication {
 
   static makeAssociationToken(secretKey: bitcoin.ECPair, childPublicKey: string) {
     const FOUR_MONTH_SECONDS = 60 * 60 * 24 * 31 * 4
-    const publicKeyHex = secretKey.getPublicKeyBuffer().toString('hex')
+    const publicKeyHex = secretKey.publicKey.toString('hex')
     const salt = crypto.randomBytes(16).toString('hex')
     const payload = { childToAssociate: childPublicKey,
                       iss: publicKeyHex,
@@ -134,13 +134,13 @@ export class V1Authentication {
     }
 
     // the bearer of the association token must have authorized the bearer
-    const childAddress = pubkeyHexToECPair(childPublicKey).getAddress()
+    const childAddress = ecPairToAddress(pubkeyHexToECPair(childPublicKey))
     if (childAddress !== bearerAddress) {
       throw new ValidationError(
         `Association token child key ${childPublicKey} does not match ${bearerAddress}`)
     }
 
-    const signerAddress = pubkeyHexToECPair(publicKey).getAddress()
+    const signerAddress = ecPairToAddress(pubkeyHexToECPair(publicKey))
     return signerAddress
 
   }
@@ -195,7 +195,7 @@ export class V1Authentication {
    *
    * this throws a ValidationError if the authentication is invalid
    */
-  isAuthenticationValid(address: string, challengeText: string,
+  isAuthenticationValid(address: string, challengeTexts: Array<string>,
                         options?: { requireCorrectHubUrl?: boolean,
                                     authTokenNumber?: number,
                                     validHubUrls?: Array<string> }) : string {
@@ -233,7 +233,7 @@ export class V1Authentication {
       }
     }
 
-    const issuerAddress = pubkeyHexToECPair(publicKey).getAddress()
+    const issuerAddress = ecPairToAddress(pubkeyHexToECPair(publicKey))
 
     if (issuerAddress !== address) {
       throw new ValidationError('Address not allowed to write on this path')
@@ -264,13 +264,20 @@ export class V1Authentication {
       validateScopes(scopes)
     }
 
-    const verified = new TokenVerifier('ES256K', publicKey).verify(this.token)
+    let verified
+    try {
+      verified = new TokenVerifier('ES256K', publicKey).verify(this.token)
+    } catch (err) {
+      throw new ValidationError('Failed to verify supplied authentication JWT')
+    }
+
     if (!verified) {
       throw new ValidationError('Failed to verify supplied authentication JWT')
     }
 
-    if (gaiaChallenge !== challengeText) {
-      throw new ValidationError(`Invalid gaiaChallenge text in supplied JWT: ${gaiaChallenge}`)
+    if (!challengeTexts.includes(gaiaChallenge)) {
+      throw new ValidationError(`Invalid gaiaChallenge text in supplied JWT: "${gaiaChallenge}"` +
+                                ` not found in ${JSON.stringify(challengeTexts)}`)
     }
 
     const expiresAt = decodedToken.payload.exp
@@ -300,15 +307,21 @@ export class LegacyAuthentication {
   static fromAuthPart(authPart: string) {
     const decoded = JSON.parse(Buffer.from(authPart, 'base64').toString())
     const publickey = pubkeyHexToECPair(decoded.publickey)
-    const signature = bitcoin.ECSignature.fromDER(
-      Buffer.from(decoded.signature, 'hex'))
+    const hashType = Buffer.from([bitcoin.Transaction.SIGHASH_NONE])
+    const signatureBuffer = Buffer.concat([Buffer.from(decoded.signature, 'hex'), hashType])
+    const signature = bitcoin.script.signature.decode(signatureBuffer).signature.toString('hex')
     return new LegacyAuthentication(publickey, signature)
   }
 
   static makeAuthPart(secretKey: bitcoin.ECPair, challengeText: string) {
-    const publickey = secretKey.getPublicKeyBuffer().toString('hex')
+    const publickey = secretKey.publicKey.toString('hex')
     const digest = bitcoin.crypto.sha256(challengeText)
-    const signature = secretKey.sign(digest).toDER().toString('hex')
+    const signatureBuffer = secretKey.sign(digest)
+    const signatureWithHash = bitcoin.script.signature.encode(signatureBuffer, bitcoin.Transaction.SIGHASH_NONE)
+    
+    // We only want the DER encoding so remove the sighash version byte at the end.
+    // See: https://github.com/bitcoinjs/bitcoinjs-lib/issues/1241#issuecomment-428062912
+    const signature = signatureWithHash.toString('hex').slice(0, -2)
 
     const authObj = { publickey, signature }
 
@@ -320,31 +333,39 @@ export class LegacyAuthentication {
     return []
   }
 
-  isAuthenticationValid(address: string, challengeText: string,
+  isAuthenticationValid(address: string, challengeTexts: Array<string>,
                         options? : {}) { //  eslint-disable-line no-unused-vars
-    if (this.publickey.getAddress() !== address) {
+    if (ecPairToAddress(this.publickey) !== address) {
       throw new ValidationError('Address not allowed to write on this path')
     }
 
-    const digest = bitcoin.crypto.sha256(challengeText)
-    const valid = (this.publickey.verify(digest, this.signature) === true)
+    for (const challengeText of challengeTexts) {
+      const digest = bitcoin.crypto.sha256(challengeText)
+      const valid = (this.publickey.verify(digest, Buffer.from(this.signature, 'hex')) === true)
 
-    if (!valid) {
-      logger.debug(`Failed to validate with challenge text: ${challengeText}`)
-      throw new ValidationError('Invalid signature or expired authentication token.')
+      if (valid) {
+        return address
+      }
     }
-    return address
+    logger.debug(`Failed to validate with challenge text: ${JSON.stringify(challengeTexts)}`)
+    throw new ValidationError('Invalid signature or expired authentication token.')
   }
 }
 
 export function getChallengeText(myURL: string = DEFAULT_STORAGE_URL) {
   const header = 'gaiahub'
-  const dateParts = new Date().toISOString().split('T')[0]
-        .split('-')
-  // for right now, access tokens are valid for the calendar year.
-  const allowedSpan = dateParts[0]
+  const allowedSpan = '0'
   const myChallenge = 'blockstack_storage_please_sign'
   return JSON.stringify( [header, allowedSpan, myURL, myChallenge] )
+}
+
+export function getLegacyChallengeTexts(myURL: string = DEFAULT_STORAGE_URL): Array<string> {
+  // make legacy challenge texts
+  const header = 'gaiahub'
+  const myChallenge = 'blockstack_storage_please_sign'
+  const legacyYears = ['2018', '2019']
+  return legacyYears.map(year => JSON.stringify(
+    [header, year, myURL, myChallenge]))
 }
 
 export function parseAuthHeader(authHeader: string) {
@@ -389,9 +410,11 @@ export function validateAuthorizationHeader(authHeader: string, serverName: ?str
     throw new ValidationError('Failed to parse authentication header.')
   }
 
-  const challengeText = getChallengeText(serverNameOpt)
+  const challengeTexts = []
+  challengeTexts.push(getChallengeText(serverNameOpt))
+  getLegacyChallengeTexts(serverName).forEach(challengeText => challengeTexts.push(challengeText))
 
-  return authObject.isAuthenticationValid(address, challengeText, { validHubUrls, requireCorrectHubUrl, authTokenNumber: requiredAuthTokenNumber })
+  return authObject.isAuthenticationValid(address, challengeTexts, { validHubUrls, requireCorrectHubUrl })
 }
 
 
@@ -422,13 +445,13 @@ function validateScopes(scopes: Array<AuthScopeType>) {
 
   for (let i = 0; i < scopes.length; i++) {
     const scope = scopes[i]
-    
+
     // valid scope?
     const found = AuthScopes.find((s) => (s === scope.scope))
     if (!found) {
       throw new ValidationError(`Unrecognized scope ${scope.scope}`)
     }
   }
-  
+
   return true
 }
