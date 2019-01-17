@@ -5,7 +5,7 @@ services:
     image: quay.io/blockstack/gaia-hub:develop
     volumes:
       - "./hub-config:/src/hub/etc"
-      - "./gaia-storage:/tmp/gaia-storage"
+      - "${GAIA_DISK_STORAGE_ROOT_DIR}:${LOCAL_DISK}"
     ports:
       - "3000:3000"
     environment:
@@ -30,7 +30,7 @@ services:
     image: quay.io/blockstack/gaia-hub:reader
     volumes:
       - "./reader-config:/src/reader/etc"
-      - "./gaia-storage:/tmp/gaia-storage"
+      - "${GAIA_DISK_STORAGE_ROOT_DIR}:${LOCAL_DISK}"
     ports:
       - "8008:8008"
     environment:
