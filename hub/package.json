@@ -49,8 +49,8 @@
     "start": "npm run build && node lib/index.js",
     "build": "npm run lint && babel src -d lib && chmod +x lib/index.js",
     "flow": "flow",
-    "lint": "eslint src && eslint test/src",
-    "test": "npm run flow && NODE_ENV=test nyc --reporter=text --reporter=html node ./test/src/index.js"
+    "lint": "eslint src",
+    "test": "npm run lint && npm run flow && NODE_ENV=test nyc --reporter=text --reporter=html node ./test/src/index.js"
   },
   "repository": {
     "type": "git",
