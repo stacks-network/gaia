@@ -3,7 +3,7 @@
 import bitcoin from 'bitcoinjs-lib'
 import crypto from 'crypto'
 import { decodeToken, TokenSigner, TokenVerifier } from 'jsontokens'
-import { ecPairToHexString } from 'blockstack'
+import { ecPairToHexString, ecPairToAddress } from 'blockstack'
 import { ValidationError } from './errors'
 import logger from 'winston'
 
@@ -12,7 +12,7 @@ export const LATEST_AUTH_VERSION = 'v1'
 
 function pubkeyHexToECPair (pubkeyHex) {
   const pkBuff = Buffer.from(pubkeyHex, 'hex')
-  return bitcoin.ECPair.fromPublicKeyBuffer(pkBuff)
+  return bitcoin.ECPair.fromPublicKey(pkBuff)
 }
 
 export type AuthScopeType = {
@@ -60,7 +60,7 @@ export class V1Authentication {
                       associationToken?: string, hubUrl?: string, scopes?: Array<AuthScopeType>) {
 
     const FOUR_MONTH_SECONDS = 60 * 60 * 24 * 31 * 4
-    const publicKeyHex = secretKey.getPublicKeyBuffer().toString('hex')
+    const publicKeyHex = secretKey.publicKey.toString('hex')
     const salt = crypto.randomBytes(16).toString('hex')
 
     if (scopes) {
@@ -80,7 +80,7 @@ export class V1Authentication {
 
   static makeAssociationToken(secretKey: bitcoin.ECPair, childPublicKey: string) {
     const FOUR_MONTH_SECONDS = 60 * 60 * 24 * 31 * 4
-    const publicKeyHex = secretKey.getPublicKeyBuffer().toString('hex')
+    const publicKeyHex = secretKey.publicKey.toString('hex')
     const salt = crypto.randomBytes(16).toString('hex')
     const payload = { childToAssociate: childPublicKey,
                       iss: publicKeyHex,
@@ -134,13 +134,13 @@ export class V1Authentication {
     }
 
     // the bearer of the association token must have authorized the bearer
-    const childAddress = pubkeyHexToECPair(childPublicKey).getAddress()
+    const childAddress = ecPairToAddress(pubkeyHexToECPair(childPublicKey))
     if (childAddress !== bearerAddress) {
       throw new ValidationError(
         `Association token child key ${childPublicKey} does not match ${bearerAddress}`)
     }
 
-    const signerAddress = pubkeyHexToECPair(publicKey).getAddress()
+    const signerAddress = ecPairToAddress(pubkeyHexToECPair(publicKey))
     return signerAddress
 
   }
@@ -215,7 +215,7 @@ export class V1Authentication {
       throw new ValidationError('Must provide `iss` claim in JWT.')
     }
 
-    const issuerAddress = pubkeyHexToECPair(publicKey).getAddress()
+    const issuerAddress = ecPairToAddress(pubkeyHexToECPair(publicKey))
 
     if (issuerAddress !== address) {
       throw new ValidationError('Address not allowed to write on this path')
@@ -289,15 +289,21 @@ export class LegacyAuthentication {
   static fromAuthPart(authPart: string) {
     const decoded = JSON.parse(Buffer.from(authPart, 'base64').toString())
     const publickey = pubkeyHexToECPair(decoded.publickey)
-    const signature = bitcoin.ECSignature.fromDER(
-      Buffer.from(decoded.signature, 'hex'))
+    const hashType = Buffer.from([bitcoin.Transaction.SIGHASH_NONE])
+    const signatureBuffer = Buffer.concat([Buffer.from(decoded.signature, 'hex'), hashType])
+    const signature = bitcoin.script.signature.decode(signatureBuffer).signature.toString('hex')
     return new LegacyAuthentication(publickey, signature)
   }
 
   static makeAuthPart(secretKey: bitcoin.ECPair, challengeText: string) {
-    const publickey = secretKey.getPublicKeyBuffer().toString('hex')
+    const publickey = secretKey.publicKey.toString('hex')
     const digest = bitcoin.crypto.sha256(challengeText)
-    const signature = secretKey.sign(digest).toDER().toString('hex')
+    const signatureBuffer = secretKey.sign(digest)
+    const signatureWithHash = bitcoin.script.signature.encode(signatureBuffer, bitcoin.Transaction.SIGHASH_NONE)
+    
+    // We only want the DER encoding so remove the sighash version byte at the end.
+    // See: https://github.com/bitcoinjs/bitcoinjs-lib/issues/1241#issuecomment-428062912
+    const signature = signatureWithHash.toString('hex').slice(0, -2)
 
     const authObj = { publickey, signature }
 
@@ -311,13 +317,13 @@ export class LegacyAuthentication {
 
   isAuthenticationValid(address: string, challengeTexts: Array<string>,
                         options? : {}) { //  eslint-disable-line no-unused-vars
-    if (this.publickey.getAddress() !== address) {
+    if (ecPairToAddress(this.publickey) !== address) {
       throw new ValidationError('Address not allowed to write on this path')
     }
 
     for (const challengeText of challengeTexts) {
       const digest = bitcoin.crypto.sha256(challengeText)
-      const valid = (this.publickey.verify(digest, this.signature) === true)
+      const valid = (this.publickey.verify(digest, Buffer.from(this.signature, 'hex')) === true)
 
       if (valid) {
         return address

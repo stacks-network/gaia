@@ -1,9 +1,9 @@
 import test  from 'tape'
 
-import * as auth from '../../lib/server/authentication'
-import * as errors from '../../lib/server/errors'
-import { HubServer }  from '../../lib/server/server'
-import { Readable, Writable } from 'stream'
+import * as auth from '../../src/server/authentication'
+import * as errors from '../../src/server/errors'
+import { HubServer }  from '../../src/server/server'
+import { Readable } from 'stream'
 
 import { testPairs, testAddrs} from './common'
 
@@ -315,7 +315,7 @@ export function testServer() {
                                  { whitelist: [testAddrs[1]] })
     const challengeText = auth.getChallengeText()
 
-    const associationToken = auth.V1Authentication.makeAssociationToken(testPairs[1], testPairs[0].getPublicKeyBuffer().toString('hex'))
+    const associationToken = auth.V1Authentication.makeAssociationToken(testPairs[1], testPairs[0].publicKey.toString('hex'))
     const authPart = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText, associationToken, undefined, writeScopes)
 
     console.log(`V1 storage validation: ${authPart}`)

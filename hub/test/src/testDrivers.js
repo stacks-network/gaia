@@ -2,25 +2,22 @@ import test  from 'tape'
 
 import proxyquire from 'proxyquire'
 import FetchMock from 'fetch-mock'
+import * as NodeFetch from 'node-fetch'
+const fetch = FetchMock.sandbox(NodeFetch)
 
 import fs from 'fs'
 import path from 'path'
 
 import { Readable, Writable } from 'stream'
 
-import * as auth from '../../lib/server/authentication'
-import * as errors from '../../lib/server/errors'
-
-import { testPairs, testAddrs} from './common'
-
 const azConfigPath = process.env.AZ_CONFIG_PATH
 const awsConfigPath = process.env.AWS_CONFIG_PATH
 const diskConfigPath = process.env.DISK_CONFIG_PATH
 const gcConfigPath = process.env.GC_CONFIG_PATH
 
-export function addMockFetches(prefix, dataMap) {
+export function addMockFetches(fetchLib, prefix, dataMap) {
   dataMap.forEach( item => {
-    FetchMock.get(`${prefix}${item.key}`, item.data)
+    fetchLib.get(`${prefix}${item.key}`, item.data)
   })
 }
 
@@ -63,7 +60,7 @@ export function makeMockedAzureDriver() {
     return { createContainerIfNotExists, createBlockBlobFromStream, listBlobsSegmentedWithPrefix }
   }
 
-  const AzDriver = proxyquire('../../lib/server/drivers/AzDriver', {
+  const AzDriver = proxyquire('../../src/server/drivers/AzDriver', {
     'azure-storage': { createBlobService }
   })
   return { AzDriver, dataMap }
@@ -99,7 +96,7 @@ function makeMockedS3Driver() {
     }
   }
 
-  const driver = proxyquire('../../lib/server/drivers/S3Driver', {
+  const driver = proxyquire('../../src/server/drivers/S3Driver', {
     'aws-sdk/clients/s3': S3Class
   })
   return { driver, dataMap }
@@ -155,7 +152,7 @@ function makeMockedGcDriver() {
     }
   }
 
-  const driver = proxyquire('../../lib/server/drivers/GcDriver', {
+  const driver = proxyquire('../../src/server/drivers/GcDriver', {
     '@google-cloud/storage': StorageClass
   })
   return { driver, dataMap }
@@ -177,7 +174,7 @@ function testAzDriver() {
   }
 
   let AzDriver, dataMap
-  const azDriverImport = '../../lib/server/drivers/AzDriver'
+  const azDriverImport = '../../src/server/drivers/AzDriver'
   if (mockTest) {
     const mockedObj = makeMockedAzureDriver()
     dataMap = mockedObj.dataMap
@@ -206,7 +203,7 @@ function testAzDriver() {
           contentLength: 12 }))
       .then((readUrl) => {
         if (mockTest) {
-          addMockFetches(prefix, dataMap)
+          addMockFetches(fetch, prefix, dataMap)
         }
 
         t.ok(readUrl.startsWith(prefix), `${readUrl} must start with readUrlPrefix ${prefix}`)
@@ -220,7 +217,10 @@ function testAzDriver() {
         t.equal(files.entries[0], 'foo.txt', 'Should be foo.txt!')
       })
       .catch((err) => t.false(true, `Unexpected err: ${err}`))
-      .then(() => { FetchMock.restore(); t.end() })
+      .then(() => {
+        fetch.restore()
+        t.end() 
+      })
   })
 }
 
@@ -236,7 +236,7 @@ function testS3Driver() {
   }
 
   let S3Driver, dataMap
-  const S3DriverImport = '../../lib/server/drivers/S3Driver'
+  const S3DriverImport = '../../src/server/drivers/S3Driver'
   if (mockTest) {
     const mockedObj = makeMockedS3Driver()
     dataMap = mockedObj.dataMap
@@ -265,9 +265,7 @@ function testS3Driver() {
           contentLength: 12 }))
       .then((readUrl) => {
         if (mockTest) {
-          addMockFetches(prefix, dataMap)
-        }
-        else {
+          addMockFetches(fetch, prefix, dataMap)
         }
         t.ok(readUrl.startsWith(prefix + '12345'), `${readUrl} must start with readUrlPrefix ${prefix}12345`)
         return fetch(readUrl)
@@ -280,9 +278,12 @@ function testS3Driver() {
         t.equal(files.entries[0], 'foo.txt', 'Should be foo.txt!')
       })
       .catch((err) => t.false(true, `Unexpected err: ${err}`))
-      .then(() => { FetchMock.restore(); })
-      .catch(() => t.false(true, `Unexpected err: ${err}`))
-      .then(() => { FetchMock.restore(); t.end() })
+      .then(() => fetch.restore())
+      .catch((err) => t.false(true, `Unexpected err: ${err}`))
+      .then(() => { 
+        fetch.restore()
+        t.end() 
+      })
   })
 }
 
@@ -295,7 +296,7 @@ function testDiskDriver() {
     return
   }
   const config = JSON.parse(fs.readFileSync(diskConfigPath))
-  const diskDriverImport = '../../lib/server/drivers/diskDriver'
+  const diskDriverImport = '../../src/server/drivers/diskDriver'
   const DiskDriver = require(diskDriverImport)
 
   test('diskDriver', (t) => {
@@ -319,7 +320,6 @@ function testDiskDriver() {
           contentType: 'application/octet-stream',
           contentLength: 12 }))
       .then((readUrl) => {
-        const filePath = path.join(storageDir, '12345', 'foo/bar.txt')
         const metadataPath = path.join(storageDir, '.gaia-metadata', '12345', 'foo/bar.txt')
         t.ok(readUrl.startsWith(prefix + '12345'), `${readUrl} must start with readUrlPrefix ${prefix}12345`)
         t.equal(JSON.parse(fs.readFileSync(metadataPath).toString())['content-type'], 'application/octet-stream',
@@ -345,7 +345,7 @@ function testGcDriver() {
   }
 
   let GcDriver, dataMap
-  const GcDriverImport = '../../lib/server/drivers/GcDriver'
+  const GcDriverImport = '../../src/server/drivers/GcDriver'
   if (mockTest) {
     const mockedObj = makeMockedGcDriver()
     dataMap = mockedObj.dataMap
@@ -374,7 +374,7 @@ function testGcDriver() {
           contentLength: 12 }))
       .then((readUrl) => {
         if (mockTest) {
-          addMockFetches(prefix, dataMap)
+          addMockFetches(fetch, prefix, dataMap)
         }
         t.ok(readUrl.startsWith(prefix + '12345'), `${readUrl} must start with readUrlPrefix ${prefix}12345`)
         return fetch(readUrl)
@@ -387,7 +387,10 @@ function testGcDriver() {
         t.equal(files.entries[0], 'foo.txt', 'Should be foo.txt!')
       })
       .catch((err) => t.false(true, `Unexpected err: ${err}`))
-      .then(() => { FetchMock.restore(); t.end() })
+      .then(() => {
+        fetch.restore()
+        t.end() 
+      })
   })
 }
 

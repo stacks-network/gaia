@@ -69,3 +69,4 @@ target/
 */node_modules/*
 tmp/gaia-disk
 node_modules/*
+*/coverage/*

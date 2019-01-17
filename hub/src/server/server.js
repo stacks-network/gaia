@@ -2,19 +2,20 @@
 
 import { validateAuthorizationHeader, getAuthenticationScopes } from './authentication'
 import { ValidationError } from './errors'
+import { ProofChecker } from './ProofChecker'
 
 import type { Readable } from 'stream'
 import type { DriverModel } from './driverModel'
 
 export class HubServer {
   driver: DriverModel
-  proofChecker: Object
+  proofChecker: ProofChecker
   whitelist: Array<string>
   serverName: string
   readURL: ?string
   requireCorrectHubUrl: boolean
   validHubUrls: ?Array<string>
-  constructor(driver: DriverModel, proofChecker: Object,
+  constructor(driver: DriverModel, proofChecker: ProofChecker,
               config: { whitelist: Array<string>, serverName: string,
                         readURL?: string, requireCorrectHubUrl?: boolean,
                         validHubUrls?: Array<string> }) {

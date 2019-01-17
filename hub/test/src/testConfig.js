@@ -1,6 +1,5 @@
-import bitcoin from 'bitcoinjs-lib'
 import test  from 'tape'
-import * as config from '../../lib/server/config.js'
+import * as config from '../../src/server/config.js'
 
 
 export function testConfig() {
