@@ -18,11 +18,11 @@ const azConfigPath = process.env.AZ_CONFIG_PATH
 
 export function testHttp() {
   let config = {
-    'azCredentials': {
-      'accountName': 'mock-azure',
-      'accountKey': 'mock-azure-key'
+    "azCredentials": {
+      "accountName": "mock-azure",
+      "accountKey": "mock-azure-key"
     },
-    'bucket': 'spokes'
+    "bucket": "spokes"
   }
   let mockTest = true
 
@@ -82,14 +82,14 @@ export function testHttp() {
   })
 
   test('handle request', (t) => {
-    const app = makeHttpServer(config)
-    const sk = testPairs[1]
-    const fileContents = sk.toWIF()
-    const blob = Buffer(fileContents)
+    let app = makeHttpServer(config)
+    let sk = testPairs[1]
+    let fileContents = sk.toWIF()
+    let blob = Buffer(fileContents)
 
-    const address = ecPairToAddress(sk)
-    const path = `/store/${address}/helloWorld`
-    const listPath = `/list-files/${address}`
+    let address = ecPairToAddress(sk)
+    let path = `/store/${address}/helloWorld`
+    let listPath = `/list-files/${address}`
     let prefix = ''
     let authorizationHeader = ''
 
@@ -114,7 +114,7 @@ export function testHttp() {
           addMockFetches(fetch, prefix, dataMap)
         }
 
-        const url = JSON.parse(response.text).publicURL
+        let url = JSON.parse(response.text).publicURL
         t.ok(url, 'Must return URL')
         console.log(url)
         fetch(url)

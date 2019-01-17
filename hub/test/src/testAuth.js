@@ -205,7 +205,7 @@ export function testAuth() {
     const writeScopes = [
       {
         scope: 'putFile',
-        domain: '/foo/bar'
+        domain: '/foo/bar',
       },
       {
         scope: 'putFile',
@@ -216,14 +216,14 @@ export function testAuth() {
     const writeScopesInvalid = [
       {
         scope: 'invalid',
-        domain: 'nope'
+        domain: 'nope',
       }
     ]
 
     const writeScopesTooLong = [
       {
         scope: 'putFile',
-        domain: '/0'
+        domain: '/0',
       },
       {
         scope: 'putFile',

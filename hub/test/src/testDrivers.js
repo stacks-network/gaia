@@ -22,10 +22,10 @@ export function addMockFetches(fetchLib, prefix, dataMap) {
 }
 
 function readStream(input, contentLength, callback) {
-  const bufs = []
-  input.on('data', d => bufs.push(d))
+  var bufs = []
+  input.on('data', function(d){ bufs.push(d) });
   input.on('end', function(){
-    const buf = Buffer.concat(bufs)
+    var buf = Buffer.concat(bufs)
     callback(buf.slice(0, contentLength))
   })
 }
@@ -160,11 +160,11 @@ function makeMockedGcDriver() {
 
 function testAzDriver() {
   let config = {
-    'azCredentials': {
-      'accountName': 'mock-azure',
-      'accountKey': 'mock-azure-key'
+    "azCredentials": {
+      "accountName": "mock-azure",
+      "accountKey": "mock-azure-key"
     },
-    'bucket': 'spokes'
+    "bucket": "spokes"
   }
   let mockTest = true
 
@@ -226,7 +226,7 @@ function testAzDriver() {
 
 function testS3Driver() {
   let config = {
-    'bucket': 'spokes'
+    "bucket": "spokes"
   }
   let mockTest = true
 
@@ -335,7 +335,7 @@ function testDiskDriver() {
 
 function testGcDriver() {
   let config = {
-    'bucket': 'spokes'
+    "bucket": "spokes"
   }
   let mockTest = true
 
