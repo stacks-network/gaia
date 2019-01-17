@@ -90,6 +90,44 @@ export function testServer() {
 
   })
 
+  test('validation with 2018 challenge texts', (t) => {
+    t.plan(5)
+    const server = new HubServer(new MockDriver(), new MockProofs(),
+                                 { whitelist: [testAddrs[0]], requireCorrectHubUrl: true,
+                                   validHubUrls: ['https://testserver.com'] })
+
+    const challengeTexts = []
+    challengeTexts.push(auth.getChallengeText())
+    auth.getLegacyChallengeTexts().forEach(challengeText => challengeTexts.push(challengeText))
+
+    const challenge2018 = challengeTexts.find(x => x.indexOf('2018') > 0)
+    t.ok(challenge2018, 'Should find a valid 2018 challenge text')
+
+    const authPartGood1 = auth.V1Authentication.makeAuthPart(testPairs[0], challengeTexts[1], undefined, 'https://testserver.com/')
+    const authPartGood2 = auth.V1Authentication.makeAuthPart(testPairs[0], challengeTexts[1], undefined, 'https://testserver.com')
+    const authPartBad1 = auth.V1Authentication.makeAuthPart(testPairs[0], challengeTexts[1], undefined, undefined)
+    const authPartBad2 = auth.V1Authentication.makeAuthPart(testPairs[0], challengeTexts[1], undefined, 'testserver.com')
+
+    t.throws(() => server.validate(testAddrs[0], { authorization: `bearer ${authPartBad1}` }),
+             errors.ValidationError, 'Auth must include a hubUrl')
+    t.throws(() => server.validate(testAddrs[0], { authorization: `bearer ${authPartBad2}` }),
+             errors.ValidationError, 'Auth must include correct hubUrl')
+
+    try {
+      server.validate(testAddrs[0], { authorization: `bearer ${authPartGood1}` })
+      t.pass('Address with good auth header should pass')
+    } catch (err) {
+      t.fail('Address with good auth header should pass')
+    }
+    try {
+      server.validate(testAddrs[0], { authorization: `bearer ${authPartGood2}` })
+      t.pass('Address with good auth header should pass')
+    } catch (err) {
+      t.fail('Address with good auth header should pass')
+    }
+
+  })
+
   test('handle request with readURL', (t) => {
     t.plan(8)
     const mockDriver = new MockDriver()
