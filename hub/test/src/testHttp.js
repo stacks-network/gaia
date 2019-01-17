@@ -30,7 +30,7 @@ export function testHttpWithInMemoryDriver() {
       const fileContents = sk.toWIF()
       const blob = Buffer.from(fileContents)
 
-      const address = sk.getAddress()
+      const address = ecPairToAddress(sk)
       const path = `/store/${address}/helloWorld`
       const listPath = `/list-files/${address}`
       let authorizationHeader = ''
@@ -137,7 +137,7 @@ function testHttpWithAzure() {
     let app = makeHttpServer(config)
     let sk = testPairs[1]
     let fileContents = sk.toWIF()
-    let blob = Buffer(fileContents)
+    let blob = Buffer.from(fileContents)
 
     let address = ecPairToAddress(sk)
     let path = `/store/${address}/helloWorld`
@@ -171,15 +171,15 @@ function testHttpWithAzure() {
   })
 
   test('handle request', (t) => {
-    const fetch = FetchMock.sandbox(NodeFetch)
-    const app = makeHttpServer(config)
-    const sk = testPairs[1]
-    const fileContents = sk.toWIF()
-    const blob = Buffer.from(fileContents)
+    let fetch = FetchMock.sandbox(NodeFetch)
+    let app = makeHttpServer(config)
+    let sk = testPairs[1]
+    let fileContents = sk.toWIF()
+    let blob = Buffer.from(fileContents)
 
     let address = ecPairToAddress(sk)
-    const path = `/store/${address}/helloWorld`
-    const listPath = `/list-files/${address}`
+    let path = `/store/${address}/helloWorld`
+    let listPath = `/list-files/${address}`
     let prefix = ''
     let authorizationHeader = ''
 
@@ -204,7 +204,7 @@ function testHttpWithAzure() {
           addMockFetches(fetch, prefix, dataMap)
         }
 
-        const url = JSON.parse(response.text).publicURL
+        let url = JSON.parse(response.text).publicURL
         t.ok(url, 'Must return URL')
         console.log(url)
         fetch(url)

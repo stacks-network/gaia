@@ -23,10 +23,10 @@ export function addMockFetches(fetchLib: any, prefix: any, dataMap: any) {
 }
 
 function readStream(input, contentLength, callback) {
-  const bufs = []
-  input.on('data', d => bufs.push(d))
+  var bufs = []
+  input.on('data', function(d){ bufs.push(d) });
   input.on('end', function(){
-    const buf = Buffer.concat(bufs)
+    var buf = Buffer.concat(bufs)
     callback(buf.slice(0, contentLength))
   })
 }
@@ -165,11 +165,11 @@ function makeMockedGcDriver() {
 
 function testAzDriver() {
   let config = {
-    'azCredentials': {
-      'accountName': 'mock-azure',
-      'accountKey': 'mock-azure-key'
+    "azCredentials": {
+      "accountName": "mock-azure",
+      "accountKey": "mock-azure-key"
     },
-    'bucket': 'spokes'
+    "bucket": "spokes"
   }
   let mockTest = true
 
@@ -179,13 +179,12 @@ function testAzDriver() {
   }
 
   let AzDriver, dataMap
-  const azDriverImport = '../../src/server/drivers/AzDriver'
   if (mockTest) {
     const mockedObj = makeMockedAzureDriver()
     dataMap = mockedObj.dataMap
     AzDriver = mockedObj.AzDriver
   } else {
-    AzDriver = require(azDriverImport)
+    AzDriver = require('../../src/server/drivers/AzDriver')
   }
 
   test('azDriver', (t) => {
@@ -229,7 +228,7 @@ function testAzDriver() {
 
 function testS3Driver() {
   let config : any = {
-    'bucket': 'spokes'
+    "bucket": "spokes"
   }
   let mockTest = true
 
@@ -332,11 +331,9 @@ function testDiskDriver() {
   })
 }
 
-
-
 function testGcDriver() {
   let config = {
-    'bucket': 'spokes'
+    "bucket": "spokes"
   }
   let mockTest = true
 

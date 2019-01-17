@@ -1,4 +1,5 @@
 /* @flow */
+
 import test  from 'tape'
 import { TokenSigner } from 'jsontokens'
 
@@ -52,6 +53,7 @@ export function testAuth() {
              errors.ValidationError, 'Wrong challenge text must throw')
     t.ok(authenticator.isAuthenticationValid(testAddrs[0], [challengeText]),
          'Good signature must pass')
+
     t.throws(() => authenticator.isAuthenticationValid(testAddrs[1], [challengeText]),
              'Bad signature must throw')
     t.end()
@@ -203,7 +205,7 @@ export function testAuth() {
     const writeScopes = [
       {
         scope: 'putFile',
-        domain: '/foo/bar'
+        domain: '/foo/bar',
       },
       {
         scope: 'putFile',
@@ -214,14 +216,14 @@ export function testAuth() {
     const writeScopesInvalid = [
       {
         scope: 'invalid',
-        domain: 'nope'
+        domain: 'nope',
       }
     ]
 
     const writeScopesTooLong = [
       {
         scope: 'putFile',
-        domain: '/0'
+        domain: '/0',
       },
       {
         scope: 'putFile',

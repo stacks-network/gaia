@@ -21,7 +21,7 @@ export function testConfig() {
     t.throws(() => config.getConfig(), undefined, 'Should throw error on non-number input')
     delete process.env.GAIA_PAGE_SIZE
 
-    process.env.GAIA_WHITELIST = 'aaron.id, blankstein.id'
+    process.env.GAIA_WHITELIST = "aaron.id, blankstein.id"
     configResult = config.getConfig()
     t.deepEqual(configResult, Object.assign({}, config.configDefaults, { whitelist: ['aaron.id', 'blankstein.id'] }))
 
@@ -120,7 +120,7 @@ export function testConfig() {
     configResult = config.getConfig()
     configExpected = Object.assign({}, config.configDefaults, { driver: 'google-cloud' },
                                    { gcCredentials: {
-                                     email: '1', projectId: '2', keyFilename: '3', credentials: { 'client_email': '4', 'private_key': '5' }
+                                     email: '1', projectId: '2', keyFilename: '3', credentials: { client_email: '4', private_key: '5' }
                                    } })
 
     t.deepEqual(configResult, configExpected, 'GCP driver reads env vars correctly')

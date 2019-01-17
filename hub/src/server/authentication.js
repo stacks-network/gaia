@@ -197,8 +197,8 @@ export class V1Authentication {
    */
   isAuthenticationValid(address: string, challengeTexts: Array<string>,
                         options?: { requireCorrectHubUrl?: boolean,
-                                    authTokenNumber?: number,
-                                    validHubUrls?: Array<string> }) : string {
+                                    validHubUrls?: Array<string>,
+                                    requiredAuthTokenNumber?: number }) : string {
     let decodedToken
     try {
       decodedToken = decodeToken(this.token)
@@ -217,15 +217,15 @@ export class V1Authentication {
     }
 
     // check for revocations
-    if (options && options.authTokenNumber) {
+    if (options && options.requiredAuthTokenNumber) {
       const tokenAuthNumber = parseInt(decodedToken.payload.authNumber)
-      const requiredAuthTokenNumber : number = options.authTokenNumber || 0
+      const requiredAuthTokenNumber : number = options.requiredAuthTokenNumber || 0
       if (!tokenAuthNumber) {
         const message = `Gaia bucket requires auth token number of ${requiredAuthTokenNumber}` +
               ' but this token has no auth number. This token may have been revoked by the user.'
         throw new AuthTokenNumberValidationError(message, requiredAuthTokenNumber)
       }
-      if (tokenAuthNumber !== options.authTokenNumber) {
+      if (tokenAuthNumber !== options.requiredAuthTokenNumber) {
         const message = `Gaia bucket requires auth token number of ${requiredAuthTokenNumber}` +
               ` but this token has auth number ${tokenAuthNumber}.` +
               ' This token may have been revoked by the user.'
@@ -412,9 +412,9 @@ export function validateAuthorizationHeader(authHeader: string, serverName: ?str
 
   const challengeTexts = []
   challengeTexts.push(getChallengeText(serverNameOpt))
-  getLegacyChallengeTexts(serverName).forEach(challengeText => challengeTexts.push(challengeText))
+  getLegacyChallengeTexts(serverNameOpt).forEach(challengeText => challengeTexts.push(challengeText))
 
-  return authObject.isAuthenticationValid(address, challengeTexts, { validHubUrls, requireCorrectHubUrl })
+  return authObject.isAuthenticationValid(address, challengeTexts, { validHubUrls, requireCorrectHubUrl, requiredAuthTokenNumber })
 }
 
 

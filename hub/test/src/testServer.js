@@ -54,7 +54,7 @@ export function testServer() {
     } catch (err) {
       t.fail('White-listed address with good auth header should pass')
     }
-    
+
     try {
       server.validate(testAddrs[1], { authorization })
       t.fail('Non white-listed address with good auth header should fail')
@@ -217,7 +217,7 @@ export function testServer() {
     const writeScopes = [
       {
         scope: 'putFile',
-        domain: '/foo/bar'
+        domain: '/foo/bar',
       },
       {
         scope: 'putFilePrefix',
@@ -292,17 +292,13 @@ export function testServer() {
                          { 'content-length': 4,
                            authorization }, s3))
       .catch((e) => {
-        t.throws(() => { 
-          throw e 
-        }, errors.ValidationError, 'invalid path prefix should fail')
+        t.throws(() => { throw e }, errors.ValidationError, 'invalid path prefix should fail')
       })
       .then(() => server.handleRequest(testAddrs[0], '/foo/bar/nope.txt',
                                       { 'content-length': 4,
                                       authorization }, s4))
       .catch((e) => {
-        t.throws(() => { 
-          throw e 
-        }, errors.ValidationError, 'putFile does not allow prefixes')
+        t.throws(() => { throw e }, errors.ValidationError, 'putFile does not allow prefixes')
         t.end()
       })
   })
@@ -312,7 +308,7 @@ export function testServer() {
     const writeScopes = [
       {
         scope: 'putFile',
-        domain: '/foo/bar'
+        domain: '/foo/bar',
       },
       {
         scope: 'putFilePrefix',
@@ -381,17 +377,13 @@ export function testServer() {
                          { 'content-length': 4,
                            authorization }, s3))
       .catch((e) => {
-        t.throws(() => { 
-          throw e 
-        }, errors.ValidationError, 'invalid prefix should fail')
+        t.throws(() => { throw e }, errors.ValidationError, 'invalid prefix should fail')
       })
       .then(() => server.handleRequest(testAddrs[0], '/foo/bar/nope.txt',
                         { 'content-length': 4,
                           authorization }, s4 ))
       .catch((e) => {
-        t.throws(() => { 
-          throw e 
-        }, errors.ValidationError, 'putFile does not permit prefixes')
+        t.throws(() => { throw e }, errors.ValidationError, 'putFile does not permit prefixes')
         t.end()
       })
   })
