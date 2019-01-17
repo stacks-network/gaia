@@ -366,11 +366,12 @@ export function parseAuthHeader(authHeader: string) {
   }
 }
 
-export function validateAuthorizationHeader(authHeader: string, serverName: string,
+export function validateAuthorizationHeader(authHeader: string, serverName: ?string,
                                             address: string, requireCorrectHubUrl?: boolean = false,
                                             validHubUrls?: ?Array<string> = null,
                                             requiredAuthTokenNumber?: number) : string {
-  const serverNameHubUrl = `https://${serverName}`
+  const serverNameOpt: any = serverName
+  const serverNameHubUrl = `https://${serverNameOpt}`
   if (!validHubUrls) {
     validHubUrls = [ serverNameHubUrl ]
   } else if (validHubUrls.indexOf(serverNameHubUrl) < 0) {
@@ -388,7 +389,7 @@ export function validateAuthorizationHeader(authHeader: string, serverName: stri
     throw new ValidationError('Failed to parse authentication header.')
   }
 
-  const challengeText = getChallengeText(serverName)
+  const challengeText = getChallengeText(serverNameOpt)
 
   return authObject.isAuthenticationValid(address, challengeText, { validHubUrls, requireCorrectHubUrl, authTokenNumber: requiredAuthTokenNumber })
 }

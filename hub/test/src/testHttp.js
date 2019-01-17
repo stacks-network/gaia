@@ -1,22 +1,112 @@
-import test  from 'tape'
+/* @flow */
+
+import test  from 'tape-promise/tape'
 
 import * as auth from '../../src/server/authentication'
+import os from 'os'
 import fs from 'fs'
 import request from 'supertest'
 
 import FetchMock from 'fetch-mock'
 import * as NodeFetch from 'node-fetch'
-const fetch = FetchMock.sandbox(NodeFetch)
 
 import { makeHttpServer } from '../../src/server/http.js'
+import DiskDriver from '../../src/server/drivers/diskDriver'
+import type { MakeHttpServerConfig } from '../../src/server/http.js'
 import { makeMockedAzureDriver, addMockFetches } from './testDrivers'
 
 import { testPairs } from './common'
+import { InMemoryDriver } from './testDrivers/InMemoryDriver'
 
-const azConfigPath = process.env.AZ_CONFIG_PATH
+export function testHttpWithInMemoryDriver() {
+  test('handle request (InMemory driver)', async (t) => {
+    const fetch = NodeFetch
+    const inMemoryDriver = await InMemoryDriver.spawn()
+    try {
+      const app = makeHttpServer({ driverInstance: inMemoryDriver })
+      const sk = testPairs[1]
+      const fileContents = sk.toWIF()
+      const blob = Buffer.from(fileContents)
 
-export function testHttp() {
-  let config = {
+      const address = sk.getAddress()
+      const path = `/store/${address}/helloWorld`
+      const listPath = `/list-files/${address}`
+      let authorizationHeader = ''
+
+      let response = await request(app)
+        .get('/hub_info/')
+        .expect(200)
+    
+      const challenge = JSON.parse(response.text).challenge_text
+      const authPart = auth.V1Authentication.makeAuthPart(sk, challenge)
+      const authorization = `bearer ${authPart}`
+
+      authorizationHeader = authorization
+      response = await request(app).post(path)
+        .set('Content-Type', 'application/octet-stream')
+        .set('Authorization', authorization)
+        .send(blob)
+        .expect(202)
+
+      const url = JSON.parse(response.text).publicURL
+      t.ok(url, 'Must return URL')
+      console.log(url)
+      const resp = await fetch(url)
+      const text = await resp.text()
+      t.equal(text, fileContents, 'Contents returned must be correct')
+
+      const filesResponse = await request(app).post(listPath)
+        .set('Content-Type', 'application/json')
+        .set('Authorization', authorizationHeader)
+        .expect(202)
+      
+      const files = JSON.parse(filesResponse.text)
+      t.equal(files.entries.length, 1, 'Should return one file')
+      t.equal(files.entries[0], 'helloWorld', 'Should be helloworld')
+      t.ok(files.hasOwnProperty('page'), 'Response is missing a page')
+      t.end()
+
+    } finally {
+      inMemoryDriver.dispose()
+    }
+  })
+}
+
+function testHttpDriverOption() {
+  test('makeHttpServer "driver" config', (t) => {
+    makeHttpServer({
+      driver: 'disk',
+      readURL: 'test/',
+      diskSettings: {
+        storageRootDirectory: os.tmpdir()
+      }
+    })
+    t.end()
+  })
+
+  test('makeHttpServer "driverInstance" config', (t) => {
+    const driver = new DiskDriver({
+      readURL: 'test/',
+      diskSettings: {
+        storageRootDirectory: os.tmpdir()
+      }
+    })
+    makeHttpServer({
+      driverInstance: driver
+    })
+    t.end()
+  })
+
+  test('makeHttpServer missing driver config', (t) => {
+    t.throws(() => makeHttpServer({}), Error, 'Should fail to create http server when no driver config is specified')
+    t.end()
+  })
+
+}
+
+function testHttpWithAzure() {
+  const azConfigPath = process.env.AZ_CONFIG_PATH
+  let config : MakeHttpServerConfig = {
     'azCredentials': {
       'accountName': 'mock-azure',
       'accountKey': 'mock-azure-key'
@@ -26,28 +116,28 @@ export function testHttp() {
   let mockTest = true
 
   if (azConfigPath) {
-    config = JSON.parse(fs.readFileSync(azConfigPath))
+    config = JSON.parse(fs.readFileSync(azConfigPath, {encoding: 'utf8'}))
     config.driver = 'azure'
     mockTest = false
   }
 
   let dataMap = []
-  let AzDriver
-  const azDriverImport = '../../src/server/drivers/AzDriver'
   if (mockTest) {
     const mockedObj = makeMockedAzureDriver()
     dataMap = mockedObj.dataMap
-    AzDriver = mockedObj.AzDriver
+    const AzDriver = mockedObj.AzDriver
     config.driverClass = AzDriver
   } else {
-    AzDriver = require(azDriverImport)
+
   }
 
+
   test('handle request', (t) => {
+    const fetch = FetchMock.sandbox(NodeFetch)
     const app = makeHttpServer(config)
     const sk = testPairs[1]
     const fileContents = sk.toWIF()
-    const blob = Buffer(fileContents)
+    const blob = Buffer.from(fileContents)
 
     const address = sk.getAddress()
     const path = `/store/${address}/helloWorld`
@@ -100,4 +190,10 @@ export function testHttp() {
         t.end()
       })
   })
+}
+
+export function testHttp() {
+  testHttpWithAzure()
+  testHttpDriverOption()
+  testHttpWithInMemoryDriver()
 }

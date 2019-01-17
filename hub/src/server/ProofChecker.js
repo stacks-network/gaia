@@ -6,10 +6,12 @@ import fetch from 'node-fetch'
 
 import { NotEnoughProofError } from './errors'
 
+export type ProofCheckerConfig = { proofsRequired: number }
+
 export class ProofChecker {
   proofsRequired: number
 
-  constructor(proofsConfig: ?{proofsRequired: number}) {
+  constructor(proofsConfig?: ProofCheckerConfig) {
     if (!proofsConfig) {
       this.proofsRequired = 0
     } else {

@@ -38,6 +38,15 @@
             "cwd": "${workspaceFolder}/admin",
             "runtimeArgs": ["-r", "@babel/register"],
             "outputCapture": "std"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "gaia-hub-test",
+            "program": "${workspaceFolder}/hub/test/src/index.js",
+            "cwd": "${workspaceFolder}/hub",
+            "runtimeArgs": ["-r", "@babel/register"],
+            "outputCapture": "std"
         }
     ],
     "compounds": [

@@ -51,7 +51,7 @@
     "babel-eslint": "^10.0.1",
     "eslint": "^5.9.0",
     "eslint-plugin-flowtype": "^3.2.0",
-    "flow-bin": "^0.87.0",
+    "flow-bin": "^0.89.0",
     "nyc": "^13.0.0",
     "tape": "^4.9.0"
   },

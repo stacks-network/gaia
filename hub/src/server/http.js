@@ -6,9 +6,12 @@ import logger from 'winston'
 import cors from 'cors'
 
 import { ProofChecker } from './ProofChecker'
+import type { ProofCheckerConfig } from './ProofChecker'
 import { getChallengeText, LATEST_AUTH_VERSION } from './authentication'
 import { HubServer } from './server'
+import type { HubServerConfig } from './server'
 import { getDriverClass } from './utils'
+import type { DriverModel } from './driverModel'
 
 function writeResponse(res: express.response, data: Object, statusCode: number) {
   res.writeHead(statusCode, {'Content-Type' : 'application/json'})
@@ -16,14 +19,29 @@ function writeResponse(res: express.response, data: Object, statusCode: number) 
   res.end()
 }
 
-export function makeHttpServer(config: Object) {
-  const app = express()
+export type MakeHttpServerConfig = HubServerConfig & { 
+  proofsConfig?: ProofCheckerConfig,
+  driverInstance?: DriverModel, driverClass?: Class<DriverModel>, driver?: string
+}
+
+export function makeHttpServer(config: MakeHttpServerConfig) : express.Application {
+
+  const app : express.Application = express()
 
   // Handle driver configuration
-  const driverClass = config.driverClass ? config.driverClass :
-        getDriverClass(config.driver)
-  const driver = new driverClass(config)
+  let driver : DriverModel
 
+  if (config.driverInstance) {
+    driver = config.driverInstance
+  } else if (config.driverClass) {
+    driver = new config.driverClass(config)
+  } else if (config.driver) {
+    const driverClass = getDriverClass(config.driver)
+    driver = new driverClass(config)
+  } else {
+    throw new Error('Driver option not configured')
+  }
+  
   const proofChecker = new ProofChecker(config.proofsConfig)
   const server = new HubServer(driver, proofChecker, config)
 
@@ -90,7 +108,8 @@ export function makeHttpServer(config: Object) {
 
   app.get('/hub_info/', (req: express.request,
                          res: express.response) => {
-                           const challengeText = getChallengeText(server.serverName)
+                           const serverNameOpt: any = server.serverName
+                           const challengeText = getChallengeText(serverNameOpt)
     if (challengeText.length < 10) {
       return writeResponse(res, { message: 'Server challenge text misconfigured' }, 500)
     }

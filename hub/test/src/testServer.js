@@ -8,6 +8,7 @@ import type { DriverModel, ListFilesResult } from '../../src/server/driverModel'
 
 import { testPairs, testAddrs} from './common'
 
+
 class MockDriver implements DriverModel {
   lastWrite: any
   constructor() {
@@ -23,7 +24,8 @@ class MockDriver implements DriverModel {
   listFiles(storageTopLevel: string, page: ?string): Promise<ListFilesResult> {
     return Promise.resolve({entries: [], page: page})
   }
-  
+}
+
 class MockProofs {
   checkProofs() {
     return Promise.resolve()

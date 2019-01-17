@@ -8,20 +8,25 @@ import { AuthNumberCache } from './revocations'
 import type { Readable } from 'stream'
 import type { DriverModel } from './driverModel'
 
+export type HubServerConfig = {
+  whitelist?: Array<string>, 
+  serverName?: string, 
+  readURL?: string, 
+  requireCorrectHubUrl?: boolean, 
+  validHubUrls?: Array<string> 
+}
+
 export class HubServer {
   driver: DriverModel
   proofChecker: ProofChecker
-  whitelist: Array<string>
-  serverName: string
+  whitelist: ?Array<string>
+  serverName: ?string
   readURL: ?string
   requireCorrectHubUrl: boolean
   validHubUrls: ?Array<string>
   authNumberCache: AuthNumberCache
 
-  constructor(driver: DriverModel, proofChecker: ProofChecker,
-              config: { whitelist: Array<string>, serverName: string,
-                        readURL?: string, requireCorrectHubUrl?: boolean,
-                        validHubUrls?: Array<string> }) {
+  constructor(driver: DriverModel, proofChecker: ProofChecker, config: HubServerConfig) {
     this.driver = driver
     this.proofChecker = proofChecker
     this.whitelist = config.whitelist

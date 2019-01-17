@@ -1,5 +1,5 @@
-import test  from 'tape'
-
+/* @flow */
+import test from 'tape'
 import proxyquire from 'proxyquire'
 import FetchMock from 'fetch-mock'
 import * as NodeFetch from 'node-fetch'
@@ -9,13 +9,14 @@ import fs from 'fs'
 import path from 'path'
 
 import { Readable, Writable } from 'stream'
+import { InMemoryDriver } from './testDrivers/InMemoryDriver'
 
 const azConfigPath = process.env.AZ_CONFIG_PATH
 const awsConfigPath = process.env.AWS_CONFIG_PATH
 const diskConfigPath = process.env.DISK_CONFIG_PATH
 const gcConfigPath = process.env.GC_CONFIG_PATH
 
-export function addMockFetches(fetchLib, prefix, dataMap) {
+export function addMockFetches(fetchLib: any, prefix: any, dataMap: any) {
   dataMap.forEach( item => {
     fetchLib.get(`${prefix}${item.key}`, item.data)
   })
@@ -103,6 +104,9 @@ function makeMockedS3Driver() {
 }
 
 class MockWriteStream extends Writable {
+  dataMap: any
+  filename: any
+  data: any
   constructor(dataMap, filename) {
     super({})
     this.dataMap = dataMap
@@ -112,6 +116,7 @@ class MockWriteStream extends Writable {
   _write(chunk, encoding, callback) {
     this.data += chunk
     callback()
+    return true
   }
   _final(callback) {
     this.dataMap.push({ data: this.data, key: this.filename })
@@ -169,30 +174,27 @@ function testAzDriver() {
   let mockTest = true
 
   if (azConfigPath) {
-    config = JSON.parse(fs.readFileSync(azConfigPath))
+    config = JSON.parse(fs.readFileSync(azConfigPath, {encoding: 'utf8'}))
     mockTest = false
   }
 
   let AzDriver, dataMap
-  const azDriverImport = '../../src/server/drivers/AzDriver'
   if (mockTest) {
     const mockedObj = makeMockedAzureDriver()
     dataMap = mockedObj.dataMap
     AzDriver = mockedObj.AzDriver
   } else {
-    AzDriver = require(azDriverImport)
+    AzDriver = require('../../src/server/drivers/AzDriver')
   }
 
   test('azDriver', (t) => {
     const driver = new AzDriver(config)
     const prefix = driver.getReadURLPrefix()
     const s = new Readable()
-    s._read = function noop() {}
     s.push('hello world')
     s.push(null)
-
-    driver.performWrite(
-      { path: '../foo.js'})
+    const writeArgs : any = { path: '../foo.js' }
+    driver.performWrite(writeArgs)
       .then(() => t.ok(false, 'Should have thrown'))
       .catch((err) => t.equal(err.message, 'Invalid Path', 'Should throw bad path'))
       .then(() => driver.performWrite(
@@ -225,36 +227,34 @@ function testAzDriver() {
 }
 
 function testS3Driver() {
-  let config = {
+  let config : any = {
     'bucket': 'spokes'
   }
   let mockTest = true
 
   if (awsConfigPath) {
-    config = JSON.parse(fs.readFileSync(awsConfigPath))
+    config = JSON.parse(fs.readFileSync(awsConfigPath, {encoding: 'utf8'}))
     mockTest = false
   }
 
   let S3Driver, dataMap
-  const S3DriverImport = '../../src/server/drivers/S3Driver'
   if (mockTest) {
     const mockedObj = makeMockedS3Driver()
     dataMap = mockedObj.dataMap
     S3Driver = mockedObj.driver
   } else {
-    S3Driver = require(S3DriverImport)
+    S3Driver = require('../../src/server/drivers/S3Driver')
   }
 
   test('awsDriver', (t) => {
     const driver = new S3Driver(config)
     const prefix = driver.getReadURLPrefix()
     const s = new Readable()
-    s._read = function noop() {}
     s.push('hello world')
     s.push(null)
 
-    driver.performWrite(
-      { path: '../foo.js'})
+    const writeArgs : any = { path: '../foo.js'}
+    driver.performWrite(writeArgs)
       .then(() => t.ok(false, 'Should have thrown'))
       .catch((err) => t.equal(err.message, 'Invalid Path', 'Should throw bad path'))
       .then(() => driver.performWrite(
@@ -295,9 +295,8 @@ function testDiskDriver() {
   if (!diskConfigPath) {
     return
   }
-  const config = JSON.parse(fs.readFileSync(diskConfigPath))
-  const diskDriverImport = '../../src/server/drivers/diskDriver'
-  const DiskDriver = require(diskDriverImport)
+  const config = JSON.parse(fs.readFileSync(diskConfigPath, {encoding: 'utf8'}))
+  const DiskDriver = require('../../src/server/drivers/diskDriver')
 
   test('diskDriver', (t) => {
     t.plan(5)
@@ -305,12 +304,11 @@ function testDiskDriver() {
     const prefix = driver.getReadURLPrefix()
     const storageDir = driver.storageRootDirectory
     const s = new Readable()
-    s._read = function noop() {}
     s.push('hello world')
     s.push(null)
 
-    driver.performWrite(
-      { path: '../foo.js'})
+    const writeArgs : any = { path: '../foo.js'}
+    driver.performWrite(writeArgs)
       .then(() => t.ok(false, 'Should have thrown'))
       .catch((err) => t.equal(err.message, 'Invalid Path', 'Should throw bad path'))
       .then(() => driver.performWrite(
@@ -333,6 +331,8 @@ function testDiskDriver() {
   })
 }
 
+
+
 function testGcDriver() {
   let config = {
     'bucket': 'spokes'
@@ -340,30 +340,28 @@ function testGcDriver() {
   let mockTest = true
 
   if (gcConfigPath) {
-    config = JSON.parse(fs.readFileSync(gcConfigPath))
+    config = JSON.parse(fs.readFileSync(gcConfigPath, {encoding: 'utf8'}))
     mockTest = false
   }
 
   let GcDriver, dataMap
-  const GcDriverImport = '../../src/server/drivers/GcDriver'
   if (mockTest) {
     const mockedObj = makeMockedGcDriver()
     dataMap = mockedObj.dataMap
     GcDriver = mockedObj.driver
   } else {
-    GcDriver = require(GcDriverImport)
+    GcDriver = require('../../src/server/drivers/GcDriver')
   }
 
   test('Google Cloud Driver', (t) => {
     const driver = new GcDriver(config)
     const prefix = driver.getReadURLPrefix()
     const s = new Readable()
-    s._read = function noop() {}
     s.push('hello world')
     s.push(null)
 
-    driver.performWrite(
-      { path: '../foo.js'})
+    const writeArgs : any = { path: '../foo.js'}
+    driver.performWrite(writeArgs)
       .then(() => t.ok(false, 'Should have thrown'))
       .catch((err) => t.equal(err.message, 'Invalid Path', 'Should throw bad path'))
       .then(() => driver.performWrite(
@@ -394,7 +392,41 @@ function testGcDriver() {
   })
 }
 
+function testInMemoryDriver() {
+  test('InMemory Driver', async (t) => {
+    const driver = await InMemoryDriver.spawn()
+    try {
+      const fetch = require('node-fetch')
+
+      const prefix = driver.getReadURLPrefix()
+      const contentBuff = Buffer.from('hello world')
+      const s = new Readable()
+      s.push(contentBuff)
+      s.push(null)
+
+      const readUrl = await driver.performWrite(
+          { path: 'foo.txt',
+            storageTopLevel: '12345',
+            stream: s,
+            contentType: 'application/octet-stream',
+            contentLength: contentBuff.length })
+
+      t.ok(readUrl.startsWith(prefix + '12345'), `${readUrl} must start with readUrlPrefix ${prefix}12345`)
+      const resp = await fetch(readUrl)
+      const resptxt = await resp.text()
+      t.equal(resptxt, 'hello world', `Must get back hello world: got back: ${resptxt}`)
+      const files = await driver.listFiles('12345')
+      t.equal(files.entries.length, 1, 'Should return one file')
+      t.equal(files.entries[0], 'foo.txt', 'Should be foo.txt!')
+      t.end()
+    } finally{
+      driver.dispose()
+    }
+  })
+}
+
 export function testDrivers() {
+  testInMemoryDriver()
   testAzDriver()
   testS3Driver()
   testDiskDriver()

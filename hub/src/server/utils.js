@@ -1,10 +1,9 @@
 /* @flow */
 
-// TODO: Remove this if it remains unused.
-
 import type { Readable } from 'stream'
+import type { DriverModel } from './driverModel'
 
-export function getDriverClass(driver: string) {
+export function getDriverClass(driver: string) : Class<DriverModel> {
   if (driver === 'aws') {
     return require('./drivers/S3Driver')
   } else if (driver === 'azure') {

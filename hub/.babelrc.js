@@ -10,7 +10,12 @@ module.exports = (api) => {
       '@babel/preset-flow'
     ],
     plugins: [
-      '@babel/plugin-transform-modules-commonjs'
+      [
+        '@babel/plugin-transform-modules-commonjs',
+        {
+          loose: true
+        }
+      ]
     ]
   }
 
