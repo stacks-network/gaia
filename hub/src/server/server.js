@@ -68,8 +68,8 @@ export class HubServer {
   }
 
   async handleRequest(address: string, path: string,
-                requestHeaders: {'content-type': string,
-                                 'content-length': string,
+                requestHeaders: {'content-type'?: string,
+                                 'content-length': string | number,
                                  authorization: string},
                 stream: Readable) {
     const requiredAuthNumber = await this.authNumberCache.getAuthNumber(address)

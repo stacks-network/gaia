@@ -1,8 +1,11 @@
+/* @flow */
+
 import test  from 'tape'
 
 import * as auth from '../../src/server/authentication'
 import * as errors from '../../src/server/errors'
 import { HubServer }  from '../../src/server/server'
+import { ProofChecker } from '../../src/server/ProofChecker'
 import { Readable } from 'stream'
 import type { DriverModel, ListFilesResult } from '../../src/server/driverModel'
 
@@ -26,7 +29,7 @@ class MockDriver implements DriverModel {
   }
 }
 
-class MockProofs {
+class MockProofs extends ProofChecker {
   checkProofs() {
     return Promise.resolve()
   }
@@ -43,7 +46,7 @@ export function testServer() {
 
     t.throws(() => server.validate(testAddrs[1], { authorization: auth0 }),
              errors.ValidationError, 'Non-whitelisted address should fail validation')
-    t.throws(() => server.validate(testAddrs[0], {}),
+    t.throws(() => server.validate(testAddrs[0], ({}: any)),
              errors.ValidationError, 'Bad request headers should fail validation')
 
     const authPart = auth.LegacyAuthentication.makeAuthPart(testPairs[0], challengeText)
@@ -144,11 +147,9 @@ export function testServer() {
     const authorization = `bearer ${authPart}`
 
     const s = new Readable()
-    s._read = function noop() {}
     s.push('hello world')
     s.push(null)
     const s2 = new Readable()
-    s2._read = function noop() {}
     s2.push('hello world')
     s2.push(null)
 
@@ -183,11 +184,9 @@ export function testServer() {
     const authorization = `bearer ${authPart}`
 
     const s = new Readable()
-    s._read = function noop() {}
     s.push('hello world')
     s.push(null)
     const s2 = new Readable()
-    s2._read = function noop() {}
     s2.push('hello world')
     s2.push(null)
 
@@ -236,11 +235,11 @@ export function testServer() {
 
     const authorization = `bearer ${authPart}`
     const authenticator = auth.parseAuthHeader(authorization)
-    t.throws(() => authenticator.isAuthenticationValid(testAddrs[1], challengeText),
+    t.throws(() => authenticator.isAuthenticationValid(testAddrs[1], [challengeText]),
              errors.ValidationError, 'Wrong address must throw')
-    t.throws(() => authenticator.isAuthenticationValid(testAddrs[0], 'potatos are tasty'),
+    t.throws(() => authenticator.isAuthenticationValid(testAddrs[0], ['potatos are tasty']),
              errors.ValidationError, 'Wrong challenge text must throw')
-    t.ok(authenticator.isAuthenticationValid(testAddrs[0], challengeText),
+    t.ok(authenticator.isAuthenticationValid(testAddrs[0], [challengeText]),
          'Good signature must pass')
 
     // scopes must be present
@@ -252,19 +251,15 @@ export function testServer() {
 
     // write to /foo/bar or /baz will succeed
     const s = new Readable()
-    s._read = function noop() {}
     s.push('hello world')
     s.push(null)
     const s2 = new Readable()
-    s2._read = function noop() {}
     s2.push('hello world')
     s2.push(null)
     const s3 = new Readable()
-    s3._read = function noop() {}
     s3.push('hello world')
     s3.push(null)
     const s4 = new Readable()
-    s4._read = function noop() {}
     s4.push('hello world')
     s4.push(null)
 
@@ -328,28 +323,24 @@ export function testServer() {
 
     const authorization = `bearer ${authPart}`
     const authenticator = auth.parseAuthHeader(authorization)
-    t.throws(() => authenticator.isAuthenticationValid(testAddrs[1], challengeText),
+    t.throws(() => authenticator.isAuthenticationValid(testAddrs[1], [challengeText]),
              errors.ValidationError, 'Wrong address must throw')
-    t.throws(() => authenticator.isAuthenticationValid(testAddrs[0], 'potatos are tasty'),
+    t.throws(() => authenticator.isAuthenticationValid(testAddrs[0], ['potatos are tasty']),
              errors.ValidationError, 'Wrong challenge text must throw')
-    t.ok(authenticator.isAuthenticationValid(testAddrs[0], challengeText),
+    t.ok(authenticator.isAuthenticationValid(testAddrs[0], [challengeText]),
          'Good signature must pass')
 
     // write to /foo/bar or baz will succeed
     const s = new Readable()
-    s._read = function noop() {}
     s.push('hello world')
     s.push(null)
     const s2 = new Readable()
-    s2._read = function noop() {}
     s2.push('hello world')
     s2.push(null)
     const s3 = new Readable()
-    s3._read = function noop() {}
     s3.push('hello world')
     s3.push(null)
     const s4 = new Readable()
-    s4._read = function noop() {}
     s4.push('hello world')
     s4.push(null)
 

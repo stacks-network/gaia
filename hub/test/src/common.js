@@ -1,3 +1,4 @@
+/* @flow */
 import bitcoin from 'bitcoinjs-lib'
 import { ecPairToAddress } from 'blockstack'
 
@@ -6,5 +7,5 @@ export const testWIFs = [
   'L3W7EzxYNdG3kBjtQmhKEq2iiZAwpiKEwMobXdaY9xueSUFPkQeH',
   'KwzzsbVzMekdj9myzxojsgT6DQ6yRQKbWqSXQgo1YKsJcvFJhtRr',
   'KxYYiJg9mJpCDHcyYMMvSfY4SWGwMofqavxG2ZyDNcXuY7ShBknK']
-export const testPairs = testWIFs.map(x => bitcoin.ECPair.fromWIF(x))
-export const testAddrs = testPairs.map(x => ecPairToAddress(x))
+export const testPairs: bitcoin.ECPair[] = testWIFs.map(x => bitcoin.ECPair.fromWIF(x))
+export const testAddrs: string[] = testPairs.map(x => ecPairToAddress(x))

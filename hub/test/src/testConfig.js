@@ -1,3 +1,4 @@
+/* @flow */
 import test  from 'tape'
 import * as config from '../../src/server/config.js'
 
