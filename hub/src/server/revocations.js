@@ -6,7 +6,7 @@ import fetch from 'node-fetch'
 import { Readable } from 'stream'
 
 const MAX_AUTH_FILE_BYTES = 1024
-const AUTH_NUMBER_FILE_NAME = 'authNumber'
+const AUTH_TIMESTAMP_FILE_NAME = 'authTimestamp'
 
 export class AuthTimestampCache {
 
@@ -26,17 +26,17 @@ export class AuthTimestampCache {
   async readAuthTimestamp(bucketAddress: string): Promise<number> {
 
     const readUrlPrefix = this.driver.getReadURLPrefix()
-    const authNumberDir = this.getAuthTimestampFileDir(bucketAddress)
+    const authTimestampDir = this.getAuthTimestampFileDir(bucketAddress)
     
     // Check if an auth number file exists
     // TODO: Is the error for "file not exists" consistent enough to depend upon instead of doing this?
-    const bucketFileList = await this.driver.listFiles(authNumberDir, null)
-    if (!bucketFileList.entries.includes(AUTH_NUMBER_FILE_NAME)) {
+    const bucketFileList = await this.driver.listFiles(authTimestampDir, null)
+    if (!bucketFileList.entries.includes(AUTH_TIMESTAMP_FILE_NAME)) {
       return 0
     }
 
     try {
-      const authNumberFileUrl = `${readUrlPrefix}${authNumberDir}/${AUTH_NUMBER_FILE_NAME}`
+      const authNumberFileUrl = `${readUrlPrefix}${authTimestampDir}/${AUTH_TIMESTAMP_FILE_NAME}`
       const fetchResult = await fetch(authNumberFileUrl)
       const authNumberText = await fetchResult.text()
       const authNumber = parseInt(authNumberText)
@@ -65,7 +65,7 @@ export class AuthTimestampCache {
 
   async writeAuthTimestamp(bucketAddress: string, timestamp: number) : Promise<void> {
     this.cache.set(bucketAddress, timestamp)
-    const authNumberFileDir = this.getAuthTimestampFileDir(bucketAddress)
+    const authTimestampFileDir = this.getAuthTimestampFileDir(bucketAddress)
     
     // Convert our number to a Buffer.
     const contentBuffer = Buffer.from(timestamp.toString(), 'utf8')
@@ -83,8 +83,8 @@ export class AuthTimestampCache {
     }
     
     await this.driver.performWrite({
-      storageTopLevel: authNumberFileDir, 
-      path: AUTH_NUMBER_FILE_NAME,
+      storageTopLevel: authTimestampFileDir, 
+      path: AUTH_TIMESTAMP_FILE_NAME,
       stream: contentStream,
       contentLength: contentBuffer.length,
       contentType: 'text/plain; charset=UTF-8'
