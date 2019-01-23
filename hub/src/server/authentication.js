@@ -20,6 +20,20 @@ export type AuthScopeType = {
   domain: string
 }
 
+export type TokenPayloadType = {
+    gaiaChallenge: string,
+    iss: string,
+    exp: number,
+    salt: string,
+    hubUrl?: string,
+    associationToken?: string,
+    scopes?: AuthScopeType[]
+}
+
+export type TokenType = {
+  payload: TokenPayloadType
+}
+
 export const AuthScopes = [
   'putFile',
   'putFilePrefix'
@@ -37,7 +51,7 @@ export class V1Authentication {
       throw new ValidationError('Authorization header should start with v1:')
     }
     const token = authPart.slice('v1:'.length)
-    let decodedToken
+    let decodedToken: TokenType
     try {
       decodedToken = decodeToken(token)
     } catch (e) {
@@ -67,7 +81,7 @@ export class V1Authentication {
       validateScopes(scopes)
     }
 
-    const payload = { gaiaChallenge: challengeText,
+    const payload: TokenPayloadType = { gaiaChallenge: challengeText,
                       iss: publicKeyHex,
                       exp: FOUR_MONTH_SECONDS + (new Date()/1000),
                       associationToken,
@@ -82,9 +96,10 @@ export class V1Authentication {
     const FOUR_MONTH_SECONDS = 60 * 60 * 24 * 31 * 4
     const publicKeyHex = secretKey.publicKey.toString('hex')
     const salt = crypto.randomBytes(16).toString('hex')
-    const payload = { childToAssociate: childPublicKey,
+    const payload: TokenPayloadType = { childToAssociate: childPublicKey,
                       iss: publicKeyHex,
                       exp: FOUR_MONTH_SECONDS + (new Date()/1000),
+                      gaiaChallenge: String(undefined),
                       salt }
 
     const signerKeyHex = ecPairToHexString(secretKey).slice(0, 64)
@@ -98,7 +113,7 @@ export class V1Authentication {
     // associationToken and verifies that it authorizes the "outer"
     // JWT's address (`bearerAddress`)
 
-    let associationToken
+    let associationToken: TokenType
     try {
       associationToken = decodeToken(token)
     } catch (e) {
@@ -154,7 +169,7 @@ export class V1Authentication {
    * Returns [] if there is no association token, or if the association token has no scopes
    */
   getAuthenticationScopes() : Array<AuthScopeType> {
-    let decodedToken
+    let decodedToken: TokenType
     try {
       decodedToken = decodeToken(this.token)
     } catch (e) {
@@ -199,7 +214,7 @@ export class V1Authentication {
                         options?: { requireCorrectHubUrl?: boolean,
                                     validHubUrls?: Array<string>,
                                     requiredAuthTokenNumber?: number }) : string {
-    let decodedToken
+    let decodedToken: TokenType
     try {
       decodedToken = decodeToken(this.token)
     } catch (e) {

@@ -37,6 +37,11 @@ export class HubServer {
     this.authNumberCache = new AuthNumberCache(driver)
   }
 
+  async handleAuthBump(address: string, requestHeaders: { authorization: string }) {
+    this.validate(address, requestHeaders)
+    await this.authNumberCache.bumpAuthNumber(address)
+  }
+
   // throws exception on validation error
   //   otherwise returns void.
   validate(address: string, requestHeaders: { authorization: string }, requiredAuthTokenNumber?: number) {
@@ -54,8 +59,7 @@ export class HubServer {
   async handleListFiles(address: string,
                   page: ?string,
                   requestHeaders: { authorization: string }) {
-    const requiredAuthNumber = await this.authNumberCache.getAuthNumber(address)
-    this.validate(address, requestHeaders, requiredAuthNumber)
+    this.validate(address, requestHeaders)
     return await this.driver.listFiles(address, page)
   }
 

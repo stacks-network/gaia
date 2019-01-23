@@ -1,14 +1,13 @@
 /* @flow */
 
-import test  from 'tape'
-
+import test  from 'tape-promise/tape'
 import * as auth from '../../src/server/authentication'
 import * as errors from '../../src/server/errors'
 import { HubServer }  from '../../src/server/server'
 import { ProofChecker } from '../../src/server/ProofChecker'
 import { Readable } from 'stream'
 import type { DriverModel, ListFilesResult } from '../../src/server/driverModel'
-
+import { InMemoryDriver } from './testDrivers/InMemoryDriver'
 import { testPairs, testAddrs} from './common'
 
 
@@ -156,21 +155,21 @@ export function testServer() {
     server.handleRequest(testAddrs[0], 'foo.txt',
                          { 'content-type' : 'text/text',
                            'content-length': 4,
-                           authorization }, s)
+                          authorization }, s)
       .then(path => {
-        t.equal(path, `http://potato.com/${testAddrs[0]}/foo.txt`)
-        t.equal(mockDriver.lastWrite.path, 'foo.txt')
-        t.equal(mockDriver.lastWrite.storageTopLevel, testAddrs[0])
-        t.equal(mockDriver.lastWrite.contentType, 'text/text')
+    t.equal(path, `http://potato.com/${testAddrs[0]}/foo.txt`)
+    t.equal(mockDriver.lastWrite.path, 'foo.txt')
+    t.equal(mockDriver.lastWrite.storageTopLevel, testAddrs[0])
+    t.equal(mockDriver.lastWrite.contentType, 'text/text')
       })
       .then(() => server.handleRequest(testAddrs[0], 'foo.txt',
-                         { 'content-length': 4,
+                        { 'content-length': 4,
                            authorization }, s2))
       .then(path => {
-        t.equal(path, `http://potato.com/${testAddrs[0]}/foo.txt`)
-        t.equal(mockDriver.lastWrite.path, 'foo.txt')
-        t.equal(mockDriver.lastWrite.storageTopLevel, testAddrs[0])
-        t.equal(mockDriver.lastWrite.contentType, 'application/octet-stream')
+    t.equal(path, `http://potato.com/${testAddrs[0]}/foo.txt`)
+    t.equal(mockDriver.lastWrite.path, 'foo.txt')
+    t.equal(mockDriver.lastWrite.storageTopLevel, testAddrs[0])
+    t.equal(mockDriver.lastWrite.contentType, 'application/octet-stream')
       })
   })
 
@@ -211,6 +210,42 @@ export function testServer() {
       })
   })
 
+  test('fail writes with revoked auth token', async (t) => {
+
+    const writeScopes = [
+      {
+        scope: 'putFile',
+        domain: '/foo/bar',
+      },
+      {
+        scope: 'putFilePrefix',
+        domain: 'baz'
+      }
+    ]
+
+    const mockDriver = new InMemoryDriver()
+    mockDriver.readUrl = 'http://test.com/'
+
+    const server = new HubServer(mockDriver, new MockProofs(),
+                                 { whitelist: [testAddrs[0]] })
+    const challengeText = auth.getChallengeText()
+    const authPart = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText, undefined, undefined, writeScopes)
+    const authorization = `bearer ${authPart}`
+
+    const s = new Readable()
+    s.push('hello world')
+    s.push(null)
+
+    // revoke the auth token
+    await server.handleAuthBump(testAddrs[0], { authorization })
+
+    // write should fail with auth token number 
+    await t.rejects(server.handleRequest(testAddrs[0], '/foo/bar',
+                         { 'content-type' : 'text/text',
+                           'content-length': 400,
+                           authorization }, s), errors.AuthTokenNumberValidationError, 'write with revoked auth token should fail')
+  })
+  
   test('handle scoped writes', (t) => {
 
     const writeScopes = [

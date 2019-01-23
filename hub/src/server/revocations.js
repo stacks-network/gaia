@@ -71,8 +71,8 @@ export class AuthNumberCache {
     const contentBuffer = Buffer.from(authNumber.toString(), 'utf8')
 
     // Wrap the buffer in a stream for driver consumption.
-    const contentStream = new Readable({encoding: 'utf8'})
-    contentStream.push(contentBuffer)
+    const contentStream = new Readable()
+    contentStream.push(contentBuffer, 'utf8')
     contentStream.push(null) // Mark EOF
 
     const contentLength = contentBuffer.length
@@ -82,18 +82,13 @@ export class AuthNumberCache {
       throw new Error(`Auth number file content size is ${contentLength}, it should never be greater than ${MAX_AUTH_FILE_BYTES}`)
     }
     
-    const writeResult = await this.driver.performWrite({
+    await this.driver.performWrite({
       storageTopLevel: authNumberFileDir, 
       path: AUTH_NUMBER_FILE_NAME,
       stream: contentStream,
       contentLength: contentBuffer.length,
       contentType: 'text/plain; charset=UTF-8'
     })
-
-    // TODO: check result?
-    if (writeResult || true) {
-      throw new Error('unimplemented')
-    }
   }
 
   async bumpAuthNumber(bucketAddress: string): Promise<void> {

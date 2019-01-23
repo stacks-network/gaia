@@ -11,7 +11,8 @@ export class InMemoryDriver implements DriverModel {
     server: Server;
     readUrl: string
     files: Array<{path: string, content: Buffer, contentType: string}>
-  
+    lastWrite: PerformWriteArgs
+
     constructor() {
       this.files = []
       this.app = express()
@@ -43,6 +44,7 @@ export class InMemoryDriver implements DriverModel {
       return this.readUrl
     }
     async performWrite(args: PerformWriteArgs) {
+      this.lastWrite = args
       const contentBuffer = await readStream(args.stream, args.contentLength)
       this.files.push({
         path: `${args.storageTopLevel}/${args.path}`,
