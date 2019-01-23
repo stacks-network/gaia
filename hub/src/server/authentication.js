@@ -4,7 +4,7 @@ import bitcoin from 'bitcoinjs-lib'
 import crypto from 'crypto'
 import { decodeToken, TokenSigner, TokenVerifier } from 'jsontokens'
 import { ecPairToHexString, ecPairToAddress } from 'blockstack'
-import { ValidationError, AuthTokenNumberValidationError } from './errors'
+import { ValidationError, AuthTokenTimestampValidationError } from './errors'
 import logger from 'winston'
 
 const DEFAULT_STORAGE_URL = 'storage.blockstack.org'
@@ -24,6 +24,7 @@ export type TokenPayloadType = {
     gaiaChallenge: string,
     iss: string,
     exp: number,
+    creationDate?: number,
     salt: string,
     hubUrl?: string,
     associationToken?: string,
@@ -84,6 +85,7 @@ export class V1Authentication {
     const payload: TokenPayloadType = { gaiaChallenge: challengeText,
                       iss: publicKeyHex,
                       exp: FOUR_MONTH_SECONDS + (new Date()/1000),
+                      creationDate: (Date.now()/1000|0),
                       associationToken,
                       hubUrl, salt, scopes }
 
@@ -99,6 +101,7 @@ export class V1Authentication {
     const payload: TokenPayloadType = { childToAssociate: childPublicKey,
                       iss: publicKeyHex,
                       exp: FOUR_MONTH_SECONDS + (new Date()/1000),
+                      creationDate: (Date.now()/1000|0),
                       gaiaChallenge: String(undefined),
                       salt }
 
@@ -213,7 +216,7 @@ export class V1Authentication {
   isAuthenticationValid(address: string, challengeTexts: Array<string>,
                         options?: { requireCorrectHubUrl?: boolean,
                                     validHubUrls?: Array<string>,
-                                    requiredAuthTokenNumber?: number }) : string {
+                                    oldestValidTokenTimestamp?: number }) : string {
     let decodedToken: TokenType
     try {
       decodedToken = decodeToken(this.token)
@@ -232,19 +235,19 @@ export class V1Authentication {
     }
 
     // check for revocations
-    if (options && options.requiredAuthTokenNumber) {
-      const tokenAuthNumber = parseInt(decodedToken.payload.authNumber)
-      const requiredAuthTokenNumber : number = options.requiredAuthTokenNumber || 0
-      if (!tokenAuthNumber) {
-        const message = `Gaia bucket requires auth token number of ${requiredAuthTokenNumber}` +
-              ' but this token has no auth number. This token may have been revoked by the user.'
-        throw new AuthTokenNumberValidationError(message, requiredAuthTokenNumber)
+    if (options && options.oldestValidTokenTimestamp && options.oldestValidTokenTimestamp > 0) {
+      const tokenCreationDate = decodedToken.payload.creationDate
+      const oldestValidTokenTimestamp: number = options.oldestValidTokenTimestamp
+      if (!tokenCreationDate) {
+        const message = `Gaia bucket requires auth token created after ${oldestValidTokenTimestamp}` +
+              ' but this token has no creation timestamp. This token may have been revoked by the user.'
+        throw new AuthTokenTimestampValidationError(message, oldestValidTokenTimestamp)
       }
-      if (tokenAuthNumber !== options.requiredAuthTokenNumber) {
-        const message = `Gaia bucket requires auth token number of ${requiredAuthTokenNumber}` +
-              ` but this token has auth number ${tokenAuthNumber}.` +
+      if (tokenCreationDate < options.oldestValidTokenTimestamp) {
+        const message = `Gaia bucket requires auth token created after ${oldestValidTokenTimestamp}` +
+              ` but this token was created ${tokenCreationDate}.` +
               ' This token may have been revoked by the user.'
-        throw new AuthTokenNumberValidationError(message, requiredAuthTokenNumber)
+        throw new AuthTokenTimestampValidationError(message, oldestValidTokenTimestamp)
       }
     }
 
@@ -405,7 +408,7 @@ export function parseAuthHeader(authHeader: string) {
 export function validateAuthorizationHeader(authHeader: string, serverName: ?string,
                                             address: string, requireCorrectHubUrl?: boolean = false,
                                             validHubUrls?: ?Array<string> = null,
-                                            requiredAuthTokenNumber?: number) : string {
+                                            oldestValidTokenTimestamp?: number) : string {
   const serverNameOpt: any = serverName
   const serverNameHubUrl = `https://${serverNameOpt}`
   if (!validHubUrls) {
@@ -429,7 +432,7 @@ export function validateAuthorizationHeader(authHeader: string, serverName: ?str
   challengeTexts.push(getChallengeText(serverNameOpt))
   getLegacyChallengeTexts(serverNameOpt).forEach(challengeText => challengeTexts.push(challengeText))
 
-  return authObject.isAuthenticationValid(address, challengeTexts, { validHubUrls, requireCorrectHubUrl, requiredAuthTokenNumber })
+  return authObject.isAuthenticationValid(address, challengeTexts, { validHubUrls, requireCorrectHubUrl, oldestValidTokenTimestamp })
 }
 
 

@@ -8,7 +8,7 @@ import { Readable } from 'stream'
 const MAX_AUTH_FILE_BYTES = 1024
 const AUTH_NUMBER_FILE_NAME = 'authNumber'
 
-export class AuthNumberCache {
+export class AuthTimestampCache {
 
   cache: LRUCache;
   driver: DriverModel;
@@ -19,14 +19,14 @@ export class AuthNumberCache {
     this.driver = driver
   }
 
-  getAuthNumberFileDir(bucketAddress: string) {
+  getAuthTimestampFileDir(bucketAddress: string) {
     return `${bucketAddress}-auth`
   }
 
-  async readAuthNumber(bucketAddress: string): Promise<number> {
+  async readAuthTimestamp(bucketAddress: string): Promise<number> {
 
     const readUrlPrefix = this.driver.getReadURLPrefix()
-    const authNumberDir = this.getAuthNumberFileDir(bucketAddress)
+    const authNumberDir = this.getAuthTimestampFileDir(bucketAddress)
     
     // Check if an auth number file exists
     // TODO: Is the error for "file not exists" consistent enough to depend upon instead of doing this?
@@ -47,28 +47,28 @@ export class AuthNumberCache {
     }
   }
 
-  async getAuthNumber(bucketAddress: string): Promise<number> {
+  async getAuthTimestamp(bucketAddress: string): Promise<number> {
     // First perform fast check if auth number exists in cache..
-    let authNumber = this.cache.get(bucketAddress)
-    if (authNumber) {
-      return authNumber
+    let authTimestamp = this.cache.get(bucketAddress)
+    if (authTimestamp) {
+      return authTimestamp
     }
 
     // Nothing in cache, perform slower driver read.
-    authNumber = await this.readAuthNumber(bucketAddress)
+    authTimestamp = await this.readAuthTimestamp(bucketAddress)
 
     // Cache result for fast lookup later.
-    this.cache.set(bucketAddress, authNumber)
+    this.cache.set(bucketAddress, authTimestamp)
 
-    return authNumber
+    return authTimestamp
   }
 
-  async writeAuthNumber(bucketAddress: string, authNumber: number) : Promise<void> {
-    this.cache.set(bucketAddress, authNumber)
-    const authNumberFileDir = this.getAuthNumberFileDir(bucketAddress)
+  async writeAuthTimestamp(bucketAddress: string, timestamp: number) : Promise<void> {
+    this.cache.set(bucketAddress, timestamp)
+    const authNumberFileDir = this.getAuthTimestampFileDir(bucketAddress)
     
     // Convert our number to a Buffer.
-    const contentBuffer = Buffer.from(authNumber.toString(), 'utf8')
+    const contentBuffer = Buffer.from(timestamp.toString(), 'utf8')
 
     // Wrap the buffer in a stream for driver consumption.
     const contentStream = new Readable()
@@ -91,10 +91,8 @@ export class AuthNumberCache {
     })
   }
 
-  async bumpAuthNumber(bucketAddress: string): Promise<void> {
-    const authNumber = await this.getAuthNumber(bucketAddress)
-    const nextAuthNumber = authNumber + 1
-    await this.writeAuthNumber(bucketAddress, nextAuthNumber)
+  async setAuthTimestamp(bucketAddress: string, timestamp: number): Promise<void> {
+    await this.writeAuthTimestamp(bucketAddress, (timestamp | 0))
   }
 
 }

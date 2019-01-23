@@ -237,13 +237,13 @@ export function testServer() {
     s.push(null)
 
     // revoke the auth token
-    await server.handleAuthBump(testAddrs[0], { authorization })
+    await server.handleAuthBump(testAddrs[0], (Date.now()|0) + 10000, { authorization })
 
     // write should fail with auth token number 
     await t.rejects(server.handleRequest(testAddrs[0], '/foo/bar',
                          { 'content-type' : 'text/text',
                            'content-length': 400,
-                           authorization }, s), errors.AuthTokenNumberValidationError, 'write with revoked auth token should fail')
+                           authorization }, s), errors.AuthTokenTimestampValidationError, 'write with revoked auth token should fail')
   })
   
   test('handle scoped writes', (t) => {

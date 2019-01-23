@@ -3,7 +3,7 @@
 import { validateAuthorizationHeader, getAuthenticationScopes } from './authentication'
 import { ValidationError } from './errors'
 import { ProofChecker } from './ProofChecker'
-import { AuthNumberCache } from './revocations'
+import { AuthTimestampCache } from './revocations'
 
 import type { Readable } from 'stream'
 import type { DriverModel } from './driverModel'
@@ -24,7 +24,7 @@ export class HubServer {
   readURL: ?string
   requireCorrectHubUrl: boolean
   validHubUrls: ?Array<string>
-  authNumberCache: AuthNumberCache
+  authTimestampCache: AuthTimestampCache
 
   constructor(driver: DriverModel, proofChecker: ProofChecker, config: HubServerConfig) {
     this.driver = driver
@@ -34,22 +34,22 @@ export class HubServer {
     this.validHubUrls = config.validHubUrls
     this.readURL = config.readURL
     this.requireCorrectHubUrl = config.requireCorrectHubUrl || false
-    this.authNumberCache = new AuthNumberCache(driver)
+    this.authTimestampCache = new AuthTimestampCache(driver)
   }
 
-  async handleAuthBump(address: string, requestHeaders: { authorization: string }) {
+  async handleAuthBump(address: string, oldestValidTimestamp: number, requestHeaders: { authorization: string }) {
     this.validate(address, requestHeaders)
-    await this.authNumberCache.bumpAuthNumber(address)
+    await this.authTimestampCache.setAuthTimestamp(address, oldestValidTimestamp)
   }
 
   // throws exception on validation error
   //   otherwise returns void.
-  validate(address: string, requestHeaders: { authorization: string }, requiredAuthTokenNumber?: number) {
+  validate(address: string, requestHeaders: { authorization: string }, oldestValidTokenTimestamp?: number) {
     const signingAddress = validateAuthorizationHeader(requestHeaders.authorization,
                                                        this.serverName, address,
                                                        this.requireCorrectHubUrl,
                                                        this.validHubUrls, 
-                                                       requiredAuthTokenNumber)
+                                                       oldestValidTokenTimestamp)
 
     if (this.whitelist && !(this.whitelist.includes(signingAddress))) {
       throw new ValidationError(`Address ${signingAddress} not authorized for writes`)
@@ -76,7 +76,7 @@ export class HubServer {
                                  'content-length': string | number,
                                  authorization: string},
                 stream: Readable) {
-    const requiredAuthNumber = await this.authNumberCache.getAuthNumber(address)
+    const requiredAuthNumber = await this.authTimestampCache.getAuthTimestamp(address)
     this.validate(address, requestHeaders, requiredAuthNumber)
 
     let contentType = requestHeaders['content-type']

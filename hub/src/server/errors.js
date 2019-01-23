@@ -7,12 +7,12 @@ export class ValidationError extends Error {
   }
 }
 
-export class AuthTokenNumberValidationError extends Error {
-  correctAuthNumber: number;
-  constructor (message: string, correctAuthNumber: number) {
+export class AuthTokenTimestampValidationError extends Error {
+  oldestValidTokenTimestamp: number;
+  constructor (message: string, oldestValidTokenTimestamp: number) {
     super(message)
     this.name = this.constructor.name
-    this.correctAuthNumber = correctAuthNumber
+    this.oldestValidTokenTimestamp = oldestValidTokenTimestamp
   }
 }
 
