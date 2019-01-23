@@ -157,19 +157,19 @@ export function testServer() {
                            'content-length': 4,
                           authorization }, s)
       .then(path => {
-    t.equal(path, `http://potato.com/${testAddrs[0]}/foo.txt`)
-    t.equal(mockDriver.lastWrite.path, 'foo.txt')
-    t.equal(mockDriver.lastWrite.storageTopLevel, testAddrs[0])
-    t.equal(mockDriver.lastWrite.contentType, 'text/text')
+        t.equal(path, `http://potato.com/${testAddrs[0]}/foo.txt`)
+        t.equal(mockDriver.lastWrite.path, 'foo.txt')
+        t.equal(mockDriver.lastWrite.storageTopLevel, testAddrs[0])
+        t.equal(mockDriver.lastWrite.contentType, 'text/text')
       })
       .then(() => server.handleRequest(testAddrs[0], 'foo.txt',
                         { 'content-length': 4,
                            authorization }, s2))
       .then(path => {
-    t.equal(path, `http://potato.com/${testAddrs[0]}/foo.txt`)
-    t.equal(mockDriver.lastWrite.path, 'foo.txt')
-    t.equal(mockDriver.lastWrite.storageTopLevel, testAddrs[0])
-    t.equal(mockDriver.lastWrite.contentType, 'application/octet-stream')
+        t.equal(path, `http://potato.com/${testAddrs[0]}/foo.txt`)
+        t.equal(mockDriver.lastWrite.path, 'foo.txt')
+        t.equal(mockDriver.lastWrite.storageTopLevel, testAddrs[0])
+        t.equal(mockDriver.lastWrite.contentType, 'application/octet-stream')
       })
   })
 
