@@ -76,9 +76,9 @@ export class HubServer {
                                  'content-length': string | number,
                                  authorization: string},
                 stream: Readable) {
-    const requiredAuthNumber = await this.authTimestampCache.getAuthTimestamp(address)
-    this.validate(address, requestHeaders, requiredAuthNumber)
 
+    const oldestValidTokenTimestamp = await this.authTimestampCache.getAuthTimestamp(address)
+    this.validate(address, requestHeaders, oldestValidTokenTimestamp)
     let contentType = requestHeaders['content-type']
 
     if (contentType === null || contentType === undefined) {
@@ -117,16 +117,15 @@ export class HubServer {
                             path, stream, contentType,
                             contentLength: parseInt(requestHeaders['content-length']) }
 
-    return await this.proofChecker.checkProofs(address, path, this.getReadURLPrefix())
-      .then(() => this.driver.performWrite(writeCommand))
-      .then((readURL) => {
-        const driverPrefix = this.driver.getReadURLPrefix()
-        const readURLPrefix = this.getReadURLPrefix()
-        if (readURLPrefix !== driverPrefix && readURL.startsWith(driverPrefix)) {
-          const postFix = readURL.slice(driverPrefix.length)
-          return `${readURLPrefix}${postFix}`
-        }
-        return readURL
-      })
+    await this.proofChecker.checkProofs(address, path, this.getReadURLPrefix())
+    
+    const readURL = await this.driver.performWrite(writeCommand)
+    const driverPrefix = this.driver.getReadURLPrefix()
+    const readURLPrefix = this.getReadURLPrefix()
+    if (readURLPrefix !== driverPrefix && readURL.startsWith(driverPrefix)) {
+      const postFix = readURL.slice(driverPrefix.length)
+      return `${readURLPrefix}${postFix}`
+    }
+    return readURL
   }
 }

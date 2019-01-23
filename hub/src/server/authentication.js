@@ -72,7 +72,8 @@ export class V1Authentication {
   }
 
   static makeAuthPart(secretKey: bitcoin.ECPair, challengeText: string,
-                      associationToken?: string, hubUrl?: string, scopes?: Array<AuthScopeType>) {
+                      associationToken?: string, hubUrl?: string, scopes?: Array<AuthScopeType>,
+                      creationDate?: number) {
 
     const FOUR_MONTH_SECONDS = 60 * 60 * 24 * 31 * 4
     const publicKeyHex = secretKey.publicKey.toString('hex')
@@ -82,10 +83,15 @@ export class V1Authentication {
       validateScopes(scopes)
     }
 
+    let payloadCreationDate = (Date.now()/1000|0)
+    if (creationDate){
+      payloadCreationDate = creationDate
+    }
+
     const payload: TokenPayloadType = { gaiaChallenge: challengeText,
                       iss: publicKeyHex,
                       exp: FOUR_MONTH_SECONDS + (new Date()/1000),
-                      creationDate: (Date.now()/1000|0),
+                      creationDate: payloadCreationDate,
                       associationToken,
                       hubUrl, salt, scopes }
 

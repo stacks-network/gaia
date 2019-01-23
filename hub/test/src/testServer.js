@@ -212,38 +212,46 @@ export function testServer() {
 
   test('fail writes with revoked auth token', async (t) => {
 
-    const writeScopes = [
-      {
-        scope: 'putFile',
-        domain: '/foo/bar',
-      },
-      {
-        scope: 'putFilePrefix',
-        domain: 'baz'
-      }
-    ]
-
     const mockDriver = new InMemoryDriver()
     mockDriver.readUrl = 'http://test.com/'
 
-    const server = new HubServer(mockDriver, new MockProofs(),
-                                 { whitelist: [testAddrs[0]] })
+    const server = new HubServer(mockDriver, new MockProofs(), {})
     const challengeText = auth.getChallengeText()
-    const authPart = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText, undefined, undefined, writeScopes)
-    const authorization = `bearer ${authPart}`
+    let authPart = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText)
+    let authorization = `bearer ${authPart}`
 
-    const s = new Readable()
-    s.push('hello world')
-    s.push(null)
+    const getJunkData = () => {
+      const s = new Readable()
+      s.push('hello world')
+      s.push(null)
+      return s
+    }
 
-    // revoke the auth token
-    await server.handleAuthBump(testAddrs[0], (Date.now()|0) + 10000, { authorization })
+    // no revocation timestamp has been set, write request should succeed
+    await server.handleRequest(testAddrs[0], '/foo/bar', 
+                              { 'content-type' : 'text/text',
+                                'content-length': 400,
+                                authorization }, getJunkData())
 
-    // write should fail with auth token number 
+    // revoke the auth token (setting oldest valid date into the future)
+    const futureDate = (Date.now()/1000|0) + 10000
+    await server.handleAuthBump(testAddrs[0], futureDate, { authorization })
+
+    // write should fail with auth token creation date older than the revocation date 
     await t.rejects(server.handleRequest(testAddrs[0], '/foo/bar',
                          { 'content-type' : 'text/text',
                            'content-length': 400,
-                           authorization }, s), errors.AuthTokenTimestampValidationError, 'write with revoked auth token should fail')
+                           authorization }, getJunkData()), errors.AuthTokenTimestampValidationError, 'write with revoked auth token should fail')
+
+    // create a auth token with creationDate forced further into the future
+    authPart = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText, undefined, undefined, undefined, futureDate + 10000)
+    authorization = `bearer ${authPart}`
+  
+    // request should succeed with a token creationDate newer than the revocation date
+    await server.handleRequest(testAddrs[0], '/foo/bar', 
+                              { 'content-type' : 'text/text',
+                                'content-length': 400,
+                                authorization }, getJunkData())
   })
   
   test('handle scoped writes', (t) => {
