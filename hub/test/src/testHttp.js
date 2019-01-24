@@ -33,7 +33,6 @@ export function testHttpWithInMemoryDriver() {
       const address = ecPairToAddress(sk)
       const path = `/store/${address}/helloWorld`
       const listPath = `/list-files/${address}`
-      let authorizationHeader = ''
 
       let response = await request(app)
         .get('/hub_info/')
@@ -43,14 +42,13 @@ export function testHttpWithInMemoryDriver() {
       const authPart = auth.V1Authentication.makeAuthPart(sk, challenge)
       const authorization = `bearer ${authPart}`
 
-      authorizationHeader = authorization
-      response = await request(app).post(path)
+      const hubInfo = await request(app).post(path)
         .set('Content-Type', 'application/octet-stream')
         .set('Authorization', authorization)
         .send(blob)
         .expect(202)
 
-      const url = JSON.parse(response.text).publicURL
+      const url = JSON.parse(hubInfo.text).publicURL
       t.ok(url, 'Must return URL')
       console.log(url)
       const resp = await fetch(url)
@@ -59,7 +57,7 @@ export function testHttpWithInMemoryDriver() {
 
       const filesResponse = await request(app).post(listPath)
         .set('Content-Type', 'application/json')
-        .set('Authorization', authorizationHeader)
+        .set('Authorization', authorization)
         .expect(202)
       
       const files = JSON.parse(filesResponse.text)
@@ -72,6 +70,51 @@ export function testHttpWithInMemoryDriver() {
       inMemoryDriver.dispose()
     }
   })
+
+  test.only('handle revocation via POST', async (t) => {
+    const inMemoryDriver = await InMemoryDriver.spawn()
+    try {
+      const app = makeHttpServer({ driverInstance: inMemoryDriver })
+      const sk = testPairs[1]
+      const fileContents = sk.toWIF()
+      const blob = Buffer.from(fileContents)
+
+      const address = ecPairToAddress(sk)
+      const path = `/store/${address}/helloWorld`
+
+      const hubInfo = await request(app)
+        .get('/hub_info/')
+        .expect(200)
+
+      const challenge = hubInfo.body.challenge_text
+      const authPart = auth.V1Authentication.makeAuthPart(sk, challenge)
+      const authorization = `bearer ${authPart}`
+
+      const storeResponse = await request(app).post(path)
+        .set('Content-Type', 'application/octet-stream')
+        .set('Authorization', authorization)
+        .send(blob)
+        .expect(202)
+
+      const revokeResponse = await request(app)
+        .post(`/revoke-all/${address}`)
+        .set('Authorization', authorization)
+        .send({oldestValidTimestamp: (Date.now()/1000|0) + 3000})
+        .expect(202)
+      t.equal(revokeResponse.body.status, 'success', 'Revoke POST request should have returned success status')
+
+      const failedStoreResponse = await request(app).post(path)
+        .set('Content-Type', 'application/octet-stream')
+        .set('Authorization', authorization)
+        .send(blob)
+        .expect(401)
+      t.equal(failedStoreResponse.body.error, 'AuthTokenTimestampValidationError', 'Store request should have returned correct error type')
+
+    } finally {
+      inMemoryDriver.dispose()
+    }
+  })
+
 }
 
 function testHttpDriverOption() {
@@ -141,7 +184,6 @@ function testHttpWithAzure() {
 
     let address = ecPairToAddress(sk)
     let path = `/store/${address}/helloWorld`
-    let listPath = `/list-files/${address}`
     let prefix = ''
     let authorizationHeader = ''
 

@@ -12,6 +12,7 @@ import { HubServer } from './server'
 import type { HubServerConfig } from './server'
 import { getDriverClass } from './utils'
 import type { DriverModel } from './driverModel'
+import * as errors from './errors'
 
 function writeResponse(res: express.response, data: Object, statusCode: number) {
   res.writeHead(statusCode, {'Content-Type' : 'application/json'})
@@ -54,7 +55,7 @@ export function makeHttpServer(config: MakeHttpServerConfig) : express.Applicati
   // sadly, express doesn't like to capture slashes.
   //  but that's okay! regexes solve that problem
   app.post(/^\/store\/([a-zA-Z0-9]+)\/(.+)/, (req: express.request,
-                                              res: express.response) => {
+                                           res: express.response) => {
     let filename = req.params[1]
     if (filename.endsWith('/')){
       filename = filename.substring(0, filename.length - 1)
@@ -67,12 +68,14 @@ export function makeHttpServer(config: MakeHttpServerConfig) : express.Applicati
       })
       .catch((err) => {
         logger.error(err)
-        if (err.name === 'ValidationError') {
-          writeResponse(res, { message: err.message }, 401)
-        } else if (err.name === 'BadPathError') {
-          writeResponse(res, { message: err.message }, 403)
-        } else if (err.name === 'NotEnoughProofError') {
-          writeResponse(res, { message: err.message }, 402)
+        if (err instanceof errors.ValidationError) {
+          writeResponse(res, { message: err.message, error: err.name }, 401)
+        } else if (err instanceof errors.AuthTokenTimestampValidationError) {
+          writeResponse(res, { message: err.message, error: err.name  }, 401)
+        } else if (err instanceof errors.BadPathError) {
+          writeResponse(res, { message: err.message, error: err.name  }, 403)
+        } else if (err instanceof errors.NotEnoughProofError) {
+          writeResponse(res, { message: err.message, error: err.name  }, 402)
         } else {
           writeResponse(res, { message: 'Server Error' }, 500)
         }
@@ -104,7 +107,46 @@ export function makeHttpServer(config: MakeHttpServerConfig) : express.Applicati
             writeResponse(res, { message: 'Server Error' }, 500)
           }
         })
-    })
+  })
+
+  app.post(
+    /^\/revoke-all\/([a-zA-Z0-9]+)\/?/, 
+    express.json(),
+    (req: express.request, res: express.response) => {
+      // sanity check...
+      if (req.headers['content-length'] > 4096) {
+        writeResponse(res, { mesasge: 'Invalid JSON: too long'}, 400)
+        return
+      }
+
+      if (!req.body || !req.body.oldestValidTimestamp) {
+        writeResponse(res, { mesasge: 'Invalid JSON: missing oldestValidTimestamp'}, 400)
+        return
+      }
+
+      const address = req.params[0]
+      const oldestValidTimestamp: number = parseInt(req.body.oldestValidTimestamp)
+
+      if (!Number.isFinite(oldestValidTimestamp)) {
+        writeResponse(res, { mesasge: 'Invalid JSON: oldestValidTimestamp is not a valid integer'}, 400)
+        return
+      }
+
+      server.handleAuthBump(address, oldestValidTimestamp, req.headers)
+      .then(() => {
+        writeResponse(res, { status: 'success' }, 202)
+      })
+      .catch((err) => {
+        logger.error(err)
+        if (err instanceof errors.ValidationError) {
+          writeResponse(res, { message: err.message, error: err.name  }, 401)
+        } else if (err instanceof errors.BadPathError) {
+          writeResponse(res, { message: err.message, error: err.name  }, 403)
+        } else {
+          writeResponse(res, { message: 'Server Error' }, 500)
+        }
+      })
+  })
 
   app.get('/hub_info/', (req: express.request,
                          res: express.response) => {

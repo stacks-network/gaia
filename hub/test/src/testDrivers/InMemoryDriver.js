@@ -10,15 +10,15 @@ export class InMemoryDriver implements DriverModel {
     app: express.Application
     server: Server;
     readUrl: string
-    files: Array<{path: string, content: Buffer, contentType: string}>
+    files: Map<string, {content: Buffer, contentType: string}>
     lastWrite: PerformWriteArgs
 
     constructor() {
-      this.files = []
+      this.files = new Map<string, {content: Buffer, contentType: string}>()
       this.app = express()
       this.app.use((req, res, next) => {
         const requestPath = req.path.slice(1)
-        const matchingFile = this.files.find(file => file.path === requestPath)
+        const matchingFile = this.files.get(requestPath)
         if (matchingFile) {
           res.set('Content-Type', matchingFile.contentType).send(matchingFile.content)
         } else {
@@ -46,8 +46,7 @@ export class InMemoryDriver implements DriverModel {
     async performWrite(args: PerformWriteArgs) {
       this.lastWrite = args
       const contentBuffer = await readStream(args.stream, args.contentLength)
-      this.files.push({
-        path: `${args.storageTopLevel}/${args.path}`,
+      this.files.set(`${args.storageTopLevel}/${args.path}`, {
         content: contentBuffer,
         contentType: args.contentType
       })
@@ -55,9 +54,9 @@ export class InMemoryDriver implements DriverModel {
       return resultUrl
     }
     listFiles(storageTopLevel: string, page: ?string): Promise<ListFilesResult> {
-      const matchingEntries = this.files
-        .filter(file => file.path.startsWith(storageTopLevel))
-        .map(file => file.path.slice(storageTopLevel.length + 1))
+      const matchingEntries = Array.from(this.files.keys())
+        .filter(path => path.startsWith(storageTopLevel))
+        .map(path => path.slice(storageTopLevel.length + 1))
       return Promise.resolve({entries: matchingEntries, page: page})
     }
     dispose() {
