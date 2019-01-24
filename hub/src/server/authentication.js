@@ -411,12 +411,11 @@ export function parseAuthHeader(authHeader: string) {
   }
 }
 
-export function validateAuthorizationHeader(authHeader: string, serverName: ?string,
+export function validateAuthorizationHeader(authHeader: string, serverName: string,
                                             address: string, requireCorrectHubUrl?: boolean = false,
                                             validHubUrls?: ?Array<string> = null,
                                             oldestValidTokenTimestamp?: number) : string {
-  const serverNameOpt: any = serverName
-  const serverNameHubUrl = `https://${serverNameOpt}`
+  const serverNameHubUrl = `https://${serverName}`
   if (!validHubUrls) {
     validHubUrls = [ serverNameHubUrl ]
   } else if (validHubUrls.indexOf(serverNameHubUrl) < 0) {
@@ -435,8 +434,8 @@ export function validateAuthorizationHeader(authHeader: string, serverName: ?str
   }
 
   const challengeTexts = []
-  challengeTexts.push(getChallengeText(serverNameOpt))
-  getLegacyChallengeTexts(serverNameOpt).forEach(challengeText => challengeTexts.push(challengeText))
+  challengeTexts.push(getChallengeText(serverName))
+  getLegacyChallengeTexts(serverName).forEach(challengeText => challengeTexts.push(challengeText))
 
   return authObject.isAuthenticationValid(address, challengeTexts, { validHubUrls, requireCorrectHubUrl, oldestValidTokenTimestamp })
 }

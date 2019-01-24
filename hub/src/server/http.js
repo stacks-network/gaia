@@ -150,8 +150,7 @@ export function makeHttpServer(config: MakeHttpServerConfig) : express.Applicati
 
   app.get('/hub_info/', (req: express.request,
                          res: express.response) => {
-                           const serverNameOpt: any = server.serverName
-                           const challengeText = getChallengeText(serverNameOpt)
+    const challengeText = getChallengeText(server.serverName)
     if (challengeText.length < 10) {
       return writeResponse(res, { message: 'Server challenge text misconfigured' }, 500)
     }

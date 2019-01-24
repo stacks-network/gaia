@@ -71,7 +71,7 @@ export function testHttpWithInMemoryDriver() {
     }
   })
 
-  test.only('handle revocation via POST', async (t) => {
+  test('handle revocation via POST', async (t) => {
     const inMemoryDriver = await InMemoryDriver.spawn()
     try {
       const app = makeHttpServer({ driverInstance: inMemoryDriver })
