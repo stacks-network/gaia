@@ -1,8 +1,9 @@
 import winston from 'winston'
 import fs from 'fs'
 import process from 'process'
+import type { HubServerConfig } from './server'
 
-const configDefaults = {
+const configDefaults : HubServerConfig = {
   argsTransport: {
     level: 'debug',
     handleExceptions: true,
@@ -13,6 +14,7 @@ const configDefaults = {
   },
   port: 8009,
   apiKeys: [],
+  authTimestampCacheSize: 50000,
   gaiaSettings: {
     configPath: '/tmp/gaia-config.json'
   },
@@ -25,9 +27,9 @@ const configDefaults = {
   }
 }
 
-export function getConfig() {
+export function getConfig(): HubServerConfig {
   const configPath = process.env.CONFIG_PATH || process.argv[2] || './config.json'
-  let config
+  let config: HubServerConfig
   try {
     config = Object.assign(
       {}, configDefaults, JSON.parse(fs.readFileSync(configPath).toString()))

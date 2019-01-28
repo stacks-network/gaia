@@ -11,6 +11,7 @@ import { DriverModel } from './driverModel'
 export type HubServerConfig = {
   whitelist?: Array<string>, 
   serverName: string, 
+  authTimestampCacheSize: number,
   readURL?: string, 
   requireCorrectHubUrl?: boolean, 
   validHubUrls?: Array<string> 
@@ -34,7 +35,7 @@ export class HubServer {
     this.validHubUrls = config.validHubUrls
     this.readURL = config.readURL
     this.requireCorrectHubUrl = config.requireCorrectHubUrl || false
-    this.authTimestampCache = new AuthTimestampCache(driver)
+    this.authTimestampCache = new AuthTimestampCache(driver, config.authTimestampCacheSize)
   }
 
   async handleAuthBump(address: string, oldestValidTimestamp: number, requestHeaders: { authorization: string }) {

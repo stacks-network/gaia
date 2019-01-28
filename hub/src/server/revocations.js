@@ -3,6 +3,7 @@
 import LRUCache from 'lru-cache'
 import type { DriverModel } from './driverModel'
 import fetch from 'node-fetch'
+import logger from 'winston'
 import { Readable } from 'stream'
 
 const MAX_AUTH_FILE_BYTES = 1024
@@ -10,13 +11,35 @@ const AUTH_TIMESTAMP_FILE_NAME = 'authTimestamp'
 
 export class AuthTimestampCache {
 
-  cache: LRUCache;
-  driver: DriverModel;
+  cache: LRUCache<string, number>
+  driver: DriverModel
+  currentCacheEvictions: number
 
-  constructor(driver: DriverModel) {
-    // TODO: configure cache settings..
-    this.cache = new LRUCache()
+  constructor(driver: DriverModel, maxCacheSize: number) {
+    this.currentCacheEvictions = 0
+    this.cache = new LRUCache<string, number>({ 
+      max: maxCacheSize, 
+      dispose: () => {
+        this.currentCacheEvictions++
+      }
+    })
     this.driver = driver
+
+    // Check cache evictions every 10 minutes
+    const tenMinutes = 1000 * 60 * 10
+    this.setupCacheEvictionLogger(tenMinutes)
+  }
+
+  setupCacheEvictionLogger(timerInterval: number) {
+    const evictionLogTimeout: any = setInterval(() => this.handleCacheEvictions(), timerInterval)
+    evictionLogTimeout.unref()
+  }
+
+  handleCacheEvictions() {
+    if (this.currentCacheEvictions > 0) {
+      logger.warn(`Gaia authentication token timestamp cache evicted ${this.currentCacheEvictions} entries in the last 10 minutes. Consider increasing 'authTimestampCacheSize'.`)
+      this.currentCacheEvictions = 0
+    }
   }
 
   getAuthTimestampFileDir(bucketAddress: string) {

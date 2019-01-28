@@ -22,13 +22,14 @@ import { testPairs } from './common'
 import { InMemoryDriver } from './testDrivers/InMemoryDriver'
 
 const TEST_SERVER_NAME = 'test-server'
+const TEST_AUTH_CACHE_SIZE = 10
 
 export function testHttpWithInMemoryDriver() {
   test('handle request (InMemory driver)', async (t) => {
     const fetch = NodeFetch
     const inMemoryDriver = await InMemoryDriver.spawn()
     try {
-      const app = makeHttpServer({ driverInstance: inMemoryDriver, serverName: TEST_SERVER_NAME })
+      const app = makeHttpServer({ driverInstance: inMemoryDriver, serverName: TEST_SERVER_NAME, authTimestampCacheSize: TEST_AUTH_CACHE_SIZE })
       const sk = testPairs[1]
       const fileContents = sk.toWIF()
       const blob = Buffer.from(fileContents)
@@ -77,7 +78,7 @@ export function testHttpWithInMemoryDriver() {
   test('handle revocation via POST', async (t) => {
     const inMemoryDriver = await InMemoryDriver.spawn()
     try {
-      const app = makeHttpServer({ driverInstance: inMemoryDriver, serverName: TEST_SERVER_NAME })
+      const app = makeHttpServer({ driverInstance: inMemoryDriver, serverName: TEST_SERVER_NAME, authTimestampCacheSize: TEST_AUTH_CACHE_SIZE })
       const sk = testPairs[1]
       const fileContents = sk.toWIF()
       const blob = Buffer.from(fileContents)
@@ -126,6 +127,7 @@ function testHttpDriverOption() {
       driver: 'disk',
       readURL: 'test/',
       serverName: TEST_SERVER_NAME,
+      authTimestampCacheSize: TEST_AUTH_CACHE_SIZE,
       diskSettings: {
         storageRootDirectory: os.tmpdir()
       }
@@ -136,19 +138,24 @@ function testHttpDriverOption() {
   test('makeHttpServer "driverInstance" config', (t) => {
     const driver = new DiskDriver({
       readURL: 'test/',
+      authTimestampCacheSize: TEST_AUTH_CACHE_SIZE,
       diskSettings: {
         storageRootDirectory: os.tmpdir()
       }
     })
     makeHttpServer({
       driverInstance: driver,
-      serverName: TEST_SERVER_NAME
+      serverName: TEST_SERVER_NAME,
+      authTimestampCacheSize: TEST_AUTH_CACHE_SIZE
     })
     t.end()
   })
 
   test('makeHttpServer missing driver config', (t) => {
-    t.throws(() => makeHttpServer({serverName: TEST_SERVER_NAME}), Error, 'Should fail to create http server when no driver config is specified')
+    t.throws(() => makeHttpServer({
+      serverName: TEST_SERVER_NAME, 
+      authTimestampCacheSize: TEST_AUTH_CACHE_SIZE}), 
+      Error, 'Should fail to create http server when no driver config is specified')
     t.end()
   })
 
@@ -162,7 +169,8 @@ function testHttpWithAzure() {
       'accountKey': 'mock-azure-key'
     },
     'bucket': 'spokes',
-    serverName: TEST_SERVER_NAME
+    serverName: TEST_SERVER_NAME,
+    authTimestampCacheSize: TEST_AUTH_CACHE_SIZE
   }
   let mockTest = true
 
@@ -170,6 +178,7 @@ function testHttpWithAzure() {
     config = JSON.parse(fs.readFileSync(azConfigPath, {encoding: 'utf8'}))
     config.driver = 'azure'
     config.serverName = TEST_SERVER_NAME
+    config.authTimestampCacheSize = TEST_AUTH_CACHE_SIZE
     mockTest = false
   }
 

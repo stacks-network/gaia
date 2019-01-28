@@ -12,6 +12,7 @@ import { InMemoryDriver } from './testDrivers/InMemoryDriver'
 import { testPairs, testAddrs} from './common'
 
 const TEST_SERVER_NAME = 'test-server'
+const TEST_AUTH_CACHE_SIZE = 10
 
 class MockDriver implements DriverModel {
   lastWrite: any
@@ -40,7 +41,8 @@ export function testServer() {
   test('validation tests', (t) => {
     t.plan(4)
     const server = new HubServer(new MockDriver(), new MockProofs(),
-                                 { serverName: TEST_SERVER_NAME, whitelist: [testAddrs[0]] })
+                                 { serverName: TEST_SERVER_NAME, whitelist: [testAddrs[0]],
+                                   authTimestampCacheSize: TEST_AUTH_CACHE_SIZE })
     const challengeText = auth.getChallengeText(TEST_SERVER_NAME)
     const authPart0 = auth.LegacyAuthentication.makeAuthPart(testPairs[1], challengeText)
     const auth0 = `bearer ${authPart0}`
@@ -71,7 +73,8 @@ export function testServer() {
     t.plan(4)
     const server = new HubServer(new MockDriver(), new MockProofs(),
                                  { whitelist: [testAddrs[0]], requireCorrectHubUrl: true,
-                                   serverName: TEST_SERVER_NAME, validHubUrls: ['https://testserver.com'] })
+                                   serverName: TEST_SERVER_NAME, validHubUrls: ['https://testserver.com'],
+                                   authTimestampCacheSize: TEST_AUTH_CACHE_SIZE })
 
     const challengeText = auth.getChallengeText(TEST_SERVER_NAME)
 
@@ -104,7 +107,8 @@ export function testServer() {
     t.plan(5)
     const server = new HubServer(new MockDriver(), new MockProofs(),
                                  { whitelist: [testAddrs[0]], requireCorrectHubUrl: true,
-                                   serverName: TEST_SERVER_NAME, validHubUrls: ['https://testserver.com'] })
+                                   serverName: TEST_SERVER_NAME, validHubUrls: ['https://testserver.com'],
+                                   authTimestampCacheSize: TEST_AUTH_CACHE_SIZE })
 
     const challengeTexts = []
     challengeTexts.push(auth.getChallengeText(TEST_SERVER_NAME))
@@ -142,7 +146,8 @@ export function testServer() {
     t.plan(8)
     const mockDriver = new MockDriver()
     const server = new HubServer(mockDriver, new MockProofs(),
-                                 { whitelist: [testAddrs[0]], readURL: 'http://potato.com/', serverName: TEST_SERVER_NAME })
+                                 { whitelist: [testAddrs[0]], readURL: 'http://potato.com/',
+                                  serverName: TEST_SERVER_NAME, authTimestampCacheSize: TEST_AUTH_CACHE_SIZE })
     const challengeText = auth.getChallengeText(TEST_SERVER_NAME)
     const authPart = auth.LegacyAuthentication.makeAuthPart(testPairs[0], challengeText)
     const authorization = `bearer ${authPart}`
@@ -179,7 +184,8 @@ export function testServer() {
     t.plan(8)
     const mockDriver = new MockDriver()
     const server = new HubServer(mockDriver, new MockProofs(),
-                                 { whitelist: [testAddrs[0]], serverName: TEST_SERVER_NAME })
+                                 { whitelist: [testAddrs[0]], serverName: TEST_SERVER_NAME,
+                                  authTimestampCacheSize: TEST_AUTH_CACHE_SIZE })
     const challengeText = auth.getChallengeText(TEST_SERVER_NAME)
     const authPart = auth.LegacyAuthentication.makeAuthPart(testPairs[0], challengeText)
     const authorization = `bearer ${authPart}`
@@ -212,10 +218,42 @@ export function testServer() {
       })
   })
 
+  test('auth token timeout cache monitoring', async (t) => {
+    const mockDriver = new InMemoryDriver()
+    const server = new HubServer(mockDriver, new MockProofs(), {
+                                  serverName: TEST_SERVER_NAME,
+                                  authTimestampCacheSize: 4})
+    const getJunkData = () => {
+      const s = new Readable()
+      s.push('hello world')
+      s.push(null)
+      return s
+    }
+
+    for (let i = 0; i < 10; i++) {
+      const challengeText = auth.getChallengeText(TEST_SERVER_NAME)
+      let authPart = auth.V1Authentication.makeAuthPart(testPairs[i], challengeText)
+      let authorization = `bearer ${authPart}`
+      await server.handleRequest(testAddrs[i], '/foo/bar', 
+                                { 'content-type' : 'text/text',
+                                  'content-length': 400,
+                                  authorization }, getJunkData())
+    }
+
+    t.equal(server.authTimestampCache.currentCacheEvictions, 6, 'Auth cache should have correct number of evictions')
+    t.equal(server.authTimestampCache.cache.itemCount, 4, 'Auth cache should have correct item count')
+    server.authTimestampCache.setupCacheEvictionLogger(1)
+    await new Promise((res) => setTimeout(() => res(), 10))
+    t.equal(server.authTimestampCache.currentCacheEvictions, 0, 'Auth cache eviction count should have been cleared by logger')
+
+  })
+
   test('fail writes with revoked auth token', async (t) => {
 
     const mockDriver = new InMemoryDriver()
-    const server = new HubServer(mockDriver, new MockProofs(), {serverName: TEST_SERVER_NAME})
+    const server = new HubServer(mockDriver, new MockProofs(), {
+                                  serverName: TEST_SERVER_NAME,
+                                  authTimestampCacheSize: TEST_AUTH_CACHE_SIZE})
     const challengeText = auth.getChallengeText(TEST_SERVER_NAME)
     let authPart = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText)
     let authorization = `bearer ${authPart}`
@@ -269,7 +307,8 @@ export function testServer() {
 
     const mockDriver = new MockDriver()
     const server = new HubServer(mockDriver, new MockProofs(),
-                                 { whitelist: [testAddrs[0]], serverName: TEST_SERVER_NAME })
+                                 { whitelist: [testAddrs[0]], serverName: TEST_SERVER_NAME,
+                                  authTimestampCacheSize: TEST_AUTH_CACHE_SIZE })
     const challengeText = auth.getChallengeText(TEST_SERVER_NAME)
 
     const authPart = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText, undefined, undefined, writeScopes)
@@ -356,7 +395,8 @@ export function testServer() {
 
     const mockDriver = new MockDriver()
     const server = new HubServer(mockDriver, new MockProofs(),
-                                 { whitelist: [testAddrs[1]], serverName: TEST_SERVER_NAME })
+                                 { whitelist: [testAddrs[1]], serverName: TEST_SERVER_NAME,
+                                  authTimestampCacheSize: TEST_AUTH_CACHE_SIZE })
     const challengeText = auth.getChallengeText(TEST_SERVER_NAME)
 
     const associationToken = auth.V1Authentication.makeAssociationToken(testPairs[1], testPairs[0].publicKey.toString('hex'))
