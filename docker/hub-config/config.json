@@ -8,9 +8,7 @@
     "accessKeyId": "",
     "secretAccessKey": ""
   },
-  "proofsConfig": {
-    "proofsRequired": 0
-  },
+  "proofsConfig": 1,
   "azCredentials": {
     "accountName": "",
     "accountKey": ""
