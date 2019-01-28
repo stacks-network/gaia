@@ -290,6 +290,8 @@ listFiles(prefix: string, page: string)
 
 The Gaia storage API defines the following endpoints:
 
+---
+
 ```
 GET ${read-url-prefix}/${address}/${path}
 ```
@@ -298,6 +300,8 @@ This returns the data stored by the gaia hub at `${path}`. In order
 for this to be usable from web applications, this read path _must_
 set the appropriate CORS headers. The HTTP Content-Type of the file
 should match the Content-Type of the corresponding write.
+
+---
 
 ```
 POST ${hubUrl}/store/${address}/${path}
@@ -318,6 +322,8 @@ The bearer token's content and generation is described in
 the [access control](#address-based-access-control) section of this
 document.
 
+---
+
 ```
 GET ${hubUrl}/hub_info/
 ```
@@ -334,6 +340,8 @@ Returns a JSON object:
 
 The latest auth version allows the client to figure out which auth versions the
 gaia hub supports.
+
+---
 
 ```
 POST ${hubUrl}/revoke-all/${address}
