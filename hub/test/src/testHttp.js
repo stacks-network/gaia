@@ -77,7 +77,7 @@ export function testHttpWithInMemoryDriver() {
   test('handle revocation via POST', async (t) => {
     const inMemoryDriver = await InMemoryDriver.spawn()
     try {
-      const app = makeHttpServer({ driverInstance: inMemoryDriver })
+      const app = makeHttpServer({ driverInstance: inMemoryDriver, serverName: TEST_SERVER_NAME })
       const sk = testPairs[1]
       const fileContents = sk.toWIF()
       const blob = Buffer.from(fileContents)

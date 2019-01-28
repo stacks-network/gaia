@@ -215,8 +215,8 @@ export function testServer() {
   test('fail writes with revoked auth token', async (t) => {
 
     const mockDriver = new InMemoryDriver()
-    const server = new HubServer(mockDriver, new MockProofs(), {})
-    const challengeText = auth.getChallengeText()
+    const server = new HubServer(mockDriver, new MockProofs(), {serverName: TEST_SERVER_NAME})
+    const challengeText = auth.getChallengeText(TEST_SERVER_NAME)
     let authPart = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText)
     let authorization = `bearer ${authPart}`
 
