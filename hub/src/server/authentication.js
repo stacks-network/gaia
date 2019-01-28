@@ -78,7 +78,7 @@ export class V1Authentication {
     return `v1:${token}`
   }
 
-  static makeAssociationToken(secretKey: bitcoin.ECPair, childPublicKey: string) { 
+  static makeAssociationToken(secretKey: bitcoin.ECPair, childPublicKey: string) {
     const FOUR_MONTH_SECONDS = 60 * 60 * 24 * 31 * 4
     const publicKeyHex = secretKey.getPublicKeyBuffer().toString('hex')
     const salt = crypto.randomBytes(16).toString('hex')
@@ -164,7 +164,7 @@ export class V1Authentication {
     }
 
     if (!decodedToken.payload.hasOwnProperty('scopes')) {
-      // not given 
+      // not given
       return []
     }
 
@@ -195,7 +195,7 @@ export class V1Authentication {
    *
    * this throws a ValidationError if the authentication is invalid
    */
-  isAuthenticationValid(address: string, challengeText: string,
+  isAuthenticationValid(address: string, challengeTexts: Array<string>,
                         options?: { requireCorrectHubUrl?: boolean,
                                     validHubUrls?: Array<string> }) : string {
     let decodedToken
@@ -257,8 +257,9 @@ export class V1Authentication {
       throw new ValidationError('Failed to verify supplied authentication JWT')
     }
 
-    if (gaiaChallenge !== challengeText) {
-      throw new ValidationError(`Invalid gaiaChallenge text in supplied JWT: ${gaiaChallenge}`)
+    if (!challengeTexts.includes(gaiaChallenge)) {
+      throw new ValidationError(`Invalid gaiaChallenge text in supplied JWT: "${gaiaChallenge}"` +
+                                ` not found in ${JSON.stringify(challengeTexts)}`)
     }
 
     const expiresAt = decodedToken.payload.exp
@@ -308,42 +309,39 @@ export class LegacyAuthentication {
     return []
   }
 
-  isAuthenticationValid(address: string, challengeText: string,
+  isAuthenticationValid(address: string, challengeTexts: Array<string>,
                         options? : {}) { //  eslint-disable-line no-unused-vars
     if (this.publickey.getAddress() !== address) {
       throw new ValidationError('Address not allowed to write on this path')
     }
 
-    const digest = bitcoin.crypto.sha256(challengeText)
-    const valid = (this.publickey.verify(digest, this.signature) === true)
+    for (const challengeText of challengeTexts) {
+      const digest = bitcoin.crypto.sha256(challengeText)
+      const valid = (this.publickey.verify(digest, this.signature) === true)
 
-    if (!valid) {
-      logger.debug(`Failed to validate with challenge text: ${challengeText}`)
-      throw new ValidationError('Invalid signature or expired authentication token.')
+      if (valid) {
+        return address
+      }
     }
-    return address
+    logger.debug(`Failed to validate with challenge text: ${JSON.stringify(challengeTexts)}`)
+    throw new ValidationError('Invalid signature or expired authentication token.')
   }
 }
 
 export function getChallengeText(myURL: string = DEFAULT_STORAGE_URL) {
   const header = 'gaiahub'
-  const dateParts = new Date().toISOString().split('T')[0]
-        .split('-')
-  // for right now, access tokens are valid for the calendar year.
-  const allowedSpan = dateParts[0]
+  const allowedSpan = '0'
   const myChallenge = 'blockstack_storage_please_sign'
   return JSON.stringify( [header, allowedSpan, myURL, myChallenge] )
 }
 
-export function getChallengeTexts(myURL: string = DEFAULT_STORAGE_URL) {
-  const curChallengeText = getChallengeText(myURL)
-  
-  // make previous year's challenge text
+export function getLegacyChallengeTexts(myURL: string = DEFAULT_STORAGE_URL): Array<string> {
+  // make legacy challenge texts
   const header = 'gaiahub'
   const myChallenge = 'blockstack_storage_please_sign'
-  const prevChallengeText = JSON.stringify( [header, '2018', myURL, myChallenge] )
-
-  return [curChallengeText, prevChallengeText]
+  const legacyYears = ['2018', '2019']
+  return legacyYears.map(year => JSON.stringify(
+    [header, year, myURL, myChallenge]))
 }
 
 export function parseAuthHeader(authHeader: string) {
@@ -386,24 +384,11 @@ export function validateAuthorizationHeader(authHeader: string, serverName: stri
     throw new ValidationError('Failed to parse authentication header.')
   }
 
-  const challengeTexts = getChallengeTexts(serverName)
-  for (let i = 0; i < challengeTexts.length; i++) {
-    try {
-      const valid = authObject.isAuthenticationValid(address, challengeTexts[i], 
-        { validHubUrls, requireCorrectHubUrl })
+  const challengeTexts = []
+  challengeTexts.push(getChallengeText(serverName))
+  getLegacyChallengeTexts(serverName).forEach(challengeText => challengeTexts.push(challengeText))
 
-      if (valid) {
-        return valid
-      }
-    } catch (err) {
-      if (err instanceof ValidationError) {
-        continue
-      } else {
-        throw err
-      }
-    }
-  }
-  throw new ValidationError('Invalid gaiaChallenge text in supplied JWT')
+  return authObject.isAuthenticationValid(address, challengeTexts, { validHubUrls, requireCorrectHubUrl })
 }
 
 
@@ -434,13 +419,13 @@ function validateScopes(scopes: Array<AuthScopeType>) {
 
   for (let i = 0; i < scopes.length; i++) {
     const scope = scopes[i]
-    
+
     // valid scope?
     const found = AuthScopes.find((s) => (s === scope.scope))
     if (!found) {
       throw new ValidationError(`Unrecognized scope ${scope.scope}`)
     }
   }
-  
+
   return true
 }
