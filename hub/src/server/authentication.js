@@ -83,10 +83,7 @@ export class V1Authentication {
       validateScopes(scopes)
     }
 
-    let payloadIssuedAtDate = (Date.now()/1000|0)
-    if (issuedAtDate){
-      payloadIssuedAtDate = issuedAtDate
-    }
+    const payloadIssuedAtDate = issuedAtDate || (Date.now()/1000|0)
 
     const payload: TokenPayloadType = { gaiaChallenge: challengeText,
                       iss: publicKeyHex,
@@ -242,16 +239,16 @@ export class V1Authentication {
 
     // check for revocations
     if (options && options.oldestValidTokenTimestamp && options.oldestValidTokenTimestamp > 0) {
-      const tokenCreationDate = decodedToken.payload.iat
+      const tokenIssuedAtDate = decodedToken.payload.iat
       const oldestValidTokenTimestamp: number = options.oldestValidTokenTimestamp
-      if (!tokenCreationDate) {
-        const message = `Gaia bucket requires auth token created after ${oldestValidTokenTimestamp}` +
+      if (!tokenIssuedAtDate) {
+        const message = `Gaia bucket requires auth token issued after ${oldestValidTokenTimestamp}` +
               ' but this token has no creation timestamp. This token may have been revoked by the user.'
         throw new AuthTokenTimestampValidationError(message, oldestValidTokenTimestamp)
       }
-      if (tokenCreationDate < options.oldestValidTokenTimestamp) {
-        const message = `Gaia bucket requires auth token created after ${oldestValidTokenTimestamp}` +
-              ` but this token was created ${tokenCreationDate}.` +
+      if (tokenIssuedAtDate < options.oldestValidTokenTimestamp) {
+        const message = `Gaia bucket requires auth token issued after ${oldestValidTokenTimestamp}` +
+              ` but this token was issued ${tokenIssuedAtDate}.` +
               ' This token may have been revoked by the user.'
         throw new AuthTokenTimestampValidationError(message, oldestValidTokenTimestamp)
       }
