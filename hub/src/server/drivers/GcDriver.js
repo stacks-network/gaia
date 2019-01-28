@@ -4,9 +4,8 @@ import Storage from '@google-cloud/storage'
 import logger from 'winston'
 
 import { BadPathError } from '../errors'
-
-import type { DriverModel, DriverStatics, ListFilesResult } from '../driverModel'
-import type { Readable } from 'stream'
+import type { ListFilesResult, PerformWriteArgs } from '../driverModel'
+import { DriverStatics, DriverModel } from '../driverModel'
 
 type GC_CONFIG_TYPE = { gcCredentials?: {
                           email?: string,
@@ -135,11 +134,7 @@ class GcDriver implements DriverModel {
     return this.listAllObjects(prefix, page)
   }
 
-  performWrite(args: { path: string,
-                       storageTopLevel: string,
-                       stream: Readable,
-                       contentLength: number,
-                       contentType: string }) : Promise<string> {
+  performWrite(args: PerformWriteArgs) : Promise<string> {
     if (!GcDriver.isPathValid(args.path)){
       return Promise.reject(new BadPathError('Invalid Path'))
     }

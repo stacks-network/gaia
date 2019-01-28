@@ -3,9 +3,8 @@ import fs from 'fs-extra'
 import { BadPathError, InvalidInputError } from '../errors'
 import logger from 'winston'
 import Path from 'path'
-
-import type { DriverModel, DriverStatics, ListFilesResult } from '../driverModel'
-import type { Readable } from 'stream'
+import type { ListFilesResult, PerformWriteArgs } from '../driverModel'
+import { DriverStatics, DriverModel } from '../driverModel'
 
 type DISK_CONFIG_TYPE = { diskSettings: { storageRootDirectory?: string },
                           pageSize?: number,
@@ -141,11 +140,7 @@ class DiskDriver implements DriverModel {
     return this.listFilesInDirectory(listPath, pageNum)
   }
 
-  performWrite(args: { path: string,
-                       storageTopLevel: string,
-                       stream: Readable,
-                       contentLength: number,
-                       contentType: string }) : Promise<string> {
+  performWrite(args: PerformWriteArgs) : Promise<string> {
     return Promise.resolve()
     .then(() => {
       const path = args.path

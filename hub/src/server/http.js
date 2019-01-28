@@ -11,7 +11,7 @@ import { getChallengeText, LATEST_AUTH_VERSION } from './authentication'
 import { HubServer } from './server'
 import type { HubServerConfig } from './server'
 import { getDriverClass } from './utils'
-import type { DriverModel } from './driverModel'
+import { DriverModel } from './driverModel'
 import * as errors from './errors'
 
 function writeResponse(res: express.response, data: Object, statusCode: number) {
@@ -20,12 +20,12 @@ function writeResponse(res: express.response, data: Object, statusCode: number) 
   res.end()
 }
 
-export type MakeHttpServerConfig = HubServerConfig & { 
+export interface MakeHttpServerConfig { 
   proofsConfig?: ProofCheckerConfig,
   driverInstance?: DriverModel, driverClass?: Class<DriverModel>, driver?: string
 }
 
-export function makeHttpServer(config: MakeHttpServerConfig) : express.Application {
+export function makeHttpServer(config: MakeHttpServerConfig & HubServerConfig) : express.Application {
 
   const app : express.Application = express()
 

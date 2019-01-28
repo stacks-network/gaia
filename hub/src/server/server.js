@@ -4,8 +4,8 @@ import { validateAuthorizationHeader, getAuthenticationScopes } from './authenti
 import { ValidationError } from './errors'
 import { ProofChecker } from './ProofChecker'
 
-import type { Readable } from 'stream'
-import type { DriverModel } from './driverModel'
+import { Readable } from 'stream'
+import { DriverModel } from './driverModel'
 
 export type HubServerConfig = {
   whitelist?: Array<string>, 

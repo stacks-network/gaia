@@ -12,7 +12,7 @@
     "express": "^4.15.4",
     "express-winston": "^2.4.0",
     "fs-extra": "^7.0.1",
-    "node-fetch": "^2.0.0",
+    "node-fetch": "^2.3.0",
     "winston": "^2.3.1"
   },
   "devDependencies": {

@@ -1,5 +1,5 @@
 /* @flow */
-import test from 'tape'
+import test from 'tape-promise/tape'
 import proxyquire from 'proxyquire'
 import FetchMock from 'fetch-mock'
 import * as NodeFetch from 'node-fetch'
@@ -10,6 +10,8 @@ import path from 'path'
 
 import { Readable, Writable } from 'stream'
 import { InMemoryDriver } from './testDrivers/InMemoryDriver'
+import { DriverModel } from '../../src/server/driverModel'
+import type { ListFilesResult } from '../../src/server/driverModel'
 
 const azConfigPath = process.env.AZ_CONFIG_PATH
 const awsConfigPath = process.env.AWS_CONFIG_PATH
@@ -397,26 +399,46 @@ function testInMemoryDriver() {
       const fetch = require('node-fetch')
 
       const prefix = driver.getReadURLPrefix()
-      const contentBuff = Buffer.from('hello world')
-      const s = new Readable()
-      s.push(contentBuff)
-      s.push(null)
+      const getSampleData = () => {
+        const contentBuff = Buffer.from('hello world')
+        const s = new Readable()
+        s.push(contentBuff)
+        s.push(null)
+        return { stream: s, contentLength: contentBuff.length }
+      }
 
-      const readUrl = await driver.performWrite(
-          { path: 'foo.txt',
+      // Test binary data content-type
+      let sampleData = getSampleData();
+      let readUrl = await driver.performWrite(
+          { path: 'foo.bin',
             storageTopLevel: '12345',
-            stream: s,
+            stream: sampleData.stream,
             contentType: 'application/octet-stream',
-            contentLength: contentBuff.length })
+            contentLength: sampleData.contentLength })
 
       t.ok(readUrl.startsWith(prefix + '12345'), `${readUrl} must start with readUrlPrefix ${prefix}12345`)
-      const resp = await fetch(readUrl)
-      const resptxt = await resp.text()
+      let resp = await fetch(readUrl)
+      let resptxt = await resp.text()
+      t.equal(resp.headers.get('content-type'), 'application/octet-stream', 'Read-end point response should contain correct content-type')
       t.equal(resptxt, 'hello world', `Must get back hello world: got back: ${resptxt}`)
-      const files = await driver.listFiles('12345')
+      let files = await driver.listFiles('12345')
       t.equal(files.entries.length, 1, 'Should return one file')
-      t.equal(files.entries[0], 'foo.txt', 'Should be foo.txt!')
-      t.end()
+      t.equal(files.entries[0], 'foo.bin', 'Should be foo.bin!')
+
+
+      // Test a text content-type that has implicit charset set
+      sampleData = getSampleData();
+      readUrl = await driver.performWrite(
+          { path: 'foo.txt',
+            storageTopLevel: '12345',
+            stream: sampleData.stream,
+            contentType: 'text/plain',
+            contentLength: sampleData.contentLength })
+
+      t.ok(readUrl.startsWith(prefix + '12345'), `${readUrl} must start with readUrlPrefix ${prefix}12345`)
+      resp = await fetch(readUrl)
+      t.equal(resp.headers.get('content-type'), 'text/plain; charset=utf-8', 'Read-end point response should contain correct content-type')
+
     } finally{
       driver.dispose()
     }

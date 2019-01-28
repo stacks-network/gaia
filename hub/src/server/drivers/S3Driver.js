@@ -4,9 +4,8 @@ import S3 from 'aws-sdk/clients/s3'
 import logger from 'winston'
 
 import { BadPathError } from '../errors'
-
-import type { DriverModel, DriverStatics, ListFilesResult } from '../driverModel'
-import type { Readable } from 'stream'
+import type { ListFilesResult, PerformWriteArgs } from '../driverModel'
+import { DriverStatics, DriverModel } from '../driverModel'
 
 type S3_CONFIG_TYPE = { awsCredentials: {
                           accessKeyId?: string,
@@ -116,11 +115,7 @@ class S3Driver implements DriverModel {
     return this.listAllKeys(prefix, page)
   }
 
-  performWrite(args: { path: string,
-                       storageTopLevel: string,
-                       stream: Readable,
-                       contentLength: number,
-                       contentType: string }) : Promise<string> {
+  performWrite(args: PerformWriteArgs) : Promise<string> {
     const s3key = `${args.storageTopLevel}/${args.path}`
     const s3params = Object.assign({}, {
       Bucket: this.bucket,

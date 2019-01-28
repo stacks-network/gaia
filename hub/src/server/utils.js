@@ -1,7 +1,7 @@
 /* @flow */
 
-import type { Readable } from 'stream'
-import type { DriverModel } from './driverModel'
+import { Readable } from 'stream'
+import { DriverModel } from './driverModel'
 
 export function getDriverClass(driver: string) : Class<DriverModel> {
   if (driver === 'aws') {

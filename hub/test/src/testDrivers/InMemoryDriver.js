@@ -3,7 +3,8 @@
 import { readStream } from '../../../src/server/utils'
 import { Server } from 'http'
 import express from 'express'
-import type { DriverModel, ListFilesResult, PerformWriteArgs } from '../../../src/server/driverModel'
+import { DriverModel } from '../../../src/server/driverModel'
+import type { ListFilesResult, PerformWriteArgs } from '../../../src/server/driverModel'
 
 export class InMemoryDriver implements DriverModel {
 

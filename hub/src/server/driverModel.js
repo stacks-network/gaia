@@ -1,6 +1,6 @@
 /* @flow */
 
-import type { Readable } from 'stream'
+import { Readable } from 'stream'
 
 export type ListFilesResult = { entries: Array<string>, page: ?string };
 export type PerformWriteArgs = { 
