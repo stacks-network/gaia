@@ -87,7 +87,7 @@ export function makeHttpServer(config: MakeHttpServerConfig & HubServerConfig) :
     (req: express.request, res: express.response) => {
       // sanity check...
       if (req.headers['content-length'] > 4096) {
-        writeResponse(res, { mesasge: 'Invalid JSON: too long'}, 400)
+        writeResponse(res, { message: 'Invalid JSON: too long'}, 400)
         return
       }
 
@@ -115,12 +115,12 @@ export function makeHttpServer(config: MakeHttpServerConfig & HubServerConfig) :
     (req: express.request, res: express.response) => {
       // sanity check...
       if (req.headers['content-length'] > 4096) {
-        writeResponse(res, { mesasge: 'Invalid JSON: too long'}, 400)
+        writeResponse(res, { message: 'Invalid JSON: too long'}, 400)
         return
       }
 
       if (!req.body || !req.body.oldestValidTimestamp) {
-        writeResponse(res, { mesasge: 'Invalid JSON: missing oldestValidTimestamp'}, 400)
+        writeResponse(res, { message: 'Invalid JSON: missing oldestValidTimestamp'}, 400)
         return
       }
 
@@ -128,7 +128,7 @@ export function makeHttpServer(config: MakeHttpServerConfig & HubServerConfig) :
       const oldestValidTimestamp: number = parseInt(req.body.oldestValidTimestamp)
 
       if (!Number.isFinite(oldestValidTimestamp)) {
-        writeResponse(res, { mesasge: 'Invalid JSON: oldestValidTimestamp is not a valid integer'}, 400)
+        writeResponse(res, { message: 'Invalid JSON: oldestValidTimestamp is not a valid integer'}, 400)
         return
       }
 
