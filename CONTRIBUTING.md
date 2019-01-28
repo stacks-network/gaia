@@ -35,12 +35,16 @@ A PR reviewer is responsible for ensuring the following:
    this is a breaking change, and versioning and release notifications must
    reflect that.
 
-3. Does this code change affect any other kinds of behavior in deployed hubs in a
+3. Does this code change the way data is written to any existing drivers? If so,
+   do tests ensure that the written file data and meta-data (like Content-Type, Cache-Control)
+   match exactly what was written previously? If no, why is this breaking change necessary?
+
+4. Does this code change affect any other kinds of behavior in deployed hubs in a
    breaking way? If so, this is a breaking change, and versioning and release notifications
    must reflect that.
 
-4. Does this code change change the typical read/write behavior and expectations of the Gaia
+5. Does this code change change the typical read/write behavior and expectations of the Gaia
    hub? Under normal usage, a Gaia hub is responsible only for writes.
 
-5. Does the code match our style guidelines as defined by our eslint definitions? Does type
+6. Does the code match our style guidelines as defined by our eslint definitions? Does type
    enforcement need to be disabled in any files?
