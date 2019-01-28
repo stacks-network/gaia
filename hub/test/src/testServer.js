@@ -243,11 +243,11 @@ export function testServer() {
                            'content-length': 400,
                            authorization }, getJunkData()), errors.AuthTokenTimestampValidationError, 'write with revoked auth token should fail')
 
-    // create a auth token with creationDate forced further into the future
+    // create a auth token with iat forced further into the future
     authPart = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText, undefined, undefined, undefined, futureDate + 10000)
     authorization = `bearer ${authPart}`
   
-    // request should succeed with a token creationDate newer than the revocation date
+    // request should succeed with a token iat newer than the revocation date
     await server.handleRequest(testAddrs[0], '/foo/bar', 
                               { 'content-type' : 'text/text',
                                 'content-length': 400,

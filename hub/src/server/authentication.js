@@ -24,7 +24,7 @@ export type TokenPayloadType = {
     gaiaChallenge: string,
     iss: string,
     exp: number,
-    creationDate?: number,
+    iat?: number,
     salt: string,
     hubUrl?: string,
     associationToken?: string,
@@ -73,7 +73,7 @@ export class V1Authentication {
 
   static makeAuthPart(secretKey: bitcoin.ECPair, challengeText: string,
                       associationToken?: string, hubUrl?: string, scopes?: Array<AuthScopeType>,
-                      creationDate?: number) {
+                      issuedAtDate?: number) {
 
     const FOUR_MONTH_SECONDS = 60 * 60 * 24 * 31 * 4
     const publicKeyHex = secretKey.publicKey.toString('hex')
@@ -83,15 +83,15 @@ export class V1Authentication {
       validateScopes(scopes)
     }
 
-    let payloadCreationDate = (Date.now()/1000|0)
-    if (creationDate){
-      payloadCreationDate = creationDate
+    let payloadIssuedAtDate = (Date.now()/1000|0)
+    if (issuedAtDate){
+      payloadIssuedAtDate = issuedAtDate
     }
 
     const payload: TokenPayloadType = { gaiaChallenge: challengeText,
                       iss: publicKeyHex,
                       exp: FOUR_MONTH_SECONDS + (new Date()/1000),
-                      creationDate: payloadCreationDate,
+                      iat: payloadIssuedAtDate,
                       associationToken,
                       hubUrl, salt, scopes }
 
@@ -107,7 +107,7 @@ export class V1Authentication {
     const payload: TokenPayloadType = { childToAssociate: childPublicKey,
                       iss: publicKeyHex,
                       exp: FOUR_MONTH_SECONDS + (new Date()/1000),
-                      creationDate: (Date.now()/1000|0),
+                      iat: (Date.now()/1000|0),
                       gaiaChallenge: String(undefined),
                       salt }
 
@@ -242,7 +242,7 @@ export class V1Authentication {
 
     // check for revocations
     if (options && options.oldestValidTokenTimestamp && options.oldestValidTokenTimestamp > 0) {
-      const tokenCreationDate = decodedToken.payload.creationDate
+      const tokenCreationDate = decodedToken.payload.iat
       const oldestValidTokenTimestamp: number = options.oldestValidTokenTimestamp
       if (!tokenCreationDate) {
         const message = `Gaia bucket requires auth token created after ${oldestValidTokenTimestamp}` +
