@@ -12,13 +12,13 @@
     "hello"
   ],
   "gaiaSettings": {
-    "configPath": "/tmp/hub/config.json"
+    "configPath": "/tmp/hub-config/config.json"
   },
   "reloadSettings": {
     "command": "/bin/sh",
     "argv": [
       "-c",
-      "pkill -9 blockstack-gaia-hub; nohup /usr/bin/blockstack-gaia-hub /tmp/gaia-config.json &"
+      "docker restart docker_hub_1 &"
     ],
     "env": {},
     "setuid": 1000,
