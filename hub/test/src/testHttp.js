@@ -1,6 +1,6 @@
 /* @flow */
 
-import test  from 'tape-promise/tape'
+import test from 'tape-promise/tape'
 
 import * as auth from '../../src/server/authentication'
 import os from 'os'
@@ -14,18 +14,21 @@ const fetch = FetchMock.sandbox(NodeFetch)
 
 import { makeHttpServer } from '../../src/server/http.js'
 import DiskDriver from '../../src/server/drivers/diskDriver'
-import { MakeHttpServerConfig } from '../../src/server/http.js'
+import { MakeHttpServerConfig, } from '../../src/server/http.js'
+import type { HubServerConfig } from '../../src/server/server.js'
 import { makeMockedAzureDriver, addMockFetches } from './testDrivers'
 
 import { testPairs } from './common'
 import { InMemoryDriver } from './testDrivers/InMemoryDriver'
+
+const TEST_SERVER_NAME = 'test-server'
 
 export function testHttpWithInMemoryDriver() {
   test('handle request (InMemory driver)', async (t) => {
     const fetch = NodeFetch
     const inMemoryDriver = await InMemoryDriver.spawn()
     try {
-      const app = makeHttpServer({ driverInstance: inMemoryDriver })
+      const app = makeHttpServer({ driverInstance: inMemoryDriver, serverName: TEST_SERVER_NAME })
       const sk = testPairs[1]
       const fileContents = sk.toWIF()
       const blob = Buffer.from(fileContents)
@@ -78,6 +81,7 @@ function testHttpDriverOption() {
     makeHttpServer({
       driver: 'disk',
       readURL: 'test/',
+      serverName: TEST_SERVER_NAME,
       diskSettings: {
         storageRootDirectory: os.tmpdir()
       }
@@ -93,13 +97,14 @@ function testHttpDriverOption() {
       }
     })
     makeHttpServer({
-      driverInstance: driver
+      driverInstance: driver,
+      serverName: TEST_SERVER_NAME
     })
     t.end()
   })
 
   test('makeHttpServer missing driver config', (t) => {
-    t.throws(() => makeHttpServer({}), Error, 'Should fail to create http server when no driver config is specified')
+    t.throws(() => makeHttpServer({serverName: TEST_SERVER_NAME}), Error, 'Should fail to create http server when no driver config is specified')
     t.end()
   })
 
@@ -107,18 +112,20 @@ function testHttpDriverOption() {
 
 function testHttpWithAzure() {
   const azConfigPath = process.env.AZ_CONFIG_PATH
-  let config : MakeHttpServerConfig = {
+  let config : MakeHttpServerConfig & HubServerConfig = {
     'azCredentials': {
       'accountName': 'mock-azure',
       'accountKey': 'mock-azure-key'
     },
-    'bucket': 'spokes'
+    'bucket': 'spokes',
+    serverName: TEST_SERVER_NAME
   }
   let mockTest = true
 
   if (azConfigPath) {
     config = JSON.parse(fs.readFileSync(azConfigPath, {encoding: 'utf8'}))
     config.driver = 'azure'
+    config.serverName = TEST_SERVER_NAME
     mockTest = false
   }
 

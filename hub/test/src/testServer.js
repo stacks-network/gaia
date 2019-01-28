@@ -11,6 +11,7 @@ import type { ListFilesResult } from '../../src/server/driverModel'
 import { InMemoryDriver } from './testDrivers/InMemoryDriver'
 import { testPairs, testAddrs} from './common'
 
+const TEST_SERVER_NAME = 'test-server'
 
 class MockDriver implements DriverModel {
   lastWrite: any
@@ -39,8 +40,8 @@ export function testServer() {
   test('validation tests', (t) => {
     t.plan(4)
     const server = new HubServer(new MockDriver(), new MockProofs(),
-                                 { whitelist: [testAddrs[0]] })
-    const challengeText = auth.getChallengeText()
+                                 { serverName: TEST_SERVER_NAME, whitelist: [testAddrs[0]] })
+    const challengeText = auth.getChallengeText(TEST_SERVER_NAME)
     const authPart0 = auth.LegacyAuthentication.makeAuthPart(testPairs[1], challengeText)
     const auth0 = `bearer ${authPart0}`
 
@@ -70,9 +71,9 @@ export function testServer() {
     t.plan(4)
     const server = new HubServer(new MockDriver(), new MockProofs(),
                                  { whitelist: [testAddrs[0]], requireCorrectHubUrl: true,
-                                   validHubUrls: ['https://testserver.com'] })
+                                   serverName: TEST_SERVER_NAME, validHubUrls: ['https://testserver.com'] })
 
-    const challengeText = auth.getChallengeText()
+    const challengeText = auth.getChallengeText(TEST_SERVER_NAME)
 
     const authPartGood1 = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText, undefined, 'https://testserver.com/')
     const authPartGood2 = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText, undefined, 'https://testserver.com')
@@ -103,11 +104,11 @@ export function testServer() {
     t.plan(5)
     const server = new HubServer(new MockDriver(), new MockProofs(),
                                  { whitelist: [testAddrs[0]], requireCorrectHubUrl: true,
-                                   validHubUrls: ['https://testserver.com'] })
+                                   serverName: TEST_SERVER_NAME, validHubUrls: ['https://testserver.com'] })
 
     const challengeTexts = []
-    challengeTexts.push(auth.getChallengeText())
-    auth.getLegacyChallengeTexts().forEach(challengeText => challengeTexts.push(challengeText))
+    challengeTexts.push(auth.getChallengeText(TEST_SERVER_NAME))
+    auth.getLegacyChallengeTexts(TEST_SERVER_NAME).forEach(challengeText => challengeTexts.push(challengeText))
 
     const challenge2018 = challengeTexts.find(x => x.indexOf('2018') > 0)
     t.ok(challenge2018, 'Should find a valid 2018 challenge text')
@@ -141,8 +142,8 @@ export function testServer() {
     t.plan(8)
     const mockDriver = new MockDriver()
     const server = new HubServer(mockDriver, new MockProofs(),
-                                 { whitelist: [testAddrs[0]], readURL: 'http://potato.com/' })
-    const challengeText = auth.getChallengeText()
+                                 { whitelist: [testAddrs[0]], readURL: 'http://potato.com/', serverName: TEST_SERVER_NAME })
+    const challengeText = auth.getChallengeText(TEST_SERVER_NAME)
     const authPart = auth.LegacyAuthentication.makeAuthPart(testPairs[0], challengeText)
     const authorization = `bearer ${authPart}`
 
@@ -178,8 +179,8 @@ export function testServer() {
     t.plan(8)
     const mockDriver = new MockDriver()
     const server = new HubServer(mockDriver, new MockProofs(),
-                                 { whitelist: [testAddrs[0]] })
-    const challengeText = auth.getChallengeText()
+                                 { whitelist: [testAddrs[0]], serverName: TEST_SERVER_NAME })
+    const challengeText = auth.getChallengeText(TEST_SERVER_NAME)
     const authPart = auth.LegacyAuthentication.makeAuthPart(testPairs[0], challengeText)
     const authorization = `bearer ${authPart}`
 
@@ -226,8 +227,8 @@ export function testServer() {
 
     const mockDriver = new MockDriver()
     const server = new HubServer(mockDriver, new MockProofs(),
-                                 { whitelist: [testAddrs[0]] })
-    const challengeText = auth.getChallengeText()
+                                 { whitelist: [testAddrs[0]], serverName: TEST_SERVER_NAME })
+    const challengeText = auth.getChallengeText(TEST_SERVER_NAME)
 
     const authPart = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText, undefined, undefined, writeScopes)
 
@@ -313,8 +314,8 @@ export function testServer() {
 
     const mockDriver = new MockDriver()
     const server = new HubServer(mockDriver, new MockProofs(),
-                                 { whitelist: [testAddrs[1]] })
-    const challengeText = auth.getChallengeText()
+                                 { whitelist: [testAddrs[1]], serverName: TEST_SERVER_NAME })
+    const challengeText = auth.getChallengeText(TEST_SERVER_NAME)
 
     const associationToken = auth.V1Authentication.makeAssociationToken(testPairs[1], testPairs[0].publicKey.toString('hex'))
     const authPart = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText, associationToken, undefined, writeScopes)

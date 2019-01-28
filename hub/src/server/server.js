@@ -9,7 +9,7 @@ import { DriverModel } from './driverModel'
 
 export type HubServerConfig = {
   whitelist?: Array<string>, 
-  serverName?: string, 
+  serverName: string, 
   readURL?: string, 
   requireCorrectHubUrl?: boolean, 
   validHubUrls?: Array<string> 
@@ -28,7 +28,7 @@ export class HubServer {
     this.driver = driver
     this.proofChecker = proofChecker
     this.whitelist = config.whitelist
-    this.serverName = (config.serverName: any)
+    this.serverName = config.serverName
     this.validHubUrls = config.validHubUrls
     this.readURL = config.readURL
     this.requireCorrectHubUrl = config.requireCorrectHubUrl || false

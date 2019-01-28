@@ -1,5 +1,5 @@
 /* @flow */
-import test  from 'tape'
+import test from 'tape-promise/tape'
 import * as config from '../../src/server/config.js'
 
 
