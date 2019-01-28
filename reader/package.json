@@ -12,7 +12,7 @@
     "express": "^4.15.4",
     "express-winston": "^2.4.0",
     "fs-extra": "^7.0.1",
-    "node-fetch": "^2.0.0",
+    "node-fetch": "^2.3.0",
     "winston": "^2.3.1"
   },
   "devDependencies": {
@@ -25,7 +25,7 @@
     "eslint": "^5.9.0",
     "eslint-plugin-flowtype": "^3.2.0",
     "fetch-mock": "^6.4.2",
-    "flow-bin": "^0.87.0",
+    "flow-bin": "^0.91.0",
     "nock": "^9.1.9",
     "nyc": "^13.0.0",
     "proxyquire": "^2.0.1",

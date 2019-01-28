@@ -1,6 +1,6 @@
 /* @flow */
 
-import test  from 'tape'
+import test from 'tape-promise/tape'
 import { TokenSigner } from 'jsontokens'
 
 import * as auth from '../../src/server/authentication'

@@ -1,13 +1,20 @@
-import test  from 'tape'
+/* @flow */
 
+import test  from 'tape-promise/tape'
 import * as auth from '../../src/server/authentication'
 import * as errors from '../../src/server/errors'
 import { HubServer }  from '../../src/server/server'
+import { ProofChecker } from '../../src/server/ProofChecker'
 import { Readable } from 'stream'
-
+import { DriverModel } from '../../src/server/driverModel'
+import type { ListFilesResult } from '../../src/server/driverModel'
+import { InMemoryDriver } from './testDrivers/InMemoryDriver'
 import { testPairs, testAddrs} from './common'
 
-class MockDriver {
+const TEST_SERVER_NAME = 'test-server'
+
+class MockDriver implements DriverModel {
+  lastWrite: any
   constructor() {
     this.lastWrite = null
   }
@@ -18,9 +25,12 @@ class MockDriver {
     this.lastWrite = write
     return Promise.resolve(`http://test.com/${write.storageTopLevel}/${write.path}`)
   }
+  listFiles(storageTopLevel: string, page: ?string): Promise<ListFilesResult> {
+    return Promise.resolve({entries: [], page: page})
+  }
 }
 
-class MockProofs {
+class MockProofs extends ProofChecker {
   checkProofs() {
     return Promise.resolve()
   }
@@ -30,14 +40,14 @@ export function testServer() {
   test('validation tests', (t) => {
     t.plan(4)
     const server = new HubServer(new MockDriver(), new MockProofs(),
-                                 { whitelist: [testAddrs[0]] })
-    const challengeText = auth.getChallengeText()
+                                 { serverName: TEST_SERVER_NAME, whitelist: [testAddrs[0]] })
+    const challengeText = auth.getChallengeText(TEST_SERVER_NAME)
     const authPart0 = auth.LegacyAuthentication.makeAuthPart(testPairs[1], challengeText)
     const auth0 = `bearer ${authPart0}`
 
     t.throws(() => server.validate(testAddrs[1], { authorization: auth0 }),
              errors.ValidationError, 'Non-whitelisted address should fail validation')
-    t.throws(() => server.validate(testAddrs[0], {}),
+    t.throws(() => server.validate(testAddrs[0], ({}: any)),
              errors.ValidationError, 'Bad request headers should fail validation')
 
     const authPart = auth.LegacyAuthentication.makeAuthPart(testPairs[0], challengeText)
@@ -61,9 +71,9 @@ export function testServer() {
     t.plan(4)
     const server = new HubServer(new MockDriver(), new MockProofs(),
                                  { whitelist: [testAddrs[0]], requireCorrectHubUrl: true,
-                                   validHubUrls: ['https://testserver.com'] })
+                                   serverName: TEST_SERVER_NAME, validHubUrls: ['https://testserver.com'] })
 
-    const challengeText = auth.getChallengeText()
+    const challengeText = auth.getChallengeText(TEST_SERVER_NAME)
 
     const authPartGood1 = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText, undefined, 'https://testserver.com/')
     const authPartGood2 = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText, undefined, 'https://testserver.com')
@@ -94,11 +104,11 @@ export function testServer() {
     t.plan(5)
     const server = new HubServer(new MockDriver(), new MockProofs(),
                                  { whitelist: [testAddrs[0]], requireCorrectHubUrl: true,
-                                   validHubUrls: ['https://testserver.com'] })
+                                   serverName: TEST_SERVER_NAME, validHubUrls: ['https://testserver.com'] })
 
     const challengeTexts = []
-    challengeTexts.push(auth.getChallengeText())
-    auth.getLegacyChallengeTexts().forEach(challengeText => challengeTexts.push(challengeText))
+    challengeTexts.push(auth.getChallengeText(TEST_SERVER_NAME))
+    auth.getLegacyChallengeTexts(TEST_SERVER_NAME).forEach(challengeText => challengeTexts.push(challengeText))
 
     const challenge2018 = challengeTexts.find(x => x.indexOf('2018') > 0)
     t.ok(challenge2018, 'Should find a valid 2018 challenge text')
@@ -132,24 +142,22 @@ export function testServer() {
     t.plan(8)
     const mockDriver = new MockDriver()
     const server = new HubServer(mockDriver, new MockProofs(),
-                                 { whitelist: [testAddrs[0]], readURL: 'http://potato.com/' })
-    const challengeText = auth.getChallengeText()
+                                 { whitelist: [testAddrs[0]], readURL: 'http://potato.com/', serverName: TEST_SERVER_NAME })
+    const challengeText = auth.getChallengeText(TEST_SERVER_NAME)
     const authPart = auth.LegacyAuthentication.makeAuthPart(testPairs[0], challengeText)
     const authorization = `bearer ${authPart}`
 
     const s = new Readable()
-    s._read = function noop() {}
     s.push('hello world')
     s.push(null)
     const s2 = new Readable()
-    s2._read = function noop() {}
     s2.push('hello world')
     s2.push(null)
 
     server.handleRequest(testAddrs[0], 'foo.txt',
                          { 'content-type' : 'text/text',
                            'content-length': 4,
-                           authorization }, s)
+                          authorization }, s)
       .then(path => {
         t.equal(path, `http://potato.com/${testAddrs[0]}/foo.txt`)
         t.equal(mockDriver.lastWrite.path, 'foo.txt')
@@ -157,7 +165,7 @@ export function testServer() {
         t.equal(mockDriver.lastWrite.contentType, 'text/text')
       })
       .then(() => server.handleRequest(testAddrs[0], 'foo.txt',
-                         { 'content-length': 4,
+                        { 'content-length': 4,
                            authorization }, s2))
       .then(path => {
         t.equal(path, `http://potato.com/${testAddrs[0]}/foo.txt`)
@@ -171,17 +179,15 @@ export function testServer() {
     t.plan(8)
     const mockDriver = new MockDriver()
     const server = new HubServer(mockDriver, new MockProofs(),
-                                 { whitelist: [testAddrs[0]] })
-    const challengeText = auth.getChallengeText()
+                                 { whitelist: [testAddrs[0]], serverName: TEST_SERVER_NAME })
+    const challengeText = auth.getChallengeText(TEST_SERVER_NAME)
     const authPart = auth.LegacyAuthentication.makeAuthPart(testPairs[0], challengeText)
     const authorization = `bearer ${authPart}`
 
     const s = new Readable()
-    s._read = function noop() {}
     s.push('hello world')
     s.push(null)
     const s2 = new Readable()
-    s2._read = function noop() {}
     s2.push('hello world')
     s2.push(null)
 
@@ -221,8 +227,8 @@ export function testServer() {
 
     const mockDriver = new MockDriver()
     const server = new HubServer(mockDriver, new MockProofs(),
-                                 { whitelist: [testAddrs[0]] })
-    const challengeText = auth.getChallengeText()
+                                 { whitelist: [testAddrs[0]], serverName: TEST_SERVER_NAME })
+    const challengeText = auth.getChallengeText(TEST_SERVER_NAME)
 
     const authPart = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText, undefined, undefined, writeScopes)
 
@@ -230,11 +236,11 @@ export function testServer() {
 
     const authorization = `bearer ${authPart}`
     const authenticator = auth.parseAuthHeader(authorization)
-    t.throws(() => authenticator.isAuthenticationValid(testAddrs[1], challengeText),
+    t.throws(() => authenticator.isAuthenticationValid(testAddrs[1], [challengeText]),
              errors.ValidationError, 'Wrong address must throw')
-    t.throws(() => authenticator.isAuthenticationValid(testAddrs[0], 'potatos are tasty'),
+    t.throws(() => authenticator.isAuthenticationValid(testAddrs[0], ['potatos are tasty']),
              errors.ValidationError, 'Wrong challenge text must throw')
-    t.ok(authenticator.isAuthenticationValid(testAddrs[0], challengeText),
+    t.ok(authenticator.isAuthenticationValid(testAddrs[0], [challengeText]),
          'Good signature must pass')
 
     // scopes must be present
@@ -246,19 +252,15 @@ export function testServer() {
 
     // write to /foo/bar or /baz will succeed
     const s = new Readable()
-    s._read = function noop() {}
     s.push('hello world')
     s.push(null)
     const s2 = new Readable()
-    s2._read = function noop() {}
     s2.push('hello world')
     s2.push(null)
     const s3 = new Readable()
-    s3._read = function noop() {}
     s3.push('hello world')
     s3.push(null)
     const s4 = new Readable()
-    s4._read = function noop() {}
     s4.push('hello world')
     s4.push(null)
 
@@ -312,8 +314,8 @@ export function testServer() {
 
     const mockDriver = new MockDriver()
     const server = new HubServer(mockDriver, new MockProofs(),
-                                 { whitelist: [testAddrs[1]] })
-    const challengeText = auth.getChallengeText()
+                                 { whitelist: [testAddrs[1]], serverName: TEST_SERVER_NAME })
+    const challengeText = auth.getChallengeText(TEST_SERVER_NAME)
 
     const associationToken = auth.V1Authentication.makeAssociationToken(testPairs[1], testPairs[0].publicKey.toString('hex'))
     const authPart = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText, associationToken, undefined, writeScopes)
@@ -322,28 +324,24 @@ export function testServer() {
 
     const authorization = `bearer ${authPart}`
     const authenticator = auth.parseAuthHeader(authorization)
-    t.throws(() => authenticator.isAuthenticationValid(testAddrs[1], challengeText),
+    t.throws(() => authenticator.isAuthenticationValid(testAddrs[1], [challengeText]),
              errors.ValidationError, 'Wrong address must throw')
-    t.throws(() => authenticator.isAuthenticationValid(testAddrs[0], 'potatos are tasty'),
+    t.throws(() => authenticator.isAuthenticationValid(testAddrs[0], ['potatos are tasty']),
              errors.ValidationError, 'Wrong challenge text must throw')
-    t.ok(authenticator.isAuthenticationValid(testAddrs[0], challengeText),
+    t.ok(authenticator.isAuthenticationValid(testAddrs[0], [challengeText]),
          'Good signature must pass')
 
     // write to /foo/bar or baz will succeed
     const s = new Readable()
-    s._read = function noop() {}
     s.push('hello world')
     s.push(null)
     const s2 = new Readable()
-    s2._read = function noop() {}
     s2.push('hello world')
     s2.push(null)
     const s3 = new Readable()
-    s3._read = function noop() {}
     s3.push('hello world')
     s3.push(null)
     const s4 = new Readable()
-    s4._read = function noop() {}
     s4.push('hello world')
     s4.push(null)
 

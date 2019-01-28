@@ -3,9 +3,9 @@
 import azure from 'azure-storage'
 import logger from 'winston'
 import { BadPathError } from '../errors'
-
-import type { DriverModel, DriverStatics, ListFilesResult } from '../driverModel'
-import type { Readable } from 'stream'
+import type { ListFilesResult } from '../driverModel'
+import { DriverStatics, DriverModel } from '../driverModel'
+import { Readable } from 'stream'
 
 type AZ_CONFIG_TYPE = { azCredentials: { accountName: string,
                                          accountKey: string },

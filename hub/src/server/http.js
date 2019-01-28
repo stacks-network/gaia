@@ -6,9 +6,13 @@ import logger from 'winston'
 import cors from 'cors'
 
 import { ProofChecker } from './ProofChecker'
+import type { ProofCheckerConfig } from './ProofChecker'
 import { getChallengeText, LATEST_AUTH_VERSION } from './authentication'
 import { HubServer } from './server'
+import type { HubServerConfig } from './server'
 import { getDriverClass } from './utils'
+import { DriverModel } from './driverModel'
+import * as errors from './errors'
 
 function writeResponse(res: express.response, data: Object, statusCode: number) {
   res.writeHead(statusCode, {'Content-Type' : 'application/json'})
@@ -16,14 +20,29 @@ function writeResponse(res: express.response, data: Object, statusCode: number) 
   res.end()
 }
 
-export function makeHttpServer(config: Object) {
-  const app = express()
+export interface MakeHttpServerConfig { 
+  proofsConfig?: ProofCheckerConfig,
+  driverInstance?: DriverModel, driverClass?: Class<DriverModel>, driver?: string
+}
+
+export function makeHttpServer(config: MakeHttpServerConfig & HubServerConfig) : express.Application {
+
+  const app : express.Application = express()
 
   // Handle driver configuration
-  const driverClass = config.driverClass ? config.driverClass :
-        getDriverClass(config.driver)
-  const driver = new driverClass(config)
+  let driver : DriverModel
 
+  if (config.driverInstance) {
+    driver = config.driverInstance
+  } else if (config.driverClass) {
+    driver = new config.driverClass(config)
+  } else if (config.driver) {
+    const driverClass = getDriverClass(config.driver)
+    driver = new driverClass(config)
+  } else {
+    throw new Error('Driver option not configured')
+  }
+  
   const proofChecker = new ProofChecker(config.proofsConfig)
   const server = new HubServer(driver, proofChecker, config)
 
@@ -36,7 +55,7 @@ export function makeHttpServer(config: Object) {
   // sadly, express doesn't like to capture slashes.
   //  but that's okay! regexes solve that problem
   app.post(/^\/store\/([a-zA-Z0-9]+)\/(.+)/, (req: express.request,
-                                              res: express.response) => {
+                                           res: express.response) => {
     let filename = req.params[1]
     if (filename.endsWith('/')){
       filename = filename.substring(0, filename.length - 1)
@@ -49,12 +68,12 @@ export function makeHttpServer(config: Object) {
       })
       .catch((err) => {
         logger.error(err)
-        if (err.name === 'ValidationError') {
-          writeResponse(res, { message: err.message }, 401)
-        } else if (err.name === 'BadPathError') {
-          writeResponse(res, { message: err.message }, 403)
-        } else if (err.name === 'NotEnoughProofError') {
-          writeResponse(res, { message: err.message }, 402)
+        if (err instanceof errors.ValidationError) {
+          writeResponse(res, { message: err.message, error: err.name }, 401)
+        } else if (err instanceof errors.BadPathError) {
+          writeResponse(res, { message: err.message, error: err.name  }, 403)
+        } else if (err instanceof errors.NotEnoughProofError) {
+          writeResponse(res, { message: err.message, error: err.name  }, 402)
         } else {
           writeResponse(res, { message: 'Server Error' }, 500)
         }
@@ -86,11 +105,11 @@ export function makeHttpServer(config: Object) {
             writeResponse(res, { message: 'Server Error' }, 500)
           }
         })
-    })
+  })
 
   app.get('/hub_info/', (req: express.request,
                          res: express.response) => {
-                           const challengeText = getChallengeText(server.serverName)
+    const challengeText = getChallengeText(server.serverName)
     if (challengeText.length < 10) {
       return writeResponse(res, { message: 'Server challenge text misconfigured' }, 500)
     }
