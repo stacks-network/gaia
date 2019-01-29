@@ -15,21 +15,24 @@ const fetch = FetchMock.sandbox(NodeFetch)
 import { makeHttpServer } from '../../src/server/http.js'
 import DiskDriver from '../../src/server/drivers/diskDriver'
 import { MakeHttpServerConfig, } from '../../src/server/http.js'
+import { AuthTimestampCache } from '../../src/server/revocations'
 import type { HubServerConfig } from '../../src/server/server.js'
 import { makeMockedAzureDriver, addMockFetches } from './testDrivers'
 
 import { testPairs } from './common'
 import { InMemoryDriver } from './testDrivers/InMemoryDriver'
+import { MockAuthTimestampCache } from './MockAuthTimestampCache'
 
 const TEST_SERVER_NAME = 'test-server'
 const TEST_AUTH_CACHE_SIZE = 10
+
 
 export function testHttpWithInMemoryDriver() {
   test('handle request (InMemory driver)', async (t) => {
     const fetch = NodeFetch
     const inMemoryDriver = await InMemoryDriver.spawn()
     try {
-      const app = makeHttpServer({ driverInstance: inMemoryDriver, serverName: TEST_SERVER_NAME, authTimestampCacheSize: TEST_AUTH_CACHE_SIZE })
+      const { app } = makeHttpServer({ driverInstance: inMemoryDriver, serverName: TEST_SERVER_NAME, authTimestampCacheSize: TEST_AUTH_CACHE_SIZE })
       const sk = testPairs[1]
       const fileContents = sk.toWIF()
       const blob = Buffer.from(fileContents)
@@ -78,7 +81,7 @@ export function testHttpWithInMemoryDriver() {
   test('handle revocation via POST', async (t) => {
     const inMemoryDriver = await InMemoryDriver.spawn()
     try {
-      const app = makeHttpServer({ driverInstance: inMemoryDriver, serverName: TEST_SERVER_NAME, authTimestampCacheSize: TEST_AUTH_CACHE_SIZE })
+      const { app } = makeHttpServer({ driverInstance: inMemoryDriver, serverName: TEST_SERVER_NAME, authTimestampCacheSize: TEST_AUTH_CACHE_SIZE })
       const sk = testPairs[1]
       const fileContents = sk.toWIF()
       const blob = Buffer.from(fileContents)
@@ -193,7 +196,8 @@ function testHttpWithAzure() {
   }
 
   test('auth failure', (t) => {
-    let app = makeHttpServer(config)
+    let { app, server } = makeHttpServer(config)
+    server.authTimestampCache = new MockAuthTimestampCache()
     let sk = testPairs[1]
     let fileContents = sk.toWIF()
     let blob = Buffer.from(fileContents)
@@ -230,7 +234,8 @@ function testHttpWithAzure() {
 
   test('handle request', (t) => {
     let fetch = FetchMock.sandbox(NodeFetch)
-    let app = makeHttpServer(config)
+    let { app, server } = makeHttpServer(config)
+    server.authTimestampCache = new MockAuthTimestampCache()
     let sk = testPairs[1]
     let fileContents = sk.toWIF()
     let blob = Buffer.from(fileContents)

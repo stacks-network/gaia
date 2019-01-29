@@ -35,7 +35,7 @@ export class HubServer {
     this.validHubUrls = config.validHubUrls
     this.readURL = config.readURL
     this.requireCorrectHubUrl = config.requireCorrectHubUrl || false
-    this.authTimestampCache = new AuthTimestampCache(driver, config.authTimestampCacheSize)
+    this.authTimestampCache = new AuthTimestampCache(this.getReadURLPrefix(), driver, config.authTimestampCacheSize)
   }
 
   async handleAuthBump(address: string, oldestValidTimestamp: number, requestHeaders: { authorization: string }) {

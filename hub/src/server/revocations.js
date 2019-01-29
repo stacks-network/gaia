@@ -5,6 +5,7 @@ import type { DriverModel } from './driverModel'
 import fetch from 'node-fetch'
 import logger from 'winston'
 import { Readable } from 'stream'
+import * as errors from './errors'
 
 const MAX_AUTH_FILE_BYTES = 1024
 const AUTH_TIMESTAMP_FILE_NAME = 'authTimestamp'
@@ -14,8 +15,9 @@ export class AuthTimestampCache {
   cache: LRUCache<string, number>
   driver: DriverModel
   currentCacheEvictions: number
+  readUrlPrefix: string
 
-  constructor(driver: DriverModel, maxCacheSize: number) {
+  constructor(readUrlPrefix: string, driver: DriverModel, maxCacheSize: number) {
     this.currentCacheEvictions = 0
     this.cache = new LRUCache<string, number>({ 
       max: maxCacheSize, 
@@ -23,6 +25,7 @@ export class AuthTimestampCache {
         this.currentCacheEvictions++
       }
     })
+    this.readUrlPrefix = readUrlPrefix
     this.driver = driver
 
     // Check cache evictions every 10 minutes
@@ -48,26 +51,36 @@ export class AuthTimestampCache {
 
   async readAuthTimestamp(bucketAddress: string): Promise<number> {
 
-    const readUrlPrefix = this.driver.getReadURLPrefix()
     const authTimestampDir = this.getAuthTimestampFileDir(bucketAddress)
     
-    // Check if an auth number file exists
-    // TODO: Is the error for "file not exists" consistent enough to depend upon instead of doing this?
-    const bucketFileList = await this.driver.listFiles(authTimestampDir, null)
-    if (!bucketFileList.entries.includes(AUTH_TIMESTAMP_FILE_NAME)) {
-      return 0
+    let fetchResponse
+    let authNumberText
+    try {
+      const authNumberFileUrl = `${this.readUrlPrefix}${authTimestampDir}/${AUTH_TIMESTAMP_FILE_NAME}`
+      fetchResponse = await fetch(authNumberFileUrl, {
+        redirect: 'manual'
+      })
+      authNumberText = await fetchResponse.text()
+    } catch (err) {
+      // Catch any errors that may occur from network issues during `fetch` and `.text()` async operations..
+      const errMsg = (err instanceof Error) ? err.message : err
+      throw new errors.ValidationError(`Error trying to fetch bucket authentication revocation timestamp: ${errMsg}`)
     }
 
-    try {
-      const authNumberFileUrl = `${readUrlPrefix}${authTimestampDir}/${AUTH_TIMESTAMP_FILE_NAME}`
-      const fetchResult = await fetch(authNumberFileUrl)
-      const authNumberText = await fetchResult.text()
+    if (fetchResponse.ok) {
       const authNumber = parseInt(authNumberText)
-      return authNumber
-    } catch (err) {
-      // TODO: If error indicates file does not exit then return 0 (indicates no auth number setup).
-      throw new Error('Unimplemented')
+      if (Number.isFinite(authNumber)) {
+        return authNumber
+      } else {
+        throw new errors.ValidationError(`Bucket contained an invalid authentication revocation timestamp: ${authNumberText}`)
+      }
+    } else if (fetchResponse.status === 404) {
+      // 404 incidates no revocation file has been created.
+      return 0
+    } else {
+      throw new errors.ValidationError(`Error trying to fetch bucket authentication revocation timestamp: server returned ${fetchResponse.status} - ${fetchResponse.statusText}`)
     }
+
   }
 
   async getAuthTimestamp(bucketAddress: string): Promise<number> {

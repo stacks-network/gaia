@@ -25,7 +25,7 @@ export interface MakeHttpServerConfig {
   driverInstance?: DriverModel, driverClass?: Class<DriverModel>, driver?: string
 }
 
-export function makeHttpServer(config: MakeHttpServerConfig & HubServerConfig) : express.Application {
+export function makeHttpServer(config: MakeHttpServerConfig & HubServerConfig): { app: express.Application, server: HubServer } {
 
   const app : express.Application = express()
 
@@ -161,5 +161,5 @@ export function makeHttpServer(config: MakeHttpServerConfig & HubServerConfig) :
   })
 
   // Instantiate express application
-  return app
+  return { app, server }
 }
