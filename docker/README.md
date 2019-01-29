@@ -1,6 +1,6 @@
 # Running a Gaia Hub with docker-compose
 
-### MacOS for local testing/development
+## MacOS for local testing/development
 The following assumes you have [Docker Installed](https://docs.docker.com/docker-for-mac/install/)
 		* Recommended to also have [MacOS Homebrew](https://docs.brew.sh/Installation) installed
 			* Use Homebrew to install jq  with `brew install jq`
@@ -52,11 +52,70 @@ $ curl -H "Authorization: bearer $API_KEY" -X POST http://localhost:8009/v1/admi
 ```
 
 ### Changing the write path from a local disk to a cloud provider
-This example will use Digital Oceans Workspaces, documented here:
-	* link to docs
+#### DigitalOcean
+First, create an account on [digitalocean.com](https://digitalocean.com).
+
+##### Create a Digital Ocean Space
+
+Now that you have a Droplet, you need to create a 'Space', which is where your files will be stored.
+
+In the top right, click the 'Create' dropdown, and now click 'Spaces' at the bottom.
+
+Scroll down to 'Finalize and Create', and give your space a name. This name will be used when reading files that you've stored through Gaia. You'll need to remember this name when you set up your Gaia server later on.
+
+Finally, click 'Create a Space', and your Space will be up and running.
+
+Back in on the Digital Ocean website, click on `API` in the sidebar. Scroll to the bottom of the `Tokens/Keys` section, and click 'Generate New Key' next to 'Spaces access keys'. You'll now have your 'Access Key' and 'Secret Key'. Make sure you store these keys in a secure way, because you won't be able to reference them later on.
 
 
-#### Securing this installation
+##### Gaia Hub Configuration
+Now we'll update our gaia hub configuration, and ultimately reload the hub container to effect the changes.
+**Important**: You'll have to provide a config valued called `endpoint`. This value will be `myregion.digitaloceanspaces.com`. If your space is in the `sfo2` region, then set the `endpoint` to `sfo2.digitaloceanspaces.com`. Do **not** add `https://` to this URL.
+
+1. export some variables:
+```
+$ export API_KEY="hello"
+$ export AWS_ACCESS_KEY="<hidden access_key>"
+$ export AWS_SECRET_KEY="<hidden secret_key>"
+$ export ENDPOINT="<region>.digitaloceanspaces.com"
+```
+
+2. update the hub driver configuration
+```
+$ curl -H "Authorization: bearer $API_KEY" \
+  -H 'Content-Type: application/json' \
+  -X POST \
+  --data-raw "{\"driver\": \"aws\", \"awsCredentials\": {\"endpoint\": \"$ENDPOINT\", \"accessKeyId\": \"$AWS_ACCESS_KEY\", \"secretAccessKey\": \"$AWS_SECRET_KEY\"}}" \
+http://localhost:8009/v1/admin/config
+{"message":"Config updated -- you should reload your Gaia hub now."}
+```
+
+3. update proofs configuration:
+For the `proofsRequired` section, chance the value to the number `0`. This will allow Blockstack user to write to your Gaia hub, without any social proofs required. You can change this later on, and do other things to lock-down this Gaia hub to just yourself, but that is outside the scope of this document.
+```
+$ curl -H "Authorization: bearer $API_KEY" \
+  -H 'Content-Type: application/json' \
+  -X POST \
+  --data-raw '{"proofsConfig": {"proofsRequired": 0}}' \
+http://localhost:8009/v1/admin/config
+{"message":"Config updated -- you should reload your Gaia hub now."}
+```
+
+4. reload the hub
+```
+$ curl -H "Authorization: bearer $API_KEY" \
+  -X POST \
+http://localhost:8009/v1/admin/reload
+```
+
+after a few moments, your gaia hub will again be running
+
+
+
+
+
+
+### Securing this installation
 It's **highly** recommended that you change the API key for the admin server in the file `admin-config/config.json`, as the default is an easily guessed string `hello`.
 
 Following the above will not secure the gaia hub, and is meant for local testing.

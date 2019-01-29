@@ -18,7 +18,7 @@ services:
     image: quay.io/blockstack/gaia-admin:feature.docker-compose
     volumes:
       - "./admin-config:/src/admin/etc"
-      - "${LOCAL_DISK}:${GAIA_DISK_STORAGE_ROOT_DIR}"
+      - "./hub-config:/tmp/hub-config/"
       - "/var/run/docker.sock:/var/run/docker.sock"
     ports:
       - "8009:8009"
