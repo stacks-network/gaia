@@ -5,12 +5,12 @@ services:
     image: quay.io/blockstack/gaia-hub:feature.docker-compose
     volumes:
       - "./hub-config:/src/hub/etc"
-      - "./gaia-storage:/tmp/gaia-storage"
+      - "${LOCAL_DISK}:${GAIA_DISK_STORAGE_ROOT_DIR}"
     ports:
       - "3000:3000"
     environment:
       CONFIG_PATH: "/src/hub/etc/config.json"
-      GAIA_DISK_STORAGE_ROOT_DIR: /tmp/gaia-storage
+      GAIA_DISK_STORAGE_ROOT_DIR: ${GAIA_DISK_STORAGE_ROOT_DIR}
     networks:
       - gaia
 
@@ -18,7 +18,7 @@ services:
     image: quay.io/blockstack/gaia-admin:feature.docker-compose
     volumes:
       - "./admin-config:/src/admin/etc"
-      - "./hub-config:/tmp/hub-config/"
+      - "${LOCAL_DISK}:${GAIA_DISK_STORAGE_ROOT_DIR}"
       - "/var/run/docker.sock:/var/run/docker.sock"
     ports:
       - "8009:8009"
@@ -33,14 +33,14 @@ services:
     image: quay.io/blockstack/gaia-reader:feature.docker-compose
     volumes:
       - "./reader-config:/src/reader/etc"
-      - "./gaia-storage:/tmp/gaia-storage"
+      - "${LOCAL_DISK}:${GAIA_DISK_STORAGE_ROOT_DIR}"
     ports:
       - "8008:8008"
     links:
       - hub
     environment:
       CONFIG_PATH: "/src/reader/etc/config.json"
-      GAIA_DISK_STORAGE_ROOT_DIR: "/tmp/gaia-storage"
+      GAIA_DISK_STORAGE_ROOT_DIR: "${GAIA_DISK_STORAGE_ROOT_DIR}"
     networks:
       - gaia
 
