@@ -292,7 +292,43 @@ export function testServer() {
                                   authorization }, getJunkData())
     })
   })
-  
+
+  test('auth token bearer can only bump the address of its signer', async (t) => {
+    await usingMemoryDriver(async (mockDriver) => {
+      const server = new HubServer(mockDriver, new MockProofs(), {
+                                    serverName: TEST_SERVER_NAME,
+                                    authTimestampCacheSize: TEST_AUTH_CACHE_SIZE})
+      const challengeText = auth.getChallengeText(TEST_SERVER_NAME)
+      let authPart = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText)
+      let authorization = `bearer ${authPart}`
+
+      const getJunkData = () => {
+        const s = new Readable()
+        s.push('hello world')
+        s.push(null)
+        return s
+      }
+
+      // no revocation timestamp has been set, write request should succeed
+      await server.handleRequest(testAddrs[0], '/foo/bar', 
+                                { 'content-type' : 'text/text',
+                                  'content-length': 400,
+                                  authorization }, getJunkData())
+
+      // attempting to bump an address other than the signer should fail
+      await t.rejects(
+        server.handleAuthBump(testAddrs[1], (Date.now()/1000|0) + 10000, { authorization }), 
+        errors.ValidationError, 
+        'auth token bearer should only be able to bump the address of its signer')
+
+      // confirm that bump failed and that write still succeeds
+      await server.handleRequest(testAddrs[0], '/foo/bar', 
+                                { 'content-type' : 'text/text',
+                                  'content-length': 400,
+                                  authorization }, getJunkData())
+    })
+  })
+
   test('handle scoped writes', async (t) => {
     await usingMemoryDriver(mockDriver => {
       const writeScopes = [
