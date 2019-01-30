@@ -1,13 +1,12 @@
 {
   "serverName": "hub",
   "port": 3000,
-  "driver": "aws",
+  "driver": "disk",
   "bucket": "hub",
   "readURL": "http://localhost:80/hub/",
   "awsCredentials": {
-    "endpoint": "<region>.digitaloceanspaces.com",
-    "accessKeyId": "<hidden access_key>",
-    "secretAccessKey": "<hidden secret_key>"
+    "accessKeyId": "",
+    "secretAccessKey": ""
   },
   "proofsConfig": {
     "proofsRequired": 0

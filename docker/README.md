@@ -188,10 +188,10 @@ Following the above will not secure the gaia hub, and is meant for local testing
 However, it's entirely possible to run this so it's available externally, but you'll be responsible for a few steps to secure it further.
 In the future, we'll provide a more automated way to do this, but for now you should be able to follow the instructions here:
 
-	* link 1
-	* link 2
-	* link 3
-	* etc
+* [Register a Domain](https://github.com/moxiegirl/docs.blockstack/blob/gaia-check/_storage/digital-ocean-deploy.md#task-9-configure-a-domain-name)
+* link 2
+* link 3
+* etc
 
 # Running Gaia Hub from a Cloud Provider
 **keys missing from account, will have to fill this in later**
