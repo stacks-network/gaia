@@ -293,7 +293,7 @@ export function testServer() {
     })
   })
 
-  test('association tokens with a whitelisted signer can bump any address', async (t) => {
+  test('non-whitelisted address can bump revocation if bearing valid association token', async (t) => {
     await usingMemoryDriver(async (mockDriver) => {
       const server = new HubServer(mockDriver, new MockProofs(), {
                                     serverName: TEST_SERVER_NAME,
