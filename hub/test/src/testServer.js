@@ -293,6 +293,59 @@ export function testServer() {
     })
   })
 
+  test('association tokens with a whitelisted signer can bump any address', async (t) => {
+    await usingMemoryDriver(async (mockDriver) => {
+      const server = new HubServer(mockDriver, new MockProofs(), {
+                                    serverName: TEST_SERVER_NAME,
+                                    whitelist: [testAddrs[1]],
+                                    authTimestampCacheSize: TEST_AUTH_CACHE_SIZE})
+
+      const challengeText = auth.getChallengeText(TEST_SERVER_NAME)
+      const associationToken = auth.V1Authentication.makeAssociationToken(testPairs[1], testPairs[0].publicKey.toString('hex'))
+      let authPart = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText, associationToken)
+      let authorization = `bearer ${authPart}`
+
+      const getJunkData = () => {
+        const s = new Readable()
+        s.push('hello world')
+        s.push(null)
+        return s
+      }
+
+      // no revocation timestamp has been set, write request should succeed
+      await server.handleRequest(testAddrs[0], '/foo/bar', 
+                                { 'content-type' : 'text/text',
+                                  'content-length': 400,
+                                  authorization }, getJunkData())
+
+      // revoke the auth token (setting oldest valid date into the future)
+      const futureDate = (Date.now()/1000|0) + 10000
+      await server.handleAuthBump(testAddrs[0], futureDate, { authorization })
+
+      // write should fail with auth token creation date older than the revocation date 
+      await t.rejects(server.handleRequest(testAddrs[0], '/foo/bar',
+                          { 'content-type' : 'text/text',
+                            'content-length': 400,
+                            authorization }, getJunkData()), errors.AuthTokenTimestampValidationError, 'write with revoked auth token should fail')
+
+      // sanity test to make sure writing to any given address still fails from a regular validation error
+      await t.rejects(server.handleRequest(testAddrs[4], '/foo/bar',
+                          { 'content-type' : 'text/text',
+                            'content-length': 400,
+                            authorization }, getJunkData()), errors.ValidationError, 'write with revoked auth token should fail')
+
+      // create a auth token with iat forced further into the future
+      authPart = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText, associationToken, undefined, undefined, futureDate + 10000)
+      authorization = `bearer ${authPart}`
+    
+      // request should succeed with a token iat newer than the revocation date
+      await server.handleRequest(testAddrs[0], '/foo/bar', 
+                                { 'content-type' : 'text/text',
+                                  'content-length': 400,
+                                  authorization }, getJunkData())
+    })
+  })
+
   test('auth token bearer can only bump the address of its signer', async (t) => {
     await usingMemoryDriver(async (mockDriver) => {
       const server = new HubServer(mockDriver, new MockProofs(), {
