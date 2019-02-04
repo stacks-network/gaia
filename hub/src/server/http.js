@@ -101,8 +101,10 @@ export function makeHttpServer(config: MakeHttpServerConfig & HubServerConfig): 
         })
         .catch((err) => {
           logger.error(err)
-          if (err.name === 'ValidationError') {
-            writeResponse(res, { message: err.message }, 401)
+          if (err instanceof errors.ValidationError) {
+            writeResponse(res, { message: err.message, error: err.name }, 401)
+          } else if (err instanceof errors.AuthTokenTimestampValidationError) {
+            writeResponse(res, { message: err.message, error: err.name  }, 401)
           } else {
             writeResponse(res, { message: 'Server Error' }, 500)
           }

@@ -60,7 +60,8 @@ export class HubServer {
   async handleListFiles(address: string,
                   page: ?string,
                   requestHeaders: { authorization: string }) {
-    this.validate(address, requestHeaders)
+    const oldestValidTokenTimestamp = await this.authTimestampCache.getAuthTimestamp(address)
+    this.validate(address, requestHeaders, oldestValidTokenTimestamp)
     return await this.driver.listFiles(address, page)
   }
 

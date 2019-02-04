@@ -117,6 +117,13 @@ export function testHttpWithInMemoryDriver() {
         .expect(401)
       t.equal(failedStoreResponse.body.error, 'AuthTokenTimestampValidationError', 'Store request should have returned correct error type')
 
+      const listPath = `/list-files/${address}`
+      const failedFilesResponse = await request(app).post(listPath)
+        .set('Content-Type', 'application/json')
+        .set('Authorization', authorization)
+        .expect(401)
+      t.equal(failedFilesResponse.body.error, 'AuthTokenTimestampValidationError', 'Store request should have returned correct error type')
+
     } finally {
       inMemoryDriver.dispose()
     }

@@ -93,6 +93,12 @@ export class AuthTimestampCache {
     // Nothing in cache, perform slower driver read.
     authTimestamp = await this.readAuthTimestamp(bucketAddress)
 
+    // Recheck cache for a larger timestamp to avoid race conditions from slow storage.
+    const cachedTimestamp = this.cache.get(bucketAddress)
+    if (cachedTimestamp && cachedTimestamp > authTimestamp) {
+      authTimestamp = cachedTimestamp
+    }
+
     // Cache result for fast lookup later.
     this.cache.set(bucketAddress, authTimestamp)
 
@@ -100,6 +106,13 @@ export class AuthTimestampCache {
   }
 
   async writeAuthTimestamp(bucketAddress: string, timestamp: number) : Promise<void> {
+
+    // Recheck cache for a larger timestamp to avoid race conditions from slow storage.
+    const cachedTimestamp = this.cache.get(bucketAddress)
+    if (cachedTimestamp && cachedTimestamp > timestamp) {
+      timestamp = cachedTimestamp
+    }
+
     this.cache.set(bucketAddress, timestamp)
     const authTimestampFileDir = this.getAuthTimestampFileDir(bucketAddress)
     
@@ -115,7 +128,7 @@ export class AuthTimestampCache {
 
     // Content size sanity check.
     if (contentLength > MAX_AUTH_FILE_BYTES) {
-      throw new Error(`Auth number file content size is ${contentLength}, it should never be greater than ${MAX_AUTH_FILE_BYTES}`)
+      throw new errors.ValidationError(`Auth number file content size is ${contentLength}, it should never be greater than ${MAX_AUTH_FILE_BYTES}`)
     }
     
     await this.driver.performWrite({
