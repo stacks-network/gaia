@@ -8,9 +8,7 @@
     "json": true
   },
   "port": 8009,
-  "apiKeys": [
-    "hello"
-  ],
+  "apiKeys": [ "hello" ],
   "gaiaSettings": {
     "configPath": "/tmp/hub-config/config.json"
   },
