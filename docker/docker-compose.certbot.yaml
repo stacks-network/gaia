@@ -3,9 +3,9 @@ version: "3.3"
 services:
   nginx:
     image: nginx:alpine
-    # restart: unless-stopped ## this is handled by systemd in a VM
+    restart: always
     volumes:
-      - "./nginx.conf:/etc/nginx/conf.d/default.template"
+      - "./nginx-ssl.conf:/etc/nginx/conf.d/default.template"
       - "./dh-param/dhparam-2048.pem:/etc/ssl/certs/dhparam-2048.pem"
       - "./certbot/conf:/etc/letsencrypt"
       - "./certbot/www:/usr/share/nginx/html/certbot"
@@ -13,9 +13,9 @@ services:
       - "80:80"
       - "443:443"
     environment:
-      - SERVER_NAME=${DOMAIN}
-      - SERVER_HTTP_PORT=80
-      - SERVER_HTTPS_PORT=443
+      DOMAIN: "${DOMAIN}"
+      SERVER_HTTP_PORT: "80"
+      SERVER_HTTPS_PORT: "443"
     links:
       - hub
       - admin
@@ -27,7 +27,7 @@ services:
     command: /bin/sh -c "envsubst \"`env | awk -F = '{printf \" $$%s\", $$1}'`\" < /etc/nginx/conf.d/default.template > /etc/nginx/conf.d/default.conf && while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g 'daemon off;'"
   certbot:
     image: certbot/certbot:latest
-    # restart: unless-stopped ## this is handled by systemd in a VM
+    restart: always
     volumes:
       - "./certbot/conf:/etc/letsencrypt"
       - "./certbot/www:/usr/share/nginx/html/certbot"
