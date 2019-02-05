@@ -6,7 +6,6 @@ services:
     restart: always
     volumes:
       - "./nginx-ssl.conf:/etc/nginx/conf.d/default.template"
-      - "./dh-param/dhparam-2048.pem:/etc/ssl/certs/dhparam-2048.pem"
       - "./certbot/conf:/etc/letsencrypt"
       - "./certbot/www:/usr/share/nginx/html/certbot"
     ports:
