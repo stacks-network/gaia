@@ -16,7 +16,7 @@ Replace the following:
         "dropins": [
           {
             "contents": "[Service]\nExecStartPost=/bin/sh /gaia/docker/nginx/certbot/letsencrypt.sh",
-            "name": "10-gaia-hub.ssl"
+            "name": "10-gaia-hub.conf"
           }
         ],
         "name": "gaia-hub.service"
