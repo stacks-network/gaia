@@ -15,8 +15,8 @@ In your working directory:
 
 3. Set some environment variables in your terminal:
 ```
-$ export LOCAL_DISK="./gaia-storage"
-$ export GAIA_DISK_STORAGE_ROOT_DIR="/tmp/gaia-storage"
+$ export LOCAL_DISK="./storage"
+$ export GAIA_DISK_STORAGE_ROOT_DIR="/tmp/storage"
 ```
 
 4. Start the server:
