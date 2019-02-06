@@ -59,7 +59,8 @@ services:
     env_file:
       - gaia.env
     volumes:
-      - "./nginx-local.conf:/etc/nginx/conf.d/default.template"
+      - "./nginx/conf.d/nginx-local.conf:/etc/nginx/conf.d/default.template"
+      - "./nginx/html/index.html:/usr/share/nginx/html/index.html"
     ports:
       - "80:80"
     environment:
