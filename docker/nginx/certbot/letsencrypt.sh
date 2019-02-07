@@ -3,7 +3,7 @@
 
 domains=${DOMAIN}
 rsa_key_size=4096
-data_path="./certbot"
+data_path="./nginx/certbot"
 webroot="/usr/share/nginx/html/certbot"
 email=${EMAIL} # Adding a valid address is strongly recommended
 staging=${STAGING} # Set to 1 if you're testing your setup to avoid hitting request limits
