@@ -1,5 +1,9 @@
 # Running a Gaia Hub with docker-compose
 
+
+## Refer to the file AWS.md for instructions on launching this on an EC2 host in AWS
+
+
 ## MacOS for local testing/development
 
 The following assumes you have [Docker Installed](https://docs.docker.com/docker-for-mac/install/)
@@ -189,19 +193,3 @@ However, it's entirely possible to run this so it's available externally, but yo
 In the future, we'll provide a more automated way to do this, but for now you should be able to follow the instructions here:
 
 * [Register a Domain](https://github.com/moxiegirl/docs.blockstack/blob/gaia-check/_storage/digital-ocean-deploy.md#task-9-configure-a-domain-name)
-* link 2
-* link 3
-* etc
-
-# Running Gaia Hub from a Cloud Provider
-**keys missing from account, will have to fill this in later**
-
-
-# firewall/security-group settings
-- only open ports required (80/443/etc)
-- admin port should  only be available by localhost (ssh to server for now)
-
-# ssl setup
-- add another image to the docker-compose, for cert-manager
-- need a way to get the domain from a user (EC2 tag?)
-  - requires an IAM Role in AWS to retrieve the tag (ec2:describe-tags policy)
