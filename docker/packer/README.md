@@ -147,37 +147,37 @@ The image being built is based off of CoreOS Stable, with all adjustments being 
 
 The main points in this file are:
 1. Directories created:
-  - /opt/bin
-  - /etc/sysctl.d
-  - /etc/motd.d
+    - /opt/bin
+    - /etc/sysctl.d
+    - /etc/motd.d
 
 
 2. Files created:
-  - /etc/coreos/update.conf
-  - /etc/docker/docker.json # used for DNS purposes, currently point to Google DNS
-  - /etc/vim/vimrc.local
-  - /etc/motd.d/default.conf
-  - /etc/modules-load.d/nf.conf
-  - /etc/sysctl.d/startup.conf # for OS Tuning/Security
+    - /etc/coreos/update.conf
+    - /etc/docker/docker.json # used for DNS purposes, currently point to Google DNS
+    - /etc/vim/vimrc.local
+    - /etc/motd.d/default.conf
+    - /etc/modules-load.d/nf.conf
+    - /etc/sysctl.d/startup.conf # for OS Tuning/Security
 
 
 3. Disks:
-  - /dev/xvdf created as Label:`STORAGE` with XFS filesytem
+    - /dev/xvdf created as Label:`STORAGE` with XFS filesytem
 
 
 4. systemd units:
-  - docker-tcp.socket
-    - enables docker TCP socket
-  - gaia-docker-storage.mount
-    - mounts the /dev/xvdf disk at `/gaia/docker/storage`
-  - install-docker-compose.service
-    - determines the latest release of `docker-compose` and installs it to `/opt/bin/docker-compose`
-  - pull-gaia-repo.service
-    - pulls a single branch (current `feature/docker-compose`) to `/gaia`
-  - gaia-hub.service
-    - starts the gaia-hub containers via docker-compose
-    - calls the script `/gaia/docker/nginx/certbot/letsencrypt-init.sh`
-  - get-acme-certs.service
-    - creates production certs once DNS is resolving
-    - calls the script `/gaia/docker/nginx/certbot/letsencrypt.sh`
-    - this service is designed to be run manually, and should only need to run once
+    - docker-tcp.socket
+            - enables docker TCP socket
+    - gaia-docker-storage.mount
+            - mounts the /dev/xvdf disk at `/gaia/docker/storage`
+    - install-docker-compose.service
+            - determines the latest release of `docker-compose` and installs it to `/opt/bin/docker-compose`
+    - pull-gaia-repo.service
+            - pulls a single branch (current `feature/docker-compose`) to `/gaia`
+    - gaia-hub.service
+            - starts the gaia-hub containers via docker-compose
+            - calls the script `/gaia/docker/nginx/certbot/letsencrypt-init.sh`
+    - get-acme-certs.service
+            - creates production certs once DNS is resolving
+            - calls the script `/gaia/docker/nginx/certbot/letsencrypt.sh`
+            - this service is designed to be run manually, and should only need to run once
