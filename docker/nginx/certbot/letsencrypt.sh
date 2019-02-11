@@ -40,10 +40,13 @@ if [[ $staging != "0" ]]; then staging_arg="--staging"; fi
   certbot certonly --webroot -w $webroot \
     $staging_arg \
     $domain_args \
+    --register-unsafely-without-email \
     --rsa-key-size $rsa_key_size \
     --agree-tos \
     --force-renewal" certbot
 echo
 
 echo "### Restarting nginx ..."
+echo "### Sleeping for 15s so we're confident the certs have been written"
+sleep 15;
 /opt/bin/docker-compose --project-directory $root -f ${root}/docker-compose.yaml -f ${root}/docker-compose.certbot.yaml restart nginx
