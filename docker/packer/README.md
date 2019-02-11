@@ -67,8 +67,7 @@ Rename vars.json.sample to vars.json: `$ mv vars.json.sample vars.json`
   "version": "<some random identifier. epoch for example",
   "vpc_id": "<your VPC ID>",
   "subnet_id": "<a public subnet in the above VPC>",
-  "user_data_file": "<ignition file to use>",
-  "build_type": "<packer build type>"
+  "user_data_file": "<ignition file to use>"
 }
 ```
 example:
@@ -80,8 +79,7 @@ example:
   "version": "1549643256",
   "vpc_id": "vpc-xxxxxxxx",
   "subnet_id": "subnet-xxxxxxxx",
-  "user_data_file": "gaia.ign",
-  "build_type": "amazon-ebs"
+  "user_data_file": "gaia.ign"
 }
 ```
 
