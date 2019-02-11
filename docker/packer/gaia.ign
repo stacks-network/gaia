@@ -195,6 +195,21 @@
         "contents": "[Unit]\nDescription=Install LetsEncrypt Certs\nRequires=gaia-hub.service\n[Service]\nType=oneshot\nWorkingDirectory=/gaia/docker\nEnvironmentFile=/etc/environment\n\nRemainAfterExit=yes\nExecStart=/bin/bash -x /gaia/docker/nginx/certbot/letsencrypt.sh\n\n[Install]\nWantedBy=multi-user.target",
         "enabled": false,
         "name": "get-acme-certs.service"
+      },
+      {
+        "contents": "[Unit]\nDescription=Check DNS Record\nConditionPathExists=!/tmp/dns_checked\nConditionPathExists=/gaia/docker/nginx/certbot/check_dns.sh\nConditionPathExists=/gaia/docker/nginx/certbot/letsencrypt.sh\n[Service]\nType=oneshot\nRemainAfterExit=no\nEnvironmentFile=/etc/environment\nExecStart=/bin/bash -x /gaia/docker/nginx/certbot/check_dns.sh\nExecStart=/bin/bash -x /gaia/docker/nginx/certbot/letsencrypt.sh\n\n[Install]\nWantedBy=multi-user.target",
+        "enabled": false,
+        "name": "check_dns.service"
+      },
+      {
+        "contents": "[Unit]\nDescription=Reset Gaia SSL Certificates to localhost\n\n[Service]\nType=oneshot\nRemainAfterExit=no\nEnvironmentFile=/etc/environment\nExecStart=/bin/bash -x /gaia/docker/nginx/certbot/reset-certs.sh\n\n[Install]\nWantedBy=multi-user.target",
+        "enabled": false,
+        "name": "reset-ssl-certs.service"
+      },
+      {
+        "contents": "[Unit]\nDescription=Check DNS Record timer\n\n[Timer]\nOnActiveSec=60\nOnUnitActiveSec=60\n\n[Install]\nWantedBy=timers.target",
+        "enabled": true,
+        "name": "check_dns.timer"
       }
     ]
   }

@@ -9,7 +9,7 @@
     "build_type": ""
   },
   "builders": [{
-    "type": "{{user `build_type`}}",
+    "type": "amazon-ebs",
     "region": "{{user `region`}}",
     "communicator": "ssh",
     "ssh_pty": true,
