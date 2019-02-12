@@ -5,6 +5,5 @@
   "version": "1549643256",
   "vpc_id": "",
   "subnet_id": "",
-  "user_data_file": "gaia.ign",
-  "build_type": "amazon-ebs"
+  "user_data_file": "gaia.ign"
 }
