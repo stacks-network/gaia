@@ -4,6 +4,7 @@
   "driver": "aws",
   "bucket": "",
   "readURL": "",
+  "whitelist": [ "15GAGiT2j2F1EzZrvjk3B8vBCfwVEzQaZx" ],
   "argsTransport": {
     "level": "warn",
     "handleExceptions": true,
