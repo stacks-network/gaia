@@ -20,10 +20,16 @@ if [ ! -e "$data_path/conf/options-ssl-nginx.conf" ] || [ ! -e "$data_path/conf/
 fi
 
 echo "### Deleting dummy certificate for $domains ..."
-/opt/bin/docker-compose --project-directory $root -f ${root}/docker-compose.yaml -f ${root}/docker-compose.certbot.yaml run --rm --entrypoint "\
-  rm -Rf /etc/letsencrypt/live/$domains && \
-  rm -Rf /etc/letsencrypt/archive/$domains && \
-  rm -Rf /etc/letsencrypt/renewal/$domains.conf" certbot
+/opt/bin/docker-compose \
+  --project-directory $root \
+  -f ${root}/docker-compose.yaml \
+  -f ${root}/docker-compose.certbot.yaml run \
+  --rm \
+  --entrypoint "\
+    rm -Rf /etc/letsencrypt/live/$domains && \
+    rm -Rf /etc/letsencrypt/archive/$domains && \
+    rm -Rf /etc/letsencrypt/renewal/$domains.conf" \
+  certbot
 echo
 
 echo "### Requesting Let's Encrypt certificate for $domains ..."
@@ -34,19 +40,53 @@ for domain in "${domains[@]}"; do
 done
 
 # Enable staging mode if needed
-if [[ $staging != "0" ]]; then staging_arg="--staging"; fi
+if [[ $staging != "0" ]]; then
+  staging_arg="--staging";
+fi
 
-/opt/bin/docker-compose --project-directory $root -f ${root}/docker-compose.yaml -f ${root}/docker-compose.certbot.yaml run --rm --entrypoint "\
-  certbot certonly --webroot -w $webroot \
-    $staging_arg \
-    $domain_args \
-    --register-unsafely-without-email \
-    --rsa-key-size $rsa_key_size \
-    --agree-tos \
-    --force-renewal" certbot
+/opt/bin/docker-compose \
+  --project-directory $root \
+  -f ${root}/docker-compose.yaml \
+  -f ${root}/docker-compose.certbot.yaml run \
+  --rm \
+  --entrypoint "\
+    certbot certonly --webroot -w $webroot \
+      $staging_arg \
+      $domain_args \
+      --register-unsafely-without-email \
+      --rsa-key-size $rsa_key_size \
+      --agree-tos \
+      --force-renewal" \
+  certbot
 echo
 
 echo "### Restarting nginx ..."
-echo "### Sleeping for 15s so we're confident the certs have been written"
-sleep 15;
-/opt/bin/docker-compose --project-directory $root -f ${root}/docker-compose.yaml -f ${root}/docker-compose.certbot.yaml restart nginx
+COUNT=10
+SLEEP=5
+INCR=5
+CERT_PATH="$data_path/conf/live/$domains"
+
+for i in $(seq "$COUNT"); do
+  if [ -e "$data_path/conf/live/$domains" ]; then
+    if [ `ls $data_path/conf/live/$domains | wc -l` -gt 0 ];then
+      if [ -L $data_path/conf/live/$domains/cert.pem -a \
+           -L $data_path/conf/live/$domains/chain.pem -a \
+           -L $data_path/conf/live/$domains/fullchain.pem -a \
+           -L $data_path/conf/live/$domains/privkey.pem \
+      ]; then
+        /opt/bin/docker-compose \
+          --project-directory $root \
+          -f ${root}/docker-compose.yaml \
+          -f ${root}/docker-compose.certbot.yaml \
+          restart nginx
+        touch /tmp/dns_checked
+        exit 0
+      fi
+    fi
+  fi
+  echo "Certs not written yet...sleeping for $SLEEP"
+  sleep $SLEEP
+  SLEEP=$((SLEEP + INCR))
+done
+echo "Timed out. There was a problem creating the SSL certificates"
+exit 2
