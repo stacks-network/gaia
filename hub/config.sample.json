@@ -1,33 +1,15 @@
 {
-  "servername": "",
+  "serverName": "",
   "port": 3000,
-  "driver": "",
+  "driver": "aws",
   "bucket": "",
   "readURL": "",
-  "awsCredentials": {
-    "accessKeyId": "",
-    "secretAccessKey": ""
-  },
-
-  "proofsConfig": {
-    "proofsRequired" : 3
-  },
-
-  "azCredentials": {
-    "accountName": "",
-    "accountKey": ""
-  },
-
-  "gcCredentials": {
-    "projectId": ""
-  },
-
   "argsTransport": {
     "level": "warn",
     "handleExceptions": true,
     "stringify": true,
     "timestamp": true,
     "colorize": false,
-    "json": true
+    "json": false
   }
 }
