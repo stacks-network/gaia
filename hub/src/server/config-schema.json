@@ -1,0 +1,88 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "properties": {
+    "serverName": { "type": "string" },
+    "port": { "type": "integer" },
+    "driver": { "type": { "enum":
+                          [ "aws", "azure", "disk", "google-cloud" ] } },
+    "bucket": { "type": "string" },
+    "readURL": { "type": "string" },
+    "pageSize": { "type": "integer"},
+    "requireCorrectHubUrl": { "type": "boolean" },
+    "cacheControl": { "type": "string" },
+    "whitelist": { "oneOf": [
+      {
+        "type": "array",
+        "items": { "type": "string" }
+      },
+      { "type": ["boolean", "null"] }
+    ]},
+    "validHubUrls": { "oneOf": [
+      {
+        "type": "array",
+        "items": { "type": "string" }
+      },
+      { "type": ["boolean", "null"] }
+    ]},
+    "proofsConfig": { "oneOf": [
+      {
+        "type": "object",
+        "properties": {
+          "proofsRequired": { "type": "string"}
+        },
+        "required": [
+          "proofsRequired"
+        ]
+      },
+      { "type": ["boolean", "null"] }
+    ]},
+    "awsCredentials": {
+      "type": "object",
+      "properties": {
+        "sessionToken": { "type": "string"},
+        "accessKeyId": { "type": "string"},
+        "secretAccessKey": { "type": "string"}
+      }
+    },
+    "azCredentials": {
+      "type": "object",
+      "properties": {
+        "accountName": { "type": "string"},
+        "accountKey": { "type": "string"}
+      }
+    },
+    "gcCredentials": {
+      "type": "object",
+      "properties": {
+        "email": { "type": "string"},
+        "projectId": { "type": "string"},
+        "keyFilename": { "type": "string"},
+        "credentials": { "type": "object",
+                         "properties": {
+                           "client_email": "string",
+                           "private_key": "string"
+                         }}
+      }
+    },
+    "diskSettings": {
+      "type": "object",
+      "properties": {
+        "storageRootDirectory": { "type": "string"}
+      }
+    },
+    "argsTransport": {
+      "type": "object",
+      "properties": {
+        "level": { "type": "string"},
+        "handleExceptions": { "type": "boolean" },
+        "stringify": { "type": "boolean" },
+        "timestamp": { "type": "boolean" },
+        "colorize": { "type": "boolean" },
+        "json":{ "type": "boolean" }
+      }
+    },
+    "servername": { "type": "string" }
+  },
+  "additionalProperties": false
+}

@@ -2,7 +2,10 @@ import winston from 'winston'
 import fs from 'fs'
 import process from 'process'
 
+import { Validator as JSONValidator } from 'jsonschema'
 import { getDriverClass } from './utils'
+
+import configSchema from './config-schema.json'
 
 export const configDefaults = {
   argsTransport: {
@@ -88,14 +91,25 @@ function deepMerge(target, ...sources) {
   return deepMerge(target, ...sources)
 }
 
-export function getConfig() {
+function getConfigJSON() {
   const configPath = process.env.CONFIG_PATH || process.argv[2] || './config.json'
   let configJSON
   try {
     configJSON = JSON.parse(fs.readFileSync(configPath))
   } catch (err) {
-    configJSON = {}
+    return {}
   }
+
+  const validator = new JSONValidator()
+  const validation = validator.validate(configJSON, configSchema)
+  if (!validation.valid) {
+    throw new Error(`Failed to validate provided config.json file. Make sure the config.json matches config-schema.js: ${validation.errors}`)
+  }
+  return configJSON
+}
+
+export function getConfig() {
+  const configJSON = getConfigJSON()
 
   if (configJSON.servername) {
     if (!configJSON.serverName) {
