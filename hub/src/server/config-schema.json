@@ -3,12 +3,12 @@
   "type": "object",
   "properties": {
     "serverName": { "type": "string" },
-    "port": { "type": "integer" },
+    "port": { "type": "integer", "minimum": 0, "maximum": 65535 },
     "driver": { "type": { "enum":
                           [ "aws", "azure", "disk", "google-cloud" ] } },
     "bucket": { "type": "string" },
     "readURL": { "type": "string" },
-    "pageSize": { "type": "integer"},
+    "pageSize": { "type": "integer", "minimum": 1, "maximum": 4096 },
     "requireCorrectHubUrl": { "type": "boolean" },
     "cacheControl": { "type": "string" },
     "whitelist": { "oneOf": [
