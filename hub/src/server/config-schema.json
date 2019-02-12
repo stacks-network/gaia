@@ -29,7 +29,7 @@
       {
         "type": "object",
         "properties": {
-          "proofsRequired": { "type": "string"}
+          "proofsRequired": { "type": "integer"}
         },
         "required": [
           "proofsRequired"
