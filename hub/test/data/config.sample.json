@@ -1,0 +1,15 @@
+{
+  "serverName": "",
+  "port": 3000,
+  "driver": "aws",
+  "bucket": "",
+  "readURL": "",
+  "argsTransport": {
+    "level": "warn",
+    "handleExceptions": true,
+    "stringify": true,
+    "timestamp": true,
+    "colorize": false,
+    "json": false
+  }
+}

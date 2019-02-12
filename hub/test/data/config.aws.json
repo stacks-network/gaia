@@ -1,0 +1,10 @@
+{
+  "servername": "storage.blockstack.org",
+  "port": 5000,
+  "driver": "aws",
+  "bucket": "ablankst-blockstack",
+  "argsTransport" : {
+    "level": "info",
+    "json": false
+  }
+}

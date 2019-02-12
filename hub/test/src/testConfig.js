@@ -40,7 +40,7 @@ export function testConfig() {
                                          { azCredentials: { accountName: undefined,
                                                             accountKey: undefined }})
 
-    t.deepEqual(configResult, configExpected)
+    t.deepEqual(configResult, configExpected, "Should have been equal")
     process.env.CONFIG_PATH = configOriginal
     t.end()
   })
@@ -54,6 +54,34 @@ export function testConfig() {
                                          { azCredentials: { accountName: 'pancakes', accountKey: undefined }})
 
     t.deepEqual(configResult, configExpected)
+    process.env.CONFIG_PATH = configOriginal
+    t.end()
+  })
+
+  test('sample configs pass validation', (t) => {
+    const configOriginal = process.env.CONFIG_PATH
+    const configs = ['config.aws.json',
+                     'config.disk.json',
+                     'config.sample.json',
+                     'test.azure.json',
+                     'test.gc.json']
+    for (let conf of configs) {
+      process.env.CONFIG_PATH = `${configDir}/${conf}`
+
+      t.ok(config.getConfig())
+    }
+    process.env.CONFIG_PATH = configOriginal
+    t.end()
+  })
+
+  test('bad config fails validation', (t) => {
+    const configOriginal = process.env.CONFIG_PATH
+    const configs = [ 'config.bad.json' ]
+    for (let conf of configs) {
+      process.env.CONFIG_PATH = `${configDir}/${conf}`
+
+      t.throws(() => config.getConfig())
+    }
     process.env.CONFIG_PATH = configOriginal
     t.end()
   })

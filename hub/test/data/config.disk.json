@@ -1,0 +1,15 @@
+{
+  "servername": "storage.blockstack.org",
+  "port": 5000,
+  "readURL": "http://localhost/sample/",
+  "driver": "disk",
+  "diskSettings": {
+    "storageRootDirectory": "/tmp/foo/"
+  },
+  "bucket": "hub",
+  "argsTransport" : {
+    "level": "debug",
+    "json": false,
+    "timestamp": true
+  }
+}

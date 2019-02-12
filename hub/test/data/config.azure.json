@@ -1,0 +1,15 @@
+{
+  "servername": "storage.blockstack.org",
+  "port": 5000,
+  "driver": "azure",
+  "bucket": "hub",
+  "argsTransport" : {
+    "level": "debug",
+    "json": false
+  },
+
+  "azCredentials": {
+    "accountName": "aaronblockstackstorage",
+    "accountKey": "1jskadjskajsd1191sjkla"
+  }
+}
