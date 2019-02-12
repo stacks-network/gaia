@@ -1,0 +1,15 @@
+version: '3'
+
+services:
+  hub:
+    build:
+      context: ./
+    hostname: hub
+    environment:
+      - CONFIG_PATH=/src/hub/config.json
+    ports:
+      - "3000:3000"
+    restart: always
+    volumes:
+      # Mount config from current directory
+      - ./config.json:/src/hub/config.json
