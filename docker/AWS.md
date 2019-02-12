@@ -109,6 +109,10 @@ We do this to ensure that when you start the VM, you're getting the most up to d
 ---
 Final Steps:
 
+Command to confirm your DNS is set correctly:
+    - this will check every 5 seconds for a change in output:
+        - `watch -n 2 -t -g -x host <domain>
+    - if the IP is correct, you can <control-c>. otherwise, it will automatically stop running once the record is resolving. 
 Run Command: `ssh -t -i <your keyfile.pem> core@<public ip address> "sudo systemctl restart get-acme-certs.service"`
 - ex: `ssh  -t -i ~/.ssh/mykeyfile.pem core@2.3.4.5  "sudo systemctl restart get-acme-certs.service"`
 
