@@ -18,6 +18,25 @@ if [ ! -e "$data_path/conf/options-ssl-nginx.conf" ] || [ ! -e "$data_path/conf/
   curl -s https://raw.githubusercontent.com/certbot/certbot/master/certbot/ssl-dhparams.pem > "$data_path/conf/ssl-dhparams.pem"
   echo
 fi
+COUNT=10
+SLEEP=5
+INCR=5
+for i in $(seq "$COUNT"); do
+  curl -Ls localhost --insecure | grep "01000110110000011010001100001" > /dev/null 2>&1
+  RETURN=$?
+  if [[ "$RETURN" -eq "0" ]]; then
+    break
+  fi
+  if [ \( "$i" -lt "$COUNT" \) -a \( "$RETURN" -ne "0" \) ]; then
+      echo "Nginx not up yet. Sleeping for $SLEEP"
+      sleep $SLEEP
+      SLEEP=$((SLEEP + INCR))
+  fi
+  if [ \( "$i" -eq "$COUNT" \) -a \( "$RETURN" -ne "0" \) ]; then
+    echo "NGINX never started correctly. exiting"
+    exit 1
+  fi
+done
 
 echo "### Deleting dummy certificate for $domains ..."
 /opt/bin/docker-compose \
