@@ -6,7 +6,7 @@
     "user_data_file": "",
     "profile": "",
     "name_prefix": "",
-    "build_type": ""
+    "root_volume_size": "10"
   },
   "builders": [{
     "type": "amazon-ebs",
@@ -18,8 +18,8 @@
     "vpc_id": "{{user `vpc_id`}}",
     "subnet_id": "{{user `subnet_id`}}",
     "ssh_username": "core",
-    "ami_name": "{{user `name_prefix`}}_{{user `version`}}",
-    "ami_regions": ["{{user `region`}}"],
+    "ami_name": "{{user `name_prefix`}}-ephemeral-{{user `version`}}-hvm",
+    "ami_regions": "{{user `ami_regions`}}",
     "user_data_file": "{{user `user_data_file`}}",
     "profile": "{{user `profile`}}",
     "source_ami_filter": {
@@ -34,26 +34,16 @@
     "tags": {
       "OS": "CoreOS Stable",
       "Name": "{{user `name_prefix`}}_{{user `version`}}",
-      "BuildType": "Multiple Disk",
+      "BuildType": "Ephemeral",
       "BuildMethod": "Packer",
       "BuildTime": "{{timestamp}}",
       "Version": "{{user `version`}}"
     },
     "launch_block_device_mappings" : [{
       "device_name": "/dev/xvda",
-      "volume_size": 10,
+      "volume_size": "{{user `root_volume_size`}}",
       "volume_type": "gp2",
       "delete_on_termination": true
-    },{
-      "device_name" : "/dev/sdf",
-      "delete_on_termination" : true,
-      "volume_size" : 100,
-      "volume_type" : "gp2"
-    }],
-    "ami_block_device_mappings" : [{
-      "device_name" : "/dev/sdf",
-      "delete_on_termination" : true,
-      "volume_type" : "gp2"
     }]
   }],
   "provisioners": [{

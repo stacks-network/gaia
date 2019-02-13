@@ -45,12 +45,6 @@
         "mode": 493
       }
     ],
-    "disks": [
-      {
-        "device": "/dev/xvdf",
-        "wipeTable": true
-      }
-    ],
     "files": [
       {
         "filesystem": "root",
@@ -142,17 +136,6 @@
         },
         "mode": 420
       }
-    ],
-    "filesystems": [
-      {
-        "mount": {
-          "device": "/dev/xvdf",
-          "format": "xfs",
-          "label": "STORAGE",
-          "wipeFilesystem": true
-        },
-        "name": "storage"
-      }
     ]
   },
   "systemd": {
@@ -173,7 +156,7 @@
       },
       {
         "contents": "[Unit]\nDescription=Mount Local Disk to /gaia/docker/storage\n\n[Mount]\nWhat=/dev/xvdf\nWhere=/gaia/docker/storage\nType=xfs\n[Install]\nWantedBy=local-fs.target\n\n",
-        "enabled": true,
+        "enabled": false,
         "name": "gaia-docker-storage.mount"
       },
       {
@@ -187,7 +170,7 @@
         "name": "pull-gaia-repo.service"
       },
       {
-        "contents": "[Unit]\nDescription=Run Gaia Hub Service\nRequires=docker.service\nAfter=docker.service\nAfter=pull-gaia-repo.service\nAfter=install-docker-compose.service\n\n[Service]\nWorkingDirectory=/gaia/docker\nRestart=always\n\n# Set Environment Variables\nEnvironmentFile=/gaia/docker/.env\nEnvironmentFile=/etc/environment\n\n# Stop\n# Compose down, remove containers and volumes\nExecStop=/opt/bin/docker-compose -f /gaia/docker/docker-compose.yaml -f /gaia/docker/docker-compose.certbot.yaml down -v\n\n# Start\n# Setup Local certs\nExecStartPre=/bin/bash -x /gaia/docker/nginx/certbot/letsencrypt-init.sh\n\n# Remove old containers, images and volumes\nExecStartPre=/opt/bin/docker-compose -f /gaia/docker/docker-compose.yaml -f /gaia/docker/docker-compose.certbot.yaml down -v\nExecStartPre=/opt/bin/docker-compose -f /gaia/docker/docker-compose.yaml -f /gaia/docker/docker-compose.certbot.yaml rm -v\nExecStartPre=-/bin/bash -c 'docker volume rm $(docker volume ls -q)'\nExecStartPre=-/bin/bash -c 'docker rmi $(docker images | grep \"<none>\" | awk \\'{print $3}\\')'\nExecStartPre=-/bin/bash -c 'docker rm -v $(docker ps -aq)'\n\n# Compose up\nExecStart=/opt/bin/docker-compose -f /gaia/docker/docker-compose.yaml -f /gaia/docker/docker-compose.certbot.yaml up\n\n[Install]\nWantedBy=multi-user.target",
+        "contents": "[Unit]\nDescription=Run Gaia Hub Service\nRequires=docker.service\nAfter=docker.service\nAfter=pull-gaia-repo.service\nAfter=install-docker-compose.service\n\n[Service]\nWorkingDirectory=/gaia/docker\nRestart=always\n\n# Set Environment Variables\nEnvironmentFile=/gaia/docker/.env\nEnvironmentFile=/etc/environment\n\n# Stop\n# Compose down, remove containers and volumes\nExecStop=/opt/bin/docker-compose -f /gaia/docker/docker-compose.yaml -f /gaia/docker/docker-compose.certbot.yaml down -v\n\n# Start\n# Setup Local certs\nExecStartPre=/bin/bash -x /gaia/docker/nginx/certbot/letsencrypt-init.sh\n\n# modify the admin & hub configs using env vars\nExecStartPre=/bin/bash -x /gaia/docker/update_configs.sh\n\n# Remove old containers, images and volumes\nExecStartPre=/opt/bin/docker-compose -f /gaia/docker/docker-compose.yaml -f /gaia/docker/docker-compose.certbot.yaml down -v\nExecStartPre=/opt/bin/docker-compose -f /gaia/docker/docker-compose.yaml -f /gaia/docker/docker-compose.certbot.yaml rm -v\nExecStartPre=-/bin/bash -c 'docker volume rm $(docker volume ls -q)'\nExecStartPre=-/bin/bash -c 'docker rmi $(docker images | grep \"<none>\" | awk \\'{print $3}\\')'\nExecStartPre=-/bin/bash -c 'docker rm -v $(docker ps -aq)'\n\n# Compose up\nExecStart=/opt/bin/docker-compose -f /gaia/docker/docker-compose.yaml -f /gaia/docker/docker-compose.certbot.yaml up\n\n[Install]\nWantedBy=multi-user.target",
         "enabled": true,
         "name": "gaia-hub.service"
       },
