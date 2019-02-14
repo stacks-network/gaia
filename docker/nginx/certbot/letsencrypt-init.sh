@@ -19,6 +19,28 @@ if [ ! -e "$data_path/conf/options-ssl-nginx.conf" ] || [ ! -e "$data_path/conf/
   echo
 fi
 
+# check for certbot running.....
+COUNT=10
+SLEEP=10
+INCR=10
+for i in $(seq "$COUNT"); do
+  /usr/bin/docker ps | grep docker_certbot_1 > /dev/null 2>&1
+  RETURN=$?
+  if [[ "$RETURN" -eq "0" ]]; then
+    break
+  fi
+  if [ \( "$i" -lt "$COUNT" \) -a \( "$RETURN" -ne "0" \) ]; then
+      echo "Certbot not up yet. Sleeping for $SLEEP"
+      sleep $SLEEP
+      SLEEP=$((SLEEP + INCR))
+  fi
+  if [ \( "$i" -eq "$COUNT" \) -a \( "$RETURN" -ne "0" \) ]; then
+    echo "Certbot never started correctly. exiting"
+    exit 1
+  fi
+done
+
+
 if [ ! -e "/tmp/letsencrypt.init" ]; then
   echo "### Creating dummy certificate for $domains ..."
   path="/etc/letsencrypt/live/$domains"
@@ -36,4 +58,10 @@ if [ ! -e "/tmp/letsencrypt.init" ]; then
     certbot
   echo
   touch /tmp/letsencrypt.init
+  # restart nginx now!
+  /opt/bin/docker-compose \
+    --project-directory $root \
+    -f ${root}/docker-compose.yaml \
+    -f ${root}/docker-compose.certbot.yaml \
+  restart nginx
 fi
