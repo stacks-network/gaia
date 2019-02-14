@@ -97,7 +97,13 @@ for i in $(seq "$COUNT"); do
           --project-directory $root \
           -f ${root}/docker-compose.yaml \
           -f ${root}/docker-compose.certbot.yaml \
-          restart nginx
+        stop nginx
+        sleep 2;
+        /opt/bin/docker-compose \
+          --project-directory $root \
+          -f ${root}/docker-compose.yaml \
+          -f ${root}/docker-compose.certbot.yaml \
+        start nginx
         touch /tmp/dns_checked
         exit 0
       fi

@@ -63,5 +63,11 @@ if [ ! -e "/tmp/letsencrypt.init" ]; then
     --project-directory $root \
     -f ${root}/docker-compose.yaml \
     -f ${root}/docker-compose.certbot.yaml \
-  restart nginx
+  stop nginx
+  sleep 2;
+  /opt/bin/docker-compose \
+    --project-directory $root \
+    -f ${root}/docker-compose.yaml \
+    -f ${root}/docker-compose.certbot.yaml \
+  start nginx
 fi
