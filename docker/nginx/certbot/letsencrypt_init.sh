@@ -57,18 +57,6 @@ if [ ! -e "/tmp/letsencrypt.init" ]; then
         -subj '/CN=localhost'" \
     certbot
   echo
-  # # restart nginx now!
-  # /opt/bin/docker-compose \
-  #   --project-directory $root \
-  #   -f ${root}/docker-compose.yaml \
-  #   -f ${root}/docker-compose.certbot.yaml \
-  # stop nginx
-  # sleep 10;
-  # /opt/bin/docker-compose \
-  #   --project-directory $root \
-  #   -f ${root}/docker-compose.yaml \
-  #   -f ${root}/docker-compose.certbot.yaml \
-  # start nginx
   echo "### Restarting nginx ..."
   COUNT=10
   SLEEP=10
@@ -92,5 +80,5 @@ if [ ! -e "/tmp/letsencrypt.init" ]; then
     SLEEP=$((SLEEP + INCR))
   done
   echo "Timed out. There was a problem creating the SSL certificates"
-  exit 2
+  exit 1
 fi

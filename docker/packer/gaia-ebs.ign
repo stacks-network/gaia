@@ -202,7 +202,7 @@
         "name": "reset-ssl-certs.service"
       },
       {
-        "contents": "[Unit]\nDescription=Check DNS Record\nAfter=gaia-hub.service\nAfter=letsencrypt_init.service\nConditionPathExists=/tmp/letsencrypt.init\nConditionPathExists=!/tmp/dns_checked\nConditionPathExists=/gaia/docker/nginx/certbot/check_dns.sh\nConditionPathExists=/gaia/docker/nginx/certbot/letsencrypt.sh\n\n[Service]\nType=oneshot\nRemainAfterExit=no\nEnvironmentFile=/etc/environment\nExecStart=/bin/bash -x /gaia/docker/nginx/certbot/check_dns.sh\nExecStart=/bin/bash -x /gaia/docker/nginx/certbot/letsencrypt.sh\n\n[Install]\nWantedBy=multi-user.target",
+        "contents": "[Unit]\nDescription=Check DNS Record\nAfter=gaia-hub.service\nAfter=letsencrypt_init.service\nConditionPathExists=/tmp/letsencrypt.init\nConditionPathExists=!/tmp/dns_checked\nConditionPathExists=!/tmp/ssl_created\nConditionPathExists=/gaia/docker/nginx/certbot/check_dns.sh\nConditionPathExists=/gaia/docker/nginx/certbot/letsencrypt.sh\n\n[Service]\nType=oneshot\nRemainAfterExit=no\nEnvironmentFile=/etc/environment\nExecStart=/bin/bash -x /gaia/docker/nginx/certbot/check_dns.sh\nExecStart=/bin/bash -x /gaia/docker/nginx/certbot/letsencrypt.sh\n\n[Install]\nWantedBy=multi-user.target",
         "enabled": false,
         "name": "check_dns.service"
       },

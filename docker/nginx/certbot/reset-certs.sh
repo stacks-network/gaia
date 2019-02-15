@@ -33,6 +33,10 @@ if [ -e "/tmp/dns_checked" ]; then
   echo -e "Removing check_dns file -> /tmp/dns_checked"
   rm /tmp/dns_checked
 fi
+if [ -e "/tmp/ssl_created" ]; then
+  echo -e "Removing check_dns file -> /tmp/ssl_created"
+  rm /tmp/ssl_created
+fi
 
 # remove any remaning docker volumes
 if [ `docker volume ls -q | wc -l` -gt 0 ]; then

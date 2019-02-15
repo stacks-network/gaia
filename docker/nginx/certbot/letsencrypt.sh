@@ -1,7 +1,7 @@
 #!/bin/bash
 # with slight modifications: https://raw.githubusercontent.com/wmnnd/nginx-certbot/master/init-letsencrypt.sh
 
-if [ ! -f /tmp/dns_checked ]; then
+if [ ! -f "/tmp/dns_checked" ] || [ -f "/tmp/ssl_created" ]; then
   exit 1
 fi
 
@@ -97,7 +97,7 @@ for i in $(seq "$COUNT"); do
            -L $data_path/conf/live/$domains/privkey.pem \
       ]; then
         /usr/bin/systemctl restart gaia-hub.service
-        touch /tmp/dns_checked
+        touch /tmp/ssl_created
         exit 0
       fi
     fi
@@ -107,4 +107,4 @@ for i in $(seq "$COUNT"); do
   SLEEP=$((SLEEP + INCR))
 done
 echo "Timed out. There was a problem creating the SSL certificates"
-exit 2
+exit 1
