@@ -57,17 +57,40 @@ if [ ! -e "/tmp/letsencrypt.init" ]; then
         -subj '/CN=localhost'" \
     certbot
   echo
-  touch /tmp/letsencrypt.init
-  # restart nginx now!
-  /opt/bin/docker-compose \
-    --project-directory $root \
-    -f ${root}/docker-compose.yaml \
-    -f ${root}/docker-compose.certbot.yaml \
-  stop nginx
-  sleep 2;
-  /opt/bin/docker-compose \
-    --project-directory $root \
-    -f ${root}/docker-compose.yaml \
-    -f ${root}/docker-compose.certbot.yaml \
-  start nginx
+  # # restart nginx now!
+  # /opt/bin/docker-compose \
+  #   --project-directory $root \
+  #   -f ${root}/docker-compose.yaml \
+  #   -f ${root}/docker-compose.certbot.yaml \
+  # stop nginx
+  # sleep 10;
+  # /opt/bin/docker-compose \
+  #   --project-directory $root \
+  #   -f ${root}/docker-compose.yaml \
+  #   -f ${root}/docker-compose.certbot.yaml \
+  # start nginx
+  echo "### Restarting nginx ..."
+  COUNT=10
+  SLEEP=10
+  INCR=10
+  for i in $(seq "$COUNT"); do
+    if [ -e "$data_path/conf/live/$domains" ]; then
+      if [ `ls $data_path/conf/live/$domains | wc -l` -gt 0 ];then
+        if [ -f $data_path/conf/live/$domains/fullchain.pem -a \
+             -f $data_path/conf/live/$domains/privkey.pem -a \
+             -f $data_path/conf/options-ssl-nginx.conf -a \
+             -f $data_path/conf/ssl-dhparams.pem \
+        ]; then
+          /usr/bin/systemctl restart gaia-hub.service
+          touch /tmp/letsencrypt.init
+          exit 0
+        fi
+      fi
+    fi
+    echo "Certbot files not written yet...sleeping for $SLEEP"
+    sleep $SLEEP
+    SLEEP=$((SLEEP + INCR))
+  done
+  echo "Timed out. There was a problem creating the SSL certificates"
+  exit 2
 fi

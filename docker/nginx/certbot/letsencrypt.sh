@@ -1,6 +1,9 @@
 #!/bin/bash
 # with slight modifications: https://raw.githubusercontent.com/wmnnd/nginx-certbot/master/init-letsencrypt.sh
 
+if [ ! -f /tmp/dns_checked ]; then
+  exit 1
+fi
 
 domains=${DOMAIN}
 rsa_key_size=4096
@@ -19,8 +22,8 @@ if [ ! -e "$data_path/conf/options-ssl-nginx.conf" ] || [ ! -e "$data_path/conf/
   echo
 fi
 COUNT=10
-SLEEP=5
-INCR=5
+SLEEP=10
+INCR=10
 for i in $(seq "$COUNT"); do
   curl -Ls localhost --insecure | grep "01000110110000011010001100001" > /dev/null 2>&1
   RETURN=$?
@@ -81,8 +84,8 @@ echo
 
 echo "### Restarting nginx ..."
 COUNT=10
-SLEEP=5
-INCR=5
+SLEEP=10
+INCR=10
 CERT_PATH="$data_path/conf/live/$domains"
 
 for i in $(seq "$COUNT"); do
@@ -93,17 +96,7 @@ for i in $(seq "$COUNT"); do
            -L $data_path/conf/live/$domains/fullchain.pem -a \
            -L $data_path/conf/live/$domains/privkey.pem \
       ]; then
-        /opt/bin/docker-compose \
-          --project-directory $root \
-          -f ${root}/docker-compose.yaml \
-          -f ${root}/docker-compose.certbot.yaml \
-        stop nginx
-        sleep 2;
-        /opt/bin/docker-compose \
-          --project-directory $root \
-          -f ${root}/docker-compose.yaml \
-          -f ${root}/docker-compose.certbot.yaml \
-        start nginx
+        /usr/bin/systemctl restart gaia-hub.service
         touch /tmp/dns_checked
         exit 0
       fi
