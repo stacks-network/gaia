@@ -1,5 +1,5 @@
 #!/bin/bash
-# with slight modifications: https://raw.githubusercontent.com/wmnnd/nginx-certbot/master/init-letsencrypt.sh
+# with modifications: https://raw.githubusercontent.com/wmnnd/nginx-certbot/master/init-letsencrypt.sh
 
 
 domains=${DOMAIN}
@@ -11,16 +11,28 @@ staging=${STAGING} # Set to 1 if you're testing your setup to avoid hitting requ
 cd $root
 
 
-if [ ! -e "$data_path/conf/options-ssl-nginx.conf" ] || [ ! -e "$data_path/conf/ssl-dhparams.pem" ]; then
-  echo "### Downloading recommended TLS parameters ..."
+if [ ! -d "$data_path/conf" ]; then
+  echo -e "### Creating conf dir: $data_path/conf ... "
   mkdir -p "$data_path/conf"
-  curl -s https://raw.githubusercontent.com/certbot/certbot/master/certbot-nginx/certbot_nginx/options-ssl-nginx.conf > "$data_path/conf/options-ssl-nginx.conf"
-  curl -s https://raw.githubusercontent.com/certbot/certbot/master/certbot/ssl-dhparams.pem > "$data_path/conf/ssl-dhparams.pem"
   echo
 fi
 
-# check for certbot running.....
-COUNT=10
+if [ ! -f "$data_path/conf/options-ssl-nginx.conf" ]; then
+  echo -e "### Downloading options-ssl-nginx.conf: $data_path/conf/options-ssl-nginx.conf ... "
+  curl -s https://raw.githubusercontent.com/certbot/certbot/master/certbot-nginx/certbot_nginx/options-ssl-nginx.conf \
+    > "$data_path/conf/options-ssl-nginx.conf"
+  echo
+fi
+
+if [ ! -f "$data_path/conf/ssl-dhparams.pem" ]; then
+  echo -e "### Downloading ssl-dhparams.pem: $data_path/conf/ssl-dhparams.pem ... "
+  curl -s https://raw.githubusercontent.com/certbot/certbot/master/certbot/ssl-dhparams.pem \
+    > "$data_path/conf/ssl-dhparams.pem"
+  echo
+fi
+
+# wait 2.5m for certbot to come up
+COUNT=5
 SLEEP=10
 INCR=10
 for i in $(seq "$COUNT"); do
@@ -58,7 +70,8 @@ if [ ! -e "/tmp/letsencrypt.init" ]; then
     certbot
   echo
   echo "### Restarting nginx ..."
-  COUNT=10
+  # wait 2.5m for certs to show up
+  COUNT=5
   SLEEP=10
   INCR=10
   for i in $(seq "$COUNT"); do
@@ -73,11 +86,12 @@ if [ ! -e "/tmp/letsencrypt.init" ]; then
           touch /tmp/letsencrypt.init
           exit 0
         fi
+      else
+        echo "Certbot files not written yet...sleeping for $SLEEP"
+        sleep $SLEEP
+        SLEEP=$((SLEEP + INCR))
       fi
     fi
-    echo "Certbot files not written yet...sleeping for $SLEEP"
-    sleep $SLEEP
-    SLEEP=$((SLEEP + INCR))
   done
   echo "Timed out. There was a problem creating the SSL certificates"
   exit 1

@@ -4,13 +4,13 @@
 PUBLIC_IPV4=`/usr/bin/curl -s https://api.ipify.org`
 DIG="/usr/bin/dig"
 OPTS="A +short"
-RECORD=`$DIG $OPTS $DOMAIN`
 COUNT=10
 SLEEP=10
 INCR=10
 
 if [ ! -f "/tmp/dns_checked" ]; then
   for i in $(seq "$COUNT"); do
+    RECORD=`$DIG $OPTS $DOMAIN`
     if [[ "$RECORD" == "$PUBLIC_IPV4" ]]; then
       echo -e "[ $DOMAIN IN A $RECORD ] Found"
       echo -e "    Setting up $DOMAIN certificates"
