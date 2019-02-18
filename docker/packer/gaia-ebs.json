@@ -18,6 +18,7 @@
     "vpc_id": "{{user `vpc_id`}}",
     "subnet_id": "{{user `subnet_id`}}",
     "ssh_username": "core",
+    "ami_groups": "all",
     "ami_name": "{{user `name_prefix`}}-ebs-{{user `version`}}-hvm",
     "ami_regions": "{{user `ami_regions`}}",
     "user_data_file": "{{user `user_data_file`}}",
