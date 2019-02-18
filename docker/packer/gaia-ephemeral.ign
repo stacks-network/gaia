@@ -165,7 +165,7 @@
         "name": "install-docker-compose.service"
       },
       {
-        "contents": "[Unit]\nDescription=Checkout Gaia Repo\nConditionPathExists=!/gaia\nBefore=gaia-docker-storage.mount\n\n[Service]\nType=oneshot\nRemainAfterExit=yes\nExecStart=/usr/bin/git clone -b feature/easier-image-ssl --single-branch https://github.com/blockstack/gaia /gaia\n\n[Install]\nWantedBy=multi-user.target",
+        "contents": "[Unit]\nDescription=Checkout Gaia Repo\nConditionPathExists=!/gaia\nBefore=gaia-docker-storage.mount\n\n[Service]\nType=oneshot\nRemainAfterExit=yes\nExecStart=/usr/bin/git clone -b feature/docker-compose --single-branch https://github.com/blockstack/gaia /gaia\n\n[Install]\nWantedBy=multi-user.target",
         "enabled": true,
         "name": "pull-gaia-repo.service"
       },
