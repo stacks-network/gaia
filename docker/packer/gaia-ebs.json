@@ -21,6 +21,7 @@
     "ami_groups": "all",
     "ami_name": "{{user `name_prefix`}}-ebs-{{user `version`}}-hvm",
     "ami_regions": "{{user `ami_regions`}}",
+    "ami_description": "{{user `description`}} {{user `version`}} EBS (HVM)",
     "user_data_file": "{{user `user_data_file`}}",
     "profile": "{{user `profile`}}",
     "source_ami_filter": {

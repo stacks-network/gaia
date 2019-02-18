@@ -7,6 +7,8 @@ fi
 
 # packer build --var-file=vars.json --var "user_data_file=gaia-ebs.ign" --var "version=$VERSION" --var "ami_regions=us-west-2" gaia-ebs.json
 
+#packer build --var-file=vars.json --var "user_data_file=gaia-ephemeral.ign" --var "version=0001.00.00" --var "ami_regions=us-west-2" gaia-ephemeral.json
+
 echo "Setting Version to ${VERSION}"
 echo ""
 echo "Building gaia-hub-ephemeral"
