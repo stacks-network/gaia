@@ -1,6 +1,6 @@
 FROM node:8-alpine
 
-WORKDIR /src/hub
+WORKDIR /src/reader
 
 COPY . .
 

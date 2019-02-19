@@ -176,7 +176,9 @@ const GAIA_CONFIG_SCHEMA = {
     requireCorrectHubUrl: { type: 'boolean' },
     serverName: { type: 'string', pattern: '.+' },
     port: { type: 'integer', minimum: 1024, maximum: 65534 },
-    proofsConfig: { type: 'integer', minimum: 0 },
+    proofsConfig: {
+      proofsRequired: { type: 'integer', minimum: 0 }
+    },
 
     // whitelist
     whitelist: {
@@ -215,7 +217,7 @@ const GAIA_CONFIG_SCHEMA = {
       }
     },
     awsCredentials: {
-      assessKeyId: { type: 'string' },
+      accessKeyId: { type: 'string' },
       secretAccessKey: { type: 'string' },
       sessionToken: { type: 'string' }
     }

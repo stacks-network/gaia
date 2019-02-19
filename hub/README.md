@@ -1,3 +1,5 @@
+The rest of this will probably be refactored
+
 # Running the Gaia Hub
 
 To get started running a gaia hub, execute the following:
