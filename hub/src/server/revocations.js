@@ -108,12 +108,11 @@ export class AuthTimestampCache {
   async writeAuthTimestamp(bucketAddress: string, timestamp: number) : Promise<void> {
 
     // Recheck cache for a larger timestamp to avoid race conditions from slow storage.
-    const cachedTimestamp = this.cache.get(bucketAddress)
+    let cachedTimestamp = this.cache.get(bucketAddress)
     if (cachedTimestamp && cachedTimestamp > timestamp) {
-      timestamp = cachedTimestamp
+      return
     }
 
-    this.cache.set(bucketAddress, timestamp)
     const authTimestampFileDir = this.getAuthTimestampFileDir(bucketAddress)
     
     // Convert our number to a Buffer.
@@ -138,6 +137,14 @@ export class AuthTimestampCache {
       contentLength: contentBuffer.length,
       contentType: 'text/plain; charset=UTF-8'
     })
+
+    // In a race condition, use the newest timestamp.
+    cachedTimestamp = this.cache.get(bucketAddress)
+    if (cachedTimestamp && cachedTimestamp > timestamp) {
+      timestamp = cachedTimestamp
+    }
+
+    this.cache.set(bucketAddress, timestamp)
   }
 
   async setAuthTimestamp(bucketAddress: string, timestamp: number): Promise<void> {
