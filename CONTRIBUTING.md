@@ -20,8 +20,9 @@ A submitted PR must:
 PRs on Gaia should be reviewed by at least (2) maintainers.
 
 Most PRs should be based on the `develop` branch, unless it is a hotfix, in which case
- it should be based on the `master` branch. Maintainers will handle version bumps and updating
- the `CHANGELOG.md` file.
+ it should be based on the `master` branch. We prefer that you do not do any squashing on
+ your commits (we like to see the whole history of edits).  Maintainers will handle version 
+ bumps and updating the `CHANGELOG.md` file.
 
 # Reviewing PRs
 
