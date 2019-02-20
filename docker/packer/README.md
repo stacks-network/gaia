@@ -173,7 +173,7 @@ The main points in this file are:
     - install-docker-compose.service
         - determines the latest release of `docker-compose` and installs it to `/opt/bin/docker-compose`
     - pull-gaia-repo.service
-        - pulls a single branch (current `feature/docker-compose`) to `/gaia`
+        - pulls the master branch to `/gaia`
     - gaia-hub.service
         - starts the gaia-hub containers via docker-compose
         - calls the script `/gaia/docker/nginx/certbot/letsencrypt.sh`

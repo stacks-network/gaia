@@ -6,7 +6,8 @@
     "user_data_file": "",
     "profile": "",
     "name_prefix": "",
-    "root_volume_size": "10"
+    "root_volume_size": "",
+    "ami_description": ""
   },
   "builders": [{
     "type": "amazon-ebs",
@@ -21,7 +22,7 @@
     "ami_groups": "all",
     "ami_name": "{{user `name_prefix`}}-ephemeral-{{user `version`}}-hvm",
     "ami_regions": "{{user `ami_regions`}}",
-    "ami_description": "{{user `description`}} {{user `version`}} Ephemeral (HVM)",
+    "ami_description": "{{user `ami_description`}} {{user `version`}} Ephemeral (HVM)",
     "user_data_file": "{{user `user_data_file`}}",
     "profile": "{{user `profile`}}",
     "source_ami_filter": {
