@@ -1,0 +1,45 @@
+version: "3.3"
+
+services:
+  nginx:
+    image: nginx:alpine
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - "./nginx/conf.d/nginx-ssl.conf:/etc/nginx/conf.d/default.template"
+      - "${LOCAL_CERTBOT_CONF}:${REMOTE_CERTBOT_CONF}"
+      - "${LOCAL_CERTBOT_WWW}:${REMOTE_CERTBOT_WWW}"
+      - "./nginx/html/index.html:/usr/share/nginx/html/index.html"
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: "${DOMAIN}"
+      SERVER_HTTP_PORT: "80"
+      SERVER_HTTPS_PORT: "443"
+    links:
+      - hub
+      - admin
+      - reader
+    networks:
+      - gaia
+    depends_on:
+      - hub
+    command: /bin/sh -c "envsubst \"`env | awk -F = '{printf \" $$%s\", $$1}'`\" < /etc/nginx/conf.d/default.template > /etc/nginx/conf.d/default.conf && while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g 'daemon off;'"
+  certbot:
+    image: ${CERTBOT_IMAGE}
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - "${LOCAL_CERTBOT_CONF}:${REMOTE_CERTBOT_CONF}"
+      - "${LOCAL_CERTBOT_WWW}:${REMOTE_CERTBOT_WWW}"
+    entrypoint: /bin/sh -c "trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;"
+    networks:
+      - gaia
+    depends_on:
+      - nginx
+networks:
+  gaia:
+    driver: bridge

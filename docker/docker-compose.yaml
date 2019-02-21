@@ -1,0 +1,81 @@
+version: "3.3"
+
+services:
+  hub:
+    image: ${HUB_IMAGE}
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - "./hub-config:/src/hub/etc"
+      - "${LOCAL_DISK}:${GAIA_DISK_STORAGE_ROOT_DIR}"
+    ports:
+      - "3000:3000"
+    environment:
+      CONFIG_PATH: "/src/hub/etc/config.json"
+      GAIA_DISK_STORAGE_ROOT_DIR: ${GAIA_DISK_STORAGE_ROOT_DIR}
+    networks:
+      - gaia
+
+  admin:
+    image: ${ADMIN_IMAGE}
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - "./admin-config:/src/admin/etc"
+      - "./hub-config:/tmp/hub-config"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    ports:
+      - "8009:8009"
+    links:
+      - hub
+    environment:
+      CONFIG_PATH: "/src/admin/etc/config.json"
+    networks:
+      - gaia
+
+  reader:
+    image: ${READER_IMAGE}
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - "./reader-config:/src/reader/etc:ro"
+      - "${LOCAL_DISK}:${GAIA_DISK_STORAGE_ROOT_DIR}"
+    ports:
+      - "8008:8008"
+    links:
+      - hub
+    environment:
+      CONFIG_PATH: "/src/reader/etc/config.json"
+      GAIA_DISK_STORAGE_ROOT_DIR: "${GAIA_DISK_STORAGE_ROOT_DIR}"
+    networks:
+      - gaia
+
+  nginx:
+    image: ${NGINX_IMAGE}
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - "./nginx/conf.d/nginx-local.conf:/etc/nginx/conf.d/default.template"
+      - "./nginx/html/index.html:/usr/share/nginx/html/index.html"
+    ports:
+      - "80:80"
+    environment:
+      SERVER_NAME: "${DOMAIN}"
+      SERVER_HTTP_PORT: "80"
+    links:
+      - hub
+      - admin
+      - reader
+    networks:
+      - gaia
+    depends_on:
+      - hub
+    command: sh -c "envsubst \"`env | awk -F = '{printf \" $$%s\", $$1}'`\" < /etc/nginx/conf.d/default.template > /etc/nginx/conf.d/default.conf && while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g 'daemon off;'"
+
+networks:
+  gaia:
+    driver: bridge
