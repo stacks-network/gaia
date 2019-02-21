@@ -1,0 +1,25 @@
+{
+  "argsTransport": {
+    "level": "debug",
+    "handleExceptions": true,
+    "timestamp": true,
+    "stringify": true,
+    "colorize": true,
+    "json": true
+  },
+  "port": 8009,
+  "apiKeys": [ "hello" ],
+  "gaiaSettings": {
+    "configPath": "/tmp/hub-config/config.json"
+  },
+  "reloadSettings": {
+    "command": "/bin/sh",
+    "argv": [
+      "-c",
+      "docker restart docker_hub_1 &"
+    ],
+    "env": {},
+    "setuid": 1000,
+    "setgid": 1000
+  }
+}

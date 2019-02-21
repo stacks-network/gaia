@@ -1,0 +1,209 @@
+{
+  "ignition": {
+    "config": {},
+    "security": {
+      "tls": {}
+    },
+    "timeouts": {},
+    "version": "2.2.0"
+  },
+  "networkd": {},
+  "passwd": {},
+  "storage": {
+    "directories": [
+      {
+        "filesystem": "root",
+        "group": {
+          "name": "root"
+        },
+        "path": "/opt/bin",
+        "user": {
+          "name": "root"
+        },
+        "mode": 493
+      },
+      {
+        "filesystem": "root",
+        "group": {
+          "name": "root"
+        },
+        "path": "/etc/sysctl.d",
+        "user": {
+          "name": "root"
+        },
+        "mode": 493
+      },
+      {
+        "filesystem": "root",
+        "group": {
+          "name": "root"
+        },
+        "path": "/etc/motd.d",
+        "user": {
+          "name": "root"
+        },
+        "mode": 493
+      }
+    ],
+    "files": [
+      {
+        "filesystem": "root",
+        "group": {
+          "name": "root"
+        },
+        "path": "/etc/coreos/update.conf",
+        "user": {
+          "name": "root"
+        },
+        "contents": {
+          "source": "data:,REBOOT_STRATEGY%3Doff%0A",
+          "verification": {}
+        },
+        "mode": 420
+      },
+      {
+        "filesystem": "root",
+        "group": {
+          "name": "root"
+        },
+        "path": "/etc/docker/docker.json",
+        "user": {
+          "name": "root"
+        },
+        "contents": {
+          "source": "data:,%7B%0A%20%20%22dns%22%3A%20%5B%0A%20%20%20%20%22169.254.169.254%22%2C%0A%20%20%20%20%228.8.8.8%22%2C%0A%20%20%20%20%228.8.4.4%22%0A%20%20%5D%0A%7D%0A",
+          "verification": {}
+        },
+        "mode": 420
+      },
+      {
+        "filesystem": "root",
+        "group": {
+          "name": "root"
+        },
+        "path": "/etc/vim/vimrc.local",
+        "user": {
+          "name": "root"
+        },
+        "contents": {
+          "source": "data:text/plain;charset=utf-8;base64,c2V0IGZmPXVuaXg=",
+          "verification": {}
+        },
+        "mode": 420
+      },
+      {
+        "filesystem": "root",
+        "group": {
+          "name": "root"
+        },
+        "path": "/etc/motd.d/default.conf",
+        "user": {
+          "name": "root"
+        },
+        "contents": {
+          "source": "data:text/plain;charset=utf-8;base64,LyoqKg0KICoNCiAqICAgIDAxMDAwMTEwMTEwMDAwMDExMDEwMDAxMTAwMDAxIDAxMDAxMDAwMTExMDEwMDExMDAwMTAgDQogKg0KICogICAgSG9tZXBhZ2U6IGh0dHBzOi8vZ2l0aHViLmNvbS9ibG9ja3N0YWNrL2dhaWENCiAqDQogKi8=",
+          "verification": {}
+        },
+        "mode": 420
+      },
+      {
+        "filesystem": "root",
+        "group": {
+          "name": "root"
+        },
+        "path": "/etc/modules-load.d/nf.conf",
+        "user": {
+          "name": "root"
+        },
+        "contents": {
+          "source": "data:,nf_conntrack%0A",
+          "verification": {}
+        },
+        "mode": 420
+      },
+      {
+        "filesystem": "root",
+        "group": {
+          "name": "root"
+        },
+        "path": "/etc/sysctl.d/startup.conf",
+        "user": {
+          "name": "root"
+        },
+        "contents": {
+          "source": "data:,net.ipv4.conf.all.route_localnet%3D1%0Afs.file-max%3D2097152%0A%0A%23%20for%20es%0Avm.max_map_count%3D262144%0A%23%20Allow%20for%20more%20PIDs%0Akernel.pid_max%3D65535%0A%0A%23%20Restrict%20core%20dumps%0Afs.suid_dumpable%3D0%0A%0A%23%20Hide%20exposed%20kernel%20pointers%0Akernel.kptr_restrict%3D1%0A%0A%23%20Do%20less%20swapping%0Avm.swappiness%3D30%0Avm.dirty_ratio%3D30%0Avm.dirty_background_ratio%3D5%0A%0A%23%2050%25%20overcommitment%20of%20available%20memory%0Avm.overcommit_ratio%3D50%0Avm.overcommit_memory%3D0%0A%0A%23%20Keep%20at%20least%2064MB%20of%20free%20RAM%20space%20available%0Avm.min_free_kbytes%3D65535%0A%0A%0A%23Prevent%20SYN%20attack%0Anet.ipv4.tcp_syncookies%3D1%0Anet.ipv4.tcp_syn_retries%3D2%0Anet.ipv4.tcp_synack_retries%3D2%0Anet.ipv4.tcp_max_syn_backlog%3D4096%0A%0A%23%20Enable%20IP%20spoofing%20protection%2C%20turn%20on%20source%20route%20verification%0Anet.ipv4.conf.all.rp_filter%3D1%0Anet.ipv4.conf.default.rp_filter%3D1%0A%0A%23%20Disable%20ICMP%20Redirect%20Acceptance%0Anet.ipv4.conf.all.accept_redirects%3D0%0Anet.ipv4.conf.default.accept_redirects%3D0%0Anet.ipv4.conf.all.secure_redirects%3D0%0Anet.ipv4.conf.default.secure_redirects%3D0%0Anet.ipv6.conf.all.accept_redirects%3D0%0Anet.ipv6.conf.default.accept_redirects%3D0%0A%0A%23%20Enable%20Log%20Spoofed%20Packets%2C%20Source%20Routed%20Packets%2C%20Redirect%20Packets%0Anet.ipv4.conf.all.log_martians%3D1%0Anet.ipv4.conf.default.log_martians%3D1%0A%0A%23%20Decrease%20the%20time%20default%20value%20for%20tcp_fin_timeout%20connection%0Anet.ipv4.tcp_fin_timeout%3D7%0A%0A%23%20Decrease%20the%20time%20default%20value%20for%20connections%20to%20keep%20alive%0Anet.ipv4.tcp_keepalive_time%3D300%0Anet.ipv4.tcp_keepalive_probes%3D5%0Anet.ipv4.tcp_keepalive_intvl%3D15%0A%0A%23%20Don't%20relay%20bootp%0Anet.ipv4.conf.all.bootp_relay%3D0%0A%0A%23%20Don't%20proxy%20arp%20for%20anyone%0Anet.ipv4.conf.all.proxy_arp%3D0%0A%0A%23%20Turn%20on%20the%20tcp_timestamps%2C%20accurate%20timestamp%20make%20TCP%20congestion%20control%20algorithms%20work%20better%0Anet.ipv4.tcp_timestamps%3D1%0A%0A%23%20Don't%20ignore%20directed%20pings%0Anet.ipv4.icmp_echo_ignore_all%3D0%0A%0A%23%20Enable%20ignoring%20broadcasts%20request%0Anet.ipv4.icmp_echo_ignore_broadcasts%3D1%0A%0A%23%20Enable%20bad%20error%20message%20Protection%0Anet.ipv4.icmp_ignore_bogus_error_responses%3D1%0A%0A%23%20Enable%20a%20fix%20for%20RFC1337%20-%20time-wait%20assassination%20hazards%20in%20TCP%0Anet.ipv4.tcp_rfc1337%3D1%0A%0A%23%20For%20servers%20with%20tcp-heavy%20workloads%2C%20enable%20'fq'%20queue%20management%20scheduler%20(kernel%20%3E%203.12)%0Anet.core.default_qdisc%3Dfq%0A%0A%23%20Turn%20on%20the%20tcp_window_scaling%0Anet.ipv4.tcp_window_scaling%3D1%0A%0A%23%20Increase%20the%20read-buffer%20space%20allocatable%0Anet.ipv4.tcp_rmem%3D8192%2087380%2016777216%0Anet.ipv4.udp_rmem_min%3D16384%0Anet.core.rmem_default%3D262144%0Anet.core.rmem_max%3D16777216%0A%0A%23%20Increase%20the%20write-buffer-space%20allocatable%0Anet.ipv4.tcp_wmem%3D8192%2065536%2016777216%0Anet.ipv4.udp_wmem_min%3D16384%0Anet.core.wmem_default%3D262144%0Anet.core.wmem_max%3D16777216%0A%0A%23%20Increase%20number%20of%20incoming%20connections%0Anet.core.somaxconn%3D32768%0A%0A%23%20Increase%20number%20of%20incoming%20connections%20backlog%0Anet.core.netdev_max_backlog%3D16384%0Anet.core.dev_weight%3D64%0A%0A%23%20Increase%20the%20maximum%20amount%20of%20option%20memory%20buffers%0Anet.core.optmem_max%3D65535%0A%0A%23%20Increase%20the%20tcp-time-wait%20buckets%20pool%20size%20to%20prevent%20simple%20DOS%20attacks%0Anet.ipv4.tcp_max_tw_buckets%3D1440000%0A%0A%23%20try%20to%20reuse%20time-wait%20connections%2C%20but%20don't%20recycle%20them%20(recycle%20can%20break%20clients%20behind%20NAT)%0Anet.ipv4.tcp_tw_recycle%3D0%0Anet.ipv4.tcp_tw_reuse%3D1%0A%0A%23%20Limit%20number%20of%20orphans%2C%20each%20orphan%20can%20eat%20up%20to%2016M%20(max%20wmem)%20of%20unswappable%20memory%0Anet.ipv4.tcp_max_orphans%3D16384%0Anet.ipv4.tcp_orphan_retries%3D0%0A%0A%23%20don't%20cache%20ssthresh%20from%20previous%20connection%0Anet.ipv4.tcp_no_metrics_save%3D1%0Anet.ipv4.tcp_moderate_rcvbuf%3D1%0A%0A%23%20Increase%20size%20of%20RPC%20datagram%20queue%20length%0Anet.unix.max_dgram_qlen%3D50%0A%0A%23%20Don't%20allow%20the%20arp%20table%20to%20become%20bigger%20than%20this%0Anet.ipv4.neigh.default.gc_thresh3%3D2048%0A%0A%23%20Tell%20the%20gc%20when%20to%20become%20aggressive%20with%20arp%20table%20cleaning.%0A%23%20Adjust%20this%20based%20on%20size%20of%20the%20LAN.%201024%20is%20suitable%20for%20most%20%2F24%20networks%0Anet.ipv4.neigh.default.gc_thresh2%3D1024%0A%0A%23%20Adjust%20where%20the%20gc%20will%20leave%20arp%20table%20alone%20-%20set%20to%2032.%0Anet.ipv4.neigh.default.gc_thresh1%3D32%0A%0A%23%20Adjust%20to%20arp%20table%20gc%20to%20clean-up%20more%20often%0Anet.ipv4.neigh.default.gc_interval%3D30%0A%0A%23%20Increase%20TCP%20queue%20length%0Anet.ipv4.neigh.default.proxy_qlen%3D96%0Anet.ipv4.neigh.default.unres_qlen%3D6%0A%0A%23%20Enable%20Explicit%20Congestion%20Notification%20(RFC%203168)%2C%20disable%20it%20if%20it%20doesn't%20work%20for%20you%0Anet.ipv4.tcp_ecn%3D1%0Anet.ipv4.tcp_reordering%3D3%0A%0A%23%20How%20many%20times%20to%20retry%20killing%20an%20alive%20TCP%20connection%0Anet.ipv4.tcp_retries2%3D15%0Anet.ipv4.tcp_retries1%3D3%0A%0A%23%20Avoid%20falling%20back%20to%20slow%20start%20after%20a%20connection%20goes%20idle%0A%23%20keeps%20our%20cwnd%20large%20with%20the%20keep%20alive%20connections%20(kernel%20%3E%203.6)%0Anet.ipv4.tcp_slow_start_after_idle%3D0%0A%0A%23%20Allow%20the%20TCP%20fastopen%20flag%20to%20be%20used%2C%20beware%20some%20firewalls%20do%20not%20like%20TFO!%20(kernel%20%3E%203.7)%0Anet.ipv4.tcp_fastopen%3D3%0A%0A%23%20This%20will%20enusre%20that%20immediatly%20subsequent%20connections%20use%20the%20new%20values%0Anet.ipv4.route.flush%3D1%0Anet.ipv6.route.flush%3D1",
+          "verification": {}
+        },
+        "mode": 420
+      }
+    ]
+  },
+  "systemd": {
+    "units": [
+      {
+        "dropins": [
+          {
+            "contents": "[Service]\nTTYVTDisallocate=no\n",
+            "name": "no-disallocate.conf"
+          }
+        ],
+        "name": "getty@.service"
+      },
+      {
+        "contents": "[Unit]\nDescription=Docker Socket for the API\n\n[Socket]\nListenStream=2375\nService=docker.service\nBindIPv6Only=both\n\n[Install]\nWantedBy=sockets.target\n",
+        "enabled": true,
+        "name": "docker-tcp.socket"
+      },
+      {
+        "contents": "[Unit]\nDescription=Mount Local Disk to /gaia/docker/storage\n\n[Mount]\nWhat=/dev/xvdf\nWhere=/gaia/docker/storage\nType=xfs\n[Install]\nWantedBy=local-fs.target\n\n",
+        "enabled": false,
+        "name": "gaia-docker-storage.mount"
+      },
+      {
+        "contents": "[Unit]\nDescription=Install docker-compose\nConditionPathExists=!/opt/bin/docker-compose\n\n[Service]\nType=oneshot\nRemainAfterExit=yes\nEnvironment=\"VERSION=`/usr/bin/curl -s https://api.github.com/repos/docker/compose/releases/latest | grep tag_name | cut -f4 -d '\\\"'`\"\nExecStart=/bin/bash -c \"/usr/bin/curl -o /opt/bin/docker-compose -sL https://github.com/docker/compose/releases/download/${VERSION}/docker-compose-Linux-x86_64\"\nExecStart=/usr/bin/chmod +x /opt/bin/docker-compose\n\n[Install]\nWantedBy=multi-user.target",
+        "enabled": true,
+        "name": "install-docker-compose.service"
+      },
+      {
+        "contents": "[Unit]\nDescription=Checkout Gaia Repo\nConditionPathExists=!/gaia\nBefore=gaia-docker-storage.mount\n\n[Service]\nType=oneshot\nRemainAfterExit=yes\nExecStart=/usr/bin/git clone -b master --single-branch https://github.com/blockstack/gaia /gaia\n\n[Install]\nWantedBy=multi-user.target",
+        "enabled": true,
+        "name": "pull-gaia-repo.service"
+      },
+      {
+        "contents": "[Unit]\nDescription=Run Gaia Hub Service\nRequires=docker.service\nAfter=docker.service\nAfter=pull-gaia-repo.service\nAfter=install-docker-compose.service\n\n[Service]\nWorkingDirectory=/gaia/docker\nRestart=always\n\n# Set Environment Variables\nEnvironmentFile=/gaia/docker/.env\nEnvironmentFile=/etc/environment\n\n# Stop\n# Compose down, remove containers and volumes\nExecStop=/opt/bin/docker-compose -f /gaia/docker/docker-compose.yaml -f /gaia/docker/docker-compose.certbot.yaml down -v\nExecStopStop=/opt/bin/docker-compose -f /gaia/docker/docker-compose.yaml -f /gaia/docker/docker-compose.certbot.yaml rm -v\n\n# Start\n# Modify gaia configs - will wipe out any manual changes\nExecStartPre=/bin/bash -x /gaia/docker/update_configs.sh\n\n# Compose up\n# Setup Local certs is being managed by a letsencrypt_init.timer\n\nExecStart=/opt/bin/docker-compose -f /gaia/docker/docker-compose.yaml -f /gaia/docker/docker-compose.certbot.yaml up\n\n[Install]\nWantedBy=multi-user.target",
+        "enabled": true,
+        "name": "gaia-hub.service"
+      },
+      {
+        "contents": "[Unit]\nDescription=Install LetsEncrypt Certs\nRequires=gaia-hub.service\n[Service]\nType=oneshot\nWorkingDirectory=/gaia/docker\nEnvironmentFile=/etc/environment\n\nRemainAfterExit=yes\nExecStart=/bin/bash -x /gaia/docker/nginx/certbot/letsencrypt.sh\n\n[Install]\nWantedBy=multi-user.target",
+        "enabled": false,
+        "name": "get-acme-certs.service"
+      },
+      {
+        "contents": "[Unit]\nDescription=Reset Gaia to first boot\n\n[Service]\nType=oneshot\nRemainAfterExit=no\nEnvironmentFile=/gaia/docker/.env\nEnvironmentFile=/etc/environment\nExecStart=/bin/bash -x /gaia/docker/nginx/certbot/reset-certs.sh\n\n[Install]\nWantedBy=multi-user.target",
+        "enabled": false,
+        "name": "reset-ssl-certs.service"
+      },
+      {
+        "contents": "[Unit]\nDescription=Check DNS Record Service\nAfter=gaia-hub.service\nAfter=letsencrypt_init.service\nConditionPathExists=/tmp/letsencrypt.init\nConditionPathExists=!/tmp/dns_checked\nConditionPathExists=!/tmp/ssl_created\nConditionPathExists=/gaia/docker/nginx/certbot/check_dns.sh\nConditionPathExists=/gaia/docker/nginx/certbot/letsencrypt.sh\n\n[Service]\nType=oneshot\nRemainAfterExit=no\nEnvironmentFile=/etc/environment\nExecStart=/bin/bash -x /gaia/docker/nginx/certbot/check_dns.sh\nExecStart=/bin/bash -x /gaia/docker/nginx/certbot/letsencrypt.sh\n\n[Install]\nWantedBy=multi-user.target",
+        "enabled": false,
+        "name": "check_dns.service"
+      },
+      {
+        "contents": "[Unit]\nDescription=Check DNS Record timer\n\n[Timer]\nOnActiveSec=60\nOnUnitActiveSec=60\n\n[Install]\nWantedBy=timers.target",
+        "enabled": true,
+        "name": "check_dns.timer"
+      },
+      {
+        "contents": "[Unit]\nDescription=LetsEncrypt Init Service\nConditionPathExists=!/tmp/letsencrypt.init\nConditionPathExists=/gaia/docker/nginx/certbot/letsencrypt_init.sh\n\n[Service]\nType=oneshot\nRemainAfterExit=no\nEnvironmentFile=/etc/environment\nExecStart=/bin/bash -x /gaia/docker/nginx/certbot/letsencrypt_init.sh\n\n[Install]\nWantedBy=multi-user.target",
+        "enabled": false,
+        "name": "letsencrypt_init.service"
+      },
+      {
+        "contents": "[Unit]\n\nDescription=LetsEncrypt Init Timer\n\n[Timer]\nOnActiveSec=60\nOnUnitActiveSec=60\n\n[Install]\nWantedBy=timers.target",
+        "enabled": true,
+        "name": "letsencrypt_init.timer"
+      }
+    ]
+  }
+}

@@ -188,7 +188,7 @@ const GAIA_CONFIG_SCHEMA = {
       },
     },
     awsCredentials: {
-      assessKeyId: { type: "string" },
+      accessKeyId: { type: "string" },
       secretAccessKey: { type: "string" },
       sessionToken: { type: "string" }
     }

@@ -1,0 +1,12 @@
+{
+  "name_prefix": "blockstack-gaia_hub",
+  "region": "us-west-2",
+  "ami_regions": "us-west-2",
+  "profile": "default",
+  "version": "1549643256",
+  "vpc_id": "vpc-xxxxxxxx",
+  "subnet_id": "subnet-xxxxxxxx",
+  "user_data_file": "gaia-ephemeral.ign",
+  "root_volume_size": "10",
+  "ami_description": "Blockstack Gaia-Hub"
+}
