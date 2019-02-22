@@ -3,10 +3,10 @@ import test from 'tape-promise/tape'
 import proxyquire from 'proxyquire'
 import FetchMock from 'fetch-mock'
 import * as NodeFetch from 'node-fetch'
-const fetch = FetchMock.sandbox(NodeFetch)
 
 import fs from 'fs'
 import path from 'path'
+import os from 'os'
 
 import { Readable, Writable } from 'stream'
 import { InMemoryDriver } from './testDrivers/InMemoryDriver'
@@ -15,8 +15,23 @@ import type { ListFilesResult } from '../../src/server/driverModel'
 
 const azConfigPath = process.env.AZ_CONFIG_PATH
 const awsConfigPath = process.env.AWS_CONFIG_PATH
-const diskConfigPath = process.env.DISK_CONFIG_PATH
 const gcConfigPath = process.env.GC_CONFIG_PATH
+const diskConfigPath = process.env.DISK_CONFIG_PATH
+const driverConfigTestData = process.env.DRIVER_CONFIG_TEST_DATA
+
+const driverConfigs = (() => {
+  const configs = { };
+  if (driverConfigTestData) {
+    console.log('Using DRIVER_CONFIG_TEST_DATA env var for driver config')
+    Object.assign(configs, JSON.parse(new Buffer(driverConfigTestData, 'base64').toString('utf8')))
+  }
+  const envOpts = { az: azConfigPath, aws: awsConfigPath, gc: gcConfigPath, disk: diskConfigPath };
+  for (let key in envOpts) {
+    if (envOpts[key])
+      configs[key] = JSON.parse(fs.readFileSync(envOpts[key], {encoding: 'utf8'}))
+  }
+  return configs
+})();
 
 export function addMockFetches(fetchLib: any, prefix: any, dataMap: any) {
   dataMap.forEach( item => {
@@ -175,8 +190,8 @@ function testAzDriver() {
   }
   let mockTest = true
 
-  if (azConfigPath) {
-    config = JSON.parse(fs.readFileSync(azConfigPath, {encoding: 'utf8'}))
+  if (driverConfigs.az) {
+    config = driverConfigs.az
     mockTest = false
   }
 
@@ -195,6 +210,9 @@ function testAzDriver() {
     const s = new Readable()
     s.push('hello world')
     s.push(null)
+
+    const fetch = mockTest ? FetchMock.sandbox(NodeFetch) : NodeFetch;
+
     const writeArgs : any = { path: '../foo.js' }
     driver.performWrite(writeArgs)
       .then(() => t.ok(false, 'Should have thrown'))
@@ -222,7 +240,9 @@ function testAzDriver() {
       })
       .catch((err) => t.false(true, `Unexpected err: ${err}`))
       .then(() => {
-        fetch.restore()
+        if (mockTest) {
+          fetch.restore()
+        }
         t.end() 
       })
   })
@@ -234,8 +254,8 @@ function testS3Driver() {
   }
   let mockTest = true
 
-  if (awsConfigPath) {
-    config = JSON.parse(fs.readFileSync(awsConfigPath, {encoding: 'utf8'}))
+  if (driverConfigs.aws) {
+    config = driverConfigs.aws
     mockTest = false
   }
 
@@ -255,7 +275,10 @@ function testS3Driver() {
     s.push('hello world')
     s.push(null)
 
+    const fetch = mockTest ? FetchMock.sandbox(NodeFetch) : NodeFetch;
+
     const writeArgs : any = { path: '../foo.js'}
+
     driver.performWrite(writeArgs)
       .then(() => t.ok(false, 'Should have thrown'))
       .catch((err) => t.equal(err.message, 'Invalid Path', 'Should throw bad path'))
@@ -280,10 +303,16 @@ function testS3Driver() {
         t.equal(files.entries[0], 'foo.txt', 'Should be foo.txt!')
       })
       .catch((err) => t.false(true, `Unexpected err: ${err}`))
-      .then(() => fetch.restore())
+      .then(() => {
+        if (mockTest) {
+          fetch.restore()
+        }
+      })
       .catch((err) => t.false(true, `Unexpected err: ${err}`))
       .then(() => { 
-        fetch.restore()
+        if (mockTest) {
+          fetch.restore()
+        }
         t.end() 
       })
   })
@@ -294,10 +323,10 @@ function testS3Driver() {
  * and use the ../config.sample.disk.json config file.
  */
 function testDiskDriver() {
-  if (!diskConfigPath) {
+  if (!driverConfigs.disk) {
     return
   }
-  const config = JSON.parse(fs.readFileSync(diskConfigPath, {encoding: 'utf8'}))
+  const config = driverConfigs.disk
   const DiskDriver = require('../../src/server/drivers/diskDriver')
 
   test('diskDriver', (t) => {
@@ -339,8 +368,12 @@ function testGcDriver() {
   }
   let mockTest = true
 
-  if (gcConfigPath) {
-    config = JSON.parse(fs.readFileSync(gcConfigPath, {encoding: 'utf8'}))
+  if (driverConfigs.gc) {
+    config = driverConfigs.gc
+    if (!config.gcCredentials.keyFilename && config.gcCredentials.keyFileJson) {
+      config.gcCredentials.keyFilename = path.resolve(os.tmpdir(), `${Date.now()|0}.${Math.random()*100000|0}.json`);
+      fs.writeFileSync(config.gcCredentials.keyFilename, JSON.stringify(config.gcCredentials.keyFileJson));
+    }
     mockTest = false
   }
 
@@ -359,6 +392,8 @@ function testGcDriver() {
     const s = new Readable()
     s.push('hello world')
     s.push(null)
+
+    const fetch = mockTest ? FetchMock.sandbox(NodeFetch) : NodeFetch;
 
     const writeArgs : any = { path: '../foo.js'}
     driver.performWrite(writeArgs)
@@ -386,7 +421,9 @@ function testGcDriver() {
       })
       .catch((err) => t.false(true, `Unexpected err: ${err}`))
       .then(() => {
-        fetch.restore()
+        if (mockTest) {
+          fetch.restore()
+        }
         t.end() 
       })
   })

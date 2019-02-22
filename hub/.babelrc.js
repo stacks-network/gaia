@@ -6,7 +6,8 @@ module.exports = (api) => {
     ],
     plugins: [
       '@babel/plugin-transform-modules-commonjs'
-    ]
+    ],
+    retainLines: true
   }
   if (api.env('test')) {
     opts.plugins.push('istanbul');
