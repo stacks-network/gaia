@@ -172,4 +172,4 @@ class GcDriver implements DriverModel {
 
 (GcDriver: DriverStatics)
 
-module.exports = GcDriver
+export default GcDriver

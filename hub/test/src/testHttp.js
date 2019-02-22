@@ -17,7 +17,8 @@ import DiskDriver from '../../src/server/drivers/diskDriver'
 import { MakeHttpServerConfig, } from '../../src/server/http.js'
 import { AuthTimestampCache } from '../../src/server/revocations'
 import type { HubServerConfig } from '../../src/server/server.js'
-import { makeMockedAzureDriver, addMockFetches } from './testDrivers'
+import { addMockFetches } from './testDrivers'
+import { makeMockedAzureDriver } from './testDrivers/mockTestDrivers'
 
 import { testPairs } from './common'
 import { InMemoryDriver } from './testDrivers/InMemoryDriver'
@@ -196,8 +197,7 @@ function testHttpWithAzure() {
   if (mockTest) {
     const mockedObj = makeMockedAzureDriver()
     dataMap = mockedObj.dataMap
-    const AzDriver = mockedObj.AzDriver
-    config.driverClass = AzDriver
+    config.driverClass = mockedObj.driverClass
   } else {
 
   }

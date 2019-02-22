@@ -1,5 +1,7 @@
 /* @flow */
 import fs from 'fs-extra'
+import stream from 'stream'
+import { promisify } from 'util'
 import { BadPathError, InvalidInputError } from '../errors'
 import logger from 'winston'
 import Path from 'path'
@@ -11,6 +13,9 @@ type DISK_CONFIG_TYPE = { diskSettings: { storageRootDirectory?: string },
                           readURL?: string }
 
 const METADATA_DIRNAME = '.gaia-metadata'
+
+// Flow sucks. It is unaware of this Node.js API (stream.pipeline)
+const pipelinePromise = promisify((stream: any).pipeline)
 
 class DiskDriver implements DriverModel {
   storageRootDirectory: string
@@ -47,7 +52,7 @@ class DiskDriver implements DriverModel {
     }
 
     this.pageSize = config.pageSize ? config.pageSize : 100
-    this.mkdirs(this.storageRootDirectory)
+    fs.ensureDirSync(this.storageRootDirectory)
   }
 
   static isPathValid(path: string){
@@ -64,16 +69,17 @@ class DiskDriver implements DriverModel {
     return this.readURL
   }
 
-  mkdirs(path: string) {
+  async mkdirs(path: string) {
     const normalizedPath = Path.normalize(path)
-    // Check if directory exists.
-    if (!fs.existsSync(normalizedPath)) {
-      // If it doesn't, create it - this is done recursively similar to `mkdir -p`.
-      fs.ensureDirSync(normalizedPath)
-      logger.debug(`mkdir ${normalizedPath}`)
-    } else if (!fs.lstatSync(normalizedPath).isDirectory()) {
-      // Ensure path is a directory.
-      throw new Error(`Not a directory: ${normalizedPath}`)
+    try {
+      // Ensures that the directory exists. If the directory structure does not exist, it is created. Like mkdir -p.
+      const wasCreated = await fs.ensureDir(normalizedPath)
+      if (wasCreated) {
+        logger.debug(`mkdir ${normalizedPath}`)
+      }
+    } catch (error) {
+      console.error(`Error ensuring directory exists: ${error}`)
+      throw error
     }
   }
 
@@ -140,9 +146,8 @@ class DiskDriver implements DriverModel {
     return this.listFilesInDirectory(listPath, pageNum)
   }
 
-  performWrite(args: PerformWriteArgs) : Promise<string> {
-    return Promise.resolve()
-    .then(() => {
+  async performWrite(args: PerformWriteArgs) : Promise<string> {
+
       const path = args.path
       const topLevelDir = args.storageTopLevel
       const contentType = args.contentType
@@ -174,10 +179,10 @@ class DiskDriver implements DriverModel {
       }
 
       const absdirname = Path.dirname(abspath)
-      this.mkdirs(absdirname)
+      await this.mkdirs(absdirname)
 
       const writePipe = fs.createWriteStream(abspath, { mode: 0o600, flags: 'w' })
-      args.stream.pipe(writePipe)
+      await pipelinePromise(args.stream, writePipe)
 
       // remember content type in $storageRootDir/.gaia-metadata/$address/$path
       // (i.e. these files are outside the address bucket, and are thus hidden)
@@ -185,17 +190,16 @@ class DiskDriver implements DriverModel {
         this.storageRootDirectory, METADATA_DIRNAME, topLevelDir, path)
 
       const contentTypeDirPath = Path.dirname(contentTypePath)
-      this.mkdirs(contentTypeDirPath)
-
-      fs.writeFileSync(
-        contentTypePath, JSON.stringify({ 'content-type': contentType }), { mode: 0o600 })
+      await this.mkdirs(contentTypeDirPath)
+      await fs.writeFile(contentTypePath, 
+        JSON.stringify({ 'content-type': contentType }), { mode: 0o600 })
 
       return `${this.readURL}${Path.join(topLevelDir, path)}`
-    })
+      
   }
 }
 
 (DiskDriver: DriverStatics)
 
-module.exports = DiskDriver
+export default DiskDriver
 

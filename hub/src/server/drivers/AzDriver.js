@@ -134,4 +134,4 @@ class AzDriver implements DriverModel {
 
 (AzDriver: DriverStatics)
 
-module.exports = AzDriver
+export default AzDriver

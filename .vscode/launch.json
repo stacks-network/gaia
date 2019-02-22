@@ -44,9 +44,13 @@
             "request": "launch",
             "name": "gaia-hub-test",
             "program": "${workspaceFolder}/hub/test/src/index.js",
+            "env": {
+                "DRIVER_CONFIG_TEST_DATA": "${workspaceFolder}/hub/configs/drivers.json",
+            },
             "cwd": "${workspaceFolder}/hub",
             "runtimeArgs": ["-r", "@babel/register"],
-            "outputCapture": "std"
+            "outputCapture": "std",
+            "console": "integratedTerminal"
         }
     ],
     "compounds": [

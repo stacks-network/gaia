@@ -150,4 +150,4 @@ class S3Driver implements DriverModel {
 
 (S3Driver: DriverStatics)
 
-module.exports = S3Driver
+export default S3Driver

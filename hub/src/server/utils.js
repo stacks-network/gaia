@@ -2,16 +2,20 @@
 
 import { Readable } from 'stream'
 import { DriverModel } from './driverModel'
+import S3Driver from './drivers/S3Driver'
+import AzDriver from './drivers/AzDriver'
+import GcDriver from './drivers/GcDriver'
+import DiskDriver from './drivers/diskDriver'
 
 export function getDriverClass(driver: string) : Class<DriverModel> {
   if (driver === 'aws') {
-    return require('./drivers/S3Driver')
+    return S3Driver
   } else if (driver === 'azure') {
-    return require('./drivers/AzDriver')
+    return AzDriver
   } else if (driver === 'disk') {
-    return require('./drivers/diskDriver')
+    return DiskDriver
   } else if (driver === 'google-cloud') {
-    return require('./drivers/GcDriver')
+    return GcDriver
   } else {
     throw new Error(`Failed to load driver: driver was set to ${driver}`)
   }
