@@ -14,7 +14,7 @@
     "build": "npm run lint && npm run flow && npm run compile",
     "flow": "flow",
     "lint": "eslint src",
-    "test": "nyc --reporter=text npm run unit-test",
+    "test": "npm run lint && nyc --reporter=text npm run unit-test",
     "start": "npm run build && node lib/index.js"
   },
   "bin": {

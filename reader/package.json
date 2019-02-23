@@ -41,7 +41,7 @@
     "flow": "flow",
     "lint": "eslint src",
     "test-inner": "npm run build && npm run flow && node ./test/test.js",
-    "test": "nyc --reporter=text npm run test-inner"
+    "test": "npm run lint && nyc --reporter=text npm run test-inner"
   },
   "repository": {
     "type": "git",
