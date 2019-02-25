@@ -11,6 +11,7 @@ import AzDriver from '../../../src/server/drivers/AzDriver'
 import S3Driver from '../../../src/server/drivers/S3Driver'
 import GcDriver from '../../../src/server/drivers/GcDriver'
 import DiskDriver from '../../../src/server/drivers/diskDriver'
+import { InMemoryDriver } from './InMemoryDriver'
 
 /**
  * Either a:
@@ -107,7 +108,7 @@ availableDrivers.diskSelfHosted = config => {
 };
 
 
-
-
 // Add integration test for InMemoryDriver (hard-coded; does not require external config)
-// TODO..
+availableDrivers.inMemoryDriver = config => {
+  return new InMemoryDriver({...config});
+};

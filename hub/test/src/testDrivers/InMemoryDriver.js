@@ -5,6 +5,7 @@ import { Server } from 'http'
 import express from 'express'
 import { DriverModel } from '../../../src/server/driverModel'
 import type { ListFilesResult, PerformWriteArgs } from '../../../src/server/driverModel'
+import { BadPathError } from '../../../src/server/errors'
 
 export class InMemoryDriver implements DriverModel {
 
@@ -15,7 +16,7 @@ export class InMemoryDriver implements DriverModel {
     lastWrite: PerformWriteArgs
     initPromise: Promise<void>
 
-    constructor() {
+    constructor(config: any) {
       this.files = new Map<string, {content: Buffer, contentType: string}>()
       this.app = express()
       this.app.use((req, res, next) => {
@@ -28,6 +29,11 @@ export class InMemoryDriver implements DriverModel {
         }
         next()
       })
+    }
+
+    static isPathValid (path: string) {
+      // for now, only disallow double dots.
+      return (path.indexOf('..') === -1)
     }
 
     ensureInitialized() {
@@ -51,6 +57,10 @@ export class InMemoryDriver implements DriverModel {
       return this.readUrl
     }
     async performWrite(args: PerformWriteArgs) {
+      // cancel write and return 402 if path is invalid
+      if (!InMemoryDriver.isPathValid(args.path)) {
+        throw new BadPathError('Invalid Path')
+      }
       this.lastWrite = args
       const contentBuffer = await readStream(args.stream, args.contentLength)
       this.files.set(`${args.storageTopLevel}/${args.path}`, {
