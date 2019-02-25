@@ -49,8 +49,7 @@
             },
             "cwd": "${workspaceFolder}/hub",
             "runtimeArgs": ["-r", "@babel/register"],
-            "outputCapture": "std",
-            "console": "integratedTerminal"
+            "outputCapture": "std"
         }
     ],
     "compounds": [
