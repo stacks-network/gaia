@@ -55,6 +55,14 @@ class DiskDriver implements DriverModel {
     fs.ensureDirSync(this.storageRootDirectory)
   }
 
+  ensureInitialized() {
+    return Promise.resolve()
+  }
+
+  dispose() {
+    return Promise.resolve()
+  }
+
   static isPathValid(path: string){
     if (path.indexOf('..') !== -1) {
       return false

@@ -21,6 +21,7 @@ class S3Driver implements DriverModel {
   bucket: string
   pageSize: number
   cacheControl: ?string
+  initPromise: Promise<void>
 
   static getConfigInformation() {
     const envVars = {}
@@ -49,8 +50,15 @@ class S3Driver implements DriverModel {
     this.bucket = config.bucket
     this.pageSize = config.pageSize ? config.pageSize : 100
     this.cacheControl = config.cacheControl
+    this.initPromise = this.createIfNeeded()
+  }
 
-    this.createIfNeeded()
+  ensureInitialized() {
+    return this.initPromise
+  }
+
+  dispose() {
+    return Promise.resolve()
   }
 
   static isPathValid(path: string){
@@ -63,26 +71,32 @@ class S3Driver implements DriverModel {
   }
 
   createIfNeeded () {
-    this.s3.headBucket( { Bucket: this.bucket }, (error) => {
-      if (error && error.code === 'NotFound') { // try to create
-        const params = {
-          Bucket: this.bucket,
-          ACL: 'public-read'
-        }
-        this.s3.createBucket(params, (error) => {
-          if (error) {
-            logger.error(`failed to initialize s3 bucket: ${error}`)
-            process.exit()
-          }else{
-            logger.info(`initialized s3 bucket: ${this.bucket}`)
+    return new Promise<void>((resolve, reject) => {
+      this.s3.headBucket( { Bucket: this.bucket }, (error) => {
+        if (error && error.code === 'NotFound') { // try to create
+          const params = {
+            Bucket: this.bucket,
+            ACL: 'public-read'
           }
-        })
-      } else if (error) {
-        logger.error(`failed to connect to s3 bucket: ${error}`)
-        process.exit()
-      } else {
-        logger.info(`connected to s3 bucket: ${this.bucket}`)
-      }
+          this.s3.createBucket(params, (error) => {
+            if (error) {
+              logger.error(`failed to initialize s3 bucket: ${error}`)
+              process.exit()
+              reject(error)
+            } else {
+              logger.info(`initialized s3 bucket: ${this.bucket}`)
+              resolve()
+            }
+          })
+        } else if (error) {
+          logger.error(`failed to connect to s3 bucket: ${error}`)
+          process.exit()
+          reject(error)
+        } else {
+          logger.info(`connected to s3 bucket: ${this.bucket}`)
+          resolve()
+        }
+      })
     })
   }
 

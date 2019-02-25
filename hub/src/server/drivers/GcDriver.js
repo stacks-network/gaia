@@ -25,6 +25,7 @@ class GcDriver implements DriverModel {
   storage: Storage
   pageSize: number
   cacheControl: ?string
+  initPromise: Promise<void>
 
   static getConfigInformation() {
     const envVars = {}
@@ -62,8 +63,15 @@ class GcDriver implements DriverModel {
     this.bucket = config.bucket
     this.pageSize = config.pageSize ? config.pageSize : 100
     this.cacheControl = config.cacheControl
+    this.initPromise = this.createIfNeeded()
+  }
 
-    this.createIfNeeded()
+  ensureInitialized() {
+    return this.initPromise
+  }
+
+  dispose() {
+    return Promise.resolve()
   }
 
   static isPathValid(path: string){
@@ -75,14 +83,14 @@ class GcDriver implements DriverModel {
     return `https://storage.googleapis.com/${this.bucket}/`
   }
 
-  createIfNeeded () {
+  createIfNeeded() {
     const bucket = this.storage.bucket(this.bucket)
 
-    bucket.exists()
+    return bucket.exists()
     .then(data => {
       const exists = data[0]
       if (!exists) {
-        this.storage
+        return this.storage
           .createBucket(this.bucket)
           .then(() => {
             logger.info(`initialized google cloud storage bucket: ${this.bucket}`)
@@ -90,12 +98,14 @@ class GcDriver implements DriverModel {
           .catch(err => {
             logger.error(`failed to initialize google cloud storage bucket: ${err}`)
             process.exit()
+            throw err
           })
       }
     })
     .catch(err => {
       logger.error(`failed to connect to google cloud storage bucket: ${err}`)
       process.exit()
+      throw err
     })
   }
 

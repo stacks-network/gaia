@@ -13,6 +13,7 @@ export class InMemoryDriver implements DriverModel {
     readUrl: string
     files: Map<string, {content: Buffer, contentType: string}>
     lastWrite: PerformWriteArgs
+    initPromise: Promise<void>
 
     constructor() {
       this.files = new Map<string, {content: Buffer, contentType: string}>()
@@ -28,6 +29,11 @@ export class InMemoryDriver implements DriverModel {
         next()
       })
     }
+
+    ensureInitialized() {
+      return this.initPromise || (this.initPromise = this.start())
+    }
+
     static async spawn(): Promise<InMemoryDriver> {
       const driver = new InMemoryDriver()
       await driver.start()

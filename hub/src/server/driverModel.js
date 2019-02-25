@@ -15,6 +15,8 @@ export interface DriverModel {
   performWrite(args: PerformWriteArgs): Promise<string>;
   listFiles(storageTopLevel: string, page: ?string):
              Promise<ListFilesResult>;
+  ensureInitialized(): Promise<void>;
+  dispose(): Promise<void>;
   constructor(config: any) : void
 }
 

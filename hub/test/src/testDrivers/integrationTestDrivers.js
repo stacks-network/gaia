@@ -1,7 +1,10 @@
 /* @flow */
 
 import fs from 'fs'
+import os from 'os'
 import path from 'path'
+import http from 'http'
+import express from 'express'
 
 import { DriverModel } from '../../../src/server/driverModel'
 import AzDriver from '../../../src/server/drivers/AzDriver'
@@ -50,7 +53,7 @@ Object.entries(envConfigPaths)
   .filter(([key, val]) => val)
   .forEach(([key, val]) => driverConfigs[key] = JSON.parse(fs.readFileSync((val: any), {encoding: 'utf8'})));
 
-  
+
 export const availableDrivers: { [name: string]: (config?: Object) => DriverModel } = { 
   az: config => new AzDriver({...driverConfigs.az, ...config}),
   aws: config => new S3Driver({...driverConfigs.aws, ...config}),
@@ -65,3 +68,46 @@ for (const key of Object.keys(availableDrivers)) {
     delete availableDrivers[key];
   }
 }
+
+// Add integration test for DiskDriver (hard-coded; does not require external config)
+availableDrivers.diskSelfHosted = config => {
+
+  const tmpStorageDir = path.resolve(os.tmpdir(), `disktest-${Date.now()-Math.random()}`)
+  fs.mkdirSync(tmpStorageDir)
+  const selfHostedConfig = {
+    bucket: "spokes", 
+    readURL: "not yet initialized",
+    diskSettings: {
+      storageRootDirectory: tmpStorageDir
+    },
+    ...config
+  };
+
+  // Pull in the gaia-reader http server.
+  //$FlowFixMe
+  const gaiaReader = require('gaia-reader/lib/http');
+  const app: express.Application = gaiaReader.makeHttpServer(selfHostedConfig);
+  const serverPromise = new Promise((res, rej) => {
+    const server = app.listen(0, 'localhost', err => err ? rej(err) : res(server));
+  });
+
+  return new class SelfHostedDiskDriver extends DiskDriver { 
+    async ensureInitialized() {
+      // Start the gaia-reader server when driver is initialized.
+      await super.ensureInitialized();
+      const server = await serverPromise;
+      this.readURL = selfHostedConfig.readURL = `http://localhost:${server.address().port}/`;
+    }
+    async dispose() {
+      await super.dispose();
+      const server = await serverPromise;
+      await new Promise((res, rej) => server.close(err => err ? rej(err): res()));
+    }
+  }(selfHostedConfig);
+};
+
+
+
+
+// Add integration test for InMemoryDriver (hard-coded; does not require external config)
+// TODO..

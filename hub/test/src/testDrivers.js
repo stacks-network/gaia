@@ -28,49 +28,54 @@ export function addMockFetches(fetchLib: any, prefix: any, dataMap: any) {
 function testDriver(testName: string, mockTest: boolean, dataMap: [], createDriver: () => DriverModel) {
 
   test(testName, async (t) => {
-    
     const driver = createDriver()
-    const prefix = driver.getReadURLPrefix()
-
-    const sampleData = new Buffer('hello world')
-    const sampleDataStream = new Readable()
-    sampleDataStream.push(sampleData)
-    sampleDataStream.push(null)
-
-    const fetch = mockTest ? FetchMock.sandbox(NodeFetch) : NodeFetch;
-    const writeArgs : any = { path: '../foo.js'}
-
     try {
-      await driver.performWrite(writeArgs)
-      t.ok(false, 'Should have thrown')
+      await driver.ensureInitialized()
+      const prefix = driver.getReadURLPrefix()
+
+      const sampleData = new Buffer('hello world')
+      const sampleDataStream = new Readable()
+      sampleDataStream.push(sampleData)
+      sampleDataStream.push(null)
+
+      const fetch = mockTest ? FetchMock.sandbox(NodeFetch) : NodeFetch;
+      const writeArgs : any = { path: '../foo.js'}
+
+      try {
+        await driver.performWrite(writeArgs)
+        t.ok(false, 'Should have thrown')
+      }
+      catch (err) {
+        t.equal(err.message, 'Invalid Path', 'Should throw bad path')
+      }
+      
+      const readUrl = await driver.performWrite({
+        path: 'foo.txt',
+        storageTopLevel: '12345',
+        stream: sampleDataStream,
+        contentType: 'application/octet-stream',
+        contentLength: sampleData.byteLength
+      });
+      t.ok(readUrl.startsWith(prefix + '12345'), `${readUrl} must start with readUrlPrefix ${prefix}12345`)
+
+      if (mockTest) {
+        addMockFetches(fetch, prefix, dataMap)
+      }
+
+      const resp = await fetch(readUrl)
+      const resptxt = await resp.text()
+      t.equal(resptxt, 'hello world', `Must get back hello world: got back: ${resptxt}`)
+
+      const files = await driver.listFiles('12345')
+      t.equal(files.entries.length, 1, 'Should return one file')
+      t.equal(files.entries[0], 'foo.txt', 'Should be foo.txt!')
+
+      if (mockTest) {
+        fetch.restore()
+      }
     }
-    catch (err) {
-      t.equal(err.message, 'Invalid Path', 'Should throw bad path')
-    }
-    
-    const readUrl = await driver.performWrite({
-      path: 'foo.txt',
-      storageTopLevel: '12345',
-      stream: sampleDataStream,
-      contentType: 'application/octet-stream',
-      contentLength: sampleData.byteLength
-    });
-    t.ok(readUrl.startsWith(prefix + '12345'), `${readUrl} must start with readUrlPrefix ${prefix}12345`)
-
-    if (mockTest) {
-      addMockFetches(fetch, prefix, dataMap)
-    }
-
-    const resp = await fetch(readUrl)
-    const resptxt = await resp.text()
-    t.equal(resptxt, 'hello world', `Must get back hello world: got back: ${resptxt}`)
-
-    const files = await driver.listFiles('12345')
-    t.equal(files.entries.length, 1, 'Should return one file')
-    t.equal(files.entries[0], 'foo.txt', 'Should be foo.txt!')
-
-    if (mockTest) {
-      fetch.restore()
+    finally {
+      await driver.dispose();
     }
 
   });

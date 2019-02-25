@@ -35,6 +35,7 @@
     "eslint-plugin-flowtype": "^3.4.2",
     "fetch-mock": "^6.4.2",
     "flow-bin": "^0.93.0",
+    "gaia-reader": "file:../reader",
     "nock": "^9.1.9",
     "nyc": "^13.3.0",
     "proxyquire": "^2.1.0",

@@ -20,6 +20,7 @@ class AzDriver implements DriverModel {
   bucket: string
   readURL: ?string
   cacheControl: ?string
+  initPromise: Promise<void>
 
   static getConfigInformation() {
     const envVars = {}
@@ -49,15 +50,27 @@ class AzDriver implements DriverModel {
 
     // Check for container(bucket), create it if does not exist
     // Set permissions to 'blob' to allow public reads
-    this.blobService.createContainerIfNotExists(
-      config.bucket, { publicAccessLevel: 'blob' },
-      (error) => {
-        if (error) {
-          logger.error(`failed to initialize azure container: ${error}`)
-          throw error
-        }
-        logger.info('container initialized.')
-      })
+    this.initPromise = new Promise((resolve, reject) => {
+      this.blobService.createContainerIfNotExists(
+        config.bucket, { publicAccessLevel: 'blob' },
+        (error) => {
+          if (error) {
+            logger.error(`failed to initialize azure container: ${error}`)
+            reject(error)
+          } else {
+            logger.info('container initialized.')
+            resolve()
+          }
+        })
+    })
+  }
+
+  ensureInitialized() {
+    return this.initPromise
+  }
+
+  dispose() {
+    return Promise.resolve()
   }
 
   static isPathValid (path: string) {
