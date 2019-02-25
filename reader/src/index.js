@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+/* @flow */
+
 import winston from 'winston'
 import { makeHttpServer } from './http.js'
 import { getConfig } from './config.js'
