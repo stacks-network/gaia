@@ -9,6 +9,7 @@ import type { ListFilesResult, PerformWriteArgs } from '../driverModel'
 import { DriverStatics, DriverModel } from '../driverModel'
 
 type DISK_CONFIG_TYPE = { diskSettings: { storageRootDirectory?: string },
+                          bucket?: string,
                           pageSize?: number,
                           readURL?: string }
 
@@ -42,6 +43,9 @@ class DiskDriver implements DriverModel {
     }
     if (!config.diskSettings.storageRootDirectory) {
       throw new Error('Config is missing storageRootDirectory')
+    }
+    if (config.bucket) {
+      logger.warn(`The disk driver does not use the "config.bucket" variable. It is set to ${config.bucket}`)
     }
 
     this.storageRootDirectory = config.diskSettings.storageRootDirectory
