@@ -15,7 +15,7 @@ type DISK_CONFIG_TYPE = { diskSettings: { storageRootDirectory?: string },
 
 const METADATA_DIRNAME = '.gaia-metadata'
 
-// Flow sucks. It is unaware of this Node.js API (stream.pipeline)
+// Flow is unaware of the stream.pipeline Node API (Flow sucks)
 const pipelinePromise = promisify((stream: any).pipeline)
 
 class DiskDriver implements DriverModel {
@@ -95,15 +95,14 @@ class DiskDriver implements DriverModel {
     }
   }
 
-  findAllFiles(listPath: string) : Array<string> {
+  async findAllFiles(listPath: string) : Promise<string[]> {
     // returns a list of files prefixed by listPath
-    const names = fs.readdirSync(listPath)
+    const dirEntries: fs.Dirent[] = await fs.readdir(listPath, { withFileTypes: true })
     const fileNames = []
-    for (let i = 0; i < names.length; i++) {
-      const fileOrDir = `${listPath}/${names[i]}`
-      const stat = fs.statSync(fileOrDir)
-      if (stat.isDirectory()) {
-        const childNames = this.findAllFiles(fileOrDir)
+    for (const dirEntry of dirEntries) {
+      const fileOrDir = `${listPath}${Path.sep}${dirEntry.name}`
+      if (dirEntry.isDirectory()) {
+        const childNames = await this.findAllFiles(fileOrDir)
         for (let j = 0; j < childNames.length; j++) {
           fileNames.push(childNames[j])
         }
@@ -114,16 +113,17 @@ class DiskDriver implements DriverModel {
     return fileNames
   }
 
-  listFilesInDirectory(listPath: string, pageNum: number) : Promise<ListFilesResult> {
-    const names = this.findAllFiles(listPath).map(
+  async listFilesInDirectory(listPath: string, pageNum: number) : Promise<ListFilesResult> {
+    const files = await this.findAllFiles(listPath)
+    const names = files.map(
       (fileName) => fileName.slice(listPath.length + 1))
-    return Promise.resolve().then(() => ({
+    return {
       entries: names.slice(pageNum * this.pageSize, (pageNum + 1) * this.pageSize),
       page: `${pageNum + 1}`
-    }))
+    }
   }
 
-  listFiles(prefix: string, page: ?string) {
+  async listFiles(prefix: string, page: ?string) {
     // returns {'entries': [...], 'page': next_page}
     let pageNum
     const listPath = `${this.storageRootDirectory}/${prefix}`
@@ -132,9 +132,9 @@ class DiskDriver implements DriverModel {
       page: `${page + 1}`
     }
 
-    if (!fs.existsSync(listPath)) {
+    if (!(await fs.exists(listPath))) {
       // nope 
-      return Promise.resolve().then(() => emptyResponse)
+      return emptyResponse
     }
       
     try {
@@ -146,16 +146,16 @@ class DiskDriver implements DriverModel {
       } else {
         pageNum = 0
       }
-      const stat = fs.statSync(listPath)
+      const stat = await fs.stat(listPath)
       if (!stat.isDirectory()) {
         // nope 
-        return Promise.resolve().then(() => emptyResponse)
+        return emptyResponse
       }
     } catch(e) {
       throw new Error('Invalid arguments: invalid page or not a directory')
     }
 
-    return this.listFilesInDirectory(listPath, pageNum)
+    return await this.listFilesInDirectory(listPath, pageNum)
   }
 
   async performWrite(args: PerformWriteArgs) : Promise<string> {
@@ -183,7 +183,7 @@ class DiskDriver implements DriverModel {
         throw new BadPathError('Path is too long')
       }
 
-      const dirparts = abspath.split('/').filter((p) => p.length > 0)
+      const dirparts = abspath.split(Path.sep).filter((p) => p.length > 0)
 
       // can't be too deep
       if (dirparts.length > 100) {

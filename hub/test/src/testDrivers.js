@@ -53,9 +53,10 @@ function testDriver(testName: string, mockTest: boolean, dataMap: [], createDriv
       }
 
       // Test binary data content-type
+      const binFileName = 'somedir/foo.bin';
       let sampleData = getSampleData();
       let readUrl = await driver.performWrite({
-        path: 'foo.bin',
+        path: binFileName,
         storageTopLevel: topLevelStorage,
         stream: sampleData.stream,
         contentType: 'application/octet-stream',
@@ -77,13 +78,14 @@ function testDriver(testName: string, mockTest: boolean, dataMap: [], createDriv
 
       let files = await driver.listFiles(topLevelStorage)
       t.equal(files.entries.length, 1, 'Should return one file')
-      t.equal(files.entries[0], 'foo.bin', 'Should be foo.bin!')
+      t.equal(files.entries[0], binFileName, `Should be ${binFileName}!`)
 
 
       // Test a text content-type that has implicit charset set
+      const txtFileName = 'somedir/foo_text.txt';
       sampleData = getSampleData();
       readUrl = await driver.performWrite(
-          { path: 'foo_text.txt',
+          { path: txtFileName,
             storageTopLevel: topLevelStorage,
             stream: sampleData.stream,
             contentType: 'text/plain; charset=utf-8',
@@ -103,7 +105,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: [], createDriv
 
       files = await driver.listFiles(topLevelStorage)
       t.equal(files.entries.length, 2, 'Should return two files')
-      t.ok(files.entries.includes('foo_text.txt'), 'Should include foo_text.txt')
+      t.ok(files.entries.includes(txtFileName), `Should include ${txtFileName}`)
 
       if (mockTest) {
         fetch.restore()
