@@ -4,7 +4,7 @@
     "node": ">=10"
   },
   "scripts": {
-    "postinstall": "NODE_ENV=development npm install --prefix reader && NODE_ENV=development npm install --prefix admin && NODE_ENV=development npm install --prefix hub",
+    "postinstall": "NODE_ENV=development npm install --prefix reader && npm run build --prefix reader && NODE_ENV=development npm install --prefix admin && NODE_ENV=development npm install --prefix hub",
     "test": "npm test --prefix reader && npm test --prefix admin && npm test --prefix hub"
   }
 }
