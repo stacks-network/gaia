@@ -86,7 +86,7 @@ class DiskDriver implements DriverModel {
         logger.debug(`mkdir ${normalizedPath}`)
       }
     } catch (error) {
-      console.error(`Error ensuring directory exists: ${error}`)
+      logger.error(`Error ensuring directory exists: ${error}`)
       throw error
     }
   }
@@ -202,7 +202,7 @@ class DiskDriver implements DriverModel {
       await fs.writeFile(contentTypePath, 
         JSON.stringify({ 'content-type': contentType }), { mode: 0o600 })
 
-      return `${this.readURL}${Path.join(topLevelDir, path)}`
+      return `${this.readURL}${topLevelDir}/${path}`
       
   }
 }
