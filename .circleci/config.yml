@@ -32,6 +32,8 @@ jobs:
           paths:
             - hub/node_modules
           key: v1-dependencies-{{ checksum "hub/package.json" }}
-        
+
+      - run: pkill flow
+
       # run tests!
       - run: npm run test
