@@ -115,11 +115,12 @@ class DiskDriver implements DriverModel {
 
   async listFilesInDirectory(listPath: string, pageNum: number) : Promise<ListFilesResult> {
     const files = await this.findAllFiles(listPath)
-    const names = files.map(
-      (fileName) => fileName.slice(listPath.length + 1))
+    const names = files.map(fileName => fileName.slice(listPath.length + 1))
+    const entries = names.slice(pageNum * this.pageSize, (pageNum + 1) * this.pageSize)
+    const page = entries.length === names.length ? null : `${pageNum + 1}`
     return {
-      entries: names.slice(pageNum * this.pageSize, (pageNum + 1) * this.pageSize),
-      page: `${pageNum + 1}`
+      entries,
+      page
     }
   }
 

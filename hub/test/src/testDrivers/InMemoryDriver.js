@@ -11,12 +11,14 @@ export class InMemoryDriver implements DriverModel {
 
     app: express.Application
     server: Server;
+    pageSize: number
     readUrl: string
     files: Map<string, {content: Buffer, contentType: string}>
     lastWrite: PerformWriteArgs
     initPromise: Promise<void>
 
     constructor(config: any) {
+      this.pageSize = (config && config.pageSize) ? config.pageSize : 100
       this.files = new Map<string, {content: Buffer, contentType: string}>()
       this.app = express()
       this.app.use((req, res, next) => {
@@ -70,12 +72,20 @@ export class InMemoryDriver implements DriverModel {
       const resultUrl = `${this.readUrl}${args.storageTopLevel}/${args.path}`
       return resultUrl
     }
+
     listFiles(storageTopLevel: string, page: ?string): Promise<ListFilesResult> {
-      const matchingEntries = Array.from(this.files.keys())
+      const pageNum = page ? parseInt(page) : 0
+      const names = Array.from(this.files.keys())
         .filter(path => path.startsWith(storageTopLevel))
         .map(path => path.slice(storageTopLevel.length + 1))
-      return Promise.resolve({entries: matchingEntries, page: page})
+      const entries = names.slice(pageNum * this.pageSize, (pageNum + 1) * this.pageSize)
+      const pageResult = entries.length === names.length ? null : `${pageNum + 1}`
+      return Promise.resolve({
+        entries,
+        page: pageResult
+      })
     }
+
     async dispose() {
       if (this.server) {
         return new Promise(resolve => {

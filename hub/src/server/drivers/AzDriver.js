@@ -10,6 +10,7 @@ import { Readable } from 'stream'
 type AZ_CONFIG_TYPE = { azCredentials: { accountName: string,
                                          accountKey: string },
                         bucket: string,
+                        pageSize?: number,
                         readURL?: string,
                         cacheControl?: string }
 
@@ -18,6 +19,7 @@ class AzDriver implements DriverModel {
   blobService: azure.BlobService
   accountName: string
   bucket: string
+  pageSize: number
   readURL: ?string
   cacheControl: ?string
   initPromise: Promise<void>
@@ -44,6 +46,7 @@ class AzDriver implements DriverModel {
     this.blobService = azure.createBlobService(config.azCredentials.accountName,
                                                config.azCredentials.accountKey)
     this.bucket = config.bucket
+    this.pageSize = config.pageSize ? config.pageSize : 100
     this.accountName = config.azCredentials.accountName
     this.readURL = config.readURL
     this.cacheControl = config.cacheControl
@@ -85,14 +88,15 @@ class AzDriver implements DriverModel {
   listBlobs(prefix: string, page: ?string) : Promise<ListFilesResult> {
     // page is the continuationToken for Azure
     return new Promise((resolve, reject) => {
+      const continuationToken = page ? JSON.parse(page) : page
       this.blobService.listBlobsSegmentedWithPrefix(
-        this.bucket, prefix, page, null, (err, results) => {
+        this.bucket, prefix, continuationToken, { maxResults: this.pageSize }, (err, results) => {
           if (err) {
             return reject(err)
           }
           return resolve({
             entries: results.entries.map((e) => e.name.slice(prefix.length + 1)),
-            page: results.continuationToken
+            page: results.continuationToken ? JSON.stringify(results.continuationToken) : null
           })
         })
     })

@@ -117,7 +117,7 @@ class S3Driver implements DriverModel {
         }
         const res : ListFilesResult = {
           entries: data.Contents.map((e) => e.Key.slice(prefix.length + 1)),
-          page: data.isTruncated ? data.NextContinuationToken : null
+          page: data.IsTruncated ? data.NextContinuationToken : null
         }
         return resolve(res)
       })

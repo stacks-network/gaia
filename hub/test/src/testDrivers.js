@@ -25,10 +25,10 @@ export function addMockFetches(fetchLib: any, prefix: any, dataMap: any) {
 }
 
 
-function testDriver(testName: string, mockTest: boolean, dataMap: [], createDriver: () => DriverModel) {
+function testDriver(testName: string, mockTest: boolean, dataMap: [], createDriver: (config?: Object) => DriverModel) {
   test(testName, async (t) => {
     const topLevelStorage = `${Date.now()}r${Math.random()*1e6|0}`
-    const driver = createDriver()
+    const driver = createDriver({pageSize: 3})
     try {
       await driver.ensureInitialized()
       const prefix = driver.getReadURLPrefix()
@@ -79,7 +79,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: [], createDriv
       let files = await driver.listFiles(topLevelStorage)
       t.equal(files.entries.length, 1, 'Should return one file')
       t.equal(files.entries[0], binFileName, `Should be ${binFileName}!`)
-
+      t.ok(!files.page, 'list files for 1 result should not have returned a page')
 
       // Test a text content-type that has implicit charset set
       const txtFileName = 'somedir/foo_text.txt';
@@ -110,6 +110,25 @@ function testDriver(testName: string, mockTest: boolean, dataMap: [], createDriv
       files = await driver.listFiles(`${Date.now()}r${Math.random()*1e6|0}`)
       t.equal(files.entries.length, 0, 'List files for empty directory should return zero entries')
 
+      if (!mockTest) {
+        const pageTestDir = 'page_test_dir'
+        for (var i = 0; i < 5; i++) {
+          const binFileName = `${pageTestDir}/foo_${i}.bin`;
+          let sampleData = getSampleData();
+          await driver.performWrite({
+            path: binFileName,
+            storageTopLevel: topLevelStorage,
+            stream: sampleData.stream,
+            contentType: 'application/octet-stream',
+            contentLength: sampleData.contentLength
+          });
+        }
+        const pagedFiles = await driver.listFiles(`${topLevelStorage}/${pageTestDir}`)
+        t.equal(pagedFiles.entries.length, 3, 'List files with no pagination and maxPage size specified should have returned 3 entries')
+        const remainingFiles = await driver.listFiles(`${topLevelStorage}/${pageTestDir}`, pagedFiles.page)
+        t.equal(remainingFiles.entries.length, 2, 'List files with pagination should have returned 2 remaining entries')
+      }
+
       if (mockTest) {
         fetch.restore()
       }
@@ -126,7 +145,7 @@ function testMockCloudDrivers() {
     const testName = `mock test for driver: ${name}`
     const mockTest = true
     const { driverClass, dataMap, config } = mockTestDrivers.availableMockedDrivers[name]();
-    testDriver(testName, mockTest, dataMap, () => new driverClass(config))
+    testDriver(testName, mockTest, dataMap, testConfig => new driverClass({...config, ...testConfig}))
   }
 }
 
@@ -135,7 +154,7 @@ function testRealCloudDrivers() {
     const create = integrationTestDrivers.availableDrivers[name];
     const testName = `integration test for driver: ${name}`
     const mockTest = false
-    testDriver(testName, mockTest, [], () => create())
+    testDriver(testName, mockTest, [], testConfig => create(testConfig))
   }
 }
 
