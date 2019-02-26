@@ -174,10 +174,11 @@ class DiskDriver implements DriverModel {
         throw new InvalidInputError('Invalid content-type')
       }
 
-      const abspath = Path.join(this.storageRootDirectory, topLevelDir, path)
-      if (!DiskDriver.isPathValid(abspath)) {
+      if (!DiskDriver.isPathValid(path) || !DiskDriver.isPathValid(topLevelDir)) {
         throw new BadPathError('Invalid Path')
       }
+
+      const abspath = Path.join(this.storageRootDirectory, topLevelDir, path)
 
       // too long?
       if (abspath.length > 4096) {

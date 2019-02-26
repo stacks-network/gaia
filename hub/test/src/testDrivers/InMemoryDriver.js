@@ -74,6 +74,9 @@ export class InMemoryDriver implements DriverModel {
     }
 
     listFiles(storageTopLevel: string, page: ?string): Promise<ListFilesResult> {
+      if (page && !page.match(/^[0-9]+$/)) {
+        throw new Error('Invalid page number')
+      }
       const pageNum = page ? parseInt(page) : 0
       const names = Array.from(this.files.keys())
         .filter(path => path.startsWith(storageTopLevel))

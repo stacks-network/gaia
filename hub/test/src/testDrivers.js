@@ -110,6 +110,21 @@ function testDriver(testName: string, mockTest: boolean, dataMap: [], createDriv
       files = await driver.listFiles(`${Date.now()}r${Math.random()*1e6|0}`)
       t.equal(files.entries.length, 0, 'List files for empty directory should return zero entries')
 
+      try {
+        const invalidFileName = `../../your_password`;
+        let sampleData = getSampleData();
+        await driver.performWrite({
+          path: invalidFileName,
+          storageTopLevel: topLevelStorage,
+          stream: sampleData.stream,
+          contentType: 'application/octet-stream',
+          contentLength: sampleData.contentLength
+        });
+        t.ok(false, 'File write with a filename containing path traversal should have been rejected')
+      } catch (error) {
+        t.ok(true, 'File write with a filename containing path traversal should have been rejected')
+      }
+
       if (!mockTest) {
         const pageTestDir = 'page_test_dir'
         for (var i = 0; i < 5; i++) {
@@ -127,6 +142,13 @@ function testDriver(testName: string, mockTest: boolean, dataMap: [], createDriv
         t.equal(pagedFiles.entries.length, 3, 'List files with no pagination and maxPage size specified should have returned 3 entries')
         const remainingFiles = await driver.listFiles(`${topLevelStorage}/${pageTestDir}`, pagedFiles.page)
         t.equal(remainingFiles.entries.length, 2, 'List files with pagination should have returned 2 remaining entries')
+
+        try {
+          await driver.listFiles(`${topLevelStorage}/${pageTestDir}`, "bogus page data")
+          t.ok(false, 'List files with invalid page data should have failed')
+        } catch (error) {
+          t.ok(true, 'List files with invalid page data should have failed')
+        }
       }
 
       if (mockTest) {
