@@ -107,6 +107,9 @@ function testDriver(testName: string, mockTest: boolean, dataMap: [], createDriv
       t.equal(files.entries.length, 2, 'Should return two files')
       t.ok(files.entries.includes(txtFileName), `Should include ${txtFileName}`)
 
+      files = await driver.listFiles(`${Date.now()}r${Math.random()*1e6|0}`)
+      t.equal(files.entries.length, 0, 'List files for empty directory should return zero entries')
+
       if (mockTest) {
         fetch.restore()
       }

@@ -137,9 +137,9 @@ export function makeMockedGcDriver() {
     }
 
     getFiles(options, cb) {
-      const files = dataMap.map((entry) => {
-        return { name: entry.key }
-      })
+      const files = dataMap
+        .filter(entry => entry.key.startsWith(options.prefix))
+        .map(entry => { return { name: entry.key } })
       cb(null, files, null)
     }
   }
