@@ -7,13 +7,21 @@ export class ValidationError extends Error {
   }
 }
 
+export class AuthTokenTimestampValidationError extends Error {
+  oldestValidTokenTimestamp: number;
+  constructor (message: string, oldestValidTokenTimestamp: number) {
+    super(message)
+    this.name = this.constructor.name
+    this.oldestValidTokenTimestamp = oldestValidTokenTimestamp
+  }
+}
+
 export class BadPathError extends Error {
   constructor (message: string) {
     super(message)
     this.name = this.constructor.name
   }
 }
-
 export class NotEnoughProofError extends Error {
   constructor (message: string) {
     super(message)

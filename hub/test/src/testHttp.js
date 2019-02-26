@@ -15,20 +15,24 @@ const fetch = FetchMock.sandbox(NodeFetch)
 import { makeHttpServer } from '../../src/server/http.js'
 import DiskDriver from '../../src/server/drivers/diskDriver'
 import { MakeHttpServerConfig, } from '../../src/server/http.js'
+import { AuthTimestampCache } from '../../src/server/revocations'
 import type { HubServerConfig } from '../../src/server/server.js'
 import { makeMockedAzureDriver, addMockFetches } from './testDrivers'
 
 import { testPairs } from './common'
 import { InMemoryDriver } from './testDrivers/InMemoryDriver'
+import { MockAuthTimestampCache } from './MockAuthTimestampCache'
 
 const TEST_SERVER_NAME = 'test-server'
+const TEST_AUTH_CACHE_SIZE = 10
+
 
 export function testHttpWithInMemoryDriver() {
   test('handle request (InMemory driver)', async (t) => {
     const fetch = NodeFetch
     const inMemoryDriver = await InMemoryDriver.spawn()
     try {
-      const app = makeHttpServer({ driverInstance: inMemoryDriver, serverName: TEST_SERVER_NAME })
+      const { app } = makeHttpServer({ driverInstance: inMemoryDriver, serverName: TEST_SERVER_NAME, authTimestampCacheSize: TEST_AUTH_CACHE_SIZE })
       const sk = testPairs[1]
       const fileContents = sk.toWIF()
       const blob = Buffer.from(fileContents)
@@ -74,6 +78,57 @@ export function testHttpWithInMemoryDriver() {
     }
   })
 
+  test('handle revocation via POST', async (t) => {
+    const inMemoryDriver = await InMemoryDriver.spawn()
+    try {
+      const { app } = makeHttpServer({ driverInstance: inMemoryDriver, serverName: TEST_SERVER_NAME, authTimestampCacheSize: TEST_AUTH_CACHE_SIZE })
+      const sk = testPairs[1]
+      const fileContents = sk.toWIF()
+      const blob = Buffer.from(fileContents)
+
+      const address = ecPairToAddress(sk)
+      const path = `/store/${address}/helloWorld`
+
+      const hubInfo = await request(app)
+        .get('/hub_info/')
+        .expect(200)
+
+      const challenge = hubInfo.body.challenge_text
+      const authPart = auth.V1Authentication.makeAuthPart(sk, challenge)
+      const authorization = `bearer ${authPart}`
+
+      const storeResponse = await request(app).post(path)
+        .set('Content-Type', 'application/octet-stream')
+        .set('Authorization', authorization)
+        .send(blob)
+        .expect(202)
+
+      const revokeResponse = await request(app)
+        .post(`/revoke-all/${address}`)
+        .set('Authorization', authorization)
+        .send({oldestValidTimestamp: (Date.now()/1000|0) + 3000})
+        .expect(202)
+      t.equal(revokeResponse.body.status, 'success', 'Revoke POST request should have returned success status')
+
+      const failedStoreResponse = await request(app).post(path)
+        .set('Content-Type', 'application/octet-stream')
+        .set('Authorization', authorization)
+        .send(blob)
+        .expect(401)
+      t.equal(failedStoreResponse.body.error, 'AuthTokenTimestampValidationError', 'Store request should have returned correct error type')
+
+      const listPath = `/list-files/${address}`
+      const failedFilesResponse = await request(app).post(listPath)
+        .set('Content-Type', 'application/json')
+        .set('Authorization', authorization)
+        .expect(401)
+      t.equal(failedFilesResponse.body.error, 'AuthTokenTimestampValidationError', 'Store request should have returned correct error type')
+
+    } finally {
+      inMemoryDriver.dispose()
+    }
+  })
+
 }
 
 function testHttpDriverOption() {
@@ -82,6 +137,7 @@ function testHttpDriverOption() {
       driver: 'disk',
       readURL: 'test/',
       serverName: TEST_SERVER_NAME,
+      authTimestampCacheSize: TEST_AUTH_CACHE_SIZE,
       diskSettings: {
         storageRootDirectory: os.tmpdir()
       }
@@ -92,19 +148,24 @@ function testHttpDriverOption() {
   test('makeHttpServer "driverInstance" config', (t) => {
     const driver = new DiskDriver({
       readURL: 'test/',
+      authTimestampCacheSize: TEST_AUTH_CACHE_SIZE,
       diskSettings: {
         storageRootDirectory: os.tmpdir()
       }
     })
     makeHttpServer({
       driverInstance: driver,
-      serverName: TEST_SERVER_NAME
+      serverName: TEST_SERVER_NAME,
+      authTimestampCacheSize: TEST_AUTH_CACHE_SIZE
     })
     t.end()
   })
 
   test('makeHttpServer missing driver config', (t) => {
-    t.throws(() => makeHttpServer({serverName: TEST_SERVER_NAME}), Error, 'Should fail to create http server when no driver config is specified')
+    t.throws(() => makeHttpServer({
+      serverName: TEST_SERVER_NAME, 
+      authTimestampCacheSize: TEST_AUTH_CACHE_SIZE}), 
+      Error, 'Should fail to create http server when no driver config is specified')
     t.end()
   })
 
@@ -118,7 +179,8 @@ function testHttpWithAzure() {
       'accountKey': 'mock-azure-key'
     },
     'bucket': 'spokes',
-    serverName: TEST_SERVER_NAME
+    serverName: TEST_SERVER_NAME,
+    authTimestampCacheSize: TEST_AUTH_CACHE_SIZE
   }
   let mockTest = true
 
@@ -126,6 +188,7 @@ function testHttpWithAzure() {
     config = JSON.parse(fs.readFileSync(azConfigPath, {encoding: 'utf8'}))
     config.driver = 'azure'
     config.serverName = TEST_SERVER_NAME
+    config.authTimestampCacheSize = TEST_AUTH_CACHE_SIZE
     mockTest = false
   }
 
@@ -140,7 +203,8 @@ function testHttpWithAzure() {
   }
 
   test('auth failure', (t) => {
-    let app = makeHttpServer(config)
+    let { app, server } = makeHttpServer(config)
+    server.authTimestampCache = new MockAuthTimestampCache()
     let sk = testPairs[1]
     let fileContents = sk.toWIF()
     let blob = Buffer.from(fileContents)
@@ -177,7 +241,8 @@ function testHttpWithAzure() {
 
   test('handle request', (t) => {
     let fetch = FetchMock.sandbox(NodeFetch)
-    let app = makeHttpServer(config)
+    let { app, server } = makeHttpServer(config)
+    server.authTimestampCache = new MockAuthTimestampCache()
     let sk = testPairs[1]
     let fileContents = sk.toWIF()
     let blob = Buffer.from(fileContents)

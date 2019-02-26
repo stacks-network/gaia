@@ -4,7 +4,7 @@ import bitcoin from 'bitcoinjs-lib'
 import crypto from 'crypto'
 import { decodeToken, TokenSigner, TokenVerifier } from 'jsontokens'
 import { ecPairToHexString, ecPairToAddress } from 'blockstack'
-import { ValidationError } from './errors'
+import { ValidationError, AuthTokenTimestampValidationError } from './errors'
 import logger from 'winston'
 
 const DEFAULT_STORAGE_URL = 'storage.blockstack.org'
@@ -24,6 +24,7 @@ export type TokenPayloadType = {
     gaiaChallenge: string,
     iss: string,
     exp: number,
+    iat?: number,
     salt: string,
     hubUrl?: string,
     associationToken?: string,
@@ -71,7 +72,8 @@ export class V1Authentication {
   }
 
   static makeAuthPart(secretKey: bitcoin.ECPair, challengeText: string,
-                      associationToken?: string, hubUrl?: string, scopes?: Array<AuthScopeType>) {
+                      associationToken?: string, hubUrl?: string, scopes?: Array<AuthScopeType>,
+                      issuedAtDate?: number) {
 
     const FOUR_MONTH_SECONDS = 60 * 60 * 24 * 31 * 4
     const publicKeyHex = secretKey.publicKey.toString('hex')
@@ -81,9 +83,12 @@ export class V1Authentication {
       validateScopes(scopes)
     }
 
+    const payloadIssuedAtDate = issuedAtDate || (Date.now()/1000|0)
+
     const payload: TokenPayloadType = { gaiaChallenge: challengeText,
                       iss: publicKeyHex,
                       exp: FOUR_MONTH_SECONDS + (new Date()/1000),
+                      iat: payloadIssuedAtDate,
                       associationToken,
                       hubUrl, salt, scopes }
 
@@ -99,6 +104,7 @@ export class V1Authentication {
     const payload: TokenPayloadType = { childToAssociate: childPublicKey,
                       iss: publicKeyHex,
                       exp: FOUR_MONTH_SECONDS + (new Date()/1000),
+                      iat: (Date.now()/1000|0),
                       gaiaChallenge: String(undefined),
                       salt }
 
@@ -212,7 +218,8 @@ export class V1Authentication {
    */
   isAuthenticationValid(address: string, challengeTexts: Array<string>,
                         options?: { requireCorrectHubUrl?: boolean,
-                                    validHubUrls?: Array<string> }) : string {
+                                    validHubUrls?: Array<string>,
+                                    oldestValidTokenTimestamp?: number }) : string {
     let decodedToken: TokenType
     try {
       decodedToken = decodeToken(this.token)
@@ -228,6 +235,23 @@ export class V1Authentication {
 
     if (!publicKey) {
       throw new ValidationError('Must provide `iss` claim in JWT.')
+    }
+
+    // check for revocations
+    if (options && options.oldestValidTokenTimestamp && options.oldestValidTokenTimestamp > 0) {
+      const tokenIssuedAtDate = decodedToken.payload.iat
+      const oldestValidTokenTimestamp: number = options.oldestValidTokenTimestamp
+      if (!tokenIssuedAtDate) {
+        const message = `Gaia bucket requires auth token issued after ${oldestValidTokenTimestamp}` +
+              ' but this token has no creation timestamp. This token may have been revoked by the user.'
+        throw new AuthTokenTimestampValidationError(message, oldestValidTokenTimestamp)
+      }
+      if (tokenIssuedAtDate < options.oldestValidTokenTimestamp) {
+        const message = `Gaia bucket requires auth token issued after ${oldestValidTokenTimestamp}` +
+              ` but this token was issued ${tokenIssuedAtDate}.` +
+              ' This token may have been revoked by the user.'
+        throw new AuthTokenTimestampValidationError(message, oldestValidTokenTimestamp)
+      }
     }
 
     const issuerAddress = ecPairToAddress(pubkeyHexToECPair(publicKey))
@@ -386,7 +410,8 @@ export function parseAuthHeader(authHeader: string) {
 
 export function validateAuthorizationHeader(authHeader: string, serverName: string,
                                             address: string, requireCorrectHubUrl?: boolean = false,
-                                            validHubUrls?: ?Array<string> = null) : string {
+                                            validHubUrls?: ?Array<string> = null,
+                                            oldestValidTokenTimestamp?: number) : string {
   const serverNameHubUrl = `https://${serverName}`
   if (!validHubUrls) {
     validHubUrls = [ serverNameHubUrl ]
@@ -409,7 +434,7 @@ export function validateAuthorizationHeader(authHeader: string, serverName: stri
   challengeTexts.push(getChallengeText(serverName))
   getLegacyChallengeTexts(serverName).forEach(challengeText => challengeTexts.push(challengeText))
 
-  return authObject.isAuthenticationValid(address, challengeTexts, { validHubUrls, requireCorrectHubUrl })
+  return authObject.isAuthenticationValid(address, challengeTexts, { validHubUrls, requireCorrectHubUrl, oldestValidTokenTimestamp })
 }
 
 

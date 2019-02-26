@@ -60,7 +60,11 @@ export class InMemoryDriver implements DriverModel {
         .map(path => path.slice(storageTopLevel.length + 1))
       return Promise.resolve({entries: matchingEntries, page: page})
     }
-    dispose() {
-      this.server.close()
+    async dispose() {
+      if (this.server) {
+        return new Promise(resolve => {
+          this.server.close(() => resolve())
+        })
+      }
     }
   }

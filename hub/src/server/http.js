@@ -25,7 +25,7 @@ export interface MakeHttpServerConfig {
   driverInstance?: DriverModel, driverClass?: Class<DriverModel>, driver?: string
 }
 
-export function makeHttpServer(config: MakeHttpServerConfig & HubServerConfig) : express.Application {
+export function makeHttpServer(config: MakeHttpServerConfig & HubServerConfig): { app: express.Application, server: HubServer } {
 
   const app : express.Application = express()
 
@@ -70,6 +70,8 @@ export function makeHttpServer(config: MakeHttpServerConfig & HubServerConfig) :
         logger.error(err)
         if (err instanceof errors.ValidationError) {
           writeResponse(res, { message: err.message, error: err.name }, 401)
+        } else if (err instanceof errors.AuthTokenTimestampValidationError) {
+          writeResponse(res, { message: err.message, error: err.name  }, 401)
         } else if (err instanceof errors.BadPathError) {
           writeResponse(res, { message: err.message, error: err.name  }, 403)
         } else if (err instanceof errors.NotEnoughProofError) {
@@ -85,7 +87,7 @@ export function makeHttpServer(config: MakeHttpServerConfig & HubServerConfig) :
     (req: express.request, res: express.response) => {
       // sanity check...
       if (req.headers['content-length'] > 4096) {
-        writeResponse(res, { mesasge: 'Invalid JSON: too long'}, 400)
+        writeResponse(res, { message: 'Invalid JSON: too long'}, 400)
         return
       }
 
@@ -99,12 +101,53 @@ export function makeHttpServer(config: MakeHttpServerConfig & HubServerConfig) :
         })
         .catch((err) => {
           logger.error(err)
-          if (err.name === 'ValidationError') {
-            writeResponse(res, { message: err.message }, 401)
+          if (err instanceof errors.ValidationError) {
+            writeResponse(res, { message: err.message, error: err.name }, 401)
+          } else if (err instanceof errors.AuthTokenTimestampValidationError) {
+            writeResponse(res, { message: err.message, error: err.name  }, 401)
           } else {
             writeResponse(res, { message: 'Server Error' }, 500)
           }
         })
+  })
+
+  app.post(
+    /^\/revoke-all\/([a-zA-Z0-9]+)\/?/, 
+    express.json(),
+    (req: express.request, res: express.response) => {
+      // sanity check...
+      if (req.headers['content-length'] > 4096) {
+        writeResponse(res, { message: 'Invalid JSON: too long'}, 400)
+        return
+      }
+
+      if (!req.body || !req.body.oldestValidTimestamp) {
+        writeResponse(res, { message: 'Invalid JSON: missing oldestValidTimestamp'}, 400)
+        return
+      }
+
+      const address = req.params[0]
+      const oldestValidTimestamp: number = parseInt(req.body.oldestValidTimestamp)
+
+      if (!Number.isFinite(oldestValidTimestamp)) {
+        writeResponse(res, { message: 'Invalid JSON: oldestValidTimestamp is not a valid integer'}, 400)
+        return
+      }
+
+      server.handleAuthBump(address, oldestValidTimestamp, req.headers)
+      .then(() => {
+        writeResponse(res, { status: 'success' }, 202)
+      })
+      .catch((err) => {
+        logger.error(err)
+        if (err instanceof errors.ValidationError) {
+          writeResponse(res, { message: err.message, error: err.name  }, 401)
+        } else if (err instanceof errors.BadPathError) {
+          writeResponse(res, { message: err.message, error: err.name  }, 403)
+        } else {
+          writeResponse(res, { message: 'Server Error' }, 500)
+        }
+      })
   })
 
   app.get('/hub_info/', (req: express.request,
@@ -120,5 +163,5 @@ export function makeHttpServer(config: MakeHttpServerConfig & HubServerConfig) :
   })
 
   // Instantiate express application
-  return app
+  return { app, server }
 }

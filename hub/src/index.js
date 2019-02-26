@@ -5,7 +5,7 @@ import { getConfig } from './server/config.js'
 
 const conf = getConfig()
 
-const app = makeHttpServer(conf)
+const { app } = makeHttpServer(conf)
 
 app.listen(conf.port,
            () => winston.warn(`Listening on port ${conf.port} in ${app.settings.env} mode`))
