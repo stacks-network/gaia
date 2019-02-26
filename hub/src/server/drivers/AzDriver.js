@@ -85,20 +85,22 @@ class AzDriver implements DriverModel {
     return `https://${this.accountName}.blob.core.windows.net/${this.bucket}/`
   }
 
-  listBlobs(prefix: string, page: ?string) : Promise<ListFilesResult> {
+  async listBlobs(prefix: string, page: ?string) : Promise<ListFilesResult> {
     // page is the continuationToken for Azure
-    return new Promise((resolve, reject) => {
-      const continuationToken = page ? JSON.parse(page) : page
+    const continuationToken = page ? JSON.parse(page) : page
+    return await new Promise((resolve, reject) => {
       this.blobService.listBlobsSegmentedWithPrefix(
-        this.bucket, prefix, continuationToken, { maxResults: this.pageSize }, (err, results) => {
+        this.bucket, prefix, continuationToken, 
+        { maxResults: this.pageSize }, (err, results) => {
           if (err) {
-            return reject(err)
+            reject(err)
+          } else {
+            resolve({
+              entries: results.entries.map((e) => e.name.slice(prefix.length + 1)),
+              page: results.continuationToken ? JSON.stringify(results.continuationToken) : null
+            })
           }
-          return resolve({
-            entries: results.entries.map((e) => e.name.slice(prefix.length + 1)),
-            page: results.continuationToken ? JSON.stringify(results.continuationToken) : null
-          })
-        })
+      })
     })
   }
 
