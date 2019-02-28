@@ -149,6 +149,21 @@ function testDriver(testName: string, mockTest: boolean, dataMap: [], createDriv
         } catch (error) {
           t.ok(true, 'List files with invalid page data should have failed')
         }
+
+        try {
+          const brokenUploadStream = new BrokenReadableStream()
+          await driver.performWrite({
+            path: binFileName,
+            storageTopLevel: topLevelStorage,
+            stream: brokenUploadStream,
+            contentType: 'application/octet-stream',
+            contentLength: 100
+          });
+          t.ok(false, 'Perform write with broken upload stream should have failed')
+        } catch (error) {
+          t.ok(true, 'Perform write with broken upload stream should have failed')
+        }
+        
       }
 
       if (mockTest) {
@@ -160,6 +175,25 @@ function testDriver(testName: string, mockTest: boolean, dataMap: [], createDriv
     }
 
   });
+}
+
+class BrokenReadableStream extends Readable {
+  readCount: number
+  sampleData: Buffer
+  constructor(options) {
+    super(options)
+    this.readCount = 0
+    this.sampleData = Buffer.from('hello world sample data')
+  }
+  _read(size: number): void {
+    if (this.readCount == 0) {
+      super.push(this.sampleData)
+    } else {
+      // cause the stream to break/error
+      this.emit('error', new Error('example stream read failure'))
+    }
+    this.readCount++
+  }
 }
 
 function testMockCloudDrivers() {
