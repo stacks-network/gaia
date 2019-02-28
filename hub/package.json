@@ -7,9 +7,9 @@
     "node": "^8"
   },
   "dependencies": {
+    "@azure/storage-blob": "^10.3.0",
     "@google-cloud/storage": "^2.4.2",
     "aws-sdk": "^2.114.0",
-    "azure-storage": "^2.10.2",
     "bigi": "^1.4.2",
     "bitcoinjs-lib": "^4.0.2",
     "blockstack": "^18.1.0",

@@ -1,11 +1,16 @@
 /* @flow */
 
-import { Readable } from 'stream'
+import { Readable, Writable } from 'stream'
 import { DriverModel } from './driverModel'
 import S3Driver from './drivers/S3Driver'
 import AzDriver from './drivers/AzDriver'
 import GcDriver from './drivers/GcDriver'
 import DiskDriver from './drivers/diskDriver'
+import { promisify } from 'util'
+
+//$FlowFixMe - Flow is unaware of the stream.pipeline Node API
+import { pipeline } from 'stream'
+const pipelinePromise = promisify(pipeline)
 
 export function getDriverClass(driver: string) : Class<DriverModel> {
   if (driver === 'aws') {
@@ -22,45 +27,24 @@ export function getDriverClass(driver: string) : Class<DriverModel> {
 }
 
 
-export function readStream(stream: Readable, size: number): Promise<Buffer> {
-  const outBuffer = Buffer.alloc(size)
-  let bufferIndex = 0
-  let finished = false
+class MemoryStream extends Writable {
+  buffers: Buffer[]
+  constructor(opts?: any) {
+    super(opts)
+    this.buffers = []
+  }
+  _write(chunk: any, encoding: any, callback: any) {
+    this.buffers.push(Buffer.from(chunk, encoding))
+    callback(null)
+    return true
+  }
+  getData() {
+    return Buffer.concat(this.buffers)
+  }
+}
 
-  return new Promise((accept, reject) => {
-    stream.on('data', (chunk) => {
-      if (!Buffer.isBuffer(chunk)) {
-        finished = true
-        return reject(new Error('Stream must be passed without encoding set'))
-      }
-      const chunkLength = chunk.length
-      if (bufferIndex + chunkLength > size) {
-        finished = true
-        return reject(new Error('Too much data in stream or incorrect size passed to readStream()'))
-      }
-      chunk.copy(outBuffer, bufferIndex)
-      bufferIndex += chunkLength
-    })
-
-    stream.on('end', () => {
-      if (!finished) {
-        finished = true
-        return accept(outBuffer)
-      }
-    })
-
-    stream.on('error', (err) => {
-      if (!finished) {
-        finished = true
-        return reject(err)
-      }
-    })
-
-    stream.on('close', () => {
-      if (!finished) {
-        finished = true
-        return reject(new Error('Stream closed, unexpectedly.'))
-      }
-    })
-  })
+export async function readStream(stream: Readable): Promise<Buffer> {
+  const memStream = new MemoryStream()
+  await pipelinePromise(stream, memStream)
+  return memStream.getData()
 }

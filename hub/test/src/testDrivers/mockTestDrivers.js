@@ -6,6 +6,7 @@ import path from 'path'
 import fs from 'fs'
 import proxyquire from 'proxyquire'
 
+import { readStream } from '../../../src/server/utils'
 import { DriverModel } from '../../../src/server/driverModel'
 import type { ListFilesResult, PerformWriteArgs } from '../../../src/server/driverModel'
 import AzDriver from '../../../src/server/drivers/AzDriver'
@@ -33,36 +34,41 @@ export function makeMockedAzureDriver() {
   }
 
   const dataMap = []
-  let bucketName = ''
-  const createContainerIfNotExists = function (newBucketName, options, cb) {
-    bucketName = newBucketName
-    cb()
+  const uploadStreamToBlockBlob = async (aborter, stream, blockBlobURL, bufferSize, maxBuffers, options) => {
+    const buffer = await readStream(stream)
+    dataMap.push({data: buffer.toString(), key: blockBlobURL })
   }
-  const createBlockBlobFromStream = function (putBucket, blobName, streamInput, contentLength, opts, cb) {
-    if (bucketName !== putBucket) {
-      cb(new Error(`Unexpected bucket name: ${putBucket}. Expected ${bucketName}`))
-    }
-    readStream(streamInput, contentLength, (buffer) => {
-      dataMap.push({ data: buffer.toString(), key: blobName })
-      cb()
-    })
+
+  const listBlobFlatSegment = (_, __, { prefix }) => {
+    const items = dataMap
+      .map(x => x.key)
+      .filter(key => key.startsWith(prefix))
+      .map(key => { return {
+        name: key
+      }})
+    return { segment: { blobItems: items } }
   }
-  const listBlobsSegmentedWithPrefix = function (getBucket, prefix, continuation, data, cb) {
-    const outBlobs = []
-    dataMap.forEach(x => {
-      if (x.key.startsWith(prefix)) {
-        outBlobs.push({ name: x.key })
+
+  const ContainerURL = {
+    fromServiceURL: () => {
+      return {
+        create: () => null,
+        listBlobFlatSegment: listBlobFlatSegment,
       }
-    })
-    cb(null, { entries: outBlobs, continuationToken: null })
+    }
   }
-
-  const createBlobService = function () {
-    return { createContainerIfNotExists, createBlockBlobFromStream, listBlobsSegmentedWithPrefix }
-  }
-
+  
   const driverClass = proxyquire('../../../src/server/drivers/AzDriver', {
-    'azure-storage': { createBlobService }
+    '@azure/storage-blob': {
+      SharedKeyCredential: class { },
+      ContainerURL: ContainerURL,
+      StorageURL: { newPipeline: () => null },
+      ServiceURL: class { },
+      BlobURL: { fromContainerURL: (_, blobName) => blobName },
+      BlockBlobURL: { fromBlobURL: (blobName) => blobName },
+      Aborter: { none: null },
+      uploadStreamToBlockBlob: uploadStreamToBlockBlob
+    }
   }).default
   return { driverClass, dataMap, config }
 }
@@ -84,7 +90,7 @@ export function makeMockedS3Driver() {
       if (options.Bucket != bucketName) {
         cb(new Error(`Unexpected bucket name: ${options.Bucket}. Expected ${bucketName}`))
       }
-      readStream(options.Body, 10000, (buffer) => {
+      readStream(options.Body).then((buffer) => {
         dataMap.push({ data: buffer.toString(), key: options.Key })
         cb()
       })
@@ -175,15 +181,6 @@ export function makeMockedDiskDriver() {
 
   const driverClass = DiskDriverWrapper
   return {driverClass, dataMap, config}
-}
-
-function readStream(input, contentLength, callback) {
-  var bufs = []
-  input.on('data', function(d){ bufs.push(d) });
-  input.on('end', function(){
-    var buf = Buffer.concat(bufs)
-    callback(buf.slice(0, contentLength))
-  })
 }
 
 class MockWriteStream extends Writable {

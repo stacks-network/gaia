@@ -1,6 +1,7 @@
 /* @flow */
 import fs from 'fs-extra'
-import stream from 'stream'
+//$FlowFixMe - Flow is unaware of the stream.pipeline Node API
+import { pipeline } from 'stream'
 import { promisify } from 'util'
 import { BadPathError, InvalidInputError } from '../errors'
 import logger from 'winston'
@@ -15,8 +16,7 @@ type DISK_CONFIG_TYPE = { diskSettings: { storageRootDirectory?: string },
 
 const METADATA_DIRNAME = '.gaia-metadata'
 
-// Flow is unaware of the stream.pipeline Node API (Flow sucks)
-const pipelinePromise = promisify((stream: any).pipeline)
+const pipelinePromise = promisify(pipeline)
 
 class DiskDriver implements DriverModel {
   storageRootDirectory: string

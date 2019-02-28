@@ -64,7 +64,7 @@ export class InMemoryDriver implements DriverModel {
         throw new BadPathError('Invalid Path')
       }
       this.lastWrite = args
-      const contentBuffer = await readStream(args.stream, args.contentLength)
+      const contentBuffer = await readStream(args.stream)
       this.files.set(`${args.storageTopLevel}/${args.path}`, {
         content: contentBuffer,
         contentType: args.contentType
