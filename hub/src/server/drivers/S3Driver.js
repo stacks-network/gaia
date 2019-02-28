@@ -129,7 +129,7 @@ class S3Driver implements DriverModel {
     return this.listAllKeys(prefix, page)
   }
 
-  performWrite(args: PerformWriteArgs) : Promise<string> {
+  async performWrite(args: PerformWriteArgs) : Promise<string> {
     const s3key = `${args.storageTopLevel}/${args.path}`
     const s3params = Object.assign({}, {
       Bucket: this.bucket,
@@ -143,22 +143,23 @@ class S3Driver implements DriverModel {
     }
 
     if (!S3Driver.isPathValid(args.path)){
-      return Promise.reject(new BadPathError('Invalid Path'))
+      throw new BadPathError('Invalid Path')
     }
 
     // Upload stream to s3
-    return new Promise((resolve, reject) => {
-      this.s3.upload(s3params, (err) => {
-        if (err) {
-          logger.error(`failed to store ${s3key} in bucket ${this.bucket}`)
-          return reject(new Error('S3 storage failure: failed to store' +
-                                  ` ${s3key} in bucket ${this.bucket}: ${err}`))
-        }
-        const publicURL = `${this.getReadURLPrefix()}${s3key}`
-        logger.debug(`storing ${s3key} in bucket ${this.bucket}`)
-        return resolve(publicURL)
-      })
-    })
+    try {
+      await new Promise((resolve, reject) => this.s3.upload(s3params, (error) => 
+        error ? reject(error) : resolve()
+      ))
+    } catch (error) {
+      logger.error(`failed to store ${s3key} in bucket ${this.bucket}`)
+      throw new Error('S3 storage failure: failed to store' +
+        ` ${s3key} in bucket ${this.bucket}: ${error}`)
+    }
+
+    const publicURL = `${this.getReadURLPrefix()}${s3key}`
+    logger.debug(`storing ${s3key} in bucket ${this.bucket}`)
+    return publicURL
   }
 }
 
