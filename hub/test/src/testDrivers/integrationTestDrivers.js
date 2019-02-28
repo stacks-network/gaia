@@ -58,7 +58,7 @@ Object.entries(envConfigPaths)
 export const availableDrivers: { [name: string]: (config?: Object) => DriverModel } = { 
   az: config => new AzDriver({...driverConfigs.az, ...config}),
   aws: config => new S3Driver({...driverConfigs.aws, ...config}),
-  gc: config => new GcDriver({...driverConfigs.gc, ...config}),
+  gc: config => new GcDriver({resumable: true, ...driverConfigs.gc, ...config}),
   disk: config => new DiskDriver({...driverConfigs.disk, ...config})
 };
 

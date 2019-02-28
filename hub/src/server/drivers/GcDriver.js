@@ -6,6 +6,12 @@ import logger from 'winston'
 import { BadPathError } from '../errors'
 import type { ListFilesResult, PerformWriteArgs } from '../driverModel'
 import { DriverStatics, DriverModel } from '../driverModel'
+import { promisify } from 'util'
+
+//$FlowFixMe - Flow is unaware of the stream.pipeline Node API
+import { pipeline } from 'stream'
+
+const pipelinePromise = promisify(pipeline)
 
 type GC_CONFIG_TYPE = { gcCredentials?: {
                           email?: string,
@@ -18,7 +24,8 @@ type GC_CONFIG_TYPE = { gcCredentials?: {
                         },
                         cacheControl?: string,
                         pageSize?: number,
-                        bucket: string }
+                        bucket: string,
+                        resumable?: boolean }
 
 class GcDriver implements DriverModel {
   bucket: string
@@ -26,6 +33,7 @@ class GcDriver implements DriverModel {
   pageSize: number
   cacheControl: ?string
   initPromise: Promise<void>
+  resumable: boolean
 
   static getConfigInformation() {
     const envVars = {}
@@ -64,6 +72,7 @@ class GcDriver implements DriverModel {
     this.pageSize = config.pageSize ? config.pageSize : 100
     this.cacheControl = config.cacheControl
     this.initPromise = this.createIfNeeded()
+    this.resumable = config.resumable || false
   }
 
   ensureInitialized() {
@@ -144,9 +153,9 @@ class GcDriver implements DriverModel {
     return this.listAllObjects(prefix, page)
   }
 
-  performWrite(args: PerformWriteArgs) : Promise<string> {
-    if (!GcDriver.isPathValid(args.path)){
-      return Promise.reject(new BadPathError('Invalid Path'))
+  async performWrite(args: PerformWriteArgs) : Promise<string> {
+    if (!GcDriver.isPathValid(args.path)) {
+      throw new BadPathError('Invalid Path')
     }
 
     const filename = `${args.storageTopLevel}/${args.path}`
@@ -158,25 +167,26 @@ class GcDriver implements DriverModel {
       metadata.cacheControl = this.cacheControl
     }
 
+    const fileDestination = this.storage
+      .bucket(this.bucket)
+      .file(filename)
 
-    return new Promise((resolve, reject) => {
-      const fileDestination = this.storage
-            .bucket(this.bucket)
-            .file(filename)
-      args.stream
-        .pipe(fileDestination.createWriteStream({ public: true,
-                                                  resumable: false,
-                                                  metadata }))
-        .on('error', (err) => {
-          logger.error(`failed to store ${filename} in bucket ${this.bucket}`)
-          reject(new Error('Google cloud storage failure: failed to store' +
-                           ` ${filename} in bucket ${this.bucket}: ${err}`))
-        })
-        .on('finish', () => {
-          logger.debug(`storing ${filename} in bucket ${this.bucket}`)
-          resolve(publicURL)
-        })
+    const fileWriteStream = fileDestination.createWriteStream({
+      public: true,
+      resumable: this.resumable,
+      metadata
     })
+
+    try {
+      await pipelinePromise(args.stream, fileWriteStream)
+      logger.debug(`storing ${filename} in bucket ${this.bucket}`)
+    } catch (error) {
+      logger.error(`failed to store ${filename} in bucket ${this.bucket}`)
+      throw new Error('Google cloud storage failure: failed to store' +
+        ` ${filename} in bucket ${this.bucket}: ${error}`)
+    }
+
+    return publicURL
   }
 }
 

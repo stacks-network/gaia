@@ -153,7 +153,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: [], createDriv
         try {
           const brokenUploadStream = new BrokenReadableStream()
           await driver.performWrite({
-            path: binFileName,
+            path: 'broken_upload_stream_test',
             storageTopLevel: topLevelStorage,
             stream: brokenUploadStream,
             contentType: 'application/octet-stream',
@@ -186,11 +186,11 @@ class BrokenReadableStream extends Readable {
     this.sampleData = Buffer.from('hello world sample data')
   }
   _read(size: number): void {
-    if (this.readCount == 0) {
+    if (this.readCount === 0) {
       super.push(this.sampleData)
-    } else {
+    } else if (this.readCount === 1) {
       // cause the stream to break/error
-      this.emit('error', new Error('example stream read failure'))
+      super.destroy(new Error('example stream read failure'))
     }
     this.readCount++
   }
