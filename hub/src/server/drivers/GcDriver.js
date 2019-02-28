@@ -1,6 +1,6 @@
 /* @flow */
 
-import Storage from '@google-cloud/storage'
+import { Storage } from '@google-cloud/storage'
 import logger from 'winston'
 
 import { BadPathError } from '../errors'

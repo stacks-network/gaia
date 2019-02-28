@@ -145,7 +145,7 @@ export function makeMockedGcDriver() {
   }
 
   const driverClass = proxyquire('../../../src/server/drivers/GcDriver', {
-    '@google-cloud/storage': StorageClass
+    '@google-cloud/storage': { Storage: StorageClass }
   }).default
   return { driverClass, dataMap, config }
 }
