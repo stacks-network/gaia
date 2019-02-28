@@ -82,6 +82,9 @@ export function testConfig() {
 
     t.deepEqual(configResult, configExpected)
 
+    process.env.GAIA_DRIVER = 'bogusDriver'
+    t.throws(() => config.getConfig(), undefined, 'Should throw error on invalid driver type config')
+
     process.env.CONFIG_PATH = `${configDir}/config.0.json`
 
     process.env.GAIA_DRIVER = 'aws'
