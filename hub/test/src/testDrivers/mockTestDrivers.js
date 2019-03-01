@@ -86,24 +86,31 @@ export function makeMockedS3Driver() {
       bucketName = options.Bucket
       return { promise: () => Promise.resolve() }
     }
-    upload(options, cb) {
-      if (options.Bucket != bucketName) {
-        cb(new Error(`Unexpected bucket name: ${options.Bucket}. Expected ${bucketName}`))
+    upload(options) {
+      return {
+        promise: async () => {
+          if (options.Bucket != bucketName) {
+            throw new Error(`Unexpected bucket name: ${options.Bucket}. Expected ${bucketName}`)
+          }
+          const buffer = await readStream(options.Body)
+          dataMap.push({ data: buffer.toString(), key: options.Key })
+        }
       }
-      readStream(options.Body).then((buffer) => {
-        dataMap.push({ data: buffer.toString(), key: options.Key })
-        cb()
-      })
     }
-    listObjectsV2(options, cb) {
-      const contents = dataMap
-      .filter((entry) => {
-        return (entry.key.slice(0, options.Prefix.length) === options.Prefix)
-      })
-      .map((entry) => {
-        return { Key: entry.key }
-      })
-      cb(null, { Contents: contents, isTruncated: false })
+    listObjectsV2(options) {
+      return {
+        promise: async () => {
+          const contents = dataMap
+            .filter((entry) => {
+              return (entry.key.slice(0, options.Prefix.length) === options.Prefix)
+            })
+            .map((entry) => {
+              return { Key: entry.key }
+            })
+          return { Contents: contents, IsTruncated: false }
+        }
+      }
+
     }
   }
 

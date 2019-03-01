@@ -102,7 +102,7 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
     await this.s3.deleteBucket({ Bucket: this.bucket }).promise()
   }
 
-  listAllKeys(prefix: string, page: ?string) : Promise<ListFilesResult> {
+  async listAllKeys(prefix: string, page: ?string) : Promise<ListFilesResult> {
     // returns {'entries': [...], 'page': next_page}
     const opts : { Bucket: string, MaxKeys: number, Prefix: string, ContinuationToken?: string } = {
       Bucket: this.bucket,
@@ -112,18 +112,13 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
     if (page) {
       opts.ContinuationToken = page
     }
-    return new Promise((resolve, reject) => {
-      this.s3.listObjectsV2(opts, (err, data) => {
-        if (err) {
-          return reject(err)
-        }
-        const res : ListFilesResult = {
-          entries: data.Contents.map((e) => e.Key.slice(prefix.length + 1)),
-          page: data.IsTruncated ? data.NextContinuationToken : null
-        }
-        return resolve(res)
-      })
-    })
+
+    const data = await this.s3.listObjectsV2(opts).promise()
+    const res : ListFilesResult = {
+      entries: data.Contents.map((e) => e.Key.slice(prefix.length + 1)),
+      page: data.IsTruncated ? data.NextContinuationToken : null
+    }
+    return res
   }
 
   listFiles(prefix: string, page: ?string) {
@@ -150,9 +145,7 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
 
     // Upload stream to s3
     try {
-      await new Promise((resolve, reject) => this.s3.upload(s3params, (error) => 
-        error ? reject(error) : resolve()
-      ))
+      await this.s3.upload(s3params).promise()
     } catch (error) {
       logger.error(`failed to store ${s3key} in bucket ${this.bucket}`)
       throw new Error('S3 storage failure: failed to store' +
