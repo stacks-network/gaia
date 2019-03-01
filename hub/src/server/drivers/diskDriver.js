@@ -19,7 +19,7 @@ class DiskDriver implements DriverModel {
   storageRootDirectory: string
   readURL: string
   pageSize: number
-
+  initPromise: Promise<void>
 
   static getConfigInformation() {
     const envVars = {}
@@ -53,11 +53,11 @@ class DiskDriver implements DriverModel {
     }
 
     this.pageSize = config.pageSize ? config.pageSize : 100
-    fs.ensureDirSync(this.storageRootDirectory)
+    this.initPromise = fs.ensureDir(this.storageRootDirectory)
   }
 
   ensureInitialized() {
-    return Promise.resolve()
+    return this.initPromise
   }
 
   dispose() {
