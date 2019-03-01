@@ -29,7 +29,11 @@ function testDriver(testName: string, mockTest: boolean, dataMap: [], createDriv
 
   test(testName, async (t) => {
     const topLevelStorage = `${Date.now()}r${Math.random()*1e6|0}`
-    const driver = createDriver({pageSize: 3})
+    const cacheControlOpt = 'no-cache, no-store, must-revalidate'
+    const driver = createDriver({
+      pageSize: 3,
+      cacheControl: cacheControlOpt
+    })
     try {
       await driver.ensureInitialized()
       const prefix = driver.getReadURLPrefix()
@@ -75,6 +79,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: [], createDriv
       t.equal(resptxt, sampleDataString, `Must get back ${sampleDataString}: got back: ${resptxt}`)
       if (!mockTest) {
         t.equal(resp.headers.get('content-type'), 'application/octet-stream', 'Read-end point response should contain correct content-type')
+        t.equal(resp.headers.get('cache-control'), cacheControlOpt, 'cacheControl not respected in response headers')
       }
 
       let files = await driver.listFiles(topLevelStorage)

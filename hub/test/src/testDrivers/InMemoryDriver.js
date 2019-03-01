@@ -25,7 +25,10 @@ export class InMemoryDriver implements DriverModel {
         const requestPath = req.path.slice(1)
         const matchingFile = this.files.get(requestPath)
         if (matchingFile) {
-          res.set('Content-Type', matchingFile.contentType).send(matchingFile.content)
+          res.set({
+            'Content-Type': matchingFile.contentType, 
+            'Cache-Control': (config||{}).cacheControl
+          }).send(matchingFile.content)
         } else {
           res.status(404).send('Could not return file')
         }
