@@ -116,6 +116,11 @@ function testDriver(testName: string, mockTest: boolean, dataMap: [], createDriv
       files = await driver.listFiles(`${Date.now()}r${Math.random()*1e6|0}`)
       t.equal(files.entries.length, 0, 'List files for empty directory should return zero entries')
 
+      files = await driver.listFiles(`${topLevelStorage}/${txtFileName}`)
+      t.equal(files.entries.length, 1, 'List files on a file rather than directory should return a single entry')
+      t.equal(files.entries[0], '', 'List files on a file rather than directory should return a single empty entry')
+      t.strictEqual(files.page, null, 'List files page result should be null')
+
       try {
         const invalidFileName = `../../your_password`;
         let sampleData = getSampleData();

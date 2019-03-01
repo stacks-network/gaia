@@ -7,10 +7,10 @@ import type { ListFilesResult, PerformWriteArgs } from '../driverModel'
 import { DriverStatics, DriverModel } from '../driverModel'
 import { pipeline } from '../utils'
 
-type DISK_CONFIG_TYPE = { diskSettings: { storageRootDirectory?: string },
+type DISK_CONFIG_TYPE = { diskSettings: { storageRootDirectory: string },
                           bucket?: string,
                           pageSize?: number,
-                          readURL?: string }
+                          readURL: string }
 
 const METADATA_DIRNAME = '.gaia-metadata'
 
@@ -45,7 +45,7 @@ class DiskDriver implements DriverModel {
       logger.warn(`The disk driver does not use the "config.bucket" variable. It is set to ${config.bucket}`)
     }
 
-    this.storageRootDirectory = config.diskSettings.storageRootDirectory
+    this.storageRootDirectory = Path.resolve(Path.normalize(config.diskSettings.storageRootDirectory))
     this.readURL = config.readURL
     if (this.readURL.slice(-1) !== '/') {
       // must end in /
@@ -100,11 +100,9 @@ class DiskDriver implements DriverModel {
       const fileOrDir = `${listPath}${Path.sep}${dirEntry.name}`
       if (dirEntry.isDirectory()) {
         const childNames = await this.findAllFiles(fileOrDir)
-        for (let j = 0; j < childNames.length; j++) {
-          fileNames.push(childNames[j])
-        }
+        fileNames.push(...childNames)
       } else {
-        fileNames.push(fileOrDir)
+        fileNames.push(Path.posix.normalize(fileOrDir))
       }
     }
     return fileNames
@@ -124,10 +122,10 @@ class DiskDriver implements DriverModel {
   async listFiles(prefix: string, page: ?string) {
     // returns {'entries': [...], 'page': next_page}
     let pageNum
-    const listPath = `${this.storageRootDirectory}/${prefix}`
+    const listPath = Path.normalize(`${this.storageRootDirectory}/${prefix}`)
     const emptyResponse : ListFilesResult = {
       entries: [],
-      page: `${page + 1}`
+      page: null
     }
 
     if (!(await fs.exists(listPath))) {
@@ -146,8 +144,8 @@ class DiskDriver implements DriverModel {
       }
       const stat = await fs.stat(listPath)
       if (!stat.isDirectory()) {
-        // nope 
-        return emptyResponse
+        // All the cloud drivers return a single empty entry in this situation
+        return { entries: [''], page: null }
       }
     } catch(e) {
       throw new Error('Invalid arguments: invalid page or not a directory')
