@@ -1,13 +1,11 @@
 /* @flow */
 import fs from 'fs-extra'
-//$FlowFixMe - Flow is unaware of the stream.pipeline Node API
-import { pipeline } from 'stream'
-import { promisify } from 'util'
 import { BadPathError, InvalidInputError } from '../errors'
 import logger from 'winston'
 import Path from 'path'
 import type { ListFilesResult, PerformWriteArgs } from '../driverModel'
 import { DriverStatics, DriverModel } from '../driverModel'
+import { pipeline } from '../utils'
 
 type DISK_CONFIG_TYPE = { diskSettings: { storageRootDirectory?: string },
                           bucket?: string,
@@ -16,7 +14,6 @@ type DISK_CONFIG_TYPE = { diskSettings: { storageRootDirectory?: string },
 
 const METADATA_DIRNAME = '.gaia-metadata'
 
-const pipelinePromise = promisify(pipeline)
 
 class DiskDriver implements DriverModel {
   storageRootDirectory: string
@@ -196,7 +193,7 @@ class DiskDriver implements DriverModel {
       await this.mkdirs(absdirname)
 
       const writePipe = fs.createWriteStream(abspath, { mode: 0o600, flags: 'w' })
-      await pipelinePromise(args.stream, writePipe)
+      await pipeline(args.stream, writePipe)
 
       // remember content type in $storageRootDir/.gaia-metadata/$address/$path
       // (i.e. these files are outside the address bucket, and are thus hidden)

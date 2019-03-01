@@ -9,8 +9,9 @@ import DiskDriver from './drivers/diskDriver'
 import { promisify } from 'util'
 
 //$FlowFixMe - Flow is unaware of the stream.pipeline Node API
-import { pipeline } from 'stream'
-const pipelinePromise = promisify(pipeline)
+import { pipeline as _pipline } from 'stream'
+
+export const pipeline = promisify(_pipline)
 
 export function getDriverClass(driver: string) : Class<DriverModel> {
   if (driver === 'aws') {
@@ -45,6 +46,6 @@ class MemoryStream extends Writable {
 
 export async function readStream(stream: Readable): Promise<Buffer> {
   const memStream = new MemoryStream()
-  await pipelinePromise(stream, memStream)
+  await pipeline(stream, memStream)
   return memStream.getData()
 }
