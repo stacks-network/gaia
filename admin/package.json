@@ -52,7 +52,7 @@
     "eslint": "^5.9.0",
     "eslint-plugin-flowtype": "^3.2.0",
     "flow-bin": "^0.93.0",
-    "nyc": "^13.0.0",
+    "nyc": "^13.3.0",
     "tape": "^4.9.0"
   },
   "homepage": "https://github.com/blockstack/gaia"
