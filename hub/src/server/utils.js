@@ -49,3 +49,11 @@ export async function readStream(stream: Readable): Promise<Buffer> {
   await pipeline(stream, memStream)
   return memStream.getData()
 }
+
+export function timeout(milliseconds: number): Promise<void> {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve()
+    }, milliseconds)
+  })
+}

@@ -6,6 +6,7 @@ import logger from 'winston'
 import { BadPathError, InvalidInputError } from '../errors'
 import type { ListFilesResult, PerformWriteArgs } from '../driverModel'
 import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
+import { timeout } from '../utils'
 
 type S3_CONFIG_TYPE = { awsCredentials: {
                           accessKeyId?: string,
@@ -82,6 +83,11 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
         }
         try {
           await this.s3.createBucket(params).promise()
+          // Bucket creation takes a bit to propagate through AWS
+          // infrastructure before it is available for use. 
+          while (!(await this.s3BucketExists())) {
+            await timeout(500)
+          }
           logger.info(`initialized s3 bucket: ${this.bucket}`)
         } catch (error) {
           logger.error(`failed to initialize s3 bucket: ${error}`)
@@ -91,6 +97,19 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
         logger.error(`failed to connect to s3 bucket: ${error}`)
         throw error
       }
+    }
+  }
+
+  async s3BucketExists() {
+    try {
+      await this.s3.getBucketLocation({ Bucket: this.bucket }).promise()
+      return true
+    } catch (error) {
+      if (['NoSuchBucket', 'NotFound'].includes(error.code)) {
+        return false
+      }
+      logger.error(`Unexpected error while checking if bucket exists: ${error}`)
+      throw error
     }
   }
 
