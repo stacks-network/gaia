@@ -4,7 +4,7 @@
   "description": "Service for administrating a Gaia hub",
   "main": "lib/index.js",
   "engines": {
-    "node": "^8",
+    "node": ">=10",
     "npm": ">=6"
   },
   "scripts": {

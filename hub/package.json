@@ -1,10 +1,10 @@
 {
   "name": "gaia-hub",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "description": "",
   "main": "index.js",
   "engines": {
-    "node": "^8"
+    "node": ">=10"
   },
   "dependencies": {
     "@azure/storage-blob": "^10.3.0",
