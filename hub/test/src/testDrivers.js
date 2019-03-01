@@ -121,6 +121,22 @@ function testDriver(testName: string, mockTest: boolean, dataMap: [], createDriv
       t.equal(files.entries[0], '', 'List files on a file rather than directory should return a single empty entry')
       t.strictEqual(files.page, null, 'List files page result should be null')
 
+      if (!mockTest) {
+        sampleData = getSampleData();
+        const bogusContentType = 'x'.repeat(3000)
+        try {
+          await driver.performWrite(
+            { path: 'bogusContentTypeFile',
+              storageTopLevel: topLevelStorage,
+              stream: sampleData.stream,
+              contentType: bogusContentType,
+              contentLength: sampleData.contentLength })
+          t.fail('Extremely large content-type headers should fail to write')
+        } catch (error) {
+          t.pass('Extremely large content-type headers should fail to write')
+        }
+      }
+
       try {
         const invalidFileName = `../../your_password`;
         let sampleData = getSampleData();

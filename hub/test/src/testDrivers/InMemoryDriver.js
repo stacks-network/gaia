@@ -5,7 +5,7 @@ import { Server } from 'http'
 import express from 'express'
 import { DriverModel } from '../../../src/server/driverModel'
 import type { ListFilesResult, PerformWriteArgs } from '../../../src/server/driverModel'
-import { BadPathError } from '../../../src/server/errors'
+import { BadPathError, InvalidInputError } from '../../../src/server/errors'
 
 export class InMemoryDriver implements DriverModel {
 
@@ -65,6 +65,9 @@ export class InMemoryDriver implements DriverModel {
       // cancel write and return 402 if path is invalid
       if (!InMemoryDriver.isPathValid(args.path)) {
         throw new BadPathError('Invalid Path')
+      }
+      if (args.contentType.length > 1024) {
+        throw new InvalidInputError('Invalid content-type')
       }
       this.lastWrite = args
       const contentBuffer = await readStream(args.stream)

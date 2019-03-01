@@ -2,10 +2,9 @@
 
 import * as azure from '@azure/storage-blob'
 import logger from 'winston'
-import { BadPathError } from '../errors'
-import type { ListFilesResult } from '../driverModel'
+import { BadPathError, InvalidInputError } from '../errors'
+import type { ListFilesResult, PerformWriteArgs } from '../driverModel'
 import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
-import { Readable } from 'stream'
 
 type AZ_CONFIG_TYPE = {
   azCredentials: {
@@ -136,18 +135,14 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
     }
   }
 
-  async performWrite(args: {
-    path: string,
-    storageTopLevel: string,
-    stream: Readable,
-    contentLength: number,
-    contentType: string
-  }): Promise<string> {
+  async performWrite(args: PerformWriteArgs): Promise<string> {
     // cancel write and return 402 if path is invalid
     if (!AzDriver.isPathValid(args.path)) {
       throw new BadPathError('Invalid Path')
     }
-
+    if (args.contentType && args.contentType.length > 1024) {
+      throw new InvalidInputError('Invalid content-type')
+    }
     // Prepend ${address}/ to filename
     const azBlob = `${args.storageTopLevel}/${args.path}`
     const blobURL = azure.BlobURL.fromContainerURL(this.container, azBlob)

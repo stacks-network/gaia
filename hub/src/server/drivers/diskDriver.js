@@ -154,7 +154,7 @@ class DiskDriver implements DriverModel {
     return await this.listFilesInDirectory(listPath, pageNum)
   }
 
-  async performWrite(args: PerformWriteArgs) : Promise<string> {
+  async performWrite(args: PerformWriteArgs): Promise<string> {
 
       const path = args.path
       const topLevelDir = args.storageTopLevel
@@ -164,7 +164,7 @@ class DiskDriver implements DriverModel {
         throw new BadPathError('Invalid Path')
       }
 
-      if (contentType.length > 255) {
+      if (contentType && contentType.length > 1024) {
         // no way this is valid 
         throw new InvalidInputError('Invalid content-type')
       }

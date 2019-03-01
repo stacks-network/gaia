@@ -3,7 +3,7 @@
 import { Storage } from '@google-cloud/storage'
 import logger from 'winston'
 
-import { BadPathError } from '../errors'
+import { BadPathError, InvalidInputError } from '../errors'
 import type { ListFilesResult, PerformWriteArgs } from '../driverModel'
 import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
 import { pipeline } from '../utils'
@@ -151,11 +151,13 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
     return this.listAllObjects(prefix, page)
   }
 
-  async performWrite(args: PerformWriteArgs) : Promise<string> {
+  async performWrite(args: PerformWriteArgs): Promise<string> {
     if (!GcDriver.isPathValid(args.path)) {
       throw new BadPathError('Invalid Path')
     }
-
+    if (args.contentType && args.contentType.length > 1024) {
+      throw new InvalidInputError('Invalid content-type')
+    }
     const filename = `${args.storageTopLevel}/${args.path}`
     const publicURL = `${this.getReadURLPrefix()}${filename}`
 

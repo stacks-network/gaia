@@ -3,7 +3,7 @@
 import S3 from 'aws-sdk/clients/s3'
 import logger from 'winston'
 
-import { BadPathError } from '../errors'
+import { BadPathError, InvalidInputError } from '../errors'
 import type { ListFilesResult, PerformWriteArgs } from '../driverModel'
 import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
 
@@ -126,7 +126,10 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
     return this.listAllKeys(prefix, page)
   }
 
-  async performWrite(args: PerformWriteArgs) : Promise<string> {
+  async performWrite(args: PerformWriteArgs): Promise<string> {
+    if (args.contentType && args.contentType.length > 1024) {
+      throw new InvalidInputError('Invalid content-type')
+    }
     const s3key = `${args.storageTopLevel}/${args.path}`
     const s3params = Object.assign({}, {
       Bucket: this.bucket,
