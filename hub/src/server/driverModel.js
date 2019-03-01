@@ -20,6 +20,16 @@ export interface DriverModel {
   constructor(config: any) : void
 }
 
+export interface DriverModelTestMethods extends DriverModel {
+  /**
+   * Deletes the bucket. This is only meant to be used for cleaning up 
+   * after performing integration testing so as not to exceed any max 
+   * bucket/container limits. A sanity check is performed to ensure 
+   * that the bucket is empty before deletion. 
+   */
+  deleteEmptyBucket(): Promise<void>;
+}
+
 export interface DriverStatics {
   getConfigInformation(): { defaults: Object,
                             envVars: Object }

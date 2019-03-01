@@ -5,7 +5,7 @@ import logger from 'winston'
 
 import { BadPathError } from '../errors'
 import type { ListFilesResult, PerformWriteArgs } from '../driverModel'
-import { DriverStatics, DriverModel } from '../driverModel'
+import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
 
 type S3_CONFIG_TYPE = { awsCredentials: {
                           accessKeyId?: string,
@@ -16,7 +16,7 @@ type S3_CONFIG_TYPE = { awsCredentials: {
                         cacheControl?: string,
                         bucket: string }
 
-class S3Driver implements DriverModel {
+class S3Driver implements DriverModel, DriverModelTestMethods {
   s3: S3
   bucket: string
   pageSize: number
@@ -70,34 +70,36 @@ class S3Driver implements DriverModel {
     return `https://${this.bucket}.s3.amazonaws.com/`
   }
 
-  createIfNeeded () {
-    return new Promise<void>((resolve, reject) => {
-      this.s3.headBucket( { Bucket: this.bucket }, (error) => {
-        if (error && error.code === 'NotFound') { // try to create
-          const params = {
-            Bucket: this.bucket,
-            ACL: 'public-read'
-          }
-          this.s3.createBucket(params, (error) => {
-            if (error) {
-              logger.error(`failed to initialize s3 bucket: ${error}`)
-              process.exit()
-              reject(error)
-            } else {
-              logger.info(`initialized s3 bucket: ${this.bucket}`)
-              resolve()
-            }
-          })
-        } else if (error) {
-          logger.error(`failed to connect to s3 bucket: ${error}`)
-          process.exit()
-          reject(error)
-        } else {
-          logger.info(`connected to s3 bucket: ${this.bucket}`)
-          resolve()
+  async createIfNeeded () {
+    try {
+      await this.s3.headBucket({ Bucket: this.bucket }).promise()
+      logger.info(`connected to s3 bucket: ${this.bucket}`)
+    } catch (error) {
+      if (error.code === 'NotFound') { // try to create
+        const params = {
+          Bucket: this.bucket,
+          ACL: 'public-read'
         }
-      })
-    })
+        try {
+          await this.s3.createBucket(params).promise()
+          logger.info(`initialized s3 bucket: ${this.bucket}`)
+        } catch (error) {
+          logger.error(`failed to initialize s3 bucket: ${error}`)
+          throw error
+        }
+      } else {
+        logger.error(`failed to connect to s3 bucket: ${error}`)
+        throw error
+      }
+    }
+  }
+
+  async deleteEmptyBucket() {
+    const files = await this.listFiles('')
+    if (files.entries.length > 0) {
+      throw new Error('Tried deleting non-empty bucket')
+    }
+    await this.s3.deleteBucket({ Bucket: this.bucket }).promise()
   }
 
   listAllKeys(prefix: string, page: ?string) : Promise<ListFilesResult> {

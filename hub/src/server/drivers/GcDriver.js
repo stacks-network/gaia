@@ -5,7 +5,7 @@ import logger from 'winston'
 
 import { BadPathError } from '../errors'
 import type { ListFilesResult, PerformWriteArgs } from '../driverModel'
-import { DriverStatics, DriverModel } from '../driverModel'
+import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
 import { pipeline } from '../utils'
 
 type GC_CONFIG_TYPE = {
@@ -24,7 +24,7 @@ type GC_CONFIG_TYPE = {
   resumable?: boolean
 }
 
-class GcDriver implements DriverModel {
+class GcDriver implements DriverModel, DriverModelTestMethods {
   bucket: string
   storage: Storage
   pageSize: number
@@ -89,30 +89,31 @@ class GcDriver implements DriverModel {
     return `https://storage.googleapis.com/${this.bucket}/`
   }
 
-  createIfNeeded() {
-    const bucket = this.storage.bucket(this.bucket)
-
-    return bucket.exists()
-    .then(data => {
-      const exists = data[0]
+  async createIfNeeded() {
+    try {
+      const bucket = this.storage.bucket(this.bucket)
+      const [ exists ] = await bucket.exists()
       if (!exists) {
-        return this.storage
-          .createBucket(this.bucket)
-          .then(() => {
-            logger.info(`initialized google cloud storage bucket: ${this.bucket}`)
-          })
-          .catch(err => {
-            logger.error(`failed to initialize google cloud storage bucket: ${err}`)
-            process.exit()
-            throw err
-          })
+        try {
+          await this.storage.createBucket(this.bucket)
+          logger.info(`initialized google cloud storage bucket: ${this.bucket}`)
+        } catch (err) {
+          logger.error(`failed to initialize google cloud storage bucket: ${err}`)
+          throw err
+        }
       }
-    })
-    .catch(err => {
+    } catch (err) {
       logger.error(`failed to connect to google cloud storage bucket: ${err}`)
-      process.exit()
       throw err
-    })
+    }
+  }
+
+  async deleteEmptyBucket() {
+    const files = await this.listFiles('')
+    if (files.entries.length > 0) {
+      throw new Error('Tried deleting non-empty bucket')
+    }
+    await this.storage.bucket(this.bucket).delete()
   }
 
   listAllObjects(prefix: string, page: ?string) : Promise<ListFilesResult> {

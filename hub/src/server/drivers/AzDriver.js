@@ -4,7 +4,7 @@ import * as azure from '@azure/storage-blob'
 import logger from 'winston'
 import { BadPathError } from '../errors'
 import type { ListFilesResult } from '../driverModel'
-import { DriverStatics, DriverModel } from '../driverModel'
+import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
 import { Readable } from 'stream'
 
 type AZ_CONFIG_TYPE = {
@@ -19,7 +19,7 @@ type AZ_CONFIG_TYPE = {
 }
 
 // The AzDriver utilized the azure nodejs sdk to write files to azure blob storage
-class AzDriver implements DriverModel {
+class AzDriver implements DriverModel, DriverModelTestMethods {
   container: azure.ContainerURL
   accountName: string
   bucket: string
@@ -71,9 +71,8 @@ class AzDriver implements DriverModel {
     // Check for container(bucket), create it if does not exist
     // Set permissions to 'blob' to allow public reads
     try {
-      const createContainerResponse = await this.container.create(
-        azure.Aborter.none, { access: 'blob' })
-      logger.info(`Create container ${this.bucket} successfully: ${createContainerResponse}`)
+      await this.container.create(azure.Aborter.none, { access: 'blob' })
+      logger.info(`Create container ${this.bucket} successfully`)
     } catch (error) {
       if (error.body && error.body.Code === 'ContainerAlreadyExists') {
         logger.info('Container initialized.')
@@ -82,6 +81,15 @@ class AzDriver implements DriverModel {
         throw error
       }
     }
+  }
+
+  async deleteEmptyBucket() {
+    const prefix: any = undefined
+    const files = await this.listFiles(prefix)
+    if (files.entries.length > 0) {
+      throw new Error('Tried deleting non-empty bucket')
+    }
+    await this.container.delete(azure.Aborter.none)
   }
 
   ensureInitialized() {

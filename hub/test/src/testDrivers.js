@@ -10,7 +10,7 @@ import os from 'os'
 
 import { Readable, Writable } from 'stream'
 import { InMemoryDriver } from './testDrivers/InMemoryDriver'
-import { DriverModel } from '../../src/server/driverModel'
+import { DriverModel, DriverModelTestMethods } from '../../src/server/driverModel'
 import type { ListFilesResult } from '../../src/server/driverModel'
 
 import DiskDriver from '../../src/server/drivers/diskDriver'
@@ -26,6 +26,7 @@ export function addMockFetches(fetchLib: any, prefix: any, dataMap: any) {
 
 
 function testDriver(testName: string, mockTest: boolean, dataMap: [], createDriver: (config?: Object) => DriverModel) {
+
   test(testName, async (t) => {
     const topLevelStorage = `${Date.now()}r${Math.random()*1e6|0}`
     const driver = createDriver({pageSize: 3})
@@ -46,7 +47,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: [], createDriv
       try {
         const writeArgs : any = { path: '../foo.js'}
         await driver.performWrite(writeArgs)
-        t.ok(false, 'Should have thrown')
+        t.fail('Should have thrown')
       }
       catch (err) {
         t.equal(err.message, 'Invalid Path', 'Should throw bad path')
@@ -120,9 +121,9 @@ function testDriver(testName: string, mockTest: boolean, dataMap: [], createDriv
           contentType: 'application/octet-stream',
           contentLength: sampleData.contentLength
         });
-        t.ok(false, 'File write with a filename containing path traversal should have been rejected')
+        t.fail('File write with a filename containing path traversal should have been rejected')
       } catch (error) {
-        t.ok(true, 'File write with a filename containing path traversal should have been rejected')
+        t.pass('File write with a filename containing path traversal should have been rejected')
       }
 
       if (!mockTest) {
@@ -145,9 +146,9 @@ function testDriver(testName: string, mockTest: boolean, dataMap: [], createDriv
 
         try {
           await driver.listFiles(`${topLevelStorage}/${pageTestDir}`, "bogus page data")
-          t.ok(false, 'List files with invalid page data should have failed')
+          t.fail('List files with invalid page data should have failed')
         } catch (error) {
-          t.ok(true, 'List files with invalid page data should have failed')
+          t.pass('List files with invalid page data should have failed')
         }
 
         try {
@@ -159,9 +160,9 @@ function testDriver(testName: string, mockTest: boolean, dataMap: [], createDriv
             contentType: 'application/octet-stream',
             contentLength: 100
           });
-          t.ok(false, 'Perform write with broken upload stream should have failed')
+          t.fail('Perform write with broken upload stream should have failed')
         } catch (error) {
-          t.ok(true, 'Perform write with broken upload stream should have failed')
+          t.pass('Perform write with broken upload stream should have failed')
         }
         
       }
@@ -177,6 +178,31 @@ function testDriver(testName: string, mockTest: boolean, dataMap: [], createDriv
   });
 }
 
+function testDriverBucketCreation(driverName: string, createDriver: (config?: Object) => DriverModelTestMethods) {
+
+  test(`bucket creation for driver: ${driverName}`, async (t) => {
+    const topLevelStorage = `test-buckets-creation${Date.now()}r${Math.random()*1e6|0}`
+    const driver = createDriver({ bucket: topLevelStorage })
+    try {
+      await driver.ensureInitialized()
+      t.pass('Successfully initialized driver with creation of a new bucket')
+    } catch (error) {
+      t.fail(`Could not initialize driver with creation of a new bucket: ${error}`)
+    } finally {
+      try {
+        await driver.deleteEmptyBucket()
+      } catch (error) {
+        t.fail(`Error trying to cleanup bucket: ${error}`)
+      }
+      await driver.dispose()
+    }
+  })
+}
+
+/** 
+ * Readable stream that simulates an interrupted http upload/POST request.
+ * Outputs some data then errors unexpectedly .
+ */
 class BrokenReadableStream extends Readable {
   readCount: number
   sampleData: Buffer
@@ -196,7 +222,7 @@ class BrokenReadableStream extends Readable {
   }
 }
 
-function testMockCloudDrivers() {
+function performDriverMockTests() {
   for (const name in mockTestDrivers.availableMockedDrivers) {
     const testName = `mock test for driver: ${name}`
     const mockTest = true
@@ -205,16 +231,30 @@ function testMockCloudDrivers() {
   }
 }
 
-function testRealCloudDrivers() {
+function performDriverIntegrationTests() {
   for (const name in integrationTestDrivers.availableDrivers) {
-    const create = integrationTestDrivers.availableDrivers[name];
+    const driverInfo = integrationTestDrivers.availableDrivers[name];
     const testName = `integration test for driver: ${name}`
     const mockTest = false
-    testDriver(testName, mockTest, [], testConfig => create(testConfig))
+    testDriver(testName, mockTest, [], testConfig => driverInfo.create(testConfig))
+  }
+}
+
+function performDriverBucketCreationTests() {
+  // Test driver initialization that require the creation of a new bucket,
+  // only on configured driver that implement the `deleteEmptyBucket` method
+  // so as not to exceed cloud provider max bucket/container limits.
+  for (const name in integrationTestDrivers.availableDrivers) {
+    const driverInfo = integrationTestDrivers.availableDrivers[name];
+    const classPrototype: any = driverInfo.class.prototype
+    if (classPrototype.deleteEmptyBucket) {
+      testDriverBucketCreation(name, testConfig => (driverInfo.create(testConfig): any)) 
+    }
   }
 }
 
 export function testDrivers() {
-  testMockCloudDrivers()
-  testRealCloudDrivers()
+  performDriverMockTests()
+  performDriverIntegrationTests()
+  performDriverBucketCreationTests()
 }

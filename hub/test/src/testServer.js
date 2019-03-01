@@ -25,8 +25,8 @@ class MockProofs extends ProofChecker {
 
 async function usingIntegrationDrivers(func: (driver: DriverModel, name: string) => Promise<any> | void) {
   for (const name in integrationTestDrivers.availableDrivers) {
-    const create = integrationTestDrivers.availableDrivers[name];
-    const driver = await create();
+    const driverInfo = integrationTestDrivers.availableDrivers[name];
+    const driver = await driverInfo.create();
     try {
       await driver.ensureInitialized();
       await Promise.resolve(func(driver, name));

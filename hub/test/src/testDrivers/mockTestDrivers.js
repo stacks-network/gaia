@@ -82,9 +82,9 @@ export function makeMockedS3Driver() {
   let bucketName = ''
 
   const S3Class = class {
-    headBucket(options, callback) {
+    headBucket(options) {
       bucketName = options.Bucket
-      callback()
+      return { promise: () => Promise.resolve() }
     }
     upload(options, cb) {
       if (options.Bucket != bucketName) {
