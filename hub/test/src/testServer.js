@@ -19,7 +19,7 @@ const TEST_AUTH_CACHE_SIZE = 10
 
 class MockProofs extends ProofChecker {
   checkProofs() {
-    return Promise.resolve()
+    return Promise.resolve(true)
   }
 }
 
