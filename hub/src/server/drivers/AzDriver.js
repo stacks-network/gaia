@@ -150,7 +150,12 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
 
     // 1MB max buffer block size
     const bufferSize = Math.min(1024 * 1024, args.contentLength)
-    // No parallelism since bottleneck be in clients' http request upload speed
+
+    /** 
+     * No parallelism since bottleneck would be in clients' http request
+     * upload speed rather than the gaia server disk or network IO.
+     * @see https://docs.microsoft.com/en-us/azure/storage/blobs/storage-quickstart-blobs-nodejs-v10#upload-a-stream
+    */
     const maxBuffers = 1
 
     try {
