@@ -116,34 +116,32 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
     await this.storage.bucket(this.bucket).delete()
   }
 
-  listAllObjects(prefix: string, page: ?string) : Promise<ListFilesResult> {
+  async listAllObjects(prefix: string, page: ?string) {
     // returns {'entries': [...], 'page': next_page}
     const opts : { prefix: string, maxResults: number, pageToken?: string } = {
       prefix: prefix,
-      maxResults: this.pageSize
+      maxResults: this.pageSize,
+      pageToken: page || undefined
     }
-    if (page) {
-      opts.pageToken = page
-    }
-    return new Promise((resolve, reject) => {
-      return this.storage.bucket(this.bucket).getFiles(opts, (err, files, nextQuery) => {
-        if (err) {
-          return reject(err)
-        }
-        const fileNames = []
-        files.forEach(file => {
-          fileNames.push(file.name.slice(prefix.length + 1))
+
+    const {files, nextQuery} = await new Promise((resolve, reject) => {
+      this.storage
+        .bucket(this.bucket)
+        .getFiles(opts, (err, files, nextQuery) => {
+          if (err) {
+            reject(err)
+          } else {
+            resolve({files, nextQuery})
+          }
         })
-        const ret : ListFilesResult = {
-          entries: fileNames,
-          page: null
-        }
-        if (nextQuery && nextQuery.pageToken) {
-          ret.page = nextQuery.pageToken
-        }
-        return resolve(ret)
-      })
     })
+
+    const fileNames = files.map(file => file.name.slice(prefix.length + 1))
+    const ret : ListFilesResult = {
+      entries: fileNames,
+      page: (nextQuery && nextQuery.pageToken) || null
+    }
+    return ret
   }
 
   listFiles(prefix: string, page: ?string) {
