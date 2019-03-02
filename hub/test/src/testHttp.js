@@ -118,6 +118,24 @@ export function testHttpWithInMemoryDriver() {
         .expect(401)
       t.equal(failedRevokeResponse.body.error, 'ValidationError', 'Revoke request should have returned correct error type')
 
+      await request(app)
+        .post(`/revoke-all/${testAddrs[2]}`)
+        .set('Authorization', authorization)
+        .send({wrongField: 1234})
+        .expect(400)
+
+      await request(app)
+        .post(`/revoke-all/${testAddrs[2]}`)
+        .set('Authorization', authorization)
+        .send({oldestValidTimestamp: "NaN"})
+        .expect(400)
+
+      await request(app)
+        .post(`/revoke-all/${testAddrs[2]}`)
+        .set('Authorization', authorization)
+        .send({oldestValidTimestamp: -4343343})
+        .expect(400)
+
       const failedStoreResponse = await request(app).post(path)
         .set('Content-Type', 'application/octet-stream')
         .set('Authorization', authorization)

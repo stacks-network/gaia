@@ -129,7 +129,7 @@ export function makeHttpServer(config: MakeHttpServerConfig & HubServerConfig): 
       const address = req.params[0]
       const oldestValidTimestamp: number = parseInt(req.body.oldestValidTimestamp)
 
-      if (!Number.isFinite(oldestValidTimestamp)) {
+      if (!Number.isFinite(oldestValidTimestamp) || oldestValidTimestamp < 0) {
         writeResponse(res, { message: 'Invalid JSON: oldestValidTimestamp is not a valid integer'}, 400)
         return
       }
