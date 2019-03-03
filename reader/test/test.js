@@ -2,7 +2,7 @@ const test = require('tape')
 const fs = require('fs')
 const Path = require('path')
 
-const { GaiaDiskReader } = require('../lib/server.js')
+const { GaiaDiskReader } = require('../src/server.js')
 
 function testServer() {
   test('check handleGet', (t) => {

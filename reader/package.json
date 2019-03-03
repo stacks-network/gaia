@@ -22,6 +22,7 @@
     "@babel/preset-flow": "^7.0.0",
     "@babel/register": "^7.0.0",
     "babel-eslint": "^10.0.1",
+    "babel-plugin-istanbul": "^5.1.1",
     "eslint": "^5.14.1",
     "eslint-plugin-flowtype": "^3.4.2",
     "fetch-mock": "^7.3.1",
@@ -35,12 +36,11 @@
     "blockstack-gaia-reader": "./lib/index.js"
   },
   "scripts": {
-    "start": "npm run build && npm run flow && node lib/index.js",
+    "start": "npm run build && node lib/index.js",
     "build": "npm run lint && babel src -d lib && chmod +x lib/index.js",
     "flow": "flow",
     "lint": "eslint src",
-    "test-inner": "npm run build && npm run flow && node ./test/test.js",
-    "test": "npm run lint && nyc --reporter=text npm run test-inner"
+    "test": "npm run lint && npm run flow && NODE_ENV=test nyc --reporter=text --reporter=lcov node ./test/test.js"
   },
   "repository": {
     "type": "git",
@@ -49,5 +49,15 @@
   "authors": [
     "Aaron Blankstein (aaron@blockstack.com)",
     "Jude Nelson (jude@blockstack.com)"
-  ]
+  ],
+  "nyc": {
+    "include": [
+      "src/**"
+    ],
+    "require": [
+      "@babel/register"
+    ],
+    "sourceMap": false,
+    "instrument": false
+  }
 }

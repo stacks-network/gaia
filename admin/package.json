@@ -8,14 +8,11 @@
     "npm": ">=6"
   },
   "scripts": {
-    "compile": "rm -rf lib; babel src -d lib",
-    "prepublish": "npm run build",
-    "unit-test": "npm run flow && npm run compile && node ./test/test.js",
-    "build": "npm run lint && npm run flow && npm run compile",
+    "start": "npm run build && node lib/index.js",
+    "build": "npm run lint && babel src -d lib && chmod +x lib/index.js",
     "flow": "flow",
     "lint": "eslint src",
-    "test": "npm run lint && nyc --reporter=text npm run unit-test",
-    "start": "npm run build && node lib/index.js"
+    "test": "npm run lint && npm run flow && NODE_ENV=test nyc --reporter=text --reporter=lcov node ./test/test.js"
   },
   "bin": {
     "blockstack-gaia-admin": "lib/index.js"
@@ -49,11 +46,22 @@
     "@babel/preset-flow": "^7.0.0",
     "@babel/register": "^7.0.0",
     "babel-eslint": "^10.0.1",
+    "babel-plugin-istanbul": "^5.1.1",
     "eslint": "^5.14.1",
     "eslint-plugin-flowtype": "^3.4.2",
     "flow-bin": "^0.94.0",
     "nyc": "^13.3.0",
     "tape": "^4.10.1"
   },
-  "homepage": "https://github.com/blockstack/gaia"
+  "homepage": "https://github.com/blockstack/gaia",
+  "nyc": {
+    "include": [
+      "src/**"
+    ],
+    "require": [
+      "@babel/register"
+    ],
+    "sourceMap": false,
+    "instrument": false
+  }
 }
