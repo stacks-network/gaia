@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
-      "target": "es6",
-      "module": "commonjs",
+      "target": "es2018",
+      "module": "umd",
       "esModuleInterop": true,
       "moduleResolution": "node",
       "declaration": true,
