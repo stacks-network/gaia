@@ -1,4 +1,4 @@
-FROM node:8-slim
+FROM node:10.15-alpine
 
 WORKDIR /src/admin
 
