@@ -1,4 +1,3 @@
 {
     // Prevents vscode from showing js/ts errors for Flow syntax.
-    "javascript.validate.enable": false
 }
