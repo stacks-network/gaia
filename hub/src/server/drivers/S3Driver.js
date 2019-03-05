@@ -3,10 +3,10 @@
 import S3 from 'aws-sdk/clients/s3'
 import logger from 'winston'
 
-import { BadPathError } from '../errors'
-
-import type { DriverModel, DriverStatics, ListFilesResult } from '../driverModel'
-import type { Readable } from 'stream'
+import { BadPathError, InvalidInputError } from '../errors'
+import type { ListFilesResult, PerformWriteArgs } from '../driverModel'
+import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
+import { timeout } from '../utils'
 
 type S3_CONFIG_TYPE = { awsCredentials: {
                           accessKeyId?: string,
@@ -17,11 +17,12 @@ type S3_CONFIG_TYPE = { awsCredentials: {
                         cacheControl?: string,
                         bucket: string }
 
-class S3Driver implements DriverModel {
+class S3Driver implements DriverModel, DriverModelTestMethods {
   s3: S3
   bucket: string
   pageSize: number
   cacheControl: ?string
+  initPromise: Promise<void>
 
   static getConfigInformation() {
     const envVars = {}
@@ -50,8 +51,15 @@ class S3Driver implements DriverModel {
     this.bucket = config.bucket
     this.pageSize = config.pageSize ? config.pageSize : 100
     this.cacheControl = config.cacheControl
+    this.initPromise = this.createIfNeeded()
+  }
 
-    this.createIfNeeded()
+  ensureInitialized() {
+    return this.initPromise
+  }
+
+  dispose() {
+    return Promise.resolve()
   }
 
   static isPathValid(path: string){
@@ -63,31 +71,57 @@ class S3Driver implements DriverModel {
     return `https://${this.bucket}.s3.amazonaws.com/`
   }
 
-  createIfNeeded () {
-    this.s3.headBucket( { Bucket: this.bucket }, (error) => {
-      if (error && error.code === 'NotFound') { // try to create
+  async createIfNeeded () {
+    try {
+      await this.s3.headBucket({ Bucket: this.bucket }).promise()
+      logger.info(`connected to s3 bucket: ${this.bucket}`)
+    } catch (error) {
+      if (error.code === 'NotFound') { // try to create
         const params = {
           Bucket: this.bucket,
           ACL: 'public-read'
         }
-        this.s3.createBucket(params, (error) => {
-          if (error) {
-            logger.error(`failed to initialize s3 bucket: ${error}`)
-            process.exit()
-          }else{
-            logger.info(`initialized s3 bucket: ${this.bucket}`)
+        try {
+          await this.s3.createBucket(params).promise()
+          // Bucket creation takes a bit to propagate through AWS
+          // infrastructure before it is available for use. 
+          while (!(await this.s3BucketExists())) {
+            await timeout(500)
           }
-        })
-      } else if (error) {
-        logger.error(`failed to connect to s3 bucket: ${error}`)
-        process.exit()
+          logger.info(`initialized s3 bucket: ${this.bucket}`)
+        } catch (error) {
+          logger.error(`failed to initialize s3 bucket: ${error}`)
+          throw error
+        }
       } else {
-        logger.info(`connected to s3 bucket: ${this.bucket}`)
+        logger.error(`failed to connect to s3 bucket: ${error}`)
+        throw error
       }
-    })
+    }
   }
 
-  listAllKeys(prefix: string, page: ?string) : Promise<ListFilesResult> {
+  async s3BucketExists() {
+    try {
+      await this.s3.getBucketLocation({ Bucket: this.bucket }).promise()
+      return true
+    } catch (error) {
+      if (['NoSuchBucket', 'NotFound'].includes(error.code)) {
+        return false
+      }
+      logger.error(`Unexpected error while checking if bucket exists: ${error}`)
+      throw error
+    }
+  }
+
+  async deleteEmptyBucket() {
+    const files = await this.listFiles('')
+    if (files.entries.length > 0) {
+      throw new Error('Tried deleting non-empty bucket')
+    }
+    await this.s3.deleteBucket({ Bucket: this.bucket }).promise()
+  }
+
+  async listAllKeys(prefix: string, page: ?string) : Promise<ListFilesResult> {
     // returns {'entries': [...], 'page': next_page}
     const opts : { Bucket: string, MaxKeys: number, Prefix: string, ContinuationToken?: string } = {
       Bucket: this.bucket,
@@ -97,18 +131,13 @@ class S3Driver implements DriverModel {
     if (page) {
       opts.ContinuationToken = page
     }
-    return new Promise((resolve, reject) => {
-      this.s3.listObjectsV2(opts, (err, data) => {
-        if (err) {
-          return reject(err)
-        }
-        const res : ListFilesResult = {
-          entries: data.Contents.map((e) => e.Key.slice(prefix.length + 1)),
-          page: data.isTruncated ? data.NextContinuationToken : null
-        }
-        return resolve(res)
-      })
-    })
+
+    const data = await this.s3.listObjectsV2(opts).promise()
+    const res : ListFilesResult = {
+      entries: data.Contents.map((e) => e.Key.slice(prefix.length + 1)),
+      page: data.IsTruncated ? data.NextContinuationToken : null
+    }
+    return res
   }
 
   listFiles(prefix: string, page: ?string) {
@@ -116,11 +145,10 @@ class S3Driver implements DriverModel {
     return this.listAllKeys(prefix, page)
   }
 
-  performWrite(args: { path: string,
-                       storageTopLevel: string,
-                       stream: Readable,
-                       contentLength: number,
-                       contentType: string }) : Promise<string> {
+  async performWrite(args: PerformWriteArgs): Promise<string> {
+    if (args.contentType && args.contentType.length > 1024) {
+      throw new InvalidInputError('Invalid content-type')
+    }
     const s3key = `${args.storageTopLevel}/${args.path}`
     const s3params = Object.assign({}, {
       Bucket: this.bucket,
@@ -134,25 +162,24 @@ class S3Driver implements DriverModel {
     }
 
     if (!S3Driver.isPathValid(args.path)){
-      return Promise.reject(new BadPathError('Invalid Path'))
+      throw new BadPathError('Invalid Path')
     }
 
     // Upload stream to s3
-    return new Promise((resolve, reject) => {
-      this.s3.upload(s3params, (err) => {
-        if (err) {
-          logger.error(`failed to store ${s3key} in bucket ${this.bucket}`)
-          return reject(new Error('S3 storage failure: failed to store' +
-                                  ` ${s3key} in bucket ${this.bucket}: ${err}`))
-        }
-        const publicURL = `${this.getReadURLPrefix()}${s3key}`
-        logger.debug(`storing ${s3key} in bucket ${this.bucket}`)
-        return resolve(publicURL)
-      })
-    })
+    try {
+      await this.s3.upload(s3params).promise()
+    } catch (error) {
+      logger.error(`failed to store ${s3key} in bucket ${this.bucket}`)
+      throw new Error('S3 storage failure: failed to store' +
+        ` ${s3key} in bucket ${this.bucket}: ${error}`)
+    }
+
+    const publicURL = `${this.getReadURLPrefix()}${s3key}`
+    logger.debug(`storing ${s3key} in bucket ${this.bucket}`)
+    return publicURL
   }
 }
 
 (S3Driver: DriverStatics)
 
-module.exports = S3Driver
+export default S3Driver

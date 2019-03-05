@@ -1,30 +1,37 @@
-export class ValidationError {
-  constructor (message) {
-    this.name = 'ValidationError'
-    this.message = message
-    this.stack = (new Error(message)).stack
+/* @flow */
+
+export class ValidationError extends Error {
+  constructor (message: string) {
+    super(message)
+    this.name = this.constructor.name
   }
 }
 
-export class BadPathError {
-  constructor (message) {
-    this.name = 'BadPathError'
-    this.message = message
-    this.stack = (new Error(message)).stack
-  }
-}
-export class NotEnoughProofError {
-  constructor (message) {
-    this.name = 'NotEnoughProofError'
-    this.message = message
-    this.stack = (new Error(message)).stack
+export class AuthTokenTimestampValidationError extends Error {
+  oldestValidTokenTimestamp: number;
+  constructor (message: string, oldestValidTokenTimestamp: number) {
+    super(message)
+    this.name = this.constructor.name
+    this.oldestValidTokenTimestamp = oldestValidTokenTimestamp
   }
 }
 
-export class InvalidInputError {
-  constructor (message) {
-    this.name = 'InvalidInputError'
-    this.message = message
-    this.stack = (new Error(message)).stack
+export class BadPathError extends Error {
+  constructor (message: string) {
+    super(message)
+    this.name = this.constructor.name
+  }
+}
+export class NotEnoughProofError extends Error {
+  constructor (message: string) {
+    super(message)
+    this.name = this.constructor.name
+  }
+}
+
+export class InvalidInputError extends Error {
+  constructor (message: string) {
+    super(message)
+    this.name = this.constructor.name
   }
 }

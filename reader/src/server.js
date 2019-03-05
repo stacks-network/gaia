@@ -17,11 +17,20 @@ export class GaiaDiskReader {
 
   }
 
+  isPathValid(path: string){
+    // for now, only disallow double dots.
+    return (path.indexOf('..') === -1)
+  }
+
   handleGet(topLevelDir: string, filename: string)
   : Promise<{ exists: boolean, contentType: ?string } > {
     const storageRoot = this.config.diskSettings.storageRootDirectory
     if (!storageRoot) {
       throw new Error('Misconfiguration: no storage root set')
+    }
+
+    if (!this.isPathValid(filename)) {
+      throw new Error('Invalid file name')
     }
 
     const filePath = Path.join(storageRoot, topLevelDir, filename)

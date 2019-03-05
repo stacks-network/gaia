@@ -1,6 +1,6 @@
-import bitcoin from 'bitcoinjs-lib'
-import test  from 'tape'
-import * as config from '../../lib/server/config.js'
+/* @flow */
+import test from 'tape-promise/tape'
+import * as config from '../../src/server/config.js'
 
 
 export function testConfig() {
@@ -81,6 +81,9 @@ export function testConfig() {
 
 
     t.deepEqual(configResult, configExpected)
+
+    process.env.GAIA_DRIVER = 'bogusDriver'
+    t.throws(() => config.getConfig(), undefined, 'Should throw error on invalid driver type config')
 
     process.env.CONFIG_PATH = `${configDir}/config.0.json`
 

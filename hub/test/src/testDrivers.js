@@ -1,399 +1,286 @@
-import test  from 'tape'
-
+/* @flow */
+import test from 'tape-promise/tape'
 import proxyquire from 'proxyquire'
 import FetchMock from 'fetch-mock'
+import * as NodeFetch from 'node-fetch'
 
 import fs from 'fs'
 import path from 'path'
+import os from 'os'
 
 import { Readable, Writable } from 'stream'
+import { InMemoryDriver } from './testDrivers/InMemoryDriver'
+import { DriverModel, DriverModelTestMethods } from '../../src/server/driverModel'
+import type { ListFilesResult } from '../../src/server/driverModel'
 
-import * as auth from '../../lib/server/authentication'
-import * as errors from '../../lib/server/errors'
+import DiskDriver from '../../src/server/drivers/diskDriver'
 
-import { testPairs, testAddrs} from './common'
+import * as mockTestDrivers from './testDrivers/mockTestDrivers'
+import * as integrationTestDrivers from './testDrivers/integrationTestDrivers'
 
-const azConfigPath = process.env.AZ_CONFIG_PATH
-const awsConfigPath = process.env.AWS_CONFIG_PATH
-const diskConfigPath = process.env.DISK_CONFIG_PATH
-const gcConfigPath = process.env.GC_CONFIG_PATH
-
-export function addMockFetches(prefix, dataMap) {
-  dataMap.forEach( item => {
-    FetchMock.get(`${prefix}${item.key}`, item.data)
+export function addMockFetches(fetchLib: any, prefix: any, dataMap: any) {
+  dataMap.forEach(item => {
+    fetchLib.get(`${prefix}${item.key}`, item.data, { overwriteRoutes: true })
   })
 }
 
-function readStream(input, contentLength, callback) {
-  var bufs = []
-  input.on('data', function(d){ bufs.push(d) });
-  input.on('end', function(){
-    var buf = Buffer.concat(bufs)
-    callback(buf.slice(0, contentLength))
-  })
-}
 
-export function makeMockedAzureDriver() {
-  const dataMap = []
-  let bucketName = ''
-  const createContainerIfNotExists = function(newBucketName, options, cb) {
-    bucketName = newBucketName
-    cb()
-  }
-  const createBlockBlobFromStream = function(putBucket, blobName, streamInput, contentLength, opts, cb) {
-    if (bucketName !== putBucket) {
-      cb(new Error(`Unexpected bucket name: ${putBucket}. Expected ${bucketName}`))
-    }
-    readStream(streamInput, contentLength, (buffer) => {
-      dataMap.push({ data: buffer.toString(), key: blobName })
-      cb()
+function testDriver(testName: string, mockTest: boolean, dataMap: [], createDriver: (config?: Object) => DriverModel) {
+
+  test(testName, async (t) => {
+    const topLevelStorage = `${Date.now()}r${Math.random()*1e6|0}`
+    const cacheControlOpt = 'no-cache, no-store, must-revalidate'
+    const driver = createDriver({
+      pageSize: 3,
+      cacheControl: cacheControlOpt
     })
-  }
-  const listBlobsSegmentedWithPrefix = function(getBucket, prefix, continuation, data, cb) {
-    const outBlobs = []
-    dataMap.forEach(x => {
-      if (x.key.startsWith(prefix)) {
-        outBlobs.push({name: x.key})
+    try {
+      await driver.ensureInitialized()
+      const prefix = driver.getReadURLPrefix()
+      const sampleDataString = 'hello world'
+      const getSampleData = () => {
+        const contentBuff = Buffer.from(sampleDataString)
+        const s = new Readable()
+        s.push(contentBuff)
+        s.push(null)
+        return { stream: s, contentLength: contentBuff.length }
       }
-    })
-    cb(null, {entries: outBlobs, continuationToken: null})
-  }
 
-  const createBlobService = function() {
-    return { createContainerIfNotExists, createBlockBlobFromStream, listBlobsSegmentedWithPrefix }
-  }
+      const fetch = mockTest ? FetchMock.sandbox(NodeFetch) : NodeFetch;
 
-  const AzDriver = proxyquire('../../lib/server/drivers/AzDriver', {
-    'azure-storage': { createBlobService }
-  })
-  return { AzDriver, dataMap }
-}
-
-function makeMockedS3Driver() {
-  const dataMap = []
-  let bucketName = ''
-
-  const S3Class = class {
-    headBucket(options, callback) {
-      bucketName = options.Bucket
-      callback()
-    }
-    upload(options, cb) {
-      if (options.Bucket != bucketName) {
-        cb(new Error(`Unexpected bucket name: ${options.Bucket}. Expected ${bucketName}`))
+      try {
+        const writeArgs : any = { path: '../foo.js'}
+        await driver.performWrite(writeArgs)
+        t.fail('Should have thrown')
       }
-      readStream(options.Body, 10000, (buffer) => {
-        dataMap.push({ data: buffer.toString(), key: options.Key })
-        cb()
-      })
-    }
-    listObjectsV2(options, cb) {
-      const contents = dataMap
-      .filter((entry) => {
-        return (entry.key.slice(0, options.Prefix.length) === options.Prefix)
-      })
-      .map((entry) => {
-        return { Key: entry.key }
-      })
-      cb(null, { Contents: contents, isTruncated: false })
-    }
-  }
+      catch (err) {
+        t.equal(err.message, 'Invalid Path', 'Should throw bad path')
+      }
 
-  const driver = proxyquire('../../lib/server/drivers/S3Driver', {
-    'aws-sdk/clients/s3': S3Class
-  })
-  return { driver, dataMap }
-}
+      // Test binary data content-type
+      const binFileName = 'somedir/foo.bin';
+      let sampleData = getSampleData();
+      let readUrl = await driver.performWrite({
+        path: binFileName,
+        storageTopLevel: topLevelStorage,
+        stream: sampleData.stream,
+        contentType: 'application/octet-stream',
+        contentLength: sampleData.contentLength
+      });
+      t.ok(readUrl.startsWith(`${prefix}${topLevelStorage}`), `${readUrl} must start with readUrlPrefix ${prefix}${topLevelStorage}`)
 
-class MockWriteStream extends Writable {
-  constructor(dataMap, filename) {
-    super({})
-    this.dataMap = dataMap
-    this.filename = filename
-    this.data = ''
-  }
-  _write(chunk, encoding, callback) {
-    this.data += chunk
-    callback()
-  }
-  _final(callback) {
-    this.dataMap.push({ data: this.data, key: this.filename })
-    callback()
-  }
-}
+      if (mockTest) {
+        addMockFetches(fetch, prefix, dataMap)
+      }
 
-function makeMockedGcDriver() {
-  const dataMap = []
-  let myName = ''
+      let resp = await fetch(readUrl)
+      t.ok(resp.ok, 'fetch should return 2xx OK status code')
+      let resptxt = await resp.text()
+      t.equal(resptxt, sampleDataString, `Must get back ${sampleDataString}: got back: ${resptxt}`)
+      if (!mockTest) {
+        t.equal(resp.headers.get('content-type'), 'application/octet-stream', 'Read-end point response should contain correct content-type')
+        t.equal(resp.headers.get('cache-control'), cacheControlOpt, 'cacheControl not respected in response headers')
+      }
 
-  const file = function (filename) {
-    const createWriteStream = function() {
-      return new MockWriteStream(dataMap, filename)
-    }
-    return { createWriteStream }
-  }
-  const exists = function () {
-    return Promise.resolve([true])
-  }
-  const StorageClass = class {
-    bucket(bucketName) {
-      if (myName === '') {
-        myName = bucketName
-      } else {
-        if (myName !== bucketName) {
-          throw new Error(`Unexpected bucket name: ${bucketName}. Expected ${myName}`)
+      let files = await driver.listFiles(topLevelStorage)
+      t.equal(files.entries.length, 1, 'Should return one file')
+      t.equal(files.entries[0], binFileName, `Should be ${binFileName}!`)
+      t.ok(!files.page, 'list files for 1 result should not have returned a page')
+
+      // Test a text content-type that has implicit charset set
+      const txtFileName = 'somedir/foo_text.txt';
+      sampleData = getSampleData();
+      readUrl = await driver.performWrite(
+          { path: txtFileName,
+            storageTopLevel: topLevelStorage,
+            stream: sampleData.stream,
+            contentType: 'text/plain; charset=utf-8',
+            contentLength: sampleData.contentLength })
+      t.ok(readUrl.startsWith(`${prefix}${topLevelStorage}`), `${readUrl} must start with readUrlPrefix ${prefix}${topLevelStorage}`)
+      if (mockTest) {
+        addMockFetches(fetch, prefix, dataMap)
+      }
+
+      resp = await fetch(readUrl)
+      t.ok(resp.ok, 'fetch should return 2xx OK status code')
+      resptxt = await resp.text()
+      t.equal(resptxt, sampleDataString, `Must get back ${sampleDataString}: got back: ${resptxt}`)
+      if (!mockTest) {
+        t.equal(resp.headers.get('content-type'), 'text/plain; charset=utf-8', 'Read-end point response should contain correct content-type')
+      }
+
+      files = await driver.listFiles(topLevelStorage)
+      t.equal(files.entries.length, 2, 'Should return two files')
+      t.ok(files.entries.includes(txtFileName), `Should include ${txtFileName}`)
+
+      files = await driver.listFiles(`${Date.now()}r${Math.random()*1e6|0}`)
+      t.equal(files.entries.length, 0, 'List files for empty directory should return zero entries')
+
+      files = await driver.listFiles(`${topLevelStorage}/${txtFileName}`)
+      t.equal(files.entries.length, 1, 'List files on a file rather than directory should return a single entry')
+      t.equal(files.entries[0], '', 'List files on a file rather than directory should return a single empty entry')
+      t.strictEqual(files.page, null, 'List files page result should be null')
+
+      if (!mockTest) {
+        sampleData = getSampleData();
+        const bogusContentType = 'x'.repeat(3000)
+        try {
+          await driver.performWrite(
+            { path: 'bogusContentTypeFile',
+              storageTopLevel: topLevelStorage,
+              stream: sampleData.stream,
+              contentType: bogusContentType,
+              contentLength: sampleData.contentLength })
+          t.fail('Extremely large content-type headers should fail to write')
+        } catch (error) {
+          t.pass('Extremely large content-type headers should fail to write')
         }
       }
-      return { file, exists, getFiles: this.getFiles }
-    }
 
-    getFiles(options, cb) {
-      const files = dataMap.map((entry) => {
-        return { name: entry.key }
-      })
-      cb(null, files, null)
-    }
-  }
-
-  const driver = proxyquire('../../lib/server/drivers/GcDriver', {
-    '@google-cloud/storage': StorageClass
-  })
-  return { driver, dataMap }
-}
-
-function testAzDriver() {
-  let config = {
-    "azCredentials": {
-      "accountName": "mock-azure",
-      "accountKey": "mock-azure-key"
-    },
-    "bucket": "spokes"
-  }
-  let mockTest = true
-
-  if (azConfigPath) {
-    config = JSON.parse(fs.readFileSync(azConfigPath))
-    mockTest = false
-  }
-
-  let AzDriver, dataMap
-  const azDriverImport = '../../lib/server/drivers/AzDriver'
-  if (mockTest) {
-    const mockedObj = makeMockedAzureDriver()
-    dataMap = mockedObj.dataMap
-    AzDriver = mockedObj.AzDriver
-  } else {
-    AzDriver = require(azDriverImport)
-  }
-
-  test('azDriver', (t) => {
-    const driver = new AzDriver(config)
-    const prefix = driver.getReadURLPrefix()
-    const s = new Readable()
-    s._read = function noop() {}
-    s.push('hello world')
-    s.push(null)
-
-    driver.performWrite(
-      { path: '../foo.js'})
-      .then(() => t.ok(false, 'Should have thrown'))
-      .catch((err) => t.equal(err.message, 'Invalid Path', 'Should throw bad path'))
-      .then(() => driver.performWrite(
-        { path: 'foo.txt',
-          storageTopLevel: '12345',
-          stream: s,
+      try {
+        const invalidFileName = `../../your_password`;
+        let sampleData = getSampleData();
+        await driver.performWrite({
+          path: invalidFileName,
+          storageTopLevel: topLevelStorage,
+          stream: sampleData.stream,
           contentType: 'application/octet-stream',
-          contentLength: 12 }))
-      .then((readUrl) => {
-        if (mockTest) {
-          addMockFetches(prefix, dataMap)
+          contentLength: sampleData.contentLength
+        });
+        t.fail('File write with a filename containing path traversal should have been rejected')
+      } catch (error) {
+        t.pass('File write with a filename containing path traversal should have been rejected')
+      }
+
+      if (!mockTest) {
+        const pageTestDir = 'page_test_dir'
+        for (var i = 0; i < 5; i++) {
+          const binFileName = `${pageTestDir}/foo_${i}.bin`;
+          let sampleData = getSampleData();
+          await driver.performWrite({
+            path: binFileName,
+            storageTopLevel: topLevelStorage,
+            stream: sampleData.stream,
+            contentType: 'application/octet-stream',
+            contentLength: sampleData.contentLength
+          });
+        }
+        const pagedFiles = await driver.listFiles(`${topLevelStorage}/${pageTestDir}`)
+        t.equal(pagedFiles.entries.length, 3, 'List files with no pagination and maxPage size specified should have returned 3 entries')
+        const remainingFiles = await driver.listFiles(`${topLevelStorage}/${pageTestDir}`, pagedFiles.page)
+        t.equal(remainingFiles.entries.length, 2, 'List files with pagination should have returned 2 remaining entries')
+
+        try {
+          await driver.listFiles(`${topLevelStorage}/${pageTestDir}`, "bogus page data")
+          t.fail('List files with invalid page data should have failed')
+        } catch (error) {
+          t.pass('List files with invalid page data should have failed')
         }
 
-        t.ok(readUrl.startsWith(prefix), `${readUrl} must start with readUrlPrefix ${prefix}`)
-        return fetch(readUrl)
-      })
-      .then((resp) => resp.text())
-      .then((resptxt) => t.equal(resptxt, 'hello world', `Must get back hello world: got back: ${resptxt}`))
-      .then(() => driver.listFiles('12345'))
-      .then((files) => {
-        t.equal(files.entries.length, 1, 'Should return one file')
-        t.equal(files.entries[0], 'foo.txt', 'Should be foo.txt!')
-      })
-      .catch((err) => t.false(true, `Unexpected err: ${err}`))
-      .then(() => { FetchMock.restore(); t.end() })
+        try {
+          const brokenUploadStream = new BrokenReadableStream()
+          await driver.performWrite({
+            path: 'broken_upload_stream_test',
+            storageTopLevel: topLevelStorage,
+            stream: brokenUploadStream,
+            contentType: 'application/octet-stream',
+            contentLength: 100
+          });
+          t.fail('Perform write with broken upload stream should have failed')
+        } catch (error) {
+          t.pass('Perform write with broken upload stream should have failed')
+        }
+        
+      }
+
+      if (mockTest) {
+        fetch.restore()
+      }
+    }
+    finally {
+      await driver.dispose();
+    }
+
+  });
+}
+
+function testDriverBucketCreation(driverName: string, createDriver: (config?: Object) => DriverModelTestMethods) {
+
+  test(`bucket creation for driver: ${driverName}`, async (t) => {
+    const topLevelStorage = `test-buckets-creation${Date.now()}r${Math.random()*1e6|0}`
+    const driver = createDriver({ bucket: topLevelStorage })
+    try {
+      await driver.ensureInitialized()
+      t.pass('Successfully initialized driver with creation of a new bucket')
+    } catch (error) {
+      t.fail(`Could not initialize driver with creation of a new bucket: ${error}`)
+    } finally {
+      try {
+        await driver.deleteEmptyBucket()
+      } catch (error) {
+        t.fail(`Error trying to cleanup bucket: ${error}`)
+      }
+      await driver.dispose()
+    }
   })
 }
 
-function testS3Driver() {
-  let config = {
-    "bucket": "spokes"
-  }
-  let mockTest = true
-
-  if (awsConfigPath) {
-    config = JSON.parse(fs.readFileSync(awsConfigPath))
-    mockTest = false
-  }
-
-  let S3Driver, dataMap
-  const S3DriverImport = '../../lib/server/drivers/S3Driver'
-  if (mockTest) {
-    const mockedObj = makeMockedS3Driver()
-    dataMap = mockedObj.dataMap
-    S3Driver = mockedObj.driver
-  } else {
-    S3Driver = require(S3DriverImport)
-  }
-
-  test('awsDriver', (t) => {
-    const driver = new S3Driver(config)
-    const prefix = driver.getReadURLPrefix()
-    const s = new Readable()
-    s._read = function noop() {}
-    s.push('hello world')
-    s.push(null)
-
-    driver.performWrite(
-      { path: '../foo.js'})
-      .then(() => t.ok(false, 'Should have thrown'))
-      .catch((err) => t.equal(err.message, 'Invalid Path', 'Should throw bad path'))
-      .then(() => driver.performWrite(
-        { path: 'foo.txt',
-          storageTopLevel: '12345',
-          stream: s,
-          contentType: 'application/octet-stream',
-          contentLength: 12 }))
-      .then((readUrl) => {
-        if (mockTest) {
-          addMockFetches(prefix, dataMap)
-        }
-        else {
-        }
-        t.ok(readUrl.startsWith(prefix + '12345'), `${readUrl} must start with readUrlPrefix ${prefix}12345`)
-        return fetch(readUrl)
-      })
-      .then((resp) => resp.text())
-      .then((resptxt) => t.equal(resptxt, 'hello world', `Must get back hello world: got back: ${resptxt}`))
-      .then(() => driver.listFiles('12345'))
-      .then((files) => {
-        t.equal(files.entries.length, 1, 'Should return one file')
-        t.equal(files.entries[0], 'foo.txt', 'Should be foo.txt!')
-      })
-      .catch((err) => t.false(true, `Unexpected err: ${err}`))
-      .then(() => { FetchMock.restore(); })
-      .catch(() => t.false(true, `Unexpected err: ${err}`))
-      .then(() => { FetchMock.restore(); t.end() })
-  })
-}
-
-/*
- * To run this test, you should run an HTTP server on localhost:4000
- * and use the ../config.sample.disk.json config file.
+/** 
+ * Readable stream that simulates an interrupted http upload/POST request.
+ * Outputs some data then errors unexpectedly .
  */
-function testDiskDriver() {
-  if (!diskConfigPath) {
-    return
+class BrokenReadableStream extends Readable {
+  readCount: number
+  sampleData: Buffer
+  constructor(options) {
+    super(options)
+    this.readCount = 0
+    this.sampleData = Buffer.from('hello world sample data')
   }
-  const config = JSON.parse(fs.readFileSync(diskConfigPath))
-  const diskDriverImport = '../../lib/server/drivers/diskDriver'
-  const DiskDriver = require(diskDriverImport)
-
-  test('diskDriver', (t) => {
-    t.plan(5)
-    const driver = new DiskDriver(config)
-    const prefix = driver.getReadURLPrefix()
-    const storageDir = driver.storageRootDirectory
-    const s = new Readable()
-    s._read = function noop() {}
-    s.push('hello world')
-    s.push(null)
-
-    driver.performWrite(
-      { path: '../foo.js'})
-      .then(() => t.ok(false, 'Should have thrown'))
-      .catch((err) => t.equal(err.message, 'Invalid Path', 'Should throw bad path'))
-      .then(() => driver.performWrite(
-        { path: 'foo/bar.txt',
-          storageTopLevel: '12345',
-          stream: s,
-          contentType: 'application/octet-stream',
-          contentLength: 12 }))
-      .then((readUrl) => {
-        const filePath = path.join(storageDir, '12345', 'foo/bar.txt')
-        const metadataPath = path.join(storageDir, '.gaia-metadata', '12345', 'foo/bar.txt')
-        t.ok(readUrl.startsWith(prefix + '12345'), `${readUrl} must start with readUrlPrefix ${prefix}12345`)
-        t.equal(JSON.parse(fs.readFileSync(metadataPath).toString())['content-type'], 'application/octet-stream',
-          'Content-type metadata was written')
-      })
-      .then(() => driver.listFiles('12345'))
-      .then((files) => {
-        t.equal(files.entries.length, 1, 'Should return one file')
-        t.equal(files.entries[0], 'foo/bar.txt', 'Should be foo.txt!')
-      })
-  })
+  _read(size: number): void {
+    if (this.readCount === 0) {
+      super.push(this.sampleData)
+    } else if (this.readCount === 1) {
+      // cause the stream to break/error
+      super.destroy(new Error('example stream read failure'))
+    }
+    this.readCount++
+  }
 }
 
-function testGcDriver() {
-  let config = {
-    "bucket": "spokes"
+function performDriverMockTests() {
+  for (const name in mockTestDrivers.availableMockedDrivers) {
+    const testName = `mock test for driver: ${name}`
+    const mockTest = true
+    const { driverClass, dataMap, config } = mockTestDrivers.availableMockedDrivers[name]();
+    testDriver(testName, mockTest, dataMap, testConfig => new driverClass({...config, ...testConfig}))
   }
-  let mockTest = true
+}
 
-  if (gcConfigPath) {
-    config = JSON.parse(fs.readFileSync(gcConfigPath))
-    mockTest = false
+function performDriverIntegrationTests() {
+  for (const name in integrationTestDrivers.availableDrivers) {
+    const driverInfo = integrationTestDrivers.availableDrivers[name];
+    const testName = `integration test for driver: ${name}`
+    const mockTest = false
+    testDriver(testName, mockTest, [], testConfig => driverInfo.create(testConfig))
   }
+}
 
-  let GcDriver, dataMap
-  const GcDriverImport = '../../lib/server/drivers/GcDriver'
-  if (mockTest) {
-    const mockedObj = makeMockedGcDriver()
-    dataMap = mockedObj.dataMap
-    GcDriver = mockedObj.driver
-  } else {
-    GcDriver = require(GcDriverImport)
+function performDriverBucketCreationTests() {
+  // Test driver initialization that require the creation of a new bucket,
+  // only on configured driver that implement the `deleteEmptyBucket` method
+  // so as not to exceed cloud provider max bucket/container limits.
+  for (const name in integrationTestDrivers.availableDrivers) {
+    const driverInfo = integrationTestDrivers.availableDrivers[name];
+    const classPrototype: any = driverInfo.class.prototype
+    if (classPrototype.deleteEmptyBucket) {
+      testDriverBucketCreation(name, testConfig => (driverInfo.create(testConfig): any)) 
+    }
   }
-
-  test('Google Cloud Driver', (t) => {
-    const driver = new GcDriver(config)
-    const prefix = driver.getReadURLPrefix()
-    const s = new Readable()
-    s._read = function noop() {}
-    s.push('hello world')
-    s.push(null)
-
-    driver.performWrite(
-      { path: '../foo.js'})
-      .then(() => t.ok(false, 'Should have thrown'))
-      .catch((err) => t.equal(err.message, 'Invalid Path', 'Should throw bad path'))
-      .then(() => driver.performWrite(
-        { path: 'foo.txt',
-          storageTopLevel: '12345',
-          stream: s,
-          contentType: 'application/octet-stream',
-          contentLength: 12 }))
-      .then((readUrl) => {
-        if (mockTest) {
-          addMockFetches(prefix, dataMap)
-        }
-        t.ok(readUrl.startsWith(prefix + '12345'), `${readUrl} must start with readUrlPrefix ${prefix}12345`)
-        return fetch(readUrl)
-      })
-      .then((resp) => resp.text())
-      .then((resptxt) => t.equal(resptxt, 'hello world', `Must get back hello world: got back: ${resptxt}`))
-      .then(() => driver.listFiles('12345'))
-      .then((files) => {
-        t.equal(files.entries.length, 1, 'Should return one file')
-        t.equal(files.entries[0], 'foo.txt', 'Should be foo.txt!')
-      })
-      .catch((err) => t.false(true, `Unexpected err: ${err}`))
-      .then(() => { FetchMock.restore(); t.end() })
-  })
 }
 
 export function testDrivers() {
-  testAzDriver()
-  testS3Driver()
-  testDiskDriver()
-  testGcDriver()
+  performDriverMockTests()
+  performDriverIntegrationTests()
+  performDriverBucketCreationTests()
 }

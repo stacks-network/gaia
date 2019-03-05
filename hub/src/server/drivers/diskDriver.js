@@ -3,21 +3,23 @@ import fs from 'fs-extra'
 import { BadPathError, InvalidInputError } from '../errors'
 import logger from 'winston'
 import Path from 'path'
+import type { ListFilesResult, PerformWriteArgs } from '../driverModel'
+import { DriverStatics, DriverModel } from '../driverModel'
+import { pipeline } from '../utils'
 
-import type { DriverModel, DriverStatics, ListFilesResult } from '../driverModel'
-import type { Readable } from 'stream'
-
-type DISK_CONFIG_TYPE = { diskSettings: { storageRootDirectory?: string },
+type DISK_CONFIG_TYPE = { diskSettings: { storageRootDirectory: string },
+                          bucket?: string,
                           pageSize?: number,
-                          readURL?: string }
+                          readURL: string }
 
 const METADATA_DIRNAME = '.gaia-metadata'
+
 
 class DiskDriver implements DriverModel {
   storageRootDirectory: string
   readURL: string
   pageSize: number
-
+  initPromise: Promise<void>
 
   static getConfigInformation() {
     const envVars = {}
@@ -39,8 +41,11 @@ class DiskDriver implements DriverModel {
     if (!config.diskSettings.storageRootDirectory) {
       throw new Error('Config is missing storageRootDirectory')
     }
+    if (config.bucket) {
+      logger.warn(`The disk driver does not use the "config.bucket" variable. It is set to ${config.bucket}`)
+    }
 
-    this.storageRootDirectory = config.diskSettings.storageRootDirectory
+    this.storageRootDirectory = Path.resolve(Path.normalize(config.diskSettings.storageRootDirectory))
     this.readURL = config.readURL
     if (this.readURL.slice(-1) !== '/') {
       // must end in /
@@ -48,7 +53,15 @@ class DiskDriver implements DriverModel {
     }
 
     this.pageSize = config.pageSize ? config.pageSize : 100
-    this.mkdirs(this.storageRootDirectory)
+    this.initPromise = fs.ensureDir(this.storageRootDirectory)
+  }
+
+  ensureInitialized() {
+    return this.initPromise
+  }
+
+  dispose() {
+    return Promise.resolve()
   }
 
   static isPathValid(path: string){
@@ -65,59 +78,59 @@ class DiskDriver implements DriverModel {
     return this.readURL
   }
 
-  mkdirs(path: string) {
+  async mkdirs(path: string) {
     const normalizedPath = Path.normalize(path)
-    // Check if directory exists.
-    if (!fs.existsSync(normalizedPath)) {
-      // If it doesn't, create it - this is done recursively similar to `mkdir -p`.
-      fs.ensureDirSync(normalizedPath)
-      logger.debug(`mkdir ${normalizedPath}`)
-    } else if (!fs.lstatSync(normalizedPath).isDirectory()) {
-      // Ensure path is a directory.
-      throw new Error(`Not a directory: ${normalizedPath}`)
+    try {
+      // Ensures that the directory exists. If the directory structure does not exist, it is created. Like mkdir -p.
+      const wasCreated = await fs.ensureDir(normalizedPath)
+      if (wasCreated) {
+        logger.debug(`mkdir ${normalizedPath}`)
+      }
+    } catch (error) {
+      logger.error(`Error ensuring directory exists: ${error}`)
+      throw error
     }
   }
 
-  findAllFiles(listPath: string) : Array<string> {
+  async findAllFiles(listPath: string) : Promise<string[]> {
     // returns a list of files prefixed by listPath
-    const names = fs.readdirSync(listPath)
+    const dirEntries: fs.Dirent[] = await fs.readdir(listPath, { withFileTypes: true })
     const fileNames = []
-    for (let i = 0; i < names.length; i++) {
-      const fileOrDir = `${listPath}/${names[i]}`
-      const stat = fs.statSync(fileOrDir)
-      if (stat.isDirectory()) {
-        const childNames = this.findAllFiles(fileOrDir)
-        for (let j = 0; j < childNames.length; j++) {
-          fileNames.push(childNames[j])
-        }
+    for (const dirEntry of dirEntries) {
+      const fileOrDir = `${listPath}${Path.sep}${dirEntry.name}`
+      if (dirEntry.isDirectory()) {
+        const childNames = await this.findAllFiles(fileOrDir)
+        fileNames.push(...childNames)
       } else {
-        fileNames.push(fileOrDir)
+        fileNames.push(Path.posix.normalize(fileOrDir))
       }
     }
     return fileNames
   }
 
-  listFilesInDirectory(listPath: string, pageNum: number) : Promise<ListFilesResult> {
-    const names = this.findAllFiles(listPath).map(
-      (fileName) => fileName.slice(listPath.length + 1))
-    return Promise.resolve().then(() => ({
-      entries: names.slice(pageNum * this.pageSize, (pageNum + 1) * this.pageSize),
-      page: `${pageNum + 1}`
-    }))
+  async listFilesInDirectory(listPath: string, pageNum: number) : Promise<ListFilesResult> {
+    const files = await this.findAllFiles(listPath)
+    const names = files.map(fileName => fileName.slice(listPath.length + 1))
+    const entries = names.slice(pageNum * this.pageSize, (pageNum + 1) * this.pageSize)
+    const page = entries.length === names.length ? null : `${pageNum + 1}`
+    return {
+      entries,
+      page
+    }
   }
 
-  listFiles(prefix: string, page: ?string) {
+  async listFiles(prefix: string, page: ?string) {
     // returns {'entries': [...], 'page': next_page}
     let pageNum
-    const listPath = `${this.storageRootDirectory}/${prefix}`
+    const listPath = Path.normalize(`${this.storageRootDirectory}/${prefix}`)
     const emptyResponse : ListFilesResult = {
       entries: [],
-      page: `${page + 1}`
+      page: null
     }
 
-    if (!fs.existsSync(listPath)) {
+    if (!(await fs.exists(listPath))) {
       // nope 
-      return Promise.resolve().then(() => emptyResponse)
+      return emptyResponse
     }
       
     try {
@@ -129,25 +142,20 @@ class DiskDriver implements DriverModel {
       } else {
         pageNum = 0
       }
-      const stat = fs.statSync(listPath)
+      const stat = await fs.stat(listPath)
       if (!stat.isDirectory()) {
-        // nope 
-        return Promise.resolve().then(() => emptyResponse)
+        // All the cloud drivers return a single empty entry in this situation
+        return { entries: [''], page: null }
       }
     } catch(e) {
       throw new Error('Invalid arguments: invalid page or not a directory')
     }
 
-    return this.listFilesInDirectory(listPath, pageNum)
+    return await this.listFilesInDirectory(listPath, pageNum)
   }
 
-  performWrite(args: { path: string,
-                       storageTopLevel: string,
-                       stream: Readable,
-                       contentLength: number,
-                       contentType: string }) : Promise<string> {
-    return Promise.resolve()
-    .then(() => {
+  async performWrite(args: PerformWriteArgs): Promise<string> {
+
       const path = args.path
       const topLevelDir = args.storageTopLevel
       const contentType = args.contentType
@@ -156,22 +164,23 @@ class DiskDriver implements DriverModel {
         throw new BadPathError('Invalid Path')
       }
 
-      if (contentType.length > 255) {
+      if (contentType && contentType.length > 1024) {
         // no way this is valid 
         throw new InvalidInputError('Invalid content-type')
       }
 
-      const abspath = Path.join(this.storageRootDirectory, topLevelDir, path)
-      if (!DiskDriver.isPathValid(abspath)) {
+      if (!DiskDriver.isPathValid(path) || !DiskDriver.isPathValid(topLevelDir)) {
         throw new BadPathError('Invalid Path')
       }
+
+      const abspath = Path.join(this.storageRootDirectory, topLevelDir, path)
 
       // too long?
       if (abspath.length > 4096) {
         throw new BadPathError('Path is too long')
       }
 
-      const dirparts = abspath.split('/').filter((p) => p.length > 0)
+      const dirparts = abspath.split(Path.sep).filter((p) => p.length > 0)
 
       // can't be too deep
       if (dirparts.length > 100) {
@@ -179,10 +188,10 @@ class DiskDriver implements DriverModel {
       }
 
       const absdirname = Path.dirname(abspath)
-      this.mkdirs(absdirname)
+      await this.mkdirs(absdirname)
 
       const writePipe = fs.createWriteStream(abspath, { mode: 0o600, flags: 'w' })
-      args.stream.pipe(writePipe)
+      await pipeline(args.stream, writePipe)
 
       // remember content type in $storageRootDir/.gaia-metadata/$address/$path
       // (i.e. these files are outside the address bucket, and are thus hidden)
@@ -190,17 +199,16 @@ class DiskDriver implements DriverModel {
         this.storageRootDirectory, METADATA_DIRNAME, topLevelDir, path)
 
       const contentTypeDirPath = Path.dirname(contentTypePath)
-      this.mkdirs(contentTypeDirPath)
+      await this.mkdirs(contentTypeDirPath)
+      await fs.writeFile(contentTypePath, 
+        JSON.stringify({ 'content-type': contentType }), { mode: 0o600 })
 
-      fs.writeFileSync(
-        contentTypePath, JSON.stringify({ 'content-type': contentType }), { mode: 0o600 })
-
-      return `${this.readURL}${Path.join(topLevelDir, path)}`
-    })
+      return `${this.readURL}${topLevelDir}/${path}`
+      
   }
 }
 
 (DiskDriver: DriverStatics)
 
-module.exports = DiskDriver
+export default DiskDriver
 

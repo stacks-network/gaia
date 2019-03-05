@@ -3,8 +3,8 @@
 import bitcoin from 'bitcoinjs-lib'
 import crypto from 'crypto'
 import { decodeToken, TokenSigner, TokenVerifier } from 'jsontokens'
-import { ecPairToHexString } from 'blockstack'
-import { ValidationError } from './errors'
+import { ecPairToHexString, ecPairToAddress } from 'blockstack'
+import { ValidationError, AuthTokenTimestampValidationError } from './errors'
 import logger from 'winston'
 
 const DEFAULT_STORAGE_URL = 'storage.blockstack.org'
@@ -12,12 +12,27 @@ export const LATEST_AUTH_VERSION = 'v1'
 
 function pubkeyHexToECPair (pubkeyHex) {
   const pkBuff = Buffer.from(pubkeyHex, 'hex')
-  return bitcoin.ECPair.fromPublicKeyBuffer(pkBuff)
+  return bitcoin.ECPair.fromPublicKey(pkBuff)
 }
 
 export type AuthScopeType = {
   scope: string,
   domain: string
+}
+
+export type TokenPayloadType = {
+    gaiaChallenge: string,
+    iss: string,
+    exp: number,
+    iat?: number,
+    salt: string,
+    hubUrl?: string,
+    associationToken?: string,
+    scopes?: AuthScopeType[]
+}
+
+export type TokenType = {
+  payload: TokenPayloadType
 }
 
 export const AuthScopes = [
@@ -37,7 +52,7 @@ export class V1Authentication {
       throw new ValidationError('Authorization header should start with v1:')
     }
     const token = authPart.slice('v1:'.length)
-    let decodedToken
+    let decodedToken: TokenType
     try {
       decodedToken = decodeToken(token)
     } catch (e) {
@@ -57,19 +72,23 @@ export class V1Authentication {
   }
 
   static makeAuthPart(secretKey: bitcoin.ECPair, challengeText: string,
-                      associationToken?: string, hubUrl?: string, scopes?: Array<AuthScopeType>) {
+                      associationToken?: string, hubUrl?: string, scopes?: Array<AuthScopeType>,
+                      issuedAtDate?: number) {
 
     const FOUR_MONTH_SECONDS = 60 * 60 * 24 * 31 * 4
-    const publicKeyHex = secretKey.getPublicKeyBuffer().toString('hex')
+    const publicKeyHex = secretKey.publicKey.toString('hex')
     const salt = crypto.randomBytes(16).toString('hex')
 
     if (scopes) {
       validateScopes(scopes)
     }
 
-    const payload = { gaiaChallenge: challengeText,
+    const payloadIssuedAtDate = issuedAtDate || (Date.now()/1000|0)
+
+    const payload: TokenPayloadType = { gaiaChallenge: challengeText,
                       iss: publicKeyHex,
                       exp: FOUR_MONTH_SECONDS + (new Date()/1000),
+                      iat: payloadIssuedAtDate,
                       associationToken,
                       hubUrl, salt, scopes }
 
@@ -80,11 +99,13 @@ export class V1Authentication {
 
   static makeAssociationToken(secretKey: bitcoin.ECPair, childPublicKey: string) {
     const FOUR_MONTH_SECONDS = 60 * 60 * 24 * 31 * 4
-    const publicKeyHex = secretKey.getPublicKeyBuffer().toString('hex')
+    const publicKeyHex = secretKey.publicKey.toString('hex')
     const salt = crypto.randomBytes(16).toString('hex')
-    const payload = { childToAssociate: childPublicKey,
+    const payload: TokenPayloadType = { childToAssociate: childPublicKey,
                       iss: publicKeyHex,
                       exp: FOUR_MONTH_SECONDS + (new Date()/1000),
+                      iat: (Date.now()/1000|0),
+                      gaiaChallenge: String(undefined),
                       salt }
 
     const signerKeyHex = ecPairToHexString(secretKey).slice(0, 64)
@@ -98,7 +119,7 @@ export class V1Authentication {
     // associationToken and verifies that it authorizes the "outer"
     // JWT's address (`bearerAddress`)
 
-    let associationToken
+    let associationToken: TokenType
     try {
       associationToken = decodeToken(token)
     } catch (e) {
@@ -134,13 +155,13 @@ export class V1Authentication {
     }
 
     // the bearer of the association token must have authorized the bearer
-    const childAddress = pubkeyHexToECPair(childPublicKey).getAddress()
+    const childAddress = ecPairToAddress(pubkeyHexToECPair(childPublicKey))
     if (childAddress !== bearerAddress) {
       throw new ValidationError(
         `Association token child key ${childPublicKey} does not match ${bearerAddress}`)
     }
 
-    const signerAddress = pubkeyHexToECPair(publicKey).getAddress()
+    const signerAddress = ecPairToAddress(pubkeyHexToECPair(publicKey))
     return signerAddress
 
   }
@@ -154,7 +175,7 @@ export class V1Authentication {
    * Returns [] if there is no association token, or if the association token has no scopes
    */
   getAuthenticationScopes() : Array<AuthScopeType> {
-    let decodedToken
+    let decodedToken: TokenType
     try {
       decodedToken = decodeToken(this.token)
     } catch (e) {
@@ -197,8 +218,9 @@ export class V1Authentication {
    */
   isAuthenticationValid(address: string, challengeTexts: Array<string>,
                         options?: { requireCorrectHubUrl?: boolean,
-                                    validHubUrls?: Array<string> }) : string {
-    let decodedToken
+                                    validHubUrls?: Array<string>,
+                                    oldestValidTokenTimestamp?: number }) : string {
+    let decodedToken: TokenType
     try {
       decodedToken = decodeToken(this.token)
     } catch (e) {
@@ -211,11 +233,28 @@ export class V1Authentication {
     const gaiaChallenge = decodedToken.payload.gaiaChallenge
     const scopes = decodedToken.payload.scopes
 
-    if (! publicKey) {
+    if (!publicKey) {
       throw new ValidationError('Must provide `iss` claim in JWT.')
     }
 
-    const issuerAddress = pubkeyHexToECPair(publicKey).getAddress()
+    // check for revocations
+    if (options && options.oldestValidTokenTimestamp && options.oldestValidTokenTimestamp > 0) {
+      const tokenIssuedAtDate = decodedToken.payload.iat
+      const oldestValidTokenTimestamp: number = options.oldestValidTokenTimestamp
+      if (!tokenIssuedAtDate) {
+        const message = `Gaia bucket requires auth token issued after ${oldestValidTokenTimestamp}` +
+              ' but this token has no creation timestamp. This token may have been revoked by the user.'
+        throw new AuthTokenTimestampValidationError(message, oldestValidTokenTimestamp)
+      }
+      if (tokenIssuedAtDate < options.oldestValidTokenTimestamp) {
+        const message = `Gaia bucket requires auth token issued after ${oldestValidTokenTimestamp}` +
+              ` but this token was issued ${tokenIssuedAtDate}.` +
+              ' This token may have been revoked by the user.'
+        throw new AuthTokenTimestampValidationError(message, oldestValidTokenTimestamp)
+      }
+    }
+
+    const issuerAddress = ecPairToAddress(pubkeyHexToECPair(publicKey))
 
     if (issuerAddress !== address) {
       throw new ValidationError('Address not allowed to write on this path')
@@ -289,15 +328,21 @@ export class LegacyAuthentication {
   static fromAuthPart(authPart: string) {
     const decoded = JSON.parse(Buffer.from(authPart, 'base64').toString())
     const publickey = pubkeyHexToECPair(decoded.publickey)
-    const signature = bitcoin.ECSignature.fromDER(
-      Buffer.from(decoded.signature, 'hex'))
+    const hashType = Buffer.from([bitcoin.Transaction.SIGHASH_NONE])
+    const signatureBuffer = Buffer.concat([Buffer.from(decoded.signature, 'hex'), hashType])
+    const signature = bitcoin.script.signature.decode(signatureBuffer).signature.toString('hex')
     return new LegacyAuthentication(publickey, signature)
   }
 
   static makeAuthPart(secretKey: bitcoin.ECPair, challengeText: string) {
-    const publickey = secretKey.getPublicKeyBuffer().toString('hex')
+    const publickey = secretKey.publicKey.toString('hex')
     const digest = bitcoin.crypto.sha256(challengeText)
-    const signature = secretKey.sign(digest).toDER().toString('hex')
+    const signatureBuffer = secretKey.sign(digest)
+    const signatureWithHash = bitcoin.script.signature.encode(signatureBuffer, bitcoin.Transaction.SIGHASH_NONE)
+    
+    // We only want the DER encoding so remove the sighash version byte at the end.
+    // See: https://github.com/bitcoinjs/bitcoinjs-lib/issues/1241#issuecomment-428062912
+    const signature = signatureWithHash.toString('hex').slice(0, -2)
 
     const authObj = { publickey, signature }
 
@@ -311,13 +356,13 @@ export class LegacyAuthentication {
 
   isAuthenticationValid(address: string, challengeTexts: Array<string>,
                         options? : {}) { //  eslint-disable-line no-unused-vars
-    if (this.publickey.getAddress() !== address) {
+    if (ecPairToAddress(this.publickey) !== address) {
       throw new ValidationError('Address not allowed to write on this path')
     }
 
     for (const challengeText of challengeTexts) {
       const digest = bitcoin.crypto.sha256(challengeText)
-      const valid = (this.publickey.verify(digest, this.signature) === true)
+      const valid = (this.publickey.verify(digest, Buffer.from(this.signature, 'hex')) === true)
 
       if (valid) {
         return address
@@ -365,7 +410,8 @@ export function parseAuthHeader(authHeader: string) {
 
 export function validateAuthorizationHeader(authHeader: string, serverName: string,
                                             address: string, requireCorrectHubUrl?: boolean = false,
-                                            validHubUrls?: ?Array<string> = null) : string {
+                                            validHubUrls?: ?Array<string> = null,
+                                            oldestValidTokenTimestamp?: number) : string {
   const serverNameHubUrl = `https://${serverName}`
   if (!validHubUrls) {
     validHubUrls = [ serverNameHubUrl ]
@@ -388,7 +434,7 @@ export function validateAuthorizationHeader(authHeader: string, serverName: stri
   challengeTexts.push(getChallengeText(serverName))
   getLegacyChallengeTexts(serverName).forEach(challengeText => challengeTexts.push(challengeText))
 
-  return authObject.isAuthenticationValid(address, challengeTexts, { validHubUrls, requireCorrectHubUrl })
+  return authObject.isAuthenticationValid(address, challengeTexts, { validHubUrls, requireCorrectHubUrl, oldestValidTokenTimestamp })
 }
 
 
