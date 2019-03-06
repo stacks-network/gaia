@@ -23,10 +23,12 @@ export const configDefaults = {
   pageSize: 100,
   cacheControl: 'public, max-age=1',
   port: 3000,
-  proofsConfig: 0
+  proofsConfig: 0,
+  maxSockets: undefined
 }
 
 const globalEnvVars = { whitelist: 'GAIA_WHITELIST',
+                        maxSockets: 'GAIA_MAX_UPSTREAM',
                         readURL: 'GAIA_READ_URL',
                         driver: 'GAIA_DRIVER',
                         validHubUrls: 'GAIA_VALID_HUB_URLS',
@@ -37,7 +39,7 @@ const globalEnvVars = { whitelist: 'GAIA_WHITELIST',
                         cacheControl: 'GAIA_CACHE_CONTROL',
                         port: 'GAIA_PORT' }
 
-const parseInts = [ 'port', 'pageSize', 'requireCorrectHubUrl' ]
+const parseInts = [ 'port', 'pageSize', 'requireCorrectHubUrl', 'maxSockets' ]
 const parseLists = [ 'validHubUrls', 'whitelist' ]
 
 function getConfigEnv(envVars) {
@@ -46,7 +48,7 @@ function getConfigEnv(envVars) {
   for (const name in envVars) {
     const envVar = envVars[name]
     if (process.env[envVar]) {
-      console.log(process.env[envVar])
+      console.log(`${envVar} = ${process.env[envVar]}`)
       configEnv[name] = process.env[envVar]
       if (parseInts.indexOf(name) >= 0) {
         configEnv[name] = parseInt(configEnv[name])

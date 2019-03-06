@@ -14,7 +14,7 @@ const fetch = FetchMock.sandbox(NodeFetch)
 
 import { makeHttpServer } from '../../src/server/http.js'
 import DiskDriver from '../../src/server/drivers/diskDriver'
-import { MakeHttpServerConfig, } from '../../src/server/http.js'
+import { MakeHttpServerConfig } from '../../src/server/http.js'
 import { AuthTimestampCache } from '../../src/server/revocations'
 import type { HubServerConfig } from '../../src/server/server.js'
 import { makeMockedAzureDriver, addMockFetches } from './testDrivers'

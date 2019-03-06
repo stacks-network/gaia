@@ -4,6 +4,8 @@ import express from 'express'
 import expressWinston from 'express-winston'
 import logger from 'winston'
 import cors from 'cors'
+import http from 'http'
+import https from 'https'
 
 import { ProofChecker } from './ProofChecker'
 import type { ProofCheckerConfig } from './ProofChecker'
@@ -20,8 +22,9 @@ function writeResponse(res: express.response, data: Object, statusCode: number) 
   res.end()
 }
 
-export interface MakeHttpServerConfig { 
+export interface MakeHttpServerConfig {
   proofsConfig?: ProofCheckerConfig,
+  maxSockets?: number,
   driverInstance?: DriverModel, driverClass?: Class<DriverModel>, driver?: string
 }
 
@@ -42,7 +45,7 @@ export function makeHttpServer(config: MakeHttpServerConfig & HubServerConfig): 
   } else {
     throw new Error('Driver option not configured')
   }
-  
+
   const proofChecker = new ProofChecker(config.proofsConfig)
   const server = new HubServer(driver, proofChecker, config)
 
@@ -161,6 +164,11 @@ export function makeHttpServer(config: MakeHttpServerConfig & HubServerConfig): 
                          'latest_auth_version': LATEST_AUTH_VERSION,
                          'read_url_prefix': readURLPrefix }, 200)
   })
+
+  if (config.maxSockets) {
+    https.globalAgent.maxSockets = config.maxSockets
+    http.globalAgent.maxSockets  = https.globalAgent.maxSockets
+  }
 
   // Instantiate express application
   return { app, server }
