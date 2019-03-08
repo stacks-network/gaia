@@ -1,4 +1,4 @@
-import { test } from './tapePromise'
+import test from 'tape-promise/tape'
 import * as auth from '../../src/server/authentication'
 import * as errors from '../../src/server/errors'
 import { HubServer }  from '../../src/server/server'

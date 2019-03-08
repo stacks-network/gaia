@@ -1,11 +1,11 @@
 {
   "compilerOptions": {
       "target": "es2018",
-      "module": "umd",
+      "module": "commonjs",
       "esModuleInterop": true,
       "moduleResolution": "node",
       "declaration": true,
-      "noImplicitAny": false,
+      "noImplicitAny": true,
       "outDir": "lib",
       "sourceMap": true,
       "experimentalDecorators": true,

@@ -1,4 +1,4 @@
-import { test } from './tapePromise'
+import test from 'tape-promise/tape'
 import { ProofChecker } from '../../src/server/ProofChecker'
 
 export function testProofChecker() {

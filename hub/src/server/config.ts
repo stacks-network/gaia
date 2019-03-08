@@ -40,9 +40,9 @@ const globalEnvVars = { whitelist: 'GAIA_WHITELIST',
 const parseInts = [ 'port', 'pageSize', 'requireCorrectHubUrl' ]
 const parseLists = [ 'validHubUrls', 'whitelist' ]
 
-function getConfigEnv(envVars: any) {
+function getConfigEnv(envVars: {[key: string]: string}) {
 
-  const configEnv: any = {}
+  const configEnv: {[key: string]: any} = {}
   for (const name in envVars) {
     const envVar = envVars[name]
     if (process.env[envVar]) {
@@ -63,7 +63,7 @@ function getConfigEnv(envVars: any) {
 
 // we deep merge so that if someone sets { field: {subfield: foo} }, it doesn't remove
 //                                       { field: {subfieldOther: bar} }
-function deepMerge(target: any, ...sources: any[]): any {
+function deepMerge<T>(target: T, ...sources: T[]): T {
   function isObject(item: any) {
     return (item && typeof item === 'object' && !Array.isArray(item))
   }

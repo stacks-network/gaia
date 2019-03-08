@@ -1,4 +1,4 @@
-import { test } from './tapePromise'
+import test from 'tape-promise/tape'
 import * as auth from '../../src/server/authentication'
 import os from 'os'
 import fs from 'fs'

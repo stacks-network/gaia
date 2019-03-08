@@ -20,7 +20,7 @@
     "@types/express": "^4.16.1",
     "@types/express-winston": "^2.4.0",
     "@types/fs-extra": "^5.0.5",
-    "@types/node": "^11.10.4",
+    "@types/node": "^10.12.30",
     "@types/tape": "^4.2.33",
     "eslint": "^5.14.1",
     "fetch-mock": "^7.3.1",
@@ -67,7 +67,6 @@
       "text",
       "html",
       "lcov"
-    ],
-    "all": true
+    ]
   }
 }
