@@ -9,8 +9,9 @@
   },
   "scripts": {
     "start": "ts-node src/index.ts",
-    "build": "tsc && chmod +x lib/index.js",
-    "test": "NODE_ENV=test nyc node ./test/test.ts"
+    "build": "npm run lint && tsc && chmod +x lib/index.js",
+    "lint": "eslint --ext .ts ./src",
+    "test": "npm run lint && NODE_ENV=test nyc node ./test/test.ts"
   },
   "bin": {
     "blockstack-gaia-admin": "lib/index.js"
@@ -47,9 +48,11 @@
     "@types/express-winston": "^3.0.1",
     "@types/node": "^10.12.30",
     "@types/tape": "^4.2.33",
+    "@typescript-eslint/eslint-plugin": "^1.4.2",
+    "@typescript-eslint/parser": "^1.4.2",
     "babel-eslint": "^10.0.1",
     "babel-plugin-istanbul": "^5.1.1",
-    "eslint": "^5.14.1",
+    "eslint": "^5.15.1",
     "nyc": "^13.3.0",
     "source-map-support": "^0.5.10",
     "tape": "^4.10.1",

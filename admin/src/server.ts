@@ -3,63 +3,68 @@ import childProcess from 'child_process'
 import Ajv from 'ajv'
 import { Config, logger } from './config'
 
-function runSubprocess(cmd: string, argv: Array<string>, env: NodeJS.ProcessEnv, uid?: number, gid?: number) 
-: Promise<{ 'status': any, 'statusCode': number }> {
-    const opts: childProcess.SpawnOptions = {
-      cwd: '/',
-      env: env,
-      stdio: [
-        null,             // no stdin
-        'pipe',           // send stdout to log
-        'pipe'            // send stderr to log
-      ],
-      detached: false,    // child will die with this process, if need be
-      shell: false,
-      windowsHide: true
-    }
+function runSubprocess(
+  cmd: string, 
+  argv: Array<string>, 
+  env: NodeJS.ProcessEnv, 
+  uid?: number, 
+  gid?: number
+): Promise<{ 'status': any, 'statusCode': number }> {
+  const opts: childProcess.SpawnOptions = {
+    cwd: '/',
+    env: env,
+    stdio: [
+      null,             // no stdin
+      'pipe',           // send stdout to log
+      'pipe'            // send stderr to log
+    ],
+    detached: false,    // child will die with this process, if need be
+    shell: false,
+    windowsHide: true
+  }
 
-    if (!!uid) {
-      opts.uid = uid
-    }
+  if (!!uid) {
+    opts.uid = uid
+  }
 
-    if (!!gid) {
-      opts.gid = gid
-    }
-   
-    return new Promise((resolve) => {
-      childProcess.spawn(cmd, argv, opts)
-        .on('exit', (code: number, signal: string) => {
-          if (code === 0) {
-            const ret = { statusCode: 200, status: { result: 'OK' } }
-            resolve(ret)
-          } else {
-            const ret = { 
-              statusCode: 500, 
-              status: { error: `Command exited with code ${code} (signal=${signal})` }
-            }
-            resolve(ret)
-          }
-        })
-        .on('close', (code: number, signal: string) => {
-          if (code === 0) {
-            const ret = { statusCode: 200, status: { result: 'OK' } }
-            resolve(ret)
-          } else {
-            const ret = { 
-              statusCode: 500, 
-              status: { error: `Command closed with code ${code} (signal=${signal})` }
-            }
-            resolve(ret)
-          }
-        })  
-        .on('error', () => {
+  if (!!gid) {
+    opts.gid = gid
+  }
+  
+  return new Promise((resolve) => {
+    childProcess.spawn(cmd, argv, opts)
+      .on('exit', (code: number, signal: string) => {
+        if (code === 0) {
+          const ret = { statusCode: 200, status: { result: 'OK' } }
+          resolve(ret)
+        } else {
           const ret = { 
             statusCode: 500, 
-            status: { error: 'Command could not be spawned, killed, or signaled' }
+            status: { error: `Command exited with code ${code} (signal=${signal})` }
           }
           resolve(ret)
-        })
-    })
+        }
+      })
+      .on('close', (code: number, signal: string) => {
+        if (code === 0) {
+          const ret = { statusCode: 200, status: { result: 'OK' } }
+          resolve(ret)
+        } else {
+          const ret = { 
+            statusCode: 500, 
+            status: { error: `Command closed with code ${code} (signal=${signal})` }
+          }
+          resolve(ret)
+        }
+      })  
+      .on('error', () => {
+        const ret = { 
+          statusCode: 500, 
+          status: { error: 'Command could not be spawned, killed, or signaled' }
+        }
+        resolve(ret)
+      })
+  })
 }
 
 // Atomically modify the config file.
@@ -116,8 +121,7 @@ export function patchConfigFile(configFilePath: string, newFields: {[key: string
 }
 
 // get part(s) of a config file 
-export function readConfigFileSections(configFilePath: string, fields: string | Array<string>) 
-: Object {
+export function readConfigFileSections(configFilePath: string, fields: string | Array<string>): any {
 
   if (!configFilePath) {
     throw new Error('Config file nto given')
@@ -228,7 +232,7 @@ export class AdminAPI {
     this.config = config
   }
 
-  checkAuthorization(authHeader: string) : Promise<boolean> {
+  checkAuthorization(authHeader: string): Promise<boolean> {
     return Promise.resolve().then(() => {
       if (!authHeader) {
         logger.error('No authorization header given')
@@ -254,7 +258,7 @@ export class AdminAPI {
   }
   
   // Reloads the Gaia hub by launching the reload subprocess
-  handleReload() : Promise<{ status: any, statusCode: number }> {
+  handleReload(): Promise<{ status: any, statusCode: number }> {
     if (!this.config.reloadSettings.command) {
       // reload is not defined 
       const ret = { statusCode: 404, status: { error: 'No reload command defined' } }
@@ -271,22 +275,21 @@ export class AdminAPI {
   }
 
   // don't call this from outside this class
-  handleGetFields(fieldList: Array<string>) : Promise<{ status: any, statusCode: number }> {
+  handleGetFields(fieldList: Array<string>): Promise<{ status: any, statusCode: number }> {
     return Promise.resolve().then(() => {
       const configPath = this.config.gaiaSettings.configPath
       return readConfigFileSections(configPath, fieldList)
     })
-    .then((fields) => {
-      return { statusCode: 200, status: { config: fields } }
-    })
-    .catch((e) => {
-      return { statusCode: 500, status: { error: e.message } }
-    })
+      .then((fields) => {
+        return { statusCode: 200, status: { config: fields } }
+      })
+      .catch((e) => {
+        return { statusCode: 500, status: { error: e.message } }
+      })
   }
 
   // don't call this from outside this class
-  handleSetFields(newFields: any, allowedFields: Array<string>) 
-  : Promise<{ status: any, statusCode: number }> {
+  handleSetFields(newFields: any, allowedFields: Array<string>): Promise<{ status: any, statusCode: number }> {
     // only allow fields in allowedFields to be written
     const fieldsToWrite: {[key: string]: any} = {}
     for (let i = 0; i < allowedFields.length; i++) {
@@ -304,31 +307,31 @@ export class AdminAPI {
       const configPath = this.config.gaiaSettings.configPath
       return patchConfigFile(configPath, newFields)
     })
-    .then(() => {
-      const ret = { 
-        statusCode: 200, 
-        status: { 
-          message: 'Config updated -- you should reload your Gaia hub now.'
+      .then(() => {
+        const ret = { 
+          statusCode: 200, 
+          status: { 
+            message: 'Config updated -- you should reload your Gaia hub now.'
+          }
         }
-      }
-      return ret
-    })
-    .catch((e) => {
-      const ret = {
-        statusCode: 500,
-        status: {
-          error: e.message
+        return ret
+      })
+      .catch((e) => {
+        const ret = {
+          statusCode: 500,
+          status: {
+            error: e.message
+          }
         }
-      }
-      return ret
-    })
+        return ret
+      })
   }
 
   handleGetConfig(): Promise<{ status: any, statusCode: number }> {
     return this.handleGetFields(Object.keys(GAIA_CONFIG_SCHEMA.properties))
   }
 
-  handleSetConfig(newConfig: Object): Promise<{ status: any, statusCode: number }> {
+  handleSetConfig(newConfig: any): Promise<{ status: any, statusCode: number }> {
     const ajv = new Ajv()
     const valid = ajv.validate(GAIA_CONFIG_SCHEMA, newConfig)
     if (!valid) {

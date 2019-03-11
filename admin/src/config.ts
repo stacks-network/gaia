@@ -1,7 +1,7 @@
 import winston from 'winston'
 import fs from 'fs'
 import process from 'process'
-import { ConsoleTransportOptions } from 'winston/lib/winston/transports';
+import { ConsoleTransportOptions } from 'winston/lib/winston/transports'
 
 interface LoggingConfig {
   timestamp: boolean;
@@ -61,7 +61,7 @@ export function getConfig() {
   const formats = [
     config.argsTransport.colorize ? winston.format.colorize() : null,
     config.argsTransport.json ? winston.format.json() : null,
-    config.argsTransport.timestamp ? winston.format.timestamp() : null,
+    config.argsTransport.timestamp ? winston.format.timestamp() : null
   ].filter(f => f !== null)
   const format = formats.length ? winston.format.combine(...formats) : null
 

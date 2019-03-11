@@ -22,7 +22,9 @@
     "@types/fs-extra": "^5.0.5",
     "@types/node": "^10.12.30",
     "@types/tape": "^4.2.33",
-    "eslint": "^5.14.1",
+    "@typescript-eslint/eslint-plugin": "^1.4.2",
+    "@typescript-eslint/parser": "^1.4.2",
+    "eslint": "^5.15.1",
     "fetch-mock": "^7.3.1",
     "istanbul": "^0.4.5",
     "nyc": "^13.3.0",
@@ -38,8 +40,9 @@
   },
   "scripts": {
     "start": "ts-node src/index.ts",
-    "build": "tsc && chmod +x lib/index.js",
-    "test": "NODE_ENV=test nyc node ./test/test.ts"
+    "build": "npm run lint && tsc && chmod +x lib/index.js",
+    "lint": "eslint --ext .ts ./src",
+    "test": "npm run lint && NODE_ENV=test nyc node ./test/test.ts"
   },
   "repository": {
     "type": "git",

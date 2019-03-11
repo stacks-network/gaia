@@ -45,19 +45,20 @@ export function makeHttpServer(config: Config) {
       .then((configData) => writeResponse(res, configData.status, configData.statusCode))
   })
 
-  app.post(/\/v1\/admin\/config/, express.json(),
+  app.post(
+    /\/v1\/admin\/config/, express.json(),
     (req: express.Request, res: express.Response) => {
-    return server.checkAuthorization(req.headers['authorization'])
-      .then((authResult) => {
-        if (!authResult) {
-          return { statusCode: 403, status: { error: 'forbidden' } }
-        }
+      return server.checkAuthorization(req.headers['authorization'])
+        .then((authResult) => {
+          if (!authResult) {
+            return { statusCode: 403, status: { error: 'forbidden' } }
+          }
 
-        const newConfig = req.body
-        return server.handleSetConfig(newConfig)
-      })
-      .then((configStatus) => writeResponse(res, configStatus.status, configStatus.statusCode))
-  })
+          const newConfig = req.body
+          return server.handleSetConfig(newConfig)
+        })
+        .then((configStatus) => writeResponse(res, configStatus.status, configStatus.statusCode))
+    })
 
   return app
 }
