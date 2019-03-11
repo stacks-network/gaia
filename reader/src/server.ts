@@ -1,13 +1,14 @@
 import Path from 'path'
 import fs from 'fs-extra'
+import { DiskReaderConfig } from './config';
 
 const METADATA_DIRNAME = '.gaia-metadata'
 
 export class GaiaDiskReader {
 
-  config: any
+  config: DiskReaderConfig
 
-  constructor(config: any) {
+  constructor(config: DiskReaderConfig) {
     this.config = config
 
     // Ensure the configured storage directory exists

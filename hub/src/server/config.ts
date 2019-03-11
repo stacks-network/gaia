@@ -3,12 +3,19 @@ import fs from 'fs'
 import process from 'process'
 
 import { getDriverClass, logger } from './utils'
+import { ConsoleTransportOptions } from 'winston/lib/winston/transports';
 
 export enum DriverName { 
   aws = 'aws',
   azure = 'azure',
   disk = 'disk',
   'google-cloud' = 'google-cloud'
+}
+
+interface LoggingConfig {
+  timestamp: boolean;
+  colorize: boolean;
+  json: boolean;
 }
 
 interface Config {
@@ -23,14 +30,7 @@ interface Config {
   whitelist: string[] & null,
   validHubUrls?: string[];
   proofsConfig?: { proofsRequired: number };
-  argsTransport: {
-      level: string;
-      handleExceptions: boolean;
-      stringify: boolean;
-      timestamp: boolean;
-      colorize: boolean;
-      json: boolean;
-  }
+  argsTransport: ConsoleTransportOptions & LoggingConfig;
 }
 
 export const configDefaults: Config = {
@@ -38,7 +38,6 @@ export const configDefaults: Config = {
     level: 'warn',
     handleExceptions: true,
     timestamp: true,
-    stringify: true,
     colorize: true,
     json: false
   },
@@ -134,7 +133,7 @@ export function getConfig() {
 
   const configENV = getConfigEnv(globalEnvVars)
 
-  const configGlobal = deepMerge({}, configDefaults, configJSON, configENV)
+  const configGlobal: Config = deepMerge({}, configDefaults, configJSON, configENV)
 
   let config = configGlobal
   if (config.driver) {
@@ -143,8 +142,17 @@ export function getConfig() {
     config = deepMerge({}, driverConfigInfo.defaults, configGlobal, driverConfigInfo.envVars)
   }
 
-  logger.configure({ transports: [
-    new winston.transports.Console(config.argsTransport) ] })
+  const formats = [
+    config.argsTransport.colorize ? winston.format.colorize() : null,
+    config.argsTransport.json ? winston.format.json() : null,
+    config.argsTransport.timestamp ? winston.format.timestamp() : null,
+  ].filter(f => f !== null)
+  const format = formats.length ? winston.format.combine(...formats) : null
+
+  logger.configure({
+    format: format,
+    transports: [new winston.transports.Console(config.argsTransport)] 
+  })
 
   return config
 }

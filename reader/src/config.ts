@@ -1,13 +1,37 @@
 import winston from 'winston'
 import fs from 'fs'
 import process from 'process'
+import { ConsoleTransportOptions } from 'winston/lib/winston/transports';
 
-const configDefaults = {
+
+interface LoggingConfig {
+  timestamp: boolean;
+  colorize: boolean;
+  json: boolean;
+}
+
+export interface DiskReaderConfig { 
+  diskSettings: {
+    storageRootDirectory: string
+  };
+}
+
+export interface Config extends DiskReaderConfig {
+  argsTransport: ConsoleTransportOptions & LoggingConfig;
+  regtest: boolean;
+  testnet: boolean;
+  port: number;
+  cacheControl?: string;
+  diskSettings: {
+    storageRootDirectory: string
+  };
+}
+
+const configDefaults: Config = {
   argsTransport: {
     level: 'debug',
     handleExceptions: true,
     timestamp: true,
-    stringify: true,
     colorize: true,
     json: true
   },
@@ -23,19 +47,29 @@ export const logger = winston.createLogger()
 
 export function getConfig() {
   const configPath = process.env.CONFIG_PATH || process.argv[2] || './config.json'
-  let config = { ...configDefaults }
+  let config: Config;
   try {
-    config = { ...config, ...JSON.parse(fs.readFileSync(configPath).toString()) }
+    config = { ...configDefaults, ...JSON.parse(fs.readFileSync(configPath).toString()) }
   } catch (e) {
     console.error(`Failed to read config: ${e}`)
+    config = { ...configDefaults }
   }
 
   if (process.env['GAIA_DISK_STORAGE_ROOT_DIR']) {
     config.diskSettings.storageRootDirectory = process.env['GAIA_DISK_STORAGE_ROOT_DIR']
   }
 
-  logger.configure({ transports: [
-    new winston.transports.Console(config.argsTransport) ] })
+  const formats = [
+    config.argsTransport.colorize ? winston.format.colorize() : null,
+    config.argsTransport.json ? winston.format.json() : null,
+    config.argsTransport.timestamp ? winston.format.timestamp() : null,
+  ].filter(f => f !== null)
+  const format = formats.length ? winston.format.combine(...formats) : null
+
+  logger.configure({
+    format: format,
+    transports: [new winston.transports.Console(config.argsTransport)]
+  })
 
   return config
 }

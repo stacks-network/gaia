@@ -2,13 +2,10 @@ import express  from 'express'
 import expressWinston from 'express-winston'
 import cors from 'cors'
 import Path from 'path'
-import { logger } from './config'
+import { Config, logger } from './config'
+import { GaiaDiskReader } from './server'
 
-import {
-  GaiaDiskReader
-} from './server'
-
-export function makeHttpServer(config: any) {
+export function makeHttpServer(config: Config) {
   const app = express()
   const server = new GaiaDiskReader(config)
 

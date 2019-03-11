@@ -1,24 +1,24 @@
 import winston from 'winston'
 import fs from 'fs'
 import process from 'process'
+import { ConsoleTransportOptions } from 'winston/lib/winston/transports';
+
+interface LoggingConfig {
+  timestamp: boolean;
+  colorize: boolean;
+  json: boolean;
+}
 
 export interface Config {
-  [key: string]: any,
-  apiKeys: string[],
-  argsTransport: {
-    level: string,
-    handleExceptions: boolean,
-    timestamp: boolean,
-    stringify: boolean,
-    colorize: boolean,
-    json: boolean
-  },
+  [key: string]: any;
+  apiKeys: string[];
+  argsTransport: ConsoleTransportOptions & LoggingConfig;
   reloadSettings: {
-    command: string,
-    argv: string[],
-    env: NodeJS.ProcessEnv,
-    setuid: number,
-    setgid: number
+    command: string;
+    argv: string[];
+    env: NodeJS.ProcessEnv;
+    setuid: number;
+    setgid: number;
   }
 }
 
@@ -27,7 +27,6 @@ const configDefaults: Config = {
     level: 'debug',
     handleExceptions: true,
     timestamp: true,
-    stringify: true,
     colorize: true,
     json: true
   },
@@ -56,14 +55,22 @@ export function getConfig() {
     config = Object.assign(
       {}, configDefaults, JSON.parse(fs.readFileSync(configPath).toString()))
   } catch (e) {
-    // TODO: log with winston
     console.error(`Error reading config "${configPath}": ${e}`)
     config = Object.assign({}, configDefaults)
   }
+
+  const formats = [
+    config.argsTransport.colorize ? winston.format.colorize() : null,
+    config.argsTransport.json ? winston.format.json() : null,
+    config.argsTransport.timestamp ? winston.format.timestamp() : null,
+  ].filter(f => f !== null)
+  const format = formats.length ? winston.format.combine(...formats) : null
+
   logger.configure({
-    transports: [
-      new winston.transports.Console(config.argsTransport)]
+    format: format, 
+    transports: [new winston.transports.Console(config.argsTransport)]
   })
+
   return config
 }
 
