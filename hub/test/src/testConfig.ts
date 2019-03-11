@@ -1,6 +1,6 @@
-/* @flow */
+
 import test from 'tape-promise/tape'
-import * as config from '../../src/server/config.js'
+import * as config from '../../src/server/config'
 
 
 export function testConfig() {
@@ -67,7 +67,7 @@ export function testConfig() {
 
 
     let configResult = config.getConfig()
-    let configExpected = Object.assign({}, config.configDefaults, { driver: 'azure' },
+    let configExpected: any = Object.assign({}, config.configDefaults, { driver: 'azure' },
                                    { azCredentials: { accountName: 'pancakes',
                                                       accountKey: 'apples' }})
 

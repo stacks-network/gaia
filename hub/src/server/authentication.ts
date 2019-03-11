@@ -1,16 +1,18 @@
-/* @flow */
+
 
 import bitcoin from 'bitcoinjs-lib'
 import crypto from 'crypto'
+//@ts-ignore
 import { decodeToken, TokenSigner, TokenVerifier } from 'jsontokens'
+//@ts-ignore
 import { ecPairToHexString, ecPairToAddress } from 'blockstack'
 import { ValidationError, AuthTokenTimestampValidationError } from './errors'
-import logger from 'winston'
+import { logger } from './utils'
 
 const DEFAULT_STORAGE_URL = 'storage.blockstack.org'
 export const LATEST_AUTH_VERSION = 'v1'
 
-function pubkeyHexToECPair (pubkeyHex) {
+function pubkeyHexToECPair (pubkeyHex: string) {
   const pkBuff = Buffer.from(pubkeyHex, 'hex')
   return bitcoin.ECPair.fromPublicKey(pkBuff)
 }
@@ -28,7 +30,8 @@ export type TokenPayloadType = {
     salt: string,
     hubUrl?: string,
     associationToken?: string,
-    scopes?: AuthScopeType[]
+    scopes?: AuthScopeType[],
+    childToAssociate?: string
 }
 
 export type TokenType = {
@@ -87,7 +90,7 @@ export class V1Authentication {
 
     const payload: TokenPayloadType = { gaiaChallenge: challengeText,
                       iss: publicKeyHex,
-                      exp: FOUR_MONTH_SECONDS + (new Date()/1000),
+                      exp: FOUR_MONTH_SECONDS + (Date.now()/1000),
                       iat: payloadIssuedAtDate,
                       associationToken,
                       hubUrl, salt, scopes }
@@ -103,7 +106,7 @@ export class V1Authentication {
     const salt = crypto.randomBytes(16).toString('hex')
     const payload: TokenPayloadType = { childToAssociate: childPublicKey,
                       iss: publicKeyHex,
-                      exp: FOUR_MONTH_SECONDS + (new Date()/1000),
+                      exp: FOUR_MONTH_SECONDS + (Date.now()/1000),
                       iat: (Date.now()/1000|0),
                       gaiaChallenge: String(undefined),
                       salt }
@@ -149,7 +152,7 @@ export class V1Authentication {
       throw new ValidationError('Failed to verify association JWT: invalid issuer')
     }
 
-    if (expiresAt < (new Date()/1000)) {
+    if (expiresAt < (Date.now()/1000)) {
       throw new ValidationError(
         `Expired association token: expire time of ${expiresAt} (secs since epoch)`)
     }
@@ -302,7 +305,7 @@ export class V1Authentication {
     }
 
     const expiresAt = decodedToken.payload.exp
-    if (expiresAt && expiresAt < (new Date()/1000)) {
+    if (expiresAt && expiresAt < (Date.now()/1000)) {
       throw new ValidationError(
         `Expired authentication token: expire time of ${expiresAt} (secs since epoch)`)
     }
@@ -336,7 +339,7 @@ export class LegacyAuthentication {
 
   static makeAuthPart(secretKey: bitcoin.ECPair, challengeText: string) {
     const publickey = secretKey.publicKey.toString('hex')
-    const digest = bitcoin.crypto.sha256(challengeText)
+    const digest = bitcoin.crypto.sha256(Buffer.from(challengeText))
     const signatureBuffer = secretKey.sign(digest)
     const signatureWithHash = bitcoin.script.signature.encode(signatureBuffer, bitcoin.Transaction.SIGHASH_NONE)
     
@@ -361,7 +364,7 @@ export class LegacyAuthentication {
     }
 
     for (const challengeText of challengeTexts) {
-      const digest = bitcoin.crypto.sha256(challengeText)
+      const digest = bitcoin.crypto.sha256(Buffer.from(challengeText))
       const valid = (this.publickey.verify(digest, Buffer.from(this.signature, 'hex')) === true)
 
       if (valid) {
@@ -409,8 +412,8 @@ export function parseAuthHeader(authHeader: string) {
 }
 
 export function validateAuthorizationHeader(authHeader: string, serverName: string,
-                                            address: string, requireCorrectHubUrl?: boolean = false,
-                                            validHubUrls?: ?Array<string> = null,
+                                            address: string, requireCorrectHubUrl: boolean = false,
+                                            validHubUrls: Array<string> = null,
                                             oldestValidTokenTimestamp?: number) : string {
   const serverNameHubUrl = `https://${serverName}`
   if (!validHubUrls) {

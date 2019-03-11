@@ -1,4 +1,4 @@
-/* @flow */
+
 
 import fs from 'fs'
 import os from 'os'
@@ -6,7 +6,7 @@ import path from 'path'
 import http from 'http'
 import express from 'express'
 
-import { DriverModel } from '../../../src/server/driverModel'
+import { DriverModel, DriverConstructor } from '../../../src/server/driverModel'
 import AzDriver from '../../../src/server/drivers/AzDriver'
 import S3Driver from '../../../src/server/drivers/S3Driver'
 import GcDriver from '../../../src/server/drivers/GcDriver'
@@ -52,10 +52,10 @@ if (driverConfigTestData) {
 
 Object.entries(envConfigPaths)
   .filter(([key, val]) => val)
-  .forEach(([key, val]) => driverConfigs[key] = JSON.parse(fs.readFileSync((val: any), {encoding: 'utf8'})));
+  .forEach(([key, val]) => driverConfigs[key] = JSON.parse(fs.readFileSync(val, {encoding: 'utf8'})));
 
 
-export const availableDrivers: { [name: string]: { class: Class<DriverModel>, create: (config?: Object) => DriverModel } } = { 
+export const availableDrivers: { [name: string]: { class: DriverConstructor, create: (config?: Object) => DriverModel } } = { 
   az: {
     class: AzDriver,
     create: config => new AzDriver({...driverConfigs.az, ...config}) 
@@ -101,7 +101,7 @@ availableDrivers.diskSelfHosted = {
     //$FlowFixMe
     const gaiaReader = require('gaia-reader/lib/http');
     const app: express.Application = gaiaReader.makeHttpServer(selfHostedConfig);
-    const serverPromise = new Promise((res, rej) => {
+    const serverPromise = new Promise<http.Server>((res, rej) => {
       const server = app.listen(0, 'localhost', err => err ? rej(err) : res(server));
     });
 
@@ -110,7 +110,8 @@ availableDrivers.diskSelfHosted = {
         // Start the gaia-reader server when driver is initialized.
         await super.ensureInitialized();
         const server = await serverPromise;
-        this.readURL = selfHostedConfig.readURL = `http://localhost:${server.address().port}/`;
+        const addrInfo: any = server.address();
+        this.readURL = selfHostedConfig.readURL = `http://localhost:${addrInfo.port}/`;
       }
       async dispose() {
         await super.dispose();

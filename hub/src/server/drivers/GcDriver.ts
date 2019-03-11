@@ -1,12 +1,11 @@
-/* @flow */
 
-import { Storage } from '@google-cloud/storage'
-import logger from 'winston'
+
+import { Storage, File } from '@google-cloud/storage'
 
 import { BadPathError, InvalidInputError } from '../errors'
-import type { ListFilesResult, PerformWriteArgs } from '../driverModel'
+import { ListFilesResult, PerformWriteArgs } from '../driverModel'
 import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
-import { pipeline } from '../utils'
+import { pipeline, logger } from '../utils'
 
 type GC_CONFIG_TYPE = {
   gcCredentials?: {
@@ -28,13 +27,13 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
   bucket: string
   storage: Storage
   pageSize: number
-  cacheControl: ?string
+  cacheControl?: string
   initPromise: Promise<void>
   resumable: boolean
 
   static getConfigInformation() {
-    const envVars = {}
-    const gcCredentials = {}
+    const envVars: any = {}
+    const gcCredentials: any = {}
     if (process.env['GAIA_GCP_EMAIL']) {
       gcCredentials['email'] = process.env['GAIA_GCP_EMAIL']
       envVars['gcCredentials'] = gcCredentials
@@ -116,7 +115,7 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
     await this.storage.bucket(this.bucket).delete()
   }
 
-  async listAllObjects(prefix: string, page: ?string) {
+  async listAllObjects(prefix: string, page?: string) {
     // returns {'entries': [...], 'page': next_page}
     const opts : { prefix: string, maxResults: number, pageToken?: string } = {
       prefix: prefix,
@@ -124,7 +123,7 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
       pageToken: page || undefined
     }
 
-    const {files, nextQuery} = await new Promise((resolve, reject) => {
+    const result: any = await new Promise((resolve, reject) => {
       this.storage
         .bucket(this.bucket)
         .getFiles(opts, (err, files, nextQuery) => {
@@ -136,6 +135,9 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
         })
     })
 
+    const files: File[] = result.files
+    const nextQuery: any = result.nextQuery
+
     const fileNames = files.map(file => file.name.slice(prefix.length + 1))
     const ret : ListFilesResult = {
       entries: fileNames,
@@ -144,7 +146,7 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
     return ret
   }
 
-  listFiles(prefix: string, page: ?string) {
+  listFiles(prefix: string, page?: string) {
     // returns {'entries': [...], 'page': next_page}
     return this.listAllObjects(prefix, page)
   }
@@ -159,7 +161,7 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
     const filename = `${args.storageTopLevel}/${args.path}`
     const publicURL = `${this.getReadURLPrefix()}${filename}`
 
-    const metadata = {}
+    const metadata: any = {}
     metadata.contentType = args.contentType
     if (this.cacheControl) {
       metadata.cacheControl = this.cacheControl
@@ -200,6 +202,5 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
   }
 }
 
-(GcDriver: DriverStatics)
-
-export default GcDriver
+const driver: typeof GcDriver & DriverStatics = GcDriver
+export default driver

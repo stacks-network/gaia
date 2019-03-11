@@ -1,15 +1,14 @@
-/* @flow */
-
 import Path from 'path'
 import fs from 'fs-extra'
+import { DiskReaderConfig } from './config';
 
 const METADATA_DIRNAME = '.gaia-metadata'
 
 export class GaiaDiskReader {
 
-  config: Object
+  config: DiskReaderConfig
 
-  constructor(config: Object) {
+  constructor(config: DiskReaderConfig) {
     this.config = config
 
     // Ensure the configured storage directory exists
@@ -23,7 +22,7 @@ export class GaiaDiskReader {
   }
 
   handleGet(topLevelDir: string, filename: string)
-  : Promise<{ exists: boolean, contentType: ?string } > {
+  : Promise<{ exists: boolean, contentType?: string } > {
     const storageRoot = this.config.diskSettings.storageRootDirectory
     if (!storageRoot) {
       throw new Error('Misconfiguration: no storage root set')
@@ -37,7 +36,7 @@ export class GaiaDiskReader {
     try {
       fs.statSync(filePath)
     } catch (e) {
-      const ret = { exists: false, contentType: undefined }
+      const ret = { exists: false, contentType: <string>undefined }
       return Promise.resolve().then(() => ret)
     }
 

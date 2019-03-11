@@ -1,12 +1,12 @@
-/* @flow */
+
 
 import * as azure from '@azure/storage-blob'
-import logger from 'winston'
+import { logger } from '../utils'
 import { BadPathError, InvalidInputError } from '../errors'
-import type { ListFilesResult, PerformWriteArgs } from '../driverModel'
+import { ListFilesResult, PerformWriteArgs } from '../driverModel'
 import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
 
-type AZ_CONFIG_TYPE = {
+export type AZ_CONFIG_TYPE = {
   azCredentials: {
     accountName: string,
     accountKey: string
@@ -23,13 +23,13 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
   accountName: string
   bucket: string
   pageSize: number
-  readURL: ?string
-  cacheControl: ?string
+  readURL?: string
+  cacheControl?: string
   initPromise: Promise<void>
 
   static getConfigInformation() {
-    const envVars = {}
-    const azCredentials = {}
+    const envVars: any = {}
+    const azCredentials: any = {}
     if (process.env['GAIA_AZURE_ACCOUNT_NAME']) {
       envVars['azCredentials'] = azCredentials
       azCredentials['accountName'] = process.env['GAIA_AZURE_ACCOUNT_NAME']
@@ -41,8 +41,8 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
     return {
       defaults: {
         azCredentials: {
-          accountName: undefined,
-          accountKey: undefined
+          accountName: <any>undefined,
+          accountKey: <any>undefined
         }
       },
       envVars
@@ -112,7 +112,7 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
     return `${this.getServiceUrl()}/${this.bucket}/`
   }
 
-  async listBlobs(prefix: string, page: ?string): Promise<ListFilesResult> {
+  async listBlobs(prefix: string, page?: string): Promise<ListFilesResult> {
     // page is the marker / continuationToken for Azure
     const blobs = await this.container.listBlobFlatSegment(
       azure.Aborter.none,
@@ -126,7 +126,7 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
     return { entries, page: blobs.nextMarker || null }
   }
 
-  async listFiles(prefix: string, page: ?string) {
+  async listFiles(prefix: string, page?: string) {
     try {
       return await this.listBlobs(prefix, page)
     } catch (error) {
@@ -182,6 +182,5 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
   }
 }
 
-(AzDriver: DriverStatics)
-
-export default AzDriver
+const driver: typeof AzDriver & DriverStatics = AzDriver
+export default driver

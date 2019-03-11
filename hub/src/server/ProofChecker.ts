@@ -1,7 +1,6 @@
-/* @flow */
-
+//@ts-ignore
 import { validateProofs, verifyProfileToken } from 'blockstack'
-import logger from 'winston'
+import { logger } from './utils'
 import fetch from 'node-fetch'
 
 import { NotEnoughProofError } from './errors'
@@ -43,7 +42,7 @@ export class ProofChecker {
     let validProofs
     try {
       const profile = await this.fetchProfile(address, readURL)
-      const proofs = await validateProofs(profile, address, undefined)
+      const proofs: any[] = await validateProofs(profile, address, undefined)
       validProofs = proofs.filter(p => p.valid)
     } catch (error) {
       logger.error(error)

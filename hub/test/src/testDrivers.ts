@@ -1,4 +1,4 @@
-/* @flow */
+
 import test from 'tape-promise/tape'
 import proxyquire from 'proxyquire'
 import FetchMock from 'fetch-mock'
@@ -11,21 +11,21 @@ import os from 'os'
 import { Readable, Writable } from 'stream'
 import { InMemoryDriver } from './testDrivers/InMemoryDriver'
 import { DriverModel, DriverModelTestMethods } from '../../src/server/driverModel'
-import type { ListFilesResult } from '../../src/server/driverModel'
+import { ListFilesResult } from '../../src/server/driverModel'
 
 import DiskDriver from '../../src/server/drivers/diskDriver'
 
 import * as mockTestDrivers from './testDrivers/mockTestDrivers'
 import * as integrationTestDrivers from './testDrivers/integrationTestDrivers'
 
-export function addMockFetches(fetchLib: any, prefix: any, dataMap: any) {
+export function addMockFetches(fetchLib: any, prefix: any, dataMap: any[]) {
   dataMap.forEach(item => {
     fetchLib.get(`${prefix}${item.key}`, item.data, { overwriteRoutes: true })
   })
 }
 
 
-function testDriver(testName: string, mockTest: boolean, dataMap: [], createDriver: (config?: Object) => DriverModel) {
+function testDriver(testName: string, mockTest: boolean, dataMap: any[], createDriver: (config?: Object) => DriverModel) {
 
   test(testName, async (t) => {
     const topLevelStorage = `${Date.now()}r${Math.random()*1e6|0}`
@@ -46,7 +46,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: [], createDriv
         return { stream: s, contentLength: contentBuff.length }
       }
 
-      const fetch = mockTest ? FetchMock.sandbox(NodeFetch) : NodeFetch;
+      const fetch = mockTest ? (<any>FetchMock.sandbox)(NodeFetch) : NodeFetch;
 
       try {
         const writeArgs : any = { path: '../foo.js'}
@@ -232,7 +232,7 @@ function testDriverBucketCreation(driverName: string, createDriver: (config?: Ob
 class BrokenReadableStream extends Readable {
   readCount: number
   sampleData: Buffer
-  constructor(options) {
+  constructor(options?: any) {
     super(options)
     this.readCount = 0
     this.sampleData = Buffer.from('hello world sample data')
@@ -274,7 +274,7 @@ function performDriverBucketCreationTests() {
     const driverInfo = integrationTestDrivers.availableDrivers[name];
     const classPrototype: any = driverInfo.class.prototype
     if (classPrototype.deleteEmptyBucket) {
-      testDriverBucketCreation(name, testConfig => (driverInfo.create(testConfig): any)) 
+      testDriverBucketCreation(name, testConfig => <any>driverInfo.create(testConfig)) 
     }
   }
 }

@@ -1,11 +1,10 @@
-/* @flow */
+
 import fs from 'fs-extra'
 import { BadPathError, InvalidInputError } from '../errors'
-import logger from 'winston'
 import Path from 'path'
-import type { ListFilesResult, PerformWriteArgs } from '../driverModel'
+import { ListFilesResult, PerformWriteArgs } from '../driverModel'
 import { DriverStatics, DriverModel } from '../driverModel'
-import { pipeline } from '../utils'
+import { pipeline, logger } from '../utils'
 
 type DISK_CONFIG_TYPE = { diskSettings: { storageRootDirectory: string },
                           bucket?: string,
@@ -14,7 +13,6 @@ type DISK_CONFIG_TYPE = { diskSettings: { storageRootDirectory: string },
 
 const METADATA_DIRNAME = '.gaia-metadata'
 
-
 class DiskDriver implements DriverModel {
   storageRootDirectory: string
   readURL: string
@@ -22,14 +20,14 @@ class DiskDriver implements DriverModel {
   initPromise: Promise<void>
 
   static getConfigInformation() {
-    const envVars = {}
+    const envVars: any = {}
     if (process.env['GAIA_DISK_STORAGE_ROOT_DIR']) {
       const diskSettings = { storageRootDirectory: process.env['GAIA_DISK_STORAGE_ROOT_DIR'] }
       envVars['diskSettings'] = diskSettings
     }
 
     return {
-      defaults: { diskSettings: { storageRootDirectory: undefined } },
+      defaults: { diskSettings: { storageRootDirectory: <any>undefined } },
       envVars
     }
   }
@@ -82,7 +80,7 @@ class DiskDriver implements DriverModel {
     const normalizedPath = Path.normalize(path)
     try {
       // Ensures that the directory exists. If the directory structure does not exist, it is created. Like mkdir -p.
-      const wasCreated = await fs.ensureDir(normalizedPath)
+      const wasCreated: any = await fs.ensureDir(normalizedPath)
       if (wasCreated) {
         logger.debug(`mkdir ${normalizedPath}`)
       }
@@ -94,7 +92,7 @@ class DiskDriver implements DriverModel {
 
   async findAllFiles(listPath: string) : Promise<string[]> {
     // returns a list of files prefixed by listPath
-    const dirEntries: fs.Dirent[] = await fs.readdir(listPath, { withFileTypes: true })
+    const dirEntries: fs.Dirent[] = await (<any>fs.readdir)(listPath, { withFileTypes: true })
     const fileNames = []
     for (const dirEntry of dirEntries) {
       const fileOrDir = `${listPath}${Path.sep}${dirEntry.name}`
@@ -119,7 +117,7 @@ class DiskDriver implements DriverModel {
     }
   }
 
-  async listFiles(prefix: string, page: ?string) {
+  async listFiles(prefix: string, page?: string) {
     // returns {'entries': [...], 'page': next_page}
     let pageNum
     const listPath = Path.normalize(`${this.storageRootDirectory}/${prefix}`)
@@ -128,7 +126,7 @@ class DiskDriver implements DriverModel {
       page: null
     }
 
-    if (!(await fs.exists(listPath))) {
+    if (!(await (<any>fs.exists)(listPath))) {
       // nope 
       return emptyResponse
     }
@@ -208,7 +206,6 @@ class DiskDriver implements DriverModel {
   }
 }
 
-(DiskDriver: DriverStatics)
-
-export default DiskDriver
+const driver: typeof DiskDriver & DriverStatics = DiskDriver
+export default driver
 

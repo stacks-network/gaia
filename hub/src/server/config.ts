@@ -2,14 +2,42 @@ import winston from 'winston'
 import fs from 'fs'
 import process from 'process'
 
-import { getDriverClass } from './utils'
+import { getDriverClass, logger } from './utils'
+import { ConsoleTransportOptions } from 'winston/lib/winston/transports';
 
-export const configDefaults = {
+export enum DriverName { 
+  aws = 'aws',
+  azure = 'azure',
+  disk = 'disk',
+  'google-cloud' = 'google-cloud'
+}
+
+interface LoggingConfig {
+  timestamp: boolean;
+  colorize: boolean;
+  json: boolean;
+}
+
+interface Config {
+  serverName: string;
+  port: number;
+  driver?: DriverName;
+  bucket: string;
+  readURL: string & null;
+  pageSize: number;
+  requireCorrectHubUrl: boolean;
+  cacheControl: string;
+  whitelist: string[] & null,
+  validHubUrls?: string[];
+  proofsConfig?: { proofsRequired: number };
+  argsTransport: ConsoleTransportOptions & LoggingConfig;
+}
+
+export const configDefaults: Config = {
   argsTransport: {
     level: 'warn',
     handleExceptions: true,
     timestamp: true,
-    stringify: true,
     colorize: true,
     json: false
   },
@@ -23,7 +51,7 @@ export const configDefaults = {
   pageSize: 100,
   cacheControl: 'public, max-age=1',
   port: 3000,
-  proofsConfig: 0
+  proofsConfig: undefined
 }
 
 const globalEnvVars = { whitelist: 'GAIA_WHITELIST',
@@ -40,9 +68,8 @@ const globalEnvVars = { whitelist: 'GAIA_WHITELIST',
 const parseInts = [ 'port', 'pageSize', 'requireCorrectHubUrl' ]
 const parseLists = [ 'validHubUrls', 'whitelist' ]
 
-function getConfigEnv(envVars) {
-
-  const configEnv = {}
+function getConfigEnv(envVars: {[key: string]: string}) {
+  const configEnv: {[key: string]: any} = {}
   for (const name in envVars) {
     const envVar = envVars[name]
     if (process.env[envVar]) {
@@ -54,7 +81,7 @@ function getConfigEnv(envVars) {
           throw new Error(`Passed a non-number input to: ${envVar}`)
         }
       } else if (parseLists.indexOf(name) >= 0) {
-        configEnv[name] = configEnv[name].split(',').map(x => x.trim())
+        configEnv[name] = (<string>configEnv[name]).split(',').map(x => x.trim())
       }
     }
   }
@@ -63,8 +90,8 @@ function getConfigEnv(envVars) {
 
 // we deep merge so that if someone sets { field: {subfield: foo} }, it doesn't remove
 //                                       { field: {subfieldOther: bar} }
-function deepMerge(target, ...sources) {
-  function isObject(item) {
+function deepMerge<T>(target: T, ...sources: T[]): T {
+  function isObject(item: any) {
     return (item && typeof item === 'object' && !Array.isArray(item))
   }
 
@@ -92,7 +119,7 @@ export function getConfig() {
   const configPath = process.env.CONFIG_PATH || process.argv[2] || './config.json'
   let configJSON
   try {
-    configJSON = JSON.parse(fs.readFileSync(configPath))
+    configJSON = JSON.parse(fs.readFileSync(configPath, { encoding: 'utf8' }))
   } catch (err) {
     configJSON = {}
   }
@@ -106,7 +133,7 @@ export function getConfig() {
 
   const configENV = getConfigEnv(globalEnvVars)
 
-  const configGlobal = deepMerge({}, configDefaults, configJSON, configENV)
+  const configGlobal: Config = deepMerge({}, configDefaults, configJSON, configENV)
 
   let config = configGlobal
   if (config.driver) {
@@ -115,8 +142,17 @@ export function getConfig() {
     config = deepMerge({}, driverConfigInfo.defaults, configGlobal, driverConfigInfo.envVars)
   }
 
-  winston.configure({ transports: [
-    new winston.transports.Console(config.argsTransport) ] })
+  const formats = [
+    config.argsTransport.colorize ? winston.format.colorize() : null,
+    config.argsTransport.json ? winston.format.json() : null,
+    config.argsTransport.timestamp ? winston.format.timestamp() : null,
+  ].filter(f => f !== null)
+  const format = formats.length ? winston.format.combine(...formats) : null
+
+  logger.configure({
+    format: format,
+    transports: [new winston.transports.Console(config.argsTransport)] 
+  })
 
   return config
 }

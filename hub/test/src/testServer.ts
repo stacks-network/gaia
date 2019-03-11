@@ -1,5 +1,3 @@
-/* @flow */
-
 import test from 'tape-promise/tape'
 import * as auth from '../../src/server/authentication'
 import * as errors from '../../src/server/errors'
@@ -7,12 +5,11 @@ import { HubServer }  from '../../src/server/server'
 import { ProofChecker } from '../../src/server/ProofChecker'
 import { Readable } from 'stream'
 import { DriverModel } from '../../src/server/driverModel'
-import type { ListFilesResult } from '../../src/server/driverModel'
+import { ListFilesResult } from '../../src/server/driverModel'
 import { InMemoryDriver } from './testDrivers/InMemoryDriver'
 import { testPairs, testAddrs, createTestKeys } from './common'
 import { MockAuthTimestampCache } from './MockAuthTimestampCache'
 import * as integrationTestDrivers from './testDrivers/integrationTestDrivers'
-import logger from 'winston'
 
 const TEST_SERVER_NAME = 'test-server'
 const TEST_AUTH_CACHE_SIZE = 10
@@ -61,7 +58,7 @@ export function testServer() {
 
       t.throws(() => server.validate(testAddrs[1], { authorization: auth0 }),
               errors.ValidationError, 'Non-whitelisted address should fail validation')
-      t.throws(() => server.validate(testAddrs[0], ({}: any)),
+      t.throws(() => server.validate(testAddrs[0], {}),
               errors.ValidationError, 'Bad request headers should fail validation')
 
       const authPart = auth.LegacyAuthentication.makeAuthPart(testPairs[0], challengeText)
@@ -576,13 +573,13 @@ export function testServer() {
         .then(() => server.handleRequest(testAddrs[0], '/nope/foo.txt',
                           { 'content-length': 400,
                             authorization }, s3))
-        .catch((e) => {
+        .catch((e: any) => {
           t.throws(() => { throw e }, errors.ValidationError, 'invalid prefix should fail')
         })
         .then(() => server.handleRequest(testAddrs[0], '/foo/bar/nope.txt',
                           { 'content-length': 400,
                             authorization }, s4 ))
-        .catch((e) => {
+        .catch((e: any) => {
           t.throws(() => { throw e }, errors.ValidationError, 'putFile does not permit prefixes')
           t.end()
         })

@@ -1,14 +1,32 @@
 import winston from 'winston'
 import fs from 'fs'
 import process from 'process'
-import type { HubServerConfig } from './server'
+import { ConsoleTransportOptions } from 'winston/lib/winston/transports';
 
-const configDefaults : HubServerConfig = {
+interface LoggingConfig {
+  timestamp: boolean;
+  colorize: boolean;
+  json: boolean;
+}
+
+export interface Config {
+  [key: string]: any;
+  apiKeys: string[];
+  argsTransport: ConsoleTransportOptions & LoggingConfig;
+  reloadSettings: {
+    command: string;
+    argv: string[];
+    env: NodeJS.ProcessEnv;
+    setuid: number;
+    setgid: number;
+  }
+}
+
+const configDefaults: Config = {
   argsTransport: {
     level: 'debug',
     handleExceptions: true,
     timestamp: true,
-    stringify: true,
     colorize: true,
     json: true
   },
@@ -27,18 +45,31 @@ const configDefaults : HubServerConfig = {
   }
 }
 
-export function getConfig(): HubServerConfig {
+export const logger = winston.createLogger()
+
+export function getConfig() {
+
   const configPath = process.env.CONFIG_PATH || process.argv[2] || './config.json'
-  let config: HubServerConfig
+  let config: Config
   try {
     config = Object.assign(
       {}, configDefaults, JSON.parse(fs.readFileSync(configPath).toString()))
   } catch (e) {
+    console.error(`Error reading config "${configPath}": ${e}`)
     config = Object.assign({}, configDefaults)
   }
 
-  winston.configure({ transports: [
-    new winston.transports.Console(config.argsTransport) ] })
+  const formats = [
+    config.argsTransport.colorize ? winston.format.colorize() : null,
+    config.argsTransport.json ? winston.format.json() : null,
+    config.argsTransport.timestamp ? winston.format.timestamp() : null,
+  ].filter(f => f !== null)
+  const format = formats.length ? winston.format.combine(...formats) : null
+
+  logger.configure({
+    format: format, 
+    transports: [new winston.transports.Console(config.argsTransport)]
+  })
 
   return config
 }

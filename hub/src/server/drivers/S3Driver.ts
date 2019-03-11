@@ -1,12 +1,11 @@
-/* @flow */
+
 
 import S3 from 'aws-sdk/clients/s3'
-import logger from 'winston'
 
 import { BadPathError, InvalidInputError } from '../errors'
-import type { ListFilesResult, PerformWriteArgs } from '../driverModel'
+import { ListFilesResult, PerformWriteArgs } from '../driverModel'
 import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
-import { timeout } from '../utils'
+import { timeout, logger } from '../utils'
 
 type S3_CONFIG_TYPE = { awsCredentials: {
                           accessKeyId?: string,
@@ -21,12 +20,12 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
   s3: S3
   bucket: string
   pageSize: number
-  cacheControl: ?string
+  cacheControl?: string
   initPromise: Promise<void>
 
   static getConfigInformation() {
-    const envVars = {}
-    const awsCredentials = {}
+    const envVars: any = {}
+    const awsCredentials: any = {}
     if (process.env['GAIA_S3_ACCESS_KEY_ID']) {
       awsCredentials['accessKeyId'] = process.env['GAIA_S3_ACCESS_KEY_ID']
       envVars['awsCredentials'] = awsCredentials
@@ -41,7 +40,7 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
     }
 
     return {
-      defaults: { awsCredentials: undefined },
+      defaults: { awsCredentials: <any>undefined },
       envVars
     }
   }
@@ -121,7 +120,7 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
     await this.s3.deleteBucket({ Bucket: this.bucket }).promise()
   }
 
-  async listAllKeys(prefix: string, page: ?string) : Promise<ListFilesResult> {
+  async listAllKeys(prefix: string, page?: string) : Promise<ListFilesResult> {
     // returns {'entries': [...], 'page': next_page}
     const opts : { Bucket: string, MaxKeys: number, Prefix: string, ContinuationToken?: string } = {
       Bucket: this.bucket,
@@ -140,7 +139,7 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
     return res
   }
 
-  listFiles(prefix: string, page: ?string) {
+  listFiles(prefix: string, page?: string) {
     // returns {'entries': [...], 'page': next_page}
     return this.listAllKeys(prefix, page)
   }
@@ -150,13 +149,13 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
       throw new InvalidInputError('Invalid content-type')
     }
     const s3key = `${args.storageTopLevel}/${args.path}`
-    const s3params = Object.assign({}, {
+    const s3params: S3.Types.PutObjectRequest = {
       Bucket: this.bucket,
       Key: s3key,
       Body: args.stream,
       ContentType: args.contentType,
       ACL: 'public-read'
-    })
+    }
     if (this.cacheControl) {
       s3params.CacheControl = this.cacheControl
     }
@@ -180,6 +179,5 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
   }
 }
 
-(S3Driver: DriverStatics)
-
-export default S3Driver
+const driver: typeof S3Driver & DriverStatics = S3Driver
+export default driver

@@ -1,5 +1,6 @@
-/* @flow */
+
 import { ECPair } from 'bitcoinjs-lib'
+//@ts-ignore
 import { ecPairToAddress } from 'blockstack'
 
 export const testWIFs = [

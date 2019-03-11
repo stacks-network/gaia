@@ -1,8 +1,8 @@
-/* @flow */
+
 
 import { Readable } from 'stream'
 
-export type ListFilesResult = { entries: Array<string>, page: ?string };
+export type ListFilesResult = { entries: Array<string>, page?: string };
 export type PerformWriteArgs = { 
   path: string,
   storageTopLevel: string,
@@ -13,11 +13,13 @@ export type PerformWriteArgs = {
 export interface DriverModel {
   getReadURLPrefix(): string;
   performWrite(args: PerformWriteArgs): Promise<string>;
-  listFiles(storageTopLevel: string, page: ?string):
-             Promise<ListFilesResult>;
+  listFiles(storageTopLevel: string, page?: string): Promise<ListFilesResult>;
   ensureInitialized(): Promise<void>;
   dispose(): Promise<void>;
-  constructor(config: any) : void
+}
+
+export interface DriverConstructor {
+  new (config: any): DriverModel;
 }
 
 export interface DriverModelTestMethods extends DriverModel {
@@ -31,6 +33,6 @@ export interface DriverModelTestMethods extends DriverModel {
 }
 
 export interface DriverStatics {
-  getConfigInformation(): { defaults: Object,
-                            envVars: Object }
+  getConfigInformation(): { defaults: any,
+                            envVars: any }
 }

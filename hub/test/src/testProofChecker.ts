@@ -1,5 +1,3 @@
-/* @flow */
-
 import test from 'tape-promise/tape'
 import { ProofChecker } from '../../src/server/ProofChecker'
 

@@ -1,13 +1,13 @@
-const test = require('tape')
-const fs = require('fs')
-const Path = require('path')
+import test from 'tape'
+import fs from 'fs'
+import Path from 'path'
 
-const { GaiaDiskReader } = require('../lib/server.js')
+import { GaiaDiskReader } from '../src/server'
 
 function testServer() {
   test('check handleGet', (t) => {
     t.plan(8)
-
+    
     const storageDir = `/tmp/gaia-disk-${Math.random()}`
 
     // store /12345/foo/bar.txt

@@ -1,4 +1,4 @@
-/* @flow */
+
 
 import { Readable, Writable } from 'stream'
 import os from 'os'
@@ -7,15 +7,16 @@ import fs from 'fs'
 import proxyquire from 'proxyquire'
 
 import { readStream } from '../../../src/server/utils'
-import { DriverModel } from '../../../src/server/driverModel'
-import type { ListFilesResult, PerformWriteArgs } from '../../../src/server/driverModel'
+import { DriverModel, DriverConstructor } from '../../../src/server/driverModel'
+import { ListFilesResult, PerformWriteArgs } from '../../../src/server/driverModel'
 import AzDriver from '../../../src/server/drivers/AzDriver'
 import S3Driver from '../../../src/server/drivers/S3Driver'
 import GcDriver from '../../../src/server/drivers/GcDriver'
 import DiskDriver from '../../../src/server/drivers/diskDriver'
 
+type DataMap = {key: string, data: string}[];
 
-export const availableMockedDrivers: {[name: string]: () => {driverClass: Class<DriverModel>, dataMap: [], config: any}} = {
+export const availableMockedDrivers: {[name: string]: () => {driverClass: DriverConstructor, dataMap: DataMap, config: any}} = {
   az: () => makeMockedAzureDriver(),
   aws: () => makeMockedS3Driver(),
   gc: () => makeMockedGcDriver(),
@@ -33,7 +34,7 @@ export function makeMockedAzureDriver() {
     "bucket": "spokes"
   }
 
-  const dataMap = []
+  const dataMap: DataMap = []
   const uploadStreamToBlockBlob = async (aborter, stream, blockBlobURL, bufferSize, maxBuffers, options) => {
     const buffer = await readStream(stream)
     dataMap.push({data: buffer.toString(), key: blockBlobURL })
@@ -78,7 +79,7 @@ export function makeMockedS3Driver() {
   let config : any = {
     "bucket": "spokes"
   }
-  const dataMap = []
+  const dataMap: DataMap = []
   let bucketName = ''
 
   const S3Class = class {
@@ -125,7 +126,7 @@ export function makeMockedGcDriver() {
     "bucket": "spokes"
   }
 
-  const dataMap = []
+  const dataMap: DataMap = []
   let myName = ''
 
   const file = function (filename) {
@@ -165,7 +166,7 @@ export function makeMockedGcDriver() {
 
 export function makeMockedDiskDriver() {
 
-  const dataMap = []
+  const dataMap: DataMap = []
 
   const tmpStorageDir = path.resolve(os.tmpdir(), `disktest-${Date.now()-Math.random()}`)
   fs.mkdirSync(tmpStorageDir)
@@ -186,7 +187,7 @@ export function makeMockedDiskDriver() {
     }
   }
 
-  const driverClass = DiskDriverWrapper
+  const driverClass: DriverConstructor = DiskDriverWrapper
   return {driverClass, dataMap, config}
 }
 

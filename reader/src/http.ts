@@ -1,27 +1,21 @@
-/* @flow */
-
-import express from 'express'
+import express  from 'express'
 import expressWinston from 'express-winston'
-import logger from 'winston'
 import cors from 'cors'
 import Path from 'path'
+import { Config, logger } from './config'
+import { GaiaDiskReader } from './server'
 
-import {
-  GaiaDiskReader
-} from './server'
-
-export function makeHttpServer(config: Object) {
+export function makeHttpServer(config: Config) {
   const app = express()
   const server = new GaiaDiskReader(config)
 
-  app.config = config
-
   app.use(expressWinston.logger({
-    transports: logger.loggers.default.transports }))
+    winstonInstance: logger
+  }))
 
   app.use(cors())
 
-  app.get(/\/([a-zA-Z0-9]+)\/(.+)/, (req: express.request, res: express.response) => {
+  app.get(/\/([a-zA-Z0-9]+)\/(.+)/, (req, res) => {
     let filename = req.params[1]
     if (filename.endsWith('/')) {
       filename = filename.substring(0, filename.length - 1)

@@ -1,9 +1,9 @@
-/* @flow */
+
 
 import LRUCache from 'lru-cache'
-import type { DriverModel } from './driverModel'
+import { DriverModel } from './driverModel'
 import fetch from 'node-fetch'
-import logger from 'winston'
+import { logger } from './utils'
 import { Readable } from 'stream'
 import * as errors from './errors'
 
@@ -34,7 +34,7 @@ export class AuthTimestampCache {
   }
 
   setupCacheEvictionLogger(timerInterval: number) {
-    const evictionLogTimeout: any = setInterval(() => this.handleCacheEvictions(), timerInterval)
+    const evictionLogTimeout = setInterval(() => this.handleCacheEvictions(), timerInterval)
     evictionLogTimeout.unref()
   }
 

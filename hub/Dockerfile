@@ -1,4 +1,4 @@
-FROM node:lts-alpine
+FROM node:8-alpine
 
 WORKDIR /src/hub
 

@@ -1,20 +1,20 @@
-/* @flow */
+
 
 import express from 'express'
 import expressWinston from 'express-winston'
-import logger from 'winston'
 import cors from 'cors'
 
 import { ProofChecker } from './ProofChecker'
-import type { ProofCheckerConfig } from './ProofChecker'
+import { ProofCheckerConfig } from './ProofChecker'
 import { getChallengeText, LATEST_AUTH_VERSION } from './authentication'
 import { HubServer } from './server'
-import type { HubServerConfig } from './server'
-import { getDriverClass } from './utils'
-import { DriverModel } from './driverModel'
+import { HubServerConfig } from './server'
+import { getDriverClass, logger } from './utils'
+import { DriverModel, DriverConstructor } from './driverModel'
 import * as errors from './errors'
+import { DriverName } from './config';
 
-function writeResponse(res: express.response, data: Object, statusCode: number) {
+function writeResponse(res: express.Response, data: Object, statusCode: number) {
   res.writeHead(statusCode, {'Content-Type' : 'application/json'})
   res.write(JSON.stringify(data))
   res.end()
@@ -22,7 +22,7 @@ function writeResponse(res: express.response, data: Object, statusCode: number) 
 
 export interface MakeHttpServerConfig { 
   proofsConfig?: ProofCheckerConfig,
-  driverInstance?: DriverModel, driverClass?: Class<DriverModel>, driver?: string
+  driverInstance?: DriverModel, driverClass?: DriverConstructor, driver?: DriverName
 }
 
 export function makeHttpServer(config: MakeHttpServerConfig & HubServerConfig): { app: express.Application, server: HubServer, driver: DriverModel } {
@@ -54,8 +54,8 @@ export function makeHttpServer(config: MakeHttpServerConfig & HubServerConfig): 
 
   // sadly, express doesn't like to capture slashes.
   //  but that's okay! regexes solve that problem
-  app.post(/^\/store\/([a-zA-Z0-9]+)\/(.+)/, (req: express.request,
-                                           res: express.response) => {
+  app.post(/^\/store\/([a-zA-Z0-9]+)\/(.+)/, (req: express.Request,
+                                           res: express.Response) => {
     let filename = req.params[1]
     if (filename.endsWith('/')){
       filename = filename.substring(0, filename.length - 1)
@@ -66,7 +66,7 @@ export function makeHttpServer(config: MakeHttpServerConfig & HubServerConfig): 
       .then((publicURL) => {
         writeResponse(res, { publicURL }, 202)
       })
-      .catch((err) => {
+      .catch((err: any) => {
         logger.error(err)
         if (err instanceof errors.ValidationError) {
           writeResponse(res, { message: err.message, error: err.name }, 401)
@@ -84,9 +84,9 @@ export function makeHttpServer(config: MakeHttpServerConfig & HubServerConfig): 
 
   app.post(
       /^\/list-files\/([a-zA-Z0-9]+)\/?/, express.json(),
-    (req: express.request, res: express.response) => {
+    (req: express.Request, res: express.Response) => {
       // sanity check...
-      if (req.headers['content-length'] > 4096) {
+      if (parseInt(req.headers['content-length']) > 4096) {
         writeResponse(res, { message: 'Invalid JSON: too long'}, 400)
         return
       }
@@ -99,7 +99,7 @@ export function makeHttpServer(config: MakeHttpServerConfig & HubServerConfig): 
         .then((files) => {
           writeResponse(res, { entries: files.entries, page: files.page }, 202)
         })
-        .catch((err) => {
+        .catch((err: any) => {
           logger.error(err)
           if (err instanceof errors.ValidationError) {
             writeResponse(res, { message: err.message, error: err.name }, 401)
@@ -114,9 +114,9 @@ export function makeHttpServer(config: MakeHttpServerConfig & HubServerConfig): 
   app.post(
     /^\/revoke-all\/([a-zA-Z0-9]+)\/?/, 
     express.json(),
-    (req: express.request, res: express.response) => {
+    (req: express.Request, res: express.Response) => {
       // sanity check...
-      if (req.headers['content-length'] > 4096) {
+      if (parseInt(req.headers['content-length']) > 4096) {
         writeResponse(res, { message: 'Invalid JSON: too long'}, 400)
         return
       }
@@ -138,7 +138,7 @@ export function makeHttpServer(config: MakeHttpServerConfig & HubServerConfig): 
       .then(() => {
         writeResponse(res, { status: 'success' }, 202)
       })
-      .catch((err) => {
+      .catch((err: any) => {
         logger.error(err)
         if (err instanceof errors.ValidationError) {
           writeResponse(res, { message: err.message, error: err.name  }, 401)
@@ -150,8 +150,8 @@ export function makeHttpServer(config: MakeHttpServerConfig & HubServerConfig): 
       })
   })
 
-  app.get('/hub_info/', (req: express.request,
-                         res: express.response) => {
+  app.get('/hub_info/', (req: express.Request,
+                         res: express.Response) => {
     const challengeText = getChallengeText(server.serverName)
     if (challengeText.length < 10) {
       return writeResponse(res, { message: 'Server challenge text misconfigured' }, 500)

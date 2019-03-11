@@ -1,4 +1,4 @@
-/* @flow */
+
 
 import test from 'tape-promise/tape'
 import { TokenSigner } from 'jsontokens'
@@ -178,9 +178,9 @@ export function testAuth() {
     const expiredAssociationToken = new TokenSigner('ES256K', ownerKeyHex).sign(
       { childToAssociate: testPairs[1].publicKey.toString('hex'), iss: testPairs[0].publicKey.toString('hex'), exp: 1 })
     const wrongIssuerAssociationToken = new TokenSigner('ES256K', ownerKeyHex).sign(
-      { childToAssociate: testPairs[1].publicKey.toString('hex'), iss: testPairs[1].publicKey.toString('hex'), exp: (new Date()/1000) * 2 })
+      { childToAssociate: testPairs[1].publicKey.toString('hex'), iss: testPairs[1].publicKey.toString('hex'), exp: (Date.now()/1000) * 2 })
     const wrongBearerAddressAssociationToken = new TokenSigner('ES256K', ownerKeyHex).sign(
-      { childToAssociate: testPairs[0].publicKey.toString('hex'), iss: testPairs[0].publicKey.toString('hex'), exp: (new Date()/1000) * 2 })
+      { childToAssociate: testPairs[0].publicKey.toString('hex'), iss: testPairs[0].publicKey.toString('hex'), exp: (Date.now()/1000) * 2 })
 
     function makeAssocAuthToken(keypair, ct, assocJWT) {
       return new auth.V1Authentication(auth.V1Authentication.fromAuthPart(auth.V1Authentication.makeAuthPart(keypair, ct, assocJWT)).token)

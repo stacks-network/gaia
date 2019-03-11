@@ -1,22 +1,21 @@
-/* @flow */
-
 import test from 'tape-promise/tape'
-
 import * as auth from '../../src/server/authentication'
 import os from 'os'
 import fs from 'fs'
 import request from 'supertest'
+//@ts-ignore
 import { ecPairToAddress } from 'blockstack'
 
 import FetchMock from 'fetch-mock'
-import * as NodeFetch from 'node-fetch'
-const fetch = FetchMock.sandbox(NodeFetch)
+import NodeFetch from 'node-fetch'
+const fetch: FetchMock.FetchMockSandbox = (<any>FetchMock.sandbox)(NodeFetch)
 
-import { makeHttpServer } from '../../src/server/http.js'
+import { makeHttpServer } from '../../src/server/http'
 import DiskDriver from '../../src/server/drivers/diskDriver'
-import { MakeHttpServerConfig, } from '../../src/server/http.js'
+import { AZ_CONFIG_TYPE } from '../../src/server/drivers/AzDriver'
+import { MakeHttpServerConfig, } from '../../src/server/http'
 import { AuthTimestampCache } from '../../src/server/revocations'
-import type { HubServerConfig } from '../../src/server/server.js'
+import { HubServerConfig } from '../../src/server/server'
 import { addMockFetches } from './testDrivers'
 import { makeMockedAzureDriver } from './testDrivers/mockTestDrivers'
 
@@ -174,7 +173,6 @@ function testHttpDriverOption() {
   test('makeHttpServer "driverInstance" config', (t) => {
     const driver = new DiskDriver({
       readURL: 'test/',
-      authTimestampCacheSize: TEST_AUTH_CACHE_SIZE,
       diskSettings: {
         storageRootDirectory: os.tmpdir()
       }
@@ -199,7 +197,7 @@ function testHttpDriverOption() {
 
 function testHttpWithAzure() {
   const azConfigPath = process.env.AZ_CONFIG_PATH
-  let config : MakeHttpServerConfig & HubServerConfig = {
+  let config : MakeHttpServerConfig & HubServerConfig & AZ_CONFIG_TYPE = {
     'azCredentials': {
       'accountName': 'mock-azure',
       'accountKey': 'mock-azure-key'
@@ -218,7 +216,7 @@ function testHttpWithAzure() {
     mockTest = false
   }
 
-  let dataMap = []
+  let dataMap: any[] = []
   if (mockTest) {
     const mockedObj = makeMockedAzureDriver()
     dataMap = mockedObj.dataMap
@@ -266,7 +264,7 @@ function testHttpWithAzure() {
   })
 
   test('handle request', (t) => {
-    let fetch = FetchMock.sandbox(NodeFetch)
+    let fetch = (<any>FetchMock.sandbox)(NodeFetch)
     let { app, server } = makeHttpServer(config)
     server.authTimestampCache = new MockAuthTimestampCache()
     let sk = testPairs[1]
@@ -307,7 +305,7 @@ function testHttpWithAzure() {
           .then(resp => resp.text())
           .then(text => t.equal(text, fileContents, 'Contents returned must be correct'))
       })
-      .catch((err) => t.false(true, `Unexpected err: ${err}`))
+      .catch((err: any) => t.false(true, `Unexpected err: ${err}`))
       .then(() => request(app).post(listPath)
             .set('Content-Type', 'application/json')
             .set('Authorization', authorizationHeader)

@@ -1,7 +1,7 @@
 const test = require('tape')
 const fs = require('fs')
 
-const { AdminAPI, patchConfigFile, readConfigFileSections } = require('../lib/server.js')
+const { AdminAPI, patchConfigFile, readConfigFileSections } = require('../src/server')
 
 function testServer() {
   test('patch config file only sets top-level fields', (t) => {
@@ -28,7 +28,7 @@ function testServer() {
       }
     }
 
-    configPath = '/tmp/test-gaia-admin-config.json'
+    const configPath = '/tmp/test-gaia-admin-config.json'
     try {
       fs.unlinkSync(configPath)
     }
