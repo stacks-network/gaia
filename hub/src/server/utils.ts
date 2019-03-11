@@ -1,7 +1,7 @@
 
 
-import { Readable, Writable } from 'stream'
-import { DriverModel, DriverConstructor } from './driverModel'
+import stream from 'stream'
+import { DriverModel, DriverConstructor, DriverStatics } from './driverModel'
 import S3Driver from './drivers/S3Driver'
 import AzDriver from './drivers/AzDriver'
 import GcDriver from './drivers/GcDriver'
@@ -11,19 +11,20 @@ import winston from 'winston'
 
 //$FlowFixMe - Flow is unaware of the stream.pipeline Node API
 import { pipeline as _pipline } from 'stream'
+import { DriverName } from './config';
 
 export const pipeline = promisify(_pipline)
 
 export const logger = winston.createLogger()
 
-export function getDriverClass(driver: string) : DriverConstructor {
-  if (driver === 'aws') {
+export function getDriverClass(driver: DriverName) : DriverConstructor & DriverStatics {
+  if (driver === DriverName.aws) {
     return S3Driver
-  } else if (driver === 'azure') {
+  } else if (driver === DriverName.azure) {
     return AzDriver
-  } else if (driver === 'disk') {
+  } else if (driver === DriverName.disk) {
     return DiskDriver
-  } else if (driver === 'google-cloud') {
+  } else if (driver === DriverName["google-cloud"]) {
     return GcDriver
   } else {
     throw new Error(`Failed to load driver: driver was set to ${driver}`)
@@ -31,23 +32,22 @@ export function getDriverClass(driver: string) : DriverConstructor {
 }
 
 
-class MemoryStream extends Writable {
+class MemoryStream extends stream.Writable {
   buffers: Buffer[]
-  constructor(opts?: any) {
+  constructor(opts?: stream.WritableOptions) {
     super(opts)
     this.buffers = []
   }
-  _write(chunk: any, encoding: any, callback: any) {
+  _write(chunk: any, encoding: string, callback: (error?: Error | null) => void): void {
     this.buffers.push(Buffer.from(chunk, encoding))
     callback(null)
-    return true
   }
   getData() {
     return Buffer.concat(this.buffers)
   }
 }
 
-export async function readStream(stream: Readable): Promise<Buffer> {
+export async function readStream(stream: stream.Readable): Promise<Buffer> {
   const memStream = new MemoryStream()
   await pipeline(stream, memStream)
   return memStream.getData()

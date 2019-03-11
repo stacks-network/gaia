@@ -12,6 +12,7 @@ import { HubServerConfig } from './server'
 import { getDriverClass, logger } from './utils'
 import { DriverModel, DriverConstructor } from './driverModel'
 import * as errors from './errors'
+import { DriverName } from './config';
 
 function writeResponse(res: express.Response, data: Object, statusCode: number) {
   res.writeHead(statusCode, {'Content-Type' : 'application/json'})
@@ -21,10 +22,10 @@ function writeResponse(res: express.Response, data: Object, statusCode: number) 
 
 export interface MakeHttpServerConfig { 
   proofsConfig?: ProofCheckerConfig,
-  driverInstance?: DriverModel, driverClass?: DriverConstructor, driver?: string
+  driverInstance?: DriverModel, driverClass?: DriverConstructor, driver?: DriverName
 }
 
-export function makeHttpServer(config: MakeHttpServerConfig & HubServerConfig & {[s:string]:any}): { app: express.Application, server: HubServer, driver: DriverModel } {
+export function makeHttpServer(config: MakeHttpServerConfig & HubServerConfig): { app: express.Application, server: HubServer, driver: DriverModel } {
 
   const app : express.Application = express()
 

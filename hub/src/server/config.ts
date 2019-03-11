@@ -4,7 +4,36 @@ import process from 'process'
 
 import { getDriverClass, logger } from './utils'
 
-export const configDefaults = {
+export enum DriverName { 
+  aws = 'aws',
+  azure = 'azure',
+  disk = 'disk',
+  'google-cloud' = 'google-cloud'
+}
+
+interface Config {
+  serverName: string;
+  port: number;
+  driver?: DriverName;
+  bucket: string;
+  readURL: string & null;
+  pageSize: number;
+  requireCorrectHubUrl: boolean;
+  cacheControl: string;
+  whitelist: string[] & null,
+  validHubUrls?: string[];
+  proofsConfig?: { proofsRequired: number };
+  argsTransport: {
+      level: string;
+      handleExceptions: boolean;
+      stringify: boolean;
+      timestamp: boolean;
+      colorize: boolean;
+      json: boolean;
+  }
+}
+
+export const configDefaults: Config = {
   argsTransport: {
     level: 'warn',
     handleExceptions: true,
@@ -13,17 +42,17 @@ export const configDefaults = {
     colorize: true,
     json: false
   },
-  whitelist: <string>null,
-  readURL: <string>null,
-  driver: <any>undefined,
-  validHubUrls: <string[]>undefined,
+  whitelist: null,
+  readURL: null,
+  driver: undefined,
+  validHubUrls: undefined,
   requireCorrectHubUrl: false,
   serverName: 'gaia-0',
   bucket: 'hub',
   pageSize: 100,
   cacheControl: 'public, max-age=1',
   port: 3000,
-  proofsConfig: 0
+  proofsConfig: undefined
 }
 
 const globalEnvVars = { whitelist: 'GAIA_WHITELIST',
@@ -41,7 +70,6 @@ const parseInts = [ 'port', 'pageSize', 'requireCorrectHubUrl' ]
 const parseLists = [ 'validHubUrls', 'whitelist' ]
 
 function getConfigEnv(envVars: {[key: string]: string}) {
-
   const configEnv: {[key: string]: any} = {}
   for (const name in envVars) {
     const envVar = envVars[name]
@@ -111,7 +139,7 @@ export function getConfig() {
   let config = configGlobal
   if (config.driver) {
     const driverClass = getDriverClass(config.driver)
-    const driverConfigInfo = (<any>driverClass).getConfigInformation()
+    const driverConfigInfo = driverClass.getConfigInformation()
     config = deepMerge({}, driverConfigInfo.defaults, configGlobal, driverConfigInfo.envVars)
   }
 

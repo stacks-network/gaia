@@ -16,7 +16,6 @@ export interface DriverModel {
   listFiles(storageTopLevel: string, page?: string): Promise<ListFilesResult>;
   ensureInitialized(): Promise<void>;
   dispose(): Promise<void>;
-  // constructor(config: any) : void
 }
 
 export interface DriverConstructor {
@@ -34,11 +33,6 @@ export interface DriverModelTestMethods extends DriverModel {
 }
 
 export interface DriverStatics {
-  getConfigInformation(): { defaults: Object,
-                            envVars: Object }
-}
-
-/* class decorator */
-export function staticImplements<T>() {
-  return (constructor: T) => {}
+  getConfigInformation(): { defaults: any,
+                            envVars: any }
 }

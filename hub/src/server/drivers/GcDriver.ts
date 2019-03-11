@@ -4,7 +4,7 @@ import { Storage, File } from '@google-cloud/storage'
 
 import { BadPathError, InvalidInputError } from '../errors'
 import { ListFilesResult, PerformWriteArgs } from '../driverModel'
-import { DriverStatics, DriverModel, DriverModelTestMethods, staticImplements } from '../driverModel'
+import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
 import { pipeline, logger } from '../utils'
 
 type GC_CONFIG_TYPE = {
@@ -23,7 +23,6 @@ type GC_CONFIG_TYPE = {
   resumable?: boolean
 }
 
-@staticImplements<DriverStatics>()
 class GcDriver implements DriverModel, DriverModelTestMethods {
   bucket: string
   storage: Storage
@@ -203,4 +202,5 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
   }
 }
 
-export default GcDriver
+const driver: typeof GcDriver & DriverStatics = GcDriver
+export default driver

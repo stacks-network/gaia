@@ -34,7 +34,7 @@ export class AuthTimestampCache {
   }
 
   setupCacheEvictionLogger(timerInterval: number) {
-    const evictionLogTimeout: any = setInterval(() => this.handleCacheEvictions(), timerInterval)
+    const evictionLogTimeout = setInterval(() => this.handleCacheEvictions(), timerInterval)
     evictionLogTimeout.unref()
   }
 

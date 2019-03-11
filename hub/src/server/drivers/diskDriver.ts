@@ -3,7 +3,7 @@ import fs from 'fs-extra'
 import { BadPathError, InvalidInputError } from '../errors'
 import Path from 'path'
 import { ListFilesResult, PerformWriteArgs } from '../driverModel'
-import { DriverStatics, DriverModel, staticImplements } from '../driverModel'
+import { DriverStatics, DriverModel } from '../driverModel'
 import { pipeline, logger } from '../utils'
 
 type DISK_CONFIG_TYPE = { diskSettings: { storageRootDirectory: string },
@@ -13,7 +13,6 @@ type DISK_CONFIG_TYPE = { diskSettings: { storageRootDirectory: string },
 
 const METADATA_DIRNAME = '.gaia-metadata'
 
-@staticImplements<DriverStatics>()
 class DiskDriver implements DriverModel {
   storageRootDirectory: string
   readURL: string
@@ -207,5 +206,6 @@ class DiskDriver implements DriverModel {
   }
 }
 
-export default DiskDriver
+const driver: typeof DiskDriver & DriverStatics = DiskDriver
+export default driver
 

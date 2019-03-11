@@ -4,7 +4,7 @@ import S3 from 'aws-sdk/clients/s3'
 
 import { BadPathError, InvalidInputError } from '../errors'
 import { ListFilesResult, PerformWriteArgs } from '../driverModel'
-import { DriverStatics, DriverModel, DriverModelTestMethods, staticImplements } from '../driverModel'
+import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
 import { timeout, logger } from '../utils'
 
 type S3_CONFIG_TYPE = { awsCredentials: {
@@ -16,7 +16,6 @@ type S3_CONFIG_TYPE = { awsCredentials: {
                         cacheControl?: string,
                         bucket: string }
 
-@staticImplements<DriverStatics>()
 class S3Driver implements DriverModel, DriverModelTestMethods {
   s3: S3
   bucket: string
@@ -180,4 +179,5 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
   }
 }
 
-export default S3Driver
+const driver: typeof S3Driver & DriverStatics = S3Driver
+export default driver

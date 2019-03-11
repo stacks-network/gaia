@@ -4,7 +4,7 @@ import * as azure from '@azure/storage-blob'
 import { logger } from '../utils'
 import { BadPathError, InvalidInputError } from '../errors'
 import { ListFilesResult, PerformWriteArgs } from '../driverModel'
-import { DriverStatics, DriverModel, DriverModelTestMethods, staticImplements } from '../driverModel'
+import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
 
 export type AZ_CONFIG_TYPE = {
   azCredentials: {
@@ -18,7 +18,6 @@ export type AZ_CONFIG_TYPE = {
 }
 
 // The AzDriver utilized the azure nodejs sdk to write files to azure blob storage
-@staticImplements<DriverStatics>()
 class AzDriver implements DriverModel, DriverModelTestMethods {
   container: azure.ContainerURL
   accountName: string
@@ -183,4 +182,5 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
   }
 }
 
-export default AzDriver
+const driver: typeof AzDriver & DriverStatics = AzDriver
+export default driver
