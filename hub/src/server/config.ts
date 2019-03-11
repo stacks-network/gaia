@@ -2,7 +2,7 @@ import winston from 'winston'
 import fs from 'fs'
 import process from 'process'
 
-import { getDriverClass } from './utils'
+import { getDriverClass, logger } from './utils'
 
 export const configDefaults = {
   argsTransport: {
@@ -115,7 +115,7 @@ export function getConfig() {
     config = deepMerge({}, driverConfigInfo.defaults, configGlobal, driverConfigInfo.envVars)
   }
 
-  winston.configure({ transports: [
+  logger.configure({ transports: [
     new winston.transports.Console(config.argsTransport) ] })
 
   return config

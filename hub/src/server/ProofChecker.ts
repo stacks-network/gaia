@@ -1,6 +1,6 @@
 //@ts-ignore
 import { validateProofs, verifyProfileToken } from 'blockstack'
-import logger from 'winston'
+import { logger } from './utils'
 import fetch from 'node-fetch'
 
 import { NotEnoughProofError } from './errors'

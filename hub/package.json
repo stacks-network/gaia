@@ -16,18 +16,18 @@
     "body-parser": "^1.18.3",
     "cors": "^2.8.5",
     "express": "^4.16.4",
-    "express-winston": "^2.4.0",
+    "express-winston": "^3.1.0",
     "fs-extra": "^7.0.1",
     "jsontokens": "^1.0.0",
     "lru-cache": "^5.1.1",
     "node-fetch": "^2.3.0",
-    "winston": "^2.3.1"
+    "winston": "^3.2.1"
   },
   "devDependencies": {
     "@types/bitcoinjs-lib": "^4.0.0",
     "@types/cors": "^2.8.4",
     "@types/express": "^4.16.1",
-    "@types/express-winston": "^2.4.4",
+    "@types/express-winston": "^3.0.1",
     "@types/fetch-mock": "^7.2.3",
     "@types/fs-extra": "^5.0.5",
     "@types/lru-cache": "^5.1.0",

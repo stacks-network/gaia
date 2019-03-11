@@ -3,7 +3,7 @@
 import LRUCache from 'lru-cache'
 import { DriverModel } from './driverModel'
 import fetch from 'node-fetch'
-import logger from 'winston'
+import { logger } from './utils'
 import { Readable } from 'stream'
 import * as errors from './errors'
 

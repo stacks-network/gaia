@@ -1,7 +1,7 @@
 
 
 import * as azure from '@azure/storage-blob'
-import logger from 'winston'
+import { logger } from '../utils'
 import { BadPathError, InvalidInputError } from '../errors'
 import { ListFilesResult, PerformWriteArgs } from '../driverModel'
 import { DriverStatics, DriverModel, DriverModelTestMethods, staticImplements } from '../driverModel'

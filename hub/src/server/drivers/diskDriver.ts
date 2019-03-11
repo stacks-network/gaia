@@ -1,11 +1,10 @@
 
 import fs from 'fs-extra'
 import { BadPathError, InvalidInputError } from '../errors'
-import logger from 'winston'
 import Path from 'path'
 import { ListFilesResult, PerformWriteArgs } from '../driverModel'
 import { DriverStatics, DriverModel, staticImplements } from '../driverModel'
-import { pipeline } from '../utils'
+import { pipeline, logger } from '../utils'
 
 type DISK_CONFIG_TYPE = { diskSettings: { storageRootDirectory: string },
                           bucket?: string,

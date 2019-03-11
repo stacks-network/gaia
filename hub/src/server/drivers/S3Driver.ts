@@ -1,12 +1,11 @@
 
 
 import S3 from 'aws-sdk/clients/s3'
-import logger from 'winston'
 
 import { BadPathError, InvalidInputError } from '../errors'
 import { ListFilesResult, PerformWriteArgs } from '../driverModel'
 import { DriverStatics, DriverModel, DriverModelTestMethods, staticImplements } from '../driverModel'
-import { timeout } from '../utils'
+import { timeout, logger } from '../utils'
 
 type S3_CONFIG_TYPE = { awsCredentials: {
                           accessKeyId?: string,

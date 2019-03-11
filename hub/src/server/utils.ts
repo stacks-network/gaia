@@ -7,11 +7,14 @@ import AzDriver from './drivers/AzDriver'
 import GcDriver from './drivers/GcDriver'
 import DiskDriver from './drivers/diskDriver'
 import { promisify } from 'util'
+import winston from 'winston'
 
 //$FlowFixMe - Flow is unaware of the stream.pipeline Node API
 import { pipeline as _pipline } from 'stream'
 
 export const pipeline = promisify(_pipline)
+
+export const logger = winston.createLogger()
 
 export function getDriverClass(driver: string) : DriverConstructor {
   if (driver === 'aws') {

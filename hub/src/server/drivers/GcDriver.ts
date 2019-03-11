@@ -1,12 +1,11 @@
 
 
 import { Storage, File } from '@google-cloud/storage'
-import logger from 'winston'
 
 import { BadPathError, InvalidInputError } from '../errors'
 import { ListFilesResult, PerformWriteArgs } from '../driverModel'
 import { DriverStatics, DriverModel, DriverModelTestMethods, staticImplements } from '../driverModel'
-import { pipeline } from '../utils'
+import { pipeline, logger } from '../utils'
 
 type GC_CONFIG_TYPE = {
   gcCredentials?: {

@@ -2,7 +2,6 @@
 
 import express from 'express'
 import expressWinston from 'express-winston'
-import logger from 'winston'
 import cors from 'cors'
 
 import { ProofChecker } from './ProofChecker'
@@ -10,7 +9,7 @@ import { ProofCheckerConfig } from './ProofChecker'
 import { getChallengeText, LATEST_AUTH_VERSION } from './authentication'
 import { HubServer } from './server'
 import { HubServerConfig } from './server'
-import { getDriverClass } from './utils'
+import { getDriverClass, logger } from './utils'
 import { DriverModel, DriverConstructor } from './driverModel'
 import * as errors from './errors'
 
@@ -47,8 +46,8 @@ export function makeHttpServer(config: MakeHttpServerConfig & HubServerConfig & 
   const server = new HubServer(driver, proofChecker, config)
 
   // Instantiate server logging with Winston
-  //app.use(expressWinston.logger({
-  //  winstonInstance: logger }))
+  app.use(expressWinston.logger({
+    winstonInstance: logger }))
 
   app.use(cors())
 

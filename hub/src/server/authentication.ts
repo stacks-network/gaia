@@ -7,7 +7,7 @@ import { decodeToken, TokenSigner, TokenVerifier } from 'jsontokens'
 //@ts-ignore
 import { ecPairToHexString, ecPairToAddress } from 'blockstack'
 import { ValidationError, AuthTokenTimestampValidationError } from './errors'
-import logger from 'winston'
+import { logger } from './utils'
 
 const DEFAULT_STORAGE_URL = 'storage.blockstack.org'
 export const LATEST_AUTH_VERSION = 'v1'
