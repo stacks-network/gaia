@@ -3,7 +3,7 @@ import fs from 'fs'
 import process from 'process'
 
 import { getDriverClass, logger } from './utils'
-import { ConsoleTransportOptions } from 'winston/lib/winston/transports';
+import { ConsoleTransportOptions } from 'winston/lib/winston/transports'
 
 export enum DriverName { 
   aws = 'aws',
@@ -30,6 +30,7 @@ interface Config {
   whitelist: string[] & null,
   validHubUrls?: string[];
   proofsConfig?: { proofsRequired: number };
+  authTimestampCacheSize: number,
   argsTransport: ConsoleTransportOptions & LoggingConfig;
 }
 
@@ -51,7 +52,8 @@ export const configDefaults: Config = {
   pageSize: 100,
   cacheControl: 'public, max-age=1',
   port: 3000,
-  proofsConfig: undefined
+  proofsConfig: undefined,
+  authTimestampCacheSize: 50000
 }
 
 const globalEnvVars = { whitelist: 'GAIA_WHITELIST',
@@ -145,7 +147,7 @@ export function getConfig() {
   const formats = [
     config.argsTransport.colorize ? winston.format.colorize() : null,
     config.argsTransport.json ? winston.format.json() : null,
-    config.argsTransport.timestamp ? winston.format.timestamp() : null,
+    config.argsTransport.timestamp ? winston.format.timestamp() : null
   ].filter(f => f !== null)
   const format = formats.length ? winston.format.combine(...formats) : null
 

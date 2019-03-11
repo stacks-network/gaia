@@ -1,7 +1,7 @@
 
 
 import stream from 'stream'
-import { DriverModel, DriverConstructor, DriverStatics } from './driverModel'
+import { DriverConstructor, DriverStatics } from './driverModel'
 import S3Driver from './drivers/S3Driver'
 import AzDriver from './drivers/AzDriver'
 import GcDriver from './drivers/GcDriver'
@@ -11,20 +11,20 @@ import winston from 'winston'
 
 //$FlowFixMe - Flow is unaware of the stream.pipeline Node API
 import { pipeline as _pipline } from 'stream'
-import { DriverName } from './config';
+import { DriverName } from './config'
 
 export const pipeline = promisify(_pipline)
 
 export const logger = winston.createLogger()
 
-export function getDriverClass(driver: DriverName) : DriverConstructor & DriverStatics {
+export function getDriverClass(driver: DriverName): DriverConstructor & DriverStatics {
   if (driver === DriverName.aws) {
     return S3Driver
   } else if (driver === DriverName.azure) {
     return AzDriver
   } else if (driver === DriverName.disk) {
     return DiskDriver
-  } else if (driver === DriverName["google-cloud"]) {
+  } else if (driver === DriverName['google-cloud']) {
     return GcDriver
   } else {
     throw new Error(`Failed to load driver: driver was set to ${driver}`)

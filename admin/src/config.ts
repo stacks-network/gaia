@@ -32,7 +32,6 @@ const configDefaults: Config = {
   },
   port: 8009,
   apiKeys: [],
-  authTimestampCacheSize: 50000,
   gaiaSettings: {
     configPath: '/tmp/gaia-config.json'
   },

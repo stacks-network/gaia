@@ -1,5 +1,3 @@
-
-
 import S3 from 'aws-sdk/clients/s3'
 
 import { BadPathError, InvalidInputError } from '../errors'
@@ -7,14 +5,16 @@ import { ListFilesResult, PerformWriteArgs } from '../driverModel'
 import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
 import { timeout, logger } from '../utils'
 
-type S3_CONFIG_TYPE = { awsCredentials: {
-                          accessKeyId?: string,
-                          secretAccessKey?: string,
-                          sessionToken?: string
-                        },
-                        pageSize?: number,
-                        cacheControl?: string,
-                        bucket: string }
+type S3_CONFIG_TYPE = {
+  awsCredentials: {
+    accessKeyId?: string,
+    secretAccessKey?: string,
+    sessionToken?: string
+  },
+  pageSize?: number,
+  cacheControl?: string,
+  bucket: string
+}
 
 class S3Driver implements DriverModel, DriverModelTestMethods {
   s3: S3
@@ -120,9 +120,9 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
     await this.s3.deleteBucket({ Bucket: this.bucket }).promise()
   }
 
-  async listAllKeys(prefix: string, page?: string) : Promise<ListFilesResult> {
+  async listAllKeys(prefix: string, page?: string): Promise<ListFilesResult> {
     // returns {'entries': [...], 'page': next_page}
-    const opts : { Bucket: string, MaxKeys: number, Prefix: string, ContinuationToken?: string } = {
+    const opts: { Bucket: string, MaxKeys: number, Prefix: string, ContinuationToken?: string } = {
       Bucket: this.bucket,
       MaxKeys: this.pageSize,
       Prefix: prefix
@@ -132,7 +132,7 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
     }
 
     const data = await this.s3.listObjectsV2(opts).promise()
-    const res : ListFilesResult = {
+    const res: ListFilesResult = {
       entries: data.Contents.map((e) => e.Key.slice(prefix.length + 1)),
       page: data.IsTruncated ? data.NextContinuationToken : null
     }

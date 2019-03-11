@@ -1,4 +1,3 @@
-
 import fs from 'fs-extra'
 import { BadPathError, InvalidInputError } from '../errors'
 import Path from 'path'
@@ -90,7 +89,7 @@ class DiskDriver implements DriverModel {
     }
   }
 
-  async findAllFiles(listPath: string) : Promise<string[]> {
+  async findAllFiles(listPath: string): Promise<string[]> {
     // returns a list of files prefixed by listPath
     const dirEntries: fs.Dirent[] = await (<any>fs.readdir)(listPath, { withFileTypes: true })
     const fileNames = []
@@ -106,7 +105,7 @@ class DiskDriver implements DriverModel {
     return fileNames
   }
 
-  async listFilesInDirectory(listPath: string, pageNum: number) : Promise<ListFilesResult> {
+  async listFilesInDirectory(listPath: string, pageNum: number): Promise<ListFilesResult> {
     const files = await this.findAllFiles(listPath)
     const names = files.map(fileName => fileName.slice(listPath.length + 1))
     const entries = names.slice(pageNum * this.pageSize, (pageNum + 1) * this.pageSize)
@@ -121,7 +120,7 @@ class DiskDriver implements DriverModel {
     // returns {'entries': [...], 'page': next_page}
     let pageNum
     const listPath = Path.normalize(`${this.storageRootDirectory}/${prefix}`)
-    const emptyResponse : ListFilesResult = {
+    const emptyResponse: ListFilesResult = {
       entries: [],
       page: null
     }
@@ -154,55 +153,56 @@ class DiskDriver implements DriverModel {
 
   async performWrite(args: PerformWriteArgs): Promise<string> {
 
-      const path = args.path
-      const topLevelDir = args.storageTopLevel
-      const contentType = args.contentType
+    const path = args.path
+    const topLevelDir = args.storageTopLevel
+    const contentType = args.contentType
 
-      if (!topLevelDir) {
-        throw new BadPathError('Invalid Path')
-      }
+    if (!topLevelDir) {
+      throw new BadPathError('Invalid Path')
+    }
 
-      if (contentType && contentType.length > 1024) {
-        // no way this is valid 
-        throw new InvalidInputError('Invalid content-type')
-      }
+    if (contentType && contentType.length > 1024) {
+      // no way this is valid 
+      throw new InvalidInputError('Invalid content-type')
+    }
 
-      if (!DiskDriver.isPathValid(path) || !DiskDriver.isPathValid(topLevelDir)) {
-        throw new BadPathError('Invalid Path')
-      }
+    if (!DiskDriver.isPathValid(path) || !DiskDriver.isPathValid(topLevelDir)) {
+      throw new BadPathError('Invalid Path')
+    }
 
-      const abspath = Path.join(this.storageRootDirectory, topLevelDir, path)
+    const abspath = Path.join(this.storageRootDirectory, topLevelDir, path)
 
-      // too long?
-      if (abspath.length > 4096) {
-        throw new BadPathError('Path is too long')
-      }
+    // too long?
+    if (abspath.length > 4096) {
+      throw new BadPathError('Path is too long')
+    }
 
-      const dirparts = abspath.split(Path.sep).filter((p) => p.length > 0)
+    const dirparts = abspath.split(Path.sep).filter((p) => p.length > 0)
 
-      // can't be too deep
-      if (dirparts.length > 100) {
-        throw new BadPathError('Path is too deep')
-      }
+    // can't be too deep
+    if (dirparts.length > 100) {
+      throw new BadPathError('Path is too deep')
+    }
 
-      const absdirname = Path.dirname(abspath)
-      await this.mkdirs(absdirname)
+    const absdirname = Path.dirname(abspath)
+    await this.mkdirs(absdirname)
 
-      const writePipe = fs.createWriteStream(abspath, { mode: 0o600, flags: 'w' })
-      await pipeline(args.stream, writePipe)
+    const writePipe = fs.createWriteStream(abspath, { mode: 0o600, flags: 'w' })
+    await pipeline(args.stream, writePipe)
 
-      // remember content type in $storageRootDir/.gaia-metadata/$address/$path
-      // (i.e. these files are outside the address bucket, and are thus hidden)
-      const contentTypePath = Path.join(
-        this.storageRootDirectory, METADATA_DIRNAME, topLevelDir, path)
+    // remember content type in $storageRootDir/.gaia-metadata/$address/$path
+    // (i.e. these files are outside the address bucket, and are thus hidden)
+    const contentTypePath = Path.join(
+      this.storageRootDirectory, METADATA_DIRNAME, topLevelDir, path)
 
-      const contentTypeDirPath = Path.dirname(contentTypePath)
-      await this.mkdirs(contentTypeDirPath)
-      await fs.writeFile(contentTypePath, 
-        JSON.stringify({ 'content-type': contentType }), { mode: 0o600 })
+    const contentTypeDirPath = Path.dirname(contentTypePath)
+    await this.mkdirs(contentTypeDirPath)
+    await fs.writeFile(
+      contentTypePath, 
+      JSON.stringify({ 'content-type': contentType }), { mode: 0o600 })
 
-      return `${this.readURL}${topLevelDir}/${path}`
-      
+    return `${this.readURL}${topLevelDir}/${path}`
+    
   }
 }
 

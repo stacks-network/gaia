@@ -1,5 +1,3 @@
-
-
 import bitcoin from 'bitcoinjs-lib'
 import crypto from 'crypto'
 //@ts-ignore
@@ -23,15 +21,15 @@ export type AuthScopeType = {
 }
 
 export type TokenPayloadType = {
-    gaiaChallenge: string,
-    iss: string,
-    exp: number,
-    iat?: number,
-    salt: string,
-    hubUrl?: string,
-    associationToken?: string,
-    scopes?: AuthScopeType[],
-    childToAssociate?: string
+  gaiaChallenge: string,
+  iss: string,
+  exp: number,
+  iat?: number,
+  salt: string,
+  hubUrl?: string,
+  associationToken?: string,
+  scopes?: AuthScopeType[],
+  childToAssociate?: string
 }
 
 export type TokenType = {
@@ -88,12 +86,14 @@ export class V1Authentication {
 
     const payloadIssuedAtDate = issuedAtDate || (Date.now()/1000|0)
 
-    const payload: TokenPayloadType = { gaiaChallenge: challengeText,
-                      iss: publicKeyHex,
-                      exp: FOUR_MONTH_SECONDS + (Date.now()/1000),
-                      iat: payloadIssuedAtDate,
-                      associationToken,
-                      hubUrl, salt, scopes }
+    const payload: TokenPayloadType = {
+      gaiaChallenge: challengeText,
+      iss: publicKeyHex,
+      exp: FOUR_MONTH_SECONDS + (Date.now() / 1000),
+      iat: payloadIssuedAtDate,
+      associationToken,
+      hubUrl, salt, scopes
+    }
 
     const signerKeyHex = ecPairToHexString(secretKey).slice(0, 64)
     const token = new TokenSigner('ES256K', signerKeyHex).sign(payload)
@@ -104,12 +104,14 @@ export class V1Authentication {
     const FOUR_MONTH_SECONDS = 60 * 60 * 24 * 31 * 4
     const publicKeyHex = secretKey.publicKey.toString('hex')
     const salt = crypto.randomBytes(16).toString('hex')
-    const payload: TokenPayloadType = { childToAssociate: childPublicKey,
-                      iss: publicKeyHex,
-                      exp: FOUR_MONTH_SECONDS + (Date.now()/1000),
-                      iat: (Date.now()/1000|0),
-                      gaiaChallenge: String(undefined),
-                      salt }
+    const payload: TokenPayloadType = {
+      childToAssociate: childPublicKey,
+      iss: publicKeyHex,
+      exp: FOUR_MONTH_SECONDS + (Date.now() / 1000),
+      iat: (Date.now() / 1000 | 0),
+      gaiaChallenge: String(undefined),
+      salt
+    }
 
     const signerKeyHex = ecPairToHexString(secretKey).slice(0, 64)
     const token = new TokenSigner('ES256K', signerKeyHex).sign(payload)
@@ -177,7 +179,7 @@ export class V1Authentication {
    * Returns the scopes, if there are any given.
    * Returns [] if there is no association token, or if the association token has no scopes
    */
-  getAuthenticationScopes() : Array<AuthScopeType> {
+  getAuthenticationScopes(): Array<AuthScopeType> {
     let decodedToken: TokenType
     try {
       decodedToken = decodeToken(this.token)
@@ -222,7 +224,7 @@ export class V1Authentication {
   isAuthenticationValid(address: string, challengeTexts: Array<string>,
                         options?: { requireCorrectHubUrl?: boolean,
                                     validHubUrls?: Array<string>,
-                                    oldestValidTokenTimestamp?: number }) : string {
+                                    oldestValidTokenTimestamp?: number }): string {
     let decodedToken: TokenType
     try {
       decodedToken = decodeToken(this.token)
@@ -352,13 +354,13 @@ export class LegacyAuthentication {
     return Buffer.from(JSON.stringify(authObj)).toString('base64')
   }
 
-  getAuthenticationScopes() : Array<AuthScopeType> {
+  getAuthenticationScopes(): Array<AuthScopeType> {
     // no scopes supported in this version
     return []
   }
 
   isAuthenticationValid(address: string, challengeTexts: Array<string>,
-                        options? : {}) { //  eslint-disable-line no-unused-vars
+                        options? : {}) { //  eslint-disable-line @typescript-eslint/no-unused-vars
     if (ecPairToAddress(this.publickey) !== address) {
       throw new ValidationError('Address not allowed to write on this path')
     }
@@ -414,7 +416,7 @@ export function parseAuthHeader(authHeader: string) {
 export function validateAuthorizationHeader(authHeader: string, serverName: string,
                                             address: string, requireCorrectHubUrl: boolean = false,
                                             validHubUrls: Array<string> = null,
-                                            oldestValidTokenTimestamp?: number) : string {
+                                            oldestValidTokenTimestamp?: number): string {
   const serverNameHubUrl = `https://${serverName}`
   if (!validHubUrls) {
     validHubUrls = [ serverNameHubUrl ]

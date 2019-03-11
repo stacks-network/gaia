@@ -105,7 +105,7 @@ export class AuthTimestampCache {
     return authTimestamp
   }
 
-  async writeAuthTimestamp(bucketAddress: string, timestamp: number) : Promise<void> {
+  async writeAuthTimestamp(bucketAddress: string, timestamp: number): Promise<void> {
 
     // Recheck cache for a larger timestamp to avoid race conditions from slow storage.
     let cachedTimestamp = this.cache.get(bucketAddress)

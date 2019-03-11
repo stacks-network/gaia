@@ -1,5 +1,3 @@
-
-
 import { Storage, File } from '@google-cloud/storage'
 
 import { BadPathError, InvalidInputError } from '../errors'
@@ -117,7 +115,7 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
 
   async listAllObjects(prefix: string, page?: string) {
     // returns {'entries': [...], 'page': next_page}
-    const opts : { prefix: string, maxResults: number, pageToken?: string } = {
+    const opts: { prefix: string, maxResults: number, pageToken?: string } = {
       prefix: prefix,
       maxResults: this.pageSize,
       pageToken: page || undefined
@@ -139,7 +137,7 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
     const nextQuery: any = result.nextQuery
 
     const fileNames = files.map(file => file.name.slice(prefix.length + 1))
-    const ret : ListFilesResult = {
+    const ret: ListFilesResult = {
       entries: fileNames,
       page: (nextQuery && nextQuery.pageToken) || null
     }

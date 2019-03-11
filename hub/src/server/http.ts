@@ -1,5 +1,3 @@
-
-
 import express from 'express'
 import expressWinston from 'express-winston'
 import cors from 'cors'
@@ -12,9 +10,9 @@ import { HubServerConfig } from './server'
 import { getDriverClass, logger } from './utils'
 import { DriverModel, DriverConstructor } from './driverModel'
 import * as errors from './errors'
-import { DriverName } from './config';
+import { DriverName } from './config'
 
-function writeResponse(res: express.Response, data: Object, statusCode: number) {
+function writeResponse(res: express.Response, data: any, statusCode: number) {
   res.writeHead(statusCode, {'Content-Type' : 'application/json'})
   res.write(JSON.stringify(data))
   res.end()
@@ -27,10 +25,10 @@ export interface MakeHttpServerConfig {
 
 export function makeHttpServer(config: MakeHttpServerConfig & HubServerConfig): { app: express.Application, server: HubServer, driver: DriverModel } {
 
-  const app : express.Application = express()
+  const app: express.Application = express()
 
   // Handle driver configuration
-  let driver : DriverModel
+  let driver: DriverModel
 
   if (config.driverInstance) {
     driver = config.driverInstance
@@ -54,8 +52,10 @@ export function makeHttpServer(config: MakeHttpServerConfig & HubServerConfig): 
 
   // sadly, express doesn't like to capture slashes.
   //  but that's okay! regexes solve that problem
-  app.post(/^\/store\/([a-zA-Z0-9]+)\/(.+)/, (req: express.Request,
-                                           res: express.Response) => {
+  app.post(/^\/store\/([a-zA-Z0-9]+)\/(.+)/, (
+    req: express.Request,
+    res: express.Response
+  ) => {
     let filename = req.params[1]
     if (filename.endsWith('/')){
       filename = filename.substring(0, filename.length - 1)
@@ -83,7 +83,7 @@ export function makeHttpServer(config: MakeHttpServerConfig & HubServerConfig): 
   })
 
   app.post(
-      /^\/list-files\/([a-zA-Z0-9]+)\/?/, express.json(),
+    /^\/list-files\/([a-zA-Z0-9]+)\/?/, express.json(),
     (req: express.Request, res: express.Response) => {
       // sanity check...
       if (parseInt(req.headers['content-length']) > 4096) {
@@ -109,7 +109,7 @@ export function makeHttpServer(config: MakeHttpServerConfig & HubServerConfig): 
             writeResponse(res, { message: 'Server Error' }, 500)
           }
         })
-  })
+    })
 
   app.post(
     /^\/revoke-all\/([a-zA-Z0-9]+)\/?/, 
@@ -135,20 +135,20 @@ export function makeHttpServer(config: MakeHttpServerConfig & HubServerConfig): 
       }
 
       server.handleAuthBump(address, oldestValidTimestamp, req.headers)
-      .then(() => {
-        writeResponse(res, { status: 'success' }, 202)
-      })
-      .catch((err: any) => {
-        logger.error(err)
-        if (err instanceof errors.ValidationError) {
-          writeResponse(res, { message: err.message, error: err.name  }, 401)
-        } else if (err instanceof errors.BadPathError) {
-          writeResponse(res, { message: err.message, error: err.name  }, 403)
-        } else {
-          writeResponse(res, { message: 'Server Error' }, 500)
-        }
-      })
-  })
+        .then(() => {
+          writeResponse(res, { status: 'success' }, 202)
+        })
+        .catch((err: any) => {
+          logger.error(err)
+          if (err instanceof errors.ValidationError) {
+            writeResponse(res, { message: err.message, error: err.name  }, 401)
+          } else if (err instanceof errors.BadPathError) {
+            writeResponse(res, { message: err.message, error: err.name  }, 403)
+          } else {
+            writeResponse(res, { message: 'Server Error' }, 500)
+          }
+        })
+    })
 
   app.get('/hub_info/', (req: express.Request,
                          res: express.Response) => {

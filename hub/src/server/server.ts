@@ -58,8 +58,8 @@ export class HubServer {
   }
 
   async handleListFiles(address: string,
-                  page: string | undefined,
-                  requestHeaders: { authorization?: string }) {
+                        page: string | undefined,
+                        requestHeaders: { authorization?: string }) {
     const oldestValidTokenTimestamp = await this.authTimestampCache.getAuthTimestamp(address)
     this.validate(address, requestHeaders, oldestValidTokenTimestamp)
     return await this.driver.listFiles(address, page)
@@ -73,11 +73,15 @@ export class HubServer {
     }
   }
 
-  async handleRequest(address: string, path: string,
-                requestHeaders: {'content-type'?: string,
-                                 'content-length'?: string | number,
-                                 authorization?: string},
-                stream: Readable) {
+  async handleRequest(
+    address: string, path: string,
+    requestHeaders: {
+      'content-type'?: string,
+      'content-length'?: string | number,
+      authorization?: string
+    },
+    stream: Readable
+  ) {
 
     const oldestValidTokenTimestamp = await this.authTimestampCache.getAuthTimestamp(address)
     this.validate(address, requestHeaders, oldestValidTokenTimestamp)
@@ -115,9 +119,11 @@ export class HubServer {
       }
     }
 
-    const writeCommand = { storageTopLevel: address,
-                            path, stream, contentType,
-                            contentLength: parseInt(<string>requestHeaders['content-length']) }
+    const writeCommand = {
+      storageTopLevel: address,
+      path, stream, contentType,
+      contentLength: parseInt(<string>requestHeaders['content-length'])
+    }
 
     await this.proofChecker.checkProofs(address, path, this.getReadURLPrefix())
     
