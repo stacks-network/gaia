@@ -1,15 +1,13 @@
-/* @flow */
-
 import fs from 'fs'
-import logger from 'winston'
 import childProcess from 'child_process'
 import Ajv from 'ajv'
+import { Config, logger } from './config'
 
-function runSubprocess(cmd: string, argv: Array<string>, env: Object, uid: ?number, gid: ?number) 
-: Promise<{ 'status': Object, 'statusCode': number }> {
-    const opts = {
+function runSubprocess(cmd: string, argv: Array<string>, env: NodeJS.ProcessEnv, uid?: number, gid?: number) 
+: Promise<{ 'status': any, 'statusCode': number }> {
+    const opts: childProcess.SpawnOptions = {
       cwd: '/',
-      env,
+      env: env,
       stdio: [
         null,             // no stdin
         'pipe',           // send stdout to log
@@ -17,22 +15,20 @@ function runSubprocess(cmd: string, argv: Array<string>, env: Object, uid: ?numb
       ],
       detached: false,    // child will die with this process, if need be
       shell: false,
-      windowsHide: true,
-      setuid: undefined,
-      setgid: undefined
+      windowsHide: true
     }
 
     if (!!uid) {
-      opts.setuid = uid
+      opts.uid = uid
     }
 
     if (!!gid) {
-      opts.setgid = gid
+      opts.gid = gid
     }
    
     return new Promise((resolve) => {
       childProcess.spawn(cmd, argv, opts)
-        .on('exit', (code, signal) => {
+        .on('exit', (code: number, signal: string) => {
           if (code === 0) {
             const ret = { statusCode: 200, status: { result: 'OK' } }
             resolve(ret)
@@ -44,7 +40,7 @@ function runSubprocess(cmd: string, argv: Array<string>, env: Object, uid: ?numb
             resolve(ret)
           }
         })
-        .on('close', (code, signal) => {
+        .on('close', (code: number, signal: string) => {
           if (code === 0) {
             const ret = { statusCode: 200, status: { result: 'OK' } }
             resolve(ret)
@@ -72,7 +68,7 @@ function runSubprocess(cmd: string, argv: Array<string>, env: Object, uid: ?numb
 // The set of top-level key/value pairs in the existing config file and `newFields` will be merged,
 // but if key1 === key2, then value2 overwrites value1 completely (even if value1 and value2 are
 // objects with their own key/value pairs).
-export function patchConfigFile(configFilePath: string, newFields: Object) {
+export function patchConfigFile(configFilePath: string, newFields: {[key: string]: any}) {
   if (!configFilePath) {
     throw new Error('Config file not given')
   }
@@ -136,7 +132,7 @@ export function readConfigFileSections(configFilePath: string, fields: string | 
 
   let configData
   let config
-  const ret = {}
+  const ret: {[key: string]: any} = {}
 
   try {
     configData = fs.readFileSync(configFilePath).toString()
@@ -226,9 +222,9 @@ const GAIA_CONFIG_SCHEMA = {
 
 export class AdminAPI {
 
-  config: Object
+  config: Config
 
-  constructor(config: Object) {
+  constructor(config: Config) {
     this.config = config
   }
 
@@ -258,7 +254,7 @@ export class AdminAPI {
   }
   
   // Reloads the Gaia hub by launching the reload subprocess
-  handleReload() : Promise<{ status: Object, statusCode: number }> {
+  handleReload() : Promise<{ status: any, statusCode: number }> {
     if (!this.config.reloadSettings.command) {
       // reload is not defined 
       const ret = { statusCode: 404, status: { error: 'No reload command defined' } }
@@ -275,7 +271,7 @@ export class AdminAPI {
   }
 
   // don't call this from outside this class
-  handleGetFields(fieldList: Array<string>) : Promise<{ status: Object, statusCode: number }> {
+  handleGetFields(fieldList: Array<string>) : Promise<{ status: any, statusCode: number }> {
     return Promise.resolve().then(() => {
       const configPath = this.config.gaiaSettings.configPath
       return readConfigFileSections(configPath, fieldList)
@@ -289,10 +285,10 @@ export class AdminAPI {
   }
 
   // don't call this from outside this class
-  handleSetFields(newFields: Object, allowedFields: Array<string>) 
-  : Promise<{ status: Object, statusCode: number }> {
+  handleSetFields(newFields: any, allowedFields: Array<string>) 
+  : Promise<{ status: any, statusCode: number }> {
     // only allow fields in allowedFields to be written
-    const fieldsToWrite = {}
+    const fieldsToWrite: {[key: string]: any} = {}
     for (let i = 0; i < allowedFields.length; i++) {
       if (newFields.hasOwnProperty(allowedFields[i])) {
         fieldsToWrite[allowedFields[i]] = newFields[allowedFields[i]]
@@ -328,11 +324,11 @@ export class AdminAPI {
     })
   }
 
-  handleGetConfig(): Promise<{ status: Object, statusCode: number }> {
+  handleGetConfig(): Promise<{ status: any, statusCode: number }> {
     return this.handleGetFields(Object.keys(GAIA_CONFIG_SCHEMA.properties))
   }
 
-  handleSetConfig(newConfig: Object): Promise<{ status: Object, statusCode: number }> {
+  handleSetConfig(newConfig: Object): Promise<{ status: any, statusCode: number }> {
     const ajv = new Ajv()
     const valid = ajv.validate(GAIA_CONFIG_SCHEMA, newConfig)
     if (!valid) {

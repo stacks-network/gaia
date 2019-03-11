@@ -1,7 +1,7 @@
 const test = require('tape')
 const fs = require('fs')
 
-const { AdminAPI, patchConfigFile, readConfigFileSections } = require('../src/server.js')
+const { AdminAPI, patchConfigFile, readConfigFileSections } = require('../src/server')
 
 function testServer() {
   test('patch config file only sets top-level fields', (t) => {

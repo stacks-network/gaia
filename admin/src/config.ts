@@ -1,9 +1,28 @@
 import winston from 'winston'
 import fs from 'fs'
 import process from 'process'
-import type { HubServerConfig } from './server'
 
-const configDefaults : HubServerConfig = {
+export interface Config {
+  [key: string]: any,
+  apiKeys: string[],
+  argsTransport: {
+    level: string,
+    handleExceptions: boolean,
+    timestamp: boolean,
+    stringify: boolean,
+    colorize: boolean,
+    json: boolean
+  },
+  reloadSettings: {
+    command: string,
+    argv: string[],
+    env: NodeJS.ProcessEnv,
+    setuid: number,
+    setgid: number
+  }
+}
+
+const configDefaults: Config = {
   argsTransport: {
     level: 'debug',
     handleExceptions: true,
@@ -27,19 +46,24 @@ const configDefaults : HubServerConfig = {
   }
 }
 
-export function getConfig(): HubServerConfig {
+export const logger = winston.createLogger()
+
+export function getConfig() {
+
   const configPath = process.env.CONFIG_PATH || process.argv[2] || './config.json'
-  let config: HubServerConfig
+  let config: Config
   try {
     config = Object.assign(
       {}, configDefaults, JSON.parse(fs.readFileSync(configPath).toString()))
   } catch (e) {
+    // TODO: log with winston
+    console.error(`Error reading config "${configPath}": ${e}`)
     config = Object.assign({}, configDefaults)
   }
-
-  winston.configure({ transports: [
-    new winston.transports.Console(config.argsTransport) ] })
-
+  logger.configure({
+    transports: [
+      new winston.transports.Console(config.argsTransport)]
+  })
   return config
 }
 

@@ -1,33 +1,27 @@
-/* @flow */
-
 import express from 'express'
 import expressWinston from 'express-winston'
-import logger from 'winston'
 import cors from 'cors'
-
-import { 
-  AdminAPI
-} from './server'
+import { AdminAPI } from './server'
+import { Config, logger } from './config'
 
 
-function writeResponse(res: express.response, data: Object, statusCode: number) {
+function writeResponse(res: express.Response, data: any, statusCode: number) {
   res.writeHead(statusCode, {'Content-Type' : 'application/json'})
   res.write(JSON.stringify(data))
   res.end()
 }
 
-export function makeHttpServer(config: Object) {
+export function makeHttpServer(config: Config) {
   const app = express()
   const server = new AdminAPI(config)
 
-  app.config = config
-
   app.use(expressWinston.logger({
-    transports: logger.loggers.default.transports }))
+    winstonInstance: logger
+  }))
 
   app.use(cors())
   
-  app.post(/\/v1\/admin\/reload/, (req: express.request, res: express.response) => {
+  app.post(/\/v1\/admin\/reload/, (req: express.Request, res: express.Response) => {
     return server.checkAuthorization(req.headers['authorization'])
       .then((authResult) => {
         if (!authResult) {
@@ -39,7 +33,7 @@ export function makeHttpServer(config: Object) {
       .then(reloadStatus => writeResponse(res, reloadStatus.status, reloadStatus.statusCode))
   })
 
-  app.get(/\/v1\/admin\/config/, (req: express.request, res: express.response) => {
+  app.get(/\/v1\/admin\/config/, (req: express.Request, res: express.Response) => {
     return server.checkAuthorization(req.headers['authorization'])
       .then((authResult) => {
         if (!authResult) {
@@ -52,7 +46,7 @@ export function makeHttpServer(config: Object) {
   })
 
   app.post(/\/v1\/admin\/config/, express.json(),
-    (req: express.request, res: express.response) => {
+    (req: express.Request, res: express.Response) => {
     return server.checkAuthorization(req.headers['authorization'])
       .then((authResult) => {
         if (!authResult) {

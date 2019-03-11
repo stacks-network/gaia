@@ -8,11 +8,9 @@
     "npm": ">=6"
   },
   "scripts": {
-    "start": "npm run build && node lib/index.js",
-    "build": "npm run lint && babel src -d lib && chmod +x lib/index.js",
-    "flow": "flow",
-    "lint": "eslint src",
-    "test": "npm run lint && npm run flow && NODE_ENV=test nyc --reporter=text --reporter=lcov node ./test/test.js"
+    "start": "ts-node src/index.ts",
+    "build": "tsc && chmod +x lib/index.js",
+    "test": "NODE_ENV=test nyc node ./test/test.ts"
   },
   "bin": {
     "blockstack-gaia-admin": "lib/index.js"
@@ -36,32 +34,47 @@
     "cors": "^2.8.5",
     "cross-fetch": "^3.0.1",
     "express": "^4.16.4",
-    "express-winston": "^2.4.0",
-    "winston": "^2.3.1"
+    "express-winston": "^3.1.0",
+    "winston": "^3.2.1"
   },
   "devDependencies": {
     "@babel/cli": "^7.2.3",
     "@babel/core": "^7.3.4",
     "@babel/plugin-transform-modules-commonjs": "^7.2.0",
-    "@babel/preset-flow": "^7.0.0",
     "@babel/register": "^7.0.0",
+    "@types/cors": "^2.8.4",
+    "@types/express": "^4.16.1",
+    "@types/express-winston": "^3.0.1",
+    "@types/node": "^10.12.30",
+    "@types/tape": "^4.2.33",
     "babel-eslint": "^10.0.1",
     "babel-plugin-istanbul": "^5.1.1",
     "eslint": "^5.14.1",
-    "eslint-plugin-flowtype": "^3.4.2",
-    "flow-bin": "^0.94.0",
     "nyc": "^13.3.0",
-    "tape": "^4.10.1"
+    "source-map-support": "^0.5.10",
+    "tape": "^4.10.1",
+    "ts-node": "^8.0.3",
+    "typescript": "^3.3.3333"
   },
   "homepage": "https://github.com/blockstack/gaia",
   "nyc": {
+    "extension": [
+      ".ts"
+    ],
     "include": [
-      "src/**"
+      "src/**/*.ts"
+    ],
+    "exclude": [
+      "**/*.d.ts"
     ],
     "require": [
-      "@babel/register"
+      "ts-node/register/transpile-only",
+      "source-map-support/register"
     ],
-    "sourceMap": false,
-    "instrument": false
+    "reporter": [
+      "text",
+      "html",
+      "lcov"
+    ]
   }
 }
