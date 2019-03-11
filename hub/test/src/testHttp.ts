@@ -8,7 +8,6 @@ import { ecPairToAddress } from 'blockstack'
 
 import FetchMock from 'fetch-mock'
 import NodeFetch from 'node-fetch'
-const fetch: FetchMock.FetchMockSandbox = (<any>FetchMock.sandbox)(NodeFetch)
 
 import { makeHttpServer } from '../../src/server/http'
 import DiskDriver from '../../src/server/drivers/diskDriver'
@@ -20,7 +19,7 @@ import { addMockFetches } from './testDrivers'
 import { makeMockedAzureDriver } from './testDrivers/mockTestDrivers'
 
 import { testPairs, testAddrs } from './common'
-import { InMemoryDriver } from './testDrivers/InMemoryDriver'
+import InMemoryDriver from './testDrivers/InMemoryDriver'
 import { MockAuthTimestampCache } from './MockAuthTimestampCache'
 
 const TEST_SERVER_NAME = 'test-server'
@@ -216,7 +215,7 @@ function testHttpWithAzure() {
     mockTest = false
   }
 
-  let dataMap: any[] = []
+  let dataMap: {key: string, data: string}[] = []
   if (mockTest) {
     const mockedObj = makeMockedAzureDriver()
     dataMap = mockedObj.dataMap
@@ -264,7 +263,7 @@ function testHttpWithAzure() {
   })
 
   test('handle request', (t) => {
-    let fetch = (<any>FetchMock.sandbox)(NodeFetch)
+    let fetch = FetchMock.sandbox()
     let { app, server } = makeHttpServer(config)
     server.authTimestampCache = new MockAuthTimestampCache()
     let sk = testPairs[1]

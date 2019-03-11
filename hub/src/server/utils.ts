@@ -18,13 +18,13 @@ export const pipeline = promisify(_pipline)
 export const logger = winston.createLogger()
 
 export function getDriverClass(driver: DriverName): DriverConstructor & DriverStatics {
-  if (driver === DriverName.aws) {
+  if (driver === 'aws') {
     return S3Driver
-  } else if (driver === DriverName.azure) {
+  } else if (driver === 'azure') {
     return AzDriver
-  } else if (driver === DriverName.disk) {
+  } else if (driver === 'disk') {
     return DiskDriver
-  } else if (driver === DriverName['google-cloud']) {
+  } else if (driver === 'google-cloud') {
     return GcDriver
   } else {
     throw new Error(`Failed to load driver: driver was set to ${driver}`)

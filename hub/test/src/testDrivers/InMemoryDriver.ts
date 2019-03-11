@@ -7,7 +7,7 @@ import { DriverModel, DriverStatics } from '../../../src/server/driverModel'
 import { ListFilesResult, PerformWriteArgs } from '../../../src/server/driverModel'
 import { BadPathError, InvalidInputError } from '../../../src/server/errors'
 
-class InMemoryDriver implements DriverModel {
+export class InMemoryDriver implements DriverModel {
 
   app: express.Application
   server: Server;
@@ -110,4 +110,4 @@ class InMemoryDriver implements DriverModel {
 }
 
 const driver: typeof InMemoryDriver & DriverStatics = InMemoryDriver
-export { driver as InMemoryDriver }
+export default driver

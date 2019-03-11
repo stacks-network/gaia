@@ -5,12 +5,7 @@ import process from 'process'
 import { getDriverClass, logger } from './utils'
 import { ConsoleTransportOptions } from 'winston/lib/winston/transports'
 
-export enum DriverName { 
-  aws = 'aws',
-  azure = 'azure',
-  disk = 'disk',
-  'google-cloud' = 'google-cloud'
-}
+export type DriverName = 'aws' | 'azure' | 'disk' | 'google-cloud'
 
 interface LoggingConfig {
   timestamp: boolean;
@@ -18,16 +13,16 @@ interface LoggingConfig {
   json: boolean;
 }
 
-interface Config {
+export interface Config {
   serverName: string;
   port: number;
   driver?: DriverName;
   bucket: string;
-  readURL: string & null;
+  readURL?: string;
   pageSize: number;
   requireCorrectHubUrl: boolean;
   cacheControl: string;
-  whitelist: string[] & null,
+  whitelist?: string[],
   validHubUrls?: string[];
   proofsConfig?: { proofsRequired: number };
   authTimestampCacheSize: number,

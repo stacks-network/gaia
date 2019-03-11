@@ -9,7 +9,7 @@ import path from 'path'
 import os from 'os'
 
 import { Readable, Writable } from 'stream'
-import { InMemoryDriver } from './testDrivers/InMemoryDriver'
+import InMemoryDriver from './testDrivers/InMemoryDriver'
 import { DriverModel, DriverModelTestMethods } from '../../src/server/driverModel'
 import { ListFilesResult } from '../../src/server/driverModel'
 
@@ -18,14 +18,14 @@ import DiskDriver from '../../src/server/drivers/diskDriver'
 import * as mockTestDrivers from './testDrivers/mockTestDrivers'
 import * as integrationTestDrivers from './testDrivers/integrationTestDrivers'
 
-export function addMockFetches(fetchLib: any, prefix: any, dataMap: any[]) {
+export function addMockFetches(fetchLib: FetchMock.FetchMockSandbox, prefix: any, dataMap: {key: string, data: string}[]) {
   dataMap.forEach(item => {
     fetchLib.get(`${prefix}${item.key}`, item.data, { overwriteRoutes: true })
   })
 }
 
 
-function testDriver(testName: string, mockTest: boolean, dataMap: any[], createDriver: (config?: Object) => DriverModel) {
+function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, data: string}[], createDriver: (config?: any) => DriverModel) {
 
   test(testName, async (t) => {
     const topLevelStorage = `${Date.now()}r${Math.random()*1e6|0}`
@@ -46,7 +46,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: any[], createD
         return { stream: s, contentLength: contentBuff.length }
       }
 
-      const fetch = mockTest ? (<any>FetchMock.sandbox)(NodeFetch) : NodeFetch;
+      const fetch = <FetchMock.FetchMockSandbox>(mockTest ? FetchMock.sandbox() : NodeFetch)
 
       try {
         const writeArgs : any = { path: '../foo.js'}
