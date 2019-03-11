@@ -19,6 +19,8 @@ const configDefaults = {
   }
 }
 
+export const logger = winston.createLogger()
+
 export function getConfig() {
   const configPath = process.env.CONFIG_PATH || process.argv[2] || './config.json'
   let config = { ...configDefaults }
@@ -32,7 +34,7 @@ export function getConfig() {
     config.diskSettings.storageRootDirectory = process.env['GAIA_DISK_STORAGE_ROOT_DIR']
   }
 
-  winston.configure({ transports: [
+  logger.configure({ transports: [
     new winston.transports.Console(config.argsTransport) ] })
 
   return config

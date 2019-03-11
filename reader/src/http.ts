@@ -1,8 +1,8 @@
 import express  from 'express'
 import expressWinston from 'express-winston'
-import logger from 'winston'
 import cors from 'cors'
 import Path from 'path'
+import { logger } from './config'
 
 import {
   GaiaDiskReader
@@ -12,9 +12,9 @@ export function makeHttpServer(config: any) {
   const app = express()
   const server = new GaiaDiskReader(config)
 
-  /*app.use(expressWinston.logger({
-    transports: [ new logger.transports.Console() ] 
-  }))*/
+  app.use(expressWinston.logger({
+    winstonInstance: logger
+  }))
 
   app.use(cors())
 
