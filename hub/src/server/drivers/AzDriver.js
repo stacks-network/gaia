@@ -1,25 +1,31 @@
 /* @flow */
 
-import azure from 'azure-storage'
+import * as azure from '@azure/storage-blob'
 import logger from 'winston'
-import { BadPathError } from '../errors'
-import type { ListFilesResult } from '../driverModel'
-import { DriverStatics, DriverModel } from '../driverModel'
-import { Readable } from 'stream'
+import { BadPathError, InvalidInputError } from '../errors'
+import type { ListFilesResult, PerformWriteArgs } from '../driverModel'
+import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
 
-type AZ_CONFIG_TYPE = { azCredentials: { accountName: string,
-                                         accountKey: string },
-                        bucket: string,
-                        readURL?: string,
-                        cacheControl?: string }
+type AZ_CONFIG_TYPE = {
+  azCredentials: {
+    accountName: string,
+    accountKey: string
+  },
+  bucket: string,
+  pageSize?: number,
+  readURL?: string,
+  cacheControl?: string
+}
 
 // The AzDriver utilized the azure nodejs sdk to write files to azure blob storage
-class AzDriver implements DriverModel {
-  blobService: azure.BlobService
+class AzDriver implements DriverModel, DriverModelTestMethods {
+  container: azure.ContainerURL
   accountName: string
   bucket: string
+  pageSize: number
   readURL: ?string
   cacheControl: ?string
+  initPromise: Promise<void>
 
   static getConfigInformation() {
     const envVars = {}
@@ -33,105 +39,149 @@ class AzDriver implements DriverModel {
       azCredentials['accountKey'] = process.env['GAIA_AZURE_ACCOUNT_KEY']
     }
     return {
-      defaults: { azCredentials: { accountName: undefined,
-                                   accountKey: undefined } },
+      defaults: {
+        azCredentials: {
+          accountName: undefined,
+          accountKey: undefined
+        }
+      },
       envVars
     }
   }
 
-  constructor (config: AZ_CONFIG_TYPE) {
-    this.blobService = azure.createBlobService(config.azCredentials.accountName,
-                                               config.azCredentials.accountKey)
+  constructor(config: AZ_CONFIG_TYPE) {
+
     this.bucket = config.bucket
+    this.pageSize = config.pageSize ? config.pageSize : 100
     this.accountName = config.azCredentials.accountName
     this.readURL = config.readURL
     this.cacheControl = config.cacheControl
 
-    // Check for container(bucket), create it if does not exist
-    // Set permissions to 'blob' to allow public reads
-    this.blobService.createContainerIfNotExists(
-      config.bucket, { publicAccessLevel: 'blob' },
-      (error) => {
-        if (error) {
-          logger.error(`failed to initialize azure container: ${error}`)
-          throw error
-        }
-        logger.info('container initialized.')
-      })
+    const sharedKeyCredential = new azure.SharedKeyCredential(
+      config.azCredentials.accountName, config.azCredentials.accountKey)
+    const pipeline = azure.StorageURL.newPipeline(sharedKeyCredential)
+    const service = new azure.ServiceURL(this.getServiceUrl(), pipeline)
+    this.container = azure.ContainerURL.fromServiceURL(service, this.bucket)
+
+    this.initPromise = this.createContainerIfNotExists()
   }
 
-  static isPathValid (path: string) {
+  async createContainerIfNotExists() {
+    // Check for container(bucket), create it if does not exist
+    // Set permissions to 'blob' to allow public reads
+    try {
+      await this.container.create(azure.Aborter.none, { access: 'blob' })
+      logger.info(`Create container ${this.bucket} successfully`)
+    } catch (error) {
+      if (error.body && error.body.Code === 'ContainerAlreadyExists') {
+        logger.info('Container initialized.')
+      } else {
+        logger.error(`Failed to create container: ${error}`)
+        throw error
+      }
+    }
+  }
+
+  async deleteEmptyBucket() {
+    const prefix: any = undefined
+    const files = await this.listFiles(prefix)
+    if (files.entries.length > 0) {
+      throw new Error('Tried deleting non-empty bucket')
+    }
+    await this.container.delete(azure.Aborter.none)
+  }
+
+  ensureInitialized() {
+    return this.initPromise
+  }
+
+  dispose() {
+    return Promise.resolve()
+  }
+
+  static isPathValid(path: string) {
     // for now, only disallow double dots.
     return (path.indexOf('..') === -1)
   }
 
-  getReadURLPrefix () {
-    return `https://${this.accountName}.blob.core.windows.net/${this.bucket}/`
+  getServiceUrl() {
+    return `https://${this.accountName}.blob.core.windows.net`
   }
 
-  listBlobs(prefix: string, page: ?string) : Promise<ListFilesResult> {
-    // page is the continuationToken for Azure
-    return new Promise((resolve, reject) => {
-      this.blobService.listBlobsSegmentedWithPrefix(
-        this.bucket, prefix, page, null, (err, results) => {
-          if (err) {
-            return reject(err)
-          }
-          return resolve({
-            entries: results.entries.map((e) => e.name.slice(prefix.length + 1)),
-            page: results.continuationToken
-          })
-        })
-    })
+  getReadURLPrefix() {
+    return `${this.getServiceUrl()}/${this.bucket}/`
   }
 
-  listFiles(prefix: string, page: ?string) {
-    // returns {'entries': [...], 'page': next_page}
-    return this.listBlobs(prefix, page)
+  async listBlobs(prefix: string, page: ?string): Promise<ListFilesResult> {
+    // page is the marker / continuationToken for Azure
+    const blobs = await this.container.listBlobFlatSegment(
+      azure.Aborter.none,
+      page || undefined, {
+        prefix: prefix,
+        maxresults: this.pageSize
+      }
+    )
+    const items = blobs.segment.blobItems
+    const entries = items.map(e => e.name.slice(prefix.length + 1))
+    return { entries, page: blobs.nextMarker || null }
   }
 
-  performWrite(args: { path: string,
-                       storageTopLevel: string,
-                       stream: Readable,
-                       contentLength: number,
-                       contentType: string }) : Promise<string> {
-    // cancel write and return 402 if path is invalid
-    if (! AzDriver.isPathValid(args.path)) {
-      return Promise.reject(new BadPathError('Invalid Path'))
+  async listFiles(prefix: string, page: ?string) {
+    try {
+      return await this.listBlobs(prefix, page)
+    } catch (error) {
+      logger.debug(`Failed to list files: ${error}`)
+      throw error
     }
+  }
 
+  async performWrite(args: PerformWriteArgs): Promise<string> {
+    // cancel write and return 402 if path is invalid
+    if (!AzDriver.isPathValid(args.path)) {
+      throw new BadPathError('Invalid Path')
+    }
+    if (args.contentType && args.contentType.length > 1024) {
+      throw new InvalidInputError('Invalid content-type')
+    }
     // Prepend ${address}/ to filename
     const azBlob = `${args.storageTopLevel}/${args.path}`
-    const azOpts = {}
-    azOpts.contentSettings = {}
+    const blobURL = azure.BlobURL.fromContainerURL(this.container, azBlob)
+    const blockBlobURL = azure.BlockBlobURL.fromBlobURL(blobURL)
 
-    if (this.cacheControl) {
-      azOpts.contentSettings.cacheControl = this.cacheControl
+    // 1MB max buffer block size
+    const bufferSize = Math.min(1024 * 1024, args.contentLength)
+
+    /** 
+     * No parallelism since bottleneck would be in clients' http request
+     * upload speed rather than the gaia server disk or network IO.
+     * @see https://docs.microsoft.com/en-us/azure/storage/blobs/storage-quickstart-blobs-nodejs-v10#upload-a-stream
+    */
+    const maxBuffers = 1
+
+    try {
+      await azure.uploadStreamToBlockBlob(
+        azure.Aborter.none, args.stream,
+        blockBlobURL, bufferSize, maxBuffers, {
+          blobHTTPHeaders: {
+            blobContentType: args.contentType,
+            blobCacheControl: this.cacheControl || undefined
+          }
+        }
+      )
+    } catch (error) {
+      logger.error(`failed to store ${azBlob} in ${this.bucket}: ${error}`)
+      throw new Error('Azure storage failure: failed failed to store' +
+        ` ${azBlob} in container ${this.bucket}: ${error}`)
     }
 
-    azOpts.contentSettings.contentType = args.contentType
-
-    return new Promise((resolve, reject) => {
-      this.blobService.createBlockBlobFromStream(
-        this.bucket, azBlob, args.stream, args.contentLength, azOpts,
-        (error) => {
-          // log error, reject promise.
-          if (error) {
-            logger.error(`failed to store ${azBlob} in container ${this.bucket}: ${error}`)
-            return reject(new Error('Azure storage failure: failed failed to store' +
-                                    ` ${azBlob} in container ${this.bucket}: ${error}`))
-          }
-
-          // Return success and url to user
-          const readURL = this.getReadURLPrefix()
-          const publicURL = `${readURL}${azBlob}`
-          logger.debug(`Storing ${azBlob} in container ${this.bucket}, URL: ${publicURL}`)
-          resolve(publicURL)
-        })
-    })
+    // Return success and url to user
+    const readURL = this.getReadURLPrefix()
+    const publicURL = `${readURL}${azBlob}`
+    logger.debug(`Storing ${azBlob} in ${this.bucket}, URL: ${publicURL}`)
+    return publicURL
   }
 }
 
 (AzDriver: DriverStatics)
 
-module.exports = AzDriver
+export default AzDriver

@@ -17,9 +17,10 @@ import DiskDriver from '../../src/server/drivers/diskDriver'
 import { MakeHttpServerConfig, } from '../../src/server/http.js'
 import { AuthTimestampCache } from '../../src/server/revocations'
 import type { HubServerConfig } from '../../src/server/server.js'
-import { makeMockedAzureDriver, addMockFetches } from './testDrivers'
+import { addMockFetches } from './testDrivers'
+import { makeMockedAzureDriver } from './testDrivers/mockTestDrivers'
 
-import { testPairs } from './common'
+import { testPairs, testAddrs } from './common'
 import { InMemoryDriver } from './testDrivers/InMemoryDriver'
 import { MockAuthTimestampCache } from './MockAuthTimestampCache'
 
@@ -110,6 +111,31 @@ export function testHttpWithInMemoryDriver() {
         .expect(202)
       t.equal(revokeResponse.body.status, 'success', 'Revoke POST request should have returned success status')
 
+      const failedRevokeResponse = await request(app)
+        .post(`/revoke-all/${testAddrs[2]}`)
+        .set('Authorization', authorization)
+        .send({oldestValidTimestamp: (Date.now()/1000|0) + 3000})
+        .expect(401)
+      t.equal(failedRevokeResponse.body.error, 'ValidationError', 'Revoke request should have returned correct error type')
+
+      await request(app)
+        .post(`/revoke-all/${testAddrs[2]}`)
+        .set('Authorization', authorization)
+        .send({wrongField: 1234})
+        .expect(400)
+
+      await request(app)
+        .post(`/revoke-all/${testAddrs[2]}`)
+        .set('Authorization', authorization)
+        .send({oldestValidTimestamp: "NaN"})
+        .expect(400)
+
+      await request(app)
+        .post(`/revoke-all/${testAddrs[2]}`)
+        .set('Authorization', authorization)
+        .send({oldestValidTimestamp: -4343343})
+        .expect(400)
+
       const failedStoreResponse = await request(app).post(path)
         .set('Content-Type', 'application/octet-stream')
         .set('Authorization', authorization)
@@ -196,12 +222,12 @@ function testHttpWithAzure() {
   if (mockTest) {
     const mockedObj = makeMockedAzureDriver()
     dataMap = mockedObj.dataMap
-    const AzDriver = mockedObj.AzDriver
-    config.driverClass = AzDriver
+    config.driverClass = mockedObj.driverClass
   } else {
 
   }
 
+  // TODO: run this test with all configured drivers
   test('auth failure', (t) => {
     let { app, server } = makeHttpServer(config)
     server.authTimestampCache = new MockAuthTimestampCache()

@@ -25,7 +25,7 @@ export interface MakeHttpServerConfig {
   driverInstance?: DriverModel, driverClass?: Class<DriverModel>, driver?: string
 }
 
-export function makeHttpServer(config: MakeHttpServerConfig & HubServerConfig): { app: express.Application, server: HubServer } {
+export function makeHttpServer(config: MakeHttpServerConfig & HubServerConfig): { app: express.Application, server: HubServer, driver: DriverModel } {
 
   const app : express.Application = express()
 
@@ -129,7 +129,7 @@ export function makeHttpServer(config: MakeHttpServerConfig & HubServerConfig): 
       const address = req.params[0]
       const oldestValidTimestamp: number = parseInt(req.body.oldestValidTimestamp)
 
-      if (!Number.isFinite(oldestValidTimestamp)) {
+      if (!Number.isFinite(oldestValidTimestamp) || oldestValidTimestamp < 0) {
         writeResponse(res, { message: 'Invalid JSON: oldestValidTimestamp is not a valid integer'}, 400)
         return
       }
@@ -163,5 +163,5 @@ export function makeHttpServer(config: MakeHttpServerConfig & HubServerConfig): 
   })
 
   // Instantiate express application
-  return { app, server }
+  return { app, server, driver }
 }

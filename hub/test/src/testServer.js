@@ -1,6 +1,6 @@
 /* @flow */
 
-import test  from 'tape-promise/tape'
+import test from 'tape-promise/tape'
 import * as auth from '../../src/server/authentication'
 import * as errors from '../../src/server/errors'
 import { HubServer }  from '../../src/server/server'
@@ -9,15 +9,31 @@ import { Readable } from 'stream'
 import { DriverModel } from '../../src/server/driverModel'
 import type { ListFilesResult } from '../../src/server/driverModel'
 import { InMemoryDriver } from './testDrivers/InMemoryDriver'
-import { testPairs, testAddrs} from './common'
+import { testPairs, testAddrs, createTestKeys } from './common'
 import { MockAuthTimestampCache } from './MockAuthTimestampCache'
+import * as integrationTestDrivers from './testDrivers/integrationTestDrivers'
+import logger from 'winston'
 
 const TEST_SERVER_NAME = 'test-server'
 const TEST_AUTH_CACHE_SIZE = 10
 
 class MockProofs extends ProofChecker {
   checkProofs() {
-    return Promise.resolve()
+    return Promise.resolve(true)
+  }
+}
+
+async function usingIntegrationDrivers(func: (driver: DriverModel, name: string) => Promise<any> | void) {
+  for (const name in integrationTestDrivers.availableDrivers) {
+    const driverInfo = integrationTestDrivers.availableDrivers[name];
+    const driver = await driverInfo.create();
+    try {
+      await driver.ensureInitialized();
+      await Promise.resolve(func(driver, name));
+    }
+    finally {
+      await driver.dispose();
+    }
   }
 }
 
@@ -32,8 +48,10 @@ async function usingMemoryDriver(func: (driver: InMemoryDriver) => Promise<any> 
 
 export function testServer() {
   test('validation tests', async (t) => {
-    t.plan(4)
-    await usingMemoryDriver(mockDriver => {
+    await usingIntegrationDrivers((mockDriver, name) => {
+      t.comment(`testing driver: ${name}`);
+
+      const { testPairs, testAddrs } = createTestKeys(2);
       const server = new HubServer(mockDriver, new MockProofs(),
                                   { serverName: TEST_SERVER_NAME, whitelist: [testAddrs[0]],
                                     authTimestampCacheSize: TEST_AUTH_CACHE_SIZE })
@@ -65,8 +83,10 @@ export function testServer() {
   })
 
   test('validation with huburl tests', async (t) => {
-    t.plan(4)
-    await usingMemoryDriver(mockDriver => {
+    await usingIntegrationDrivers((mockDriver, name) => {
+      t.comment(`testing driver: ${name}`);
+
+      const { testPairs, testAddrs } = createTestKeys(2);
       const server = new HubServer(mockDriver, new MockProofs(),
                                   { whitelist: [testAddrs[0]], requireCorrectHubUrl: true,
                                     serverName: TEST_SERVER_NAME, validHubUrls: ['https://testserver.com'],
@@ -250,7 +270,12 @@ export function testServer() {
   })
 
   test('fail writes with revoked auth token', async (t) => {
-    await usingMemoryDriver(async (mockDriver) => {
+    await usingIntegrationDrivers(async (mockDriver, name) => {
+      t.comment(`testing driver: ${name}`);
+
+      const testPath = `/${Date.now()}/${Math.random()}`;
+      const { testPairs, testAddrs } = createTestKeys(2);
+
       const server = new HubServer(mockDriver, new MockProofs(), {
                                     serverName: TEST_SERVER_NAME,
                                     authTimestampCacheSize: TEST_AUTH_CACHE_SIZE})
@@ -266,7 +291,7 @@ export function testServer() {
       }
 
       // no revocation timestamp has been set, write request should succeed
-      await server.handleRequest(testAddrs[0], '/foo/bar', 
+      await server.handleRequest(testAddrs[0], testPath, 
                                 { 'content-type' : 'text/text',
                                   'content-length': 400,
                                   authorization }, getJunkData())
@@ -276,7 +301,7 @@ export function testServer() {
       await server.handleAuthBump(testAddrs[0], futureDate, { authorization })
 
       // write should fail with auth token creation date older than the revocation date 
-      await t.rejects(server.handleRequest(testAddrs[0], '/foo/bar',
+      await t.rejects(server.handleRequest(testAddrs[0], testPath,
                           { 'content-type' : 'text/text',
                             'content-length': 400,
                             authorization }, getJunkData()), errors.AuthTokenTimestampValidationError, 'write with revoked auth token should fail')
@@ -286,7 +311,7 @@ export function testServer() {
       authorization = `bearer ${authPart}`
     
       // request should succeed with a token iat newer than the revocation date
-      await server.handleRequest(testAddrs[0], '/foo/bar', 
+      await server.handleRequest(testAddrs[0], testPath, 
                                 { 'content-type' : 'text/text',
                                   'content-length': 400,
                                   authorization }, getJunkData())
@@ -294,7 +319,12 @@ export function testServer() {
   })
 
   test('non-whitelisted address can bump revocation if bearing valid association token', async (t) => {
-    await usingMemoryDriver(async (mockDriver) => {
+    await usingIntegrationDrivers(async (mockDriver, name) => {
+      t.comment(`testing driver: ${name}`);
+
+      const testPath = `/${Date.now()}/${Math.random()}`;
+      const { testPairs, testAddrs } = createTestKeys(2);
+
       const server = new HubServer(mockDriver, new MockProofs(), {
                                     serverName: TEST_SERVER_NAME,
                                     whitelist: [testAddrs[1]],
@@ -313,7 +343,7 @@ export function testServer() {
       }
 
       // no revocation timestamp has been set, write request should succeed
-      await server.handleRequest(testAddrs[0], '/foo/bar', 
+      await server.handleRequest(testAddrs[0], testPath, 
                                 { 'content-type' : 'text/text',
                                   'content-length': 400,
                                   authorization }, getJunkData())
@@ -323,13 +353,13 @@ export function testServer() {
       await server.handleAuthBump(testAddrs[0], futureDate, { authorization })
 
       // write should fail with auth token creation date older than the revocation date 
-      await t.rejects(server.handleRequest(testAddrs[0], '/foo/bar',
+      await t.rejects(server.handleRequest(testAddrs[0], testPath,
                           { 'content-type' : 'text/text',
                             'content-length': 400,
                             authorization }, getJunkData()), errors.AuthTokenTimestampValidationError, 'write with revoked auth token should fail')
 
       // sanity test to make sure writing to any given address still fails from a regular validation error
-      await t.rejects(server.handleRequest(testAddrs[4], '/foo/bar',
+      await t.rejects(server.handleRequest(testAddrs[4], testPath,
                           { 'content-type' : 'text/text',
                             'content-length': 400,
                             authorization }, getJunkData()), errors.ValidationError, 'write with revoked auth token should fail')
@@ -339,7 +369,7 @@ export function testServer() {
       authorization = `bearer ${authPart}`
     
       // request should succeed with a token iat newer than the revocation date
-      await server.handleRequest(testAddrs[0], '/foo/bar', 
+      await server.handleRequest(testAddrs[0], testPath, 
                                 { 'content-type' : 'text/text',
                                   'content-length': 400,
                                   authorization }, getJunkData())
@@ -347,7 +377,14 @@ export function testServer() {
   })
 
   test('auth token bearer can only bump the address of its signer', async (t) => {
-    await usingMemoryDriver(async (mockDriver) => {
+
+    await usingIntegrationDrivers(async (mockDriver, name) => {
+      
+      t.comment(`testing driver: ${name}`);
+
+      const testPath = `/${Date.now()}/${Math.random()}`;
+      const { testPairs, testAddrs } = createTestKeys(2);
+
       const server = new HubServer(mockDriver, new MockProofs(), {
                                     serverName: TEST_SERVER_NAME,
                                     authTimestampCacheSize: TEST_AUTH_CACHE_SIZE})
@@ -363,7 +400,7 @@ export function testServer() {
       }
 
       // no revocation timestamp has been set, write request should succeed
-      await server.handleRequest(testAddrs[0], '/foo/bar', 
+      await server.handleRequest(testAddrs[0], testPath, 
                                 { 'content-type' : 'text/text',
                                   'content-length': 400,
                                   authorization }, getJunkData())
@@ -375,7 +412,7 @@ export function testServer() {
         'auth token bearer should only be able to bump the address of its signer')
 
       // confirm that bump failed and that write still succeeds
-      await server.handleRequest(testAddrs[0], '/foo/bar', 
+      await server.handleRequest(testAddrs[0], testPath, 
                                 { 'content-type' : 'text/text',
                                   'content-length': 400,
                                   authorization }, getJunkData())

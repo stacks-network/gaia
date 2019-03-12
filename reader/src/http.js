@@ -28,6 +28,10 @@ export function makeHttpServer(config: Object) {
     }
     const address = req.params[0]
 
+    if (config.cacheControl) {
+      res.set('Cache-Control', config.cacheControl)
+    }
+
     return server.handleGet(address, filename)
       .then((fileInfo) => {
         const exists = fileInfo.exists
