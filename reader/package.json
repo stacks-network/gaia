@@ -53,6 +53,7 @@
     "Jude Nelson (jude@blockstack.com)"
   ],
   "nyc": {
+    "cache": false,
     "extension": [
       ".ts"
     ],

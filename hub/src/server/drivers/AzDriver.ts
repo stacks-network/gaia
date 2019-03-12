@@ -3,7 +3,7 @@
 import * as azure from '@azure/storage-blob'
 import { logger } from '../utils'
 import { BadPathError, InvalidInputError } from '../errors'
-import { ListFilesResult, PerformWriteArgs } from '../driverModel'
+import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs } from '../driverModel'
 import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
 
 export type AZ_CONFIG_TYPE = {
@@ -170,7 +170,7 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
       )
     } catch (error) {
       logger.error(`failed to store ${azBlob} in ${this.bucket}: ${error}`)
-      throw new Error('Azure storage failure: failed failed to store' +
+      throw new Error('Azure storage failure: failed to store' +
         ` ${azBlob} in container ${this.bucket}: ${error}`)
     }
 
@@ -179,6 +179,26 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
     const publicURL = `${readURL}${azBlob}`
     logger.debug(`Storing ${azBlob} in ${this.bucket}, URL: ${publicURL}`)
     return publicURL
+  }
+
+  async performDelete(args: PerformDeleteArgs): Promise<void> {
+    // cancel write and return 402 if path is invalid
+    if (!AzDriver.isPathValid(args.path)) {
+      throw new BadPathError('Invalid Path')
+    }
+    const azBlob = `${args.storageTopLevel}/${args.path}`
+    const blobURL = azure.BlobURL.fromContainerURL(this.container, azBlob)
+    const blockBlobURL = azure.BlockBlobURL.fromBlobURL(blobURL)
+    try {
+      await blockBlobURL.delete(azure.Aborter.none)
+    } catch (error) {
+      if (error.statusCode === 404) {
+        throw new BadPathError('File does not exist')
+      }
+      logger.error(`failed to delete ${azBlob} in ${this.bucket}: ${error}`)
+      throw new Error('Azure storage failure: failed to delete' +
+        ` ${azBlob} in container ${this.bucket}: ${error}`)
+    }
   }
 }
 
