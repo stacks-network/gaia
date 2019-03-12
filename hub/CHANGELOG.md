@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.0]
+### Added
+- Added support for deleting files using HTTP DELETE requests to the
+  `/delete/${address}/${path}` endpoint. This includes new scopes 
+  `deleteFile` and `deleteFilePrefix` which work the same way as their 
+  `putFile` equivalents. 
+
 ## [2.4.0]
 ### Added
 - Added support for revoking authentication tokens. Uses the JWT `iat`

@@ -265,10 +265,18 @@ a gaia hub driver must implement the following two functions:
  * @param { Integer } options.contentLength - the bytes of content in the stream
  * @returns { Promise } that resolves to the public-readable URL of the stored content.
  */
-
-
-performWrite (options: { path, contentType,
+performWrite (options: { path, storageToplevel, contentType,
                          stream, contentLength: Number })
+
+/**
+ * Deletes a file. Throws a 403 if the path does not exist, is not a file, or is 
+ * otherwise invalid. 
+ * @param { String } options.path - path of the file
+ * @param { String } options.storageToplevel - the top level directory
+ * @param { String } options.contentType - the HTTP content-type of the file
+ * @returns {Promise}
+ */
+performDelete (options: { path, storageToplevel })
 
 /**
  * Return the prefix for reading files from.
@@ -320,6 +328,22 @@ On success, it returns a `202` status, and a JSON object:
 ```
 
 The `POST` must contain an authentication header with a bearer token.
+The bearer token's content and generation is described in
+the [access control](#address-based-access-control) section of this
+document.
+
+---
+
+```
+DELETE ${hubUrl}/delete/${address}/${path}
+```
+
+This performs a deletion of a file in the gaia hub at `${path}`. 
+
+On success, it returns a `202` status. Returns a `403` if the path does 
+not exist, is not a file, or is otherwise invalid. 
+
+The `DELETE` must contain an authentication header with a bearer token.
 The bearer token's content and generation is described in
 the [access control](#address-based-access-control) section of this
 document.
