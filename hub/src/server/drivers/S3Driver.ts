@@ -71,29 +71,22 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
   }
 
   async createIfNeeded () {
-    try {
-      await this.s3.headBucket({ Bucket: this.bucket }).promise()
-      logger.info(`connected to s3 bucket: ${this.bucket}`)
-    } catch (error) {
-      if (error.code === 'NotFound') { // try to create
-        const params = {
-          Bucket: this.bucket,
-          ACL: 'public-read'
+    const bucketExists = await this.s3BucketExists()
+    if (!bucketExists) {
+      const params = {
+        Bucket: this.bucket,
+        ACL: 'public-read'
+      }
+      try {
+        await this.s3.createBucket(params).promise()
+        // Bucket creation takes a bit to propagate through AWS
+        // infrastructure before it is available for use. 
+        while (!(await this.s3BucketExists())) {
+          await timeout(500)
         }
-        try {
-          await this.s3.createBucket(params).promise()
-          // Bucket creation takes a bit to propagate through AWS
-          // infrastructure before it is available for use. 
-          while (!(await this.s3BucketExists())) {
-            await timeout(500)
-          }
-          logger.info(`initialized s3 bucket: ${this.bucket}`)
-        } catch (error) {
-          logger.error(`failed to initialize s3 bucket: ${error}`)
-          throw error
-        }
-      } else {
-        logger.error(`failed to connect to s3 bucket: ${error}`)
+        logger.info(`initialized s3 bucket: ${this.bucket}`)
+      } catch (error) {
+        logger.error(`failed to initialize s3 bucket: ${error}`)
         throw error
       }
     }
@@ -101,7 +94,7 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
 
   async s3BucketExists() {
     try {
-      await this.s3.getBucketLocation({ Bucket: this.bucket }).promise()
+      await this.s3.headBucket({ Bucket: this.bucket }).promise()
       return true
     } catch (error) {
       if (['NoSuchBucket', 'NotFound'].includes(error.code)) {
