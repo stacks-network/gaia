@@ -198,8 +198,7 @@ export function testServer() {
   })
 
   test('handle request', async (t) => {
-    t.plan(8)
-    await usingMemoryDriver(mockDriver => {
+    await usingMemoryDriver(async (mockDriver) => {
       const server = new HubServer(mockDriver, new MockProofs(),
                                   { whitelist: [testAddrs[0]], serverName: TEST_SERVER_NAME,
                                     authTimestampCacheSize: TEST_AUTH_CACHE_SIZE })
@@ -214,7 +213,7 @@ export function testServer() {
       s2.push('hello world')
       s2.push(null)
 
-      return server.handleRequest(testAddrs[0], 'foo.txt',
+      await server.handleRequest(testAddrs[0], 'foo.txt',
                           { 'content-type' : 'text/text',
                             'content-length': 400,
                             authorization }, s)
@@ -232,6 +231,11 @@ export function testServer() {
           t.equal(mockDriver.lastWrite.path, 'foo.txt')
           t.equal(mockDriver.lastWrite.storageTopLevel, testAddrs[0])
           t.equal(mockDriver.lastWrite.contentType, 'application/octet-stream')
+        })
+
+      await server.handleDelete(testAddrs[0], 'foo.txt', { authorization })
+        .then(() => {
+          t.pass('delete foo.txt')
         })
     })
   })

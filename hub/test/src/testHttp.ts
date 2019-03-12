@@ -87,6 +87,7 @@ export function testHttpWithInMemoryDriver() {
 
       const address = ecPairToAddress(sk)
       const path = `/store/${address}/helloWorld`
+      const deletePath = `/delete/${address}/helloWorld`
 
       const hubInfo = await request(app)
         .get('/hub_info/')
@@ -101,6 +102,21 @@ export function testHttpWithInMemoryDriver() {
         .set('Authorization', authorization)
         .send(blob)
         .expect(202)
+
+      await request(app).delete(deletePath)
+        .set('Authorization', authorization)
+        .send()
+        .expect(202)
+
+      await request(app).delete(`/delete/${address}/non-existent-file`)
+        .set('Authorization', authorization)
+        .send()
+        .expect(403)
+
+      await request(app).delete(`/delete/${testAddrs[4]}/anyfile`)
+        .set('Authorization', authorization)
+        .send()
+        .expect(401)
 
       const revokeResponse = await request(app)
         .post(`/revoke-all/${address}`)
@@ -147,6 +163,12 @@ export function testHttpWithInMemoryDriver() {
         .set('Authorization', authorization)
         .expect(401)
       t.equal(failedFilesResponse.body.error, 'AuthTokenTimestampValidationError', 'Store request should have returned correct error type')
+
+      const failedDeleteResponse = await request(app).delete(deletePath)
+        .set('Authorization', authorization)
+        .send()
+        .expect(401)
+      t.equal(failedDeleteResponse.body.error, 'AuthTokenTimestampValidationError', 'Delete request should have returned correct error type')
 
     } finally {
       inMemoryDriver.dispose()

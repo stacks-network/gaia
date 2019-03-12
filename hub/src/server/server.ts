@@ -73,6 +73,51 @@ export class HubServer {
     }
   }
 
+  async handleDelete(
+    address: string, path: string,
+    requestHeaders: { authorization?: string }
+  ) {
+    const oldestValidTokenTimestamp = await this.authTimestampCache.getAuthTimestamp(address)
+    this.validate(address, requestHeaders, oldestValidTokenTimestamp)
+
+    // can the caller delete? if so, in what paths?
+    const scopes = getAuthenticationScopes(requestHeaders.authorization)
+    const deletePrefixes = []
+    const deletePaths = []
+    for (let i = 0; i < scopes.length; i++) {
+      if (scopes[i].scope == 'deleteFilePrefix') {
+        deletePrefixes.push(scopes[i].domain)
+      } else if (scopes[i].scope == 'deleteFile') {
+        deletePaths.push(scopes[i].domain)
+      }
+    }
+
+    if (deletePrefixes.length > 0 || deletePaths.length > 0) {
+      // we're limited to a set of prefixes and paths.
+      // does the given path match any prefixes?
+      let match = !!deletePrefixes.find((p) => (path.startsWith(p)))
+
+      if (!match) {
+        // check for exact paths
+        match = !!deletePaths.find((p) => (path === p))
+      }
+
+      if (!match) {
+        // not authorized to write to this path
+        throw new ValidationError(`Address ${address} not authorized to delete from ${path} by scopes`)
+      }
+    }
+
+    await this.proofChecker.checkProofs(address, path, this.getReadURLPrefix())
+
+    const deleteCommand = {
+      storageTopLevel: address,
+      path
+    }
+
+    await this.driver.performDelete(deleteCommand)
+  }
+
   async handleRequest(
     address: string, path: string,
     requestHeaders: {
