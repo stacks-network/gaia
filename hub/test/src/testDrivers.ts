@@ -58,8 +58,9 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
         t.equal(err.message, 'Invalid Path', 'Should throw bad path')
       }
 
+      const fileSubDir = 'somedir'
       // Test binary data content-type
-      const binFileName = 'somedir/foo.bin';
+      const binFileName = `${fileSubDir}/foo.bin`;
       let sampleData = getSampleData();
       let readUrl = await driver.performWrite({
         path: binFileName,
@@ -89,7 +90,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
       t.ok(!files.page, 'list files for 1 result should not have returned a page')
 
       // Test a text content-type that has implicit charset set
-      const txtFileName = 'somedir/foo_text.txt';
+      const txtFileName = `${fileSubDir}/foo_text.txt`;
       sampleData = getSampleData();
       readUrl = await driver.performWrite(
           { path: txtFileName,
@@ -140,8 +141,17 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
       } catch (error) {
         t.pass('Should fail to performDelete on non-existent file')
         if (!(error instanceof BadPathError)) {
-          console.log(`____ ${testName} ${mockTest} ___ ${error}`)
           t.equal(error.constructor.name, 'BadPathError', 'Should throw BadPathError trying to performDelete on non-existent file')
+        }
+      }
+
+      try {
+        await driver.performDelete({path: fileSubDir, storageTopLevel: topLevelStorage})
+        t.fail('Should fail to performDelete on a directory')
+      } catch (error) {
+        t.pass('Should fail to performDelete on a directory')
+        if (!(error instanceof BadPathError)) {
+          t.equal(error.constructor.name, 'BadPathError', 'Should throw BadPathError trying to performDelete on directory')
         }
       }
 
