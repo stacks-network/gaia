@@ -420,6 +420,83 @@ export function testServer() {
     })
   })
 
+  test('handle scoped deletes', async (t) => {
+    await usingMemoryDriver(mockDriver => {
+      const scopes = [
+        {
+          scope: 'deleteFile',
+          domain: '/foo/bar',
+        },
+        {
+          scope: 'deleteFilePrefix',
+          domain: 'baz'
+        },
+        {
+          scope: 'putFile',
+          domain: '/foo/bar',
+        },
+        {
+          scope: 'putFilePrefix',
+          domain: 'baz'
+        }
+      ]
+
+      const server = new HubServer(mockDriver, new MockProofs(),
+                                  { whitelist: [testAddrs[0]], serverName: TEST_SERVER_NAME,
+                                    authTimestampCacheSize: TEST_AUTH_CACHE_SIZE })
+      const challengeText = auth.getChallengeText(TEST_SERVER_NAME)
+
+      const authPart = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText, undefined, undefined, scopes)
+
+      const authorization = `bearer ${authPart}`
+      const authenticator = auth.parseAuthHeader(authorization)
+      t.throws(() => authenticator.isAuthenticationValid(testAddrs[1], [challengeText]),
+              errors.ValidationError, 'Wrong address must throw')
+      t.throws(() => authenticator.isAuthenticationValid(testAddrs[0], ['potatos are tasty']),
+              errors.ValidationError, 'Wrong challenge text must throw')
+      t.ok(authenticator.isAuthenticationValid(testAddrs[0], [challengeText]),
+          'Good signature must pass')
+
+      // scopes must be present
+      const authScopes = authenticator.getAuthenticationScopes()
+      t.equal(authScopes[0].scope, 'deleteFile', 'scope 0 is deletefile')
+      t.equal(authScopes[0].domain, '/foo/bar', 'scope 0 is for /foo/bar')
+      t.equal(authScopes[1].scope, 'deleteFilePrefix', 'scope 1 is deleteFilePrefix')
+      t.equal(authScopes[1].domain, 'baz', 'scope 1 is for baz')
+
+      const s = new Readable()
+      s.push('hello world')
+      s.push(null)
+      const s2 = new Readable()
+      s2.push('hello world')
+      s2.push(null)
+      const s3 = new Readable()
+      s3.push('hello world')
+      s3.push(null)
+      const s4 = new Readable()
+      s4.push('hello world')
+      s4.push(null)
+
+      return server.handleRequest(testAddrs[0], '/foo/bar',
+                          { 'content-type' : 'text/text',
+                            'content-length': 400,
+                            authorization }, s)
+        .then(() => server.handleDelete(testAddrs[0], '/foo/bar', { authorization }))
+        .then(() => server.handleRequest(testAddrs[0], 'baz/foo.txt',
+                          { 'content-length': 400,
+                            authorization }, s2))
+        .then(() => server.handleDelete(testAddrs[0], '/nope/foo.txt', { authorization }))
+        .catch((e) => {
+          t.throws(() => { throw e }, errors.ValidationError, 'invalid path prefix should fail')
+        })
+        .then(() => server.handleDelete(testAddrs[0], '/foo/bar/nope.txt', { authorization }))
+        .catch((e) => {
+          t.throws(() => { throw e }, errors.ValidationError, 'deleteFile does not allow prefixes')
+          t.end()
+        })
+    })
+  })
+  
   test('handle scoped writes', async (t) => {
     await usingMemoryDriver(mockDriver => {
       const writeScopes = [
@@ -506,6 +583,80 @@ export function testServer() {
           t.end()
         })
     })
+  })
+
+
+  test('handle scoped deletes with association tokens', async (t) => {
+    await usingMemoryDriver(mockDriver => {
+      const scopes = [
+        {
+          scope: 'deleteFile',
+          domain: '/foo/bar',
+        },
+        {
+          scope: 'deleteFilePrefix',
+          domain: 'baz'
+        },
+        {
+          scope: 'putFile',
+          domain: '/foo/bar',
+        },
+        {
+          scope: 'putFilePrefix',
+          domain: 'baz'
+        }
+      ]
+
+      const server = new HubServer(mockDriver, new MockProofs(),
+                                  { whitelist: [testAddrs[1]], serverName: TEST_SERVER_NAME,
+                                    authTimestampCacheSize: TEST_AUTH_CACHE_SIZE })
+      const challengeText = auth.getChallengeText(TEST_SERVER_NAME)
+
+      const associationToken = auth.V1Authentication.makeAssociationToken(testPairs[1], testPairs[0].publicKey.toString('hex'))
+      const authPart = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText, associationToken, undefined, scopes)
+
+      const authorization = `bearer ${authPart}`
+      const authenticator = auth.parseAuthHeader(authorization)
+      t.throws(() => authenticator.isAuthenticationValid(testAddrs[1], [challengeText]),
+              errors.ValidationError, 'Wrong address must throw')
+      t.throws(() => authenticator.isAuthenticationValid(testAddrs[0], ['potatos are tasty']),
+              errors.ValidationError, 'Wrong challenge text must throw')
+      t.ok(authenticator.isAuthenticationValid(testAddrs[0], [challengeText]),
+          'Good signature must pass')
+
+      // write to /foo/bar or baz will succeed
+      const s = new Readable()
+      s.push('hello world')
+      s.push(null)
+      const s2 = new Readable()
+      s2.push('hello world')
+      s2.push(null)
+      const s3 = new Readable()
+      s3.push('hello world')
+      s3.push(null)
+      const s4 = new Readable()
+      s4.push('hello world')
+      s4.push(null)
+
+      return server.handleRequest(testAddrs[0], '/foo/bar',
+                          { 'content-type' : 'text/text',
+                            'content-length': 400,
+                            authorization }, s)
+        .then(() => server.handleDelete(testAddrs[0], '/foo/bar', { authorization }))
+        .then(() => server.handleRequest(testAddrs[0], 'baz/foo.txt',
+                          { 'content-length': 400,
+                            authorization }, s2))
+        .then(() => server.handleDelete(testAddrs[0], 'baz/foo.txt', { authorization }))
+        .then(() => server.handleDelete(testAddrs[0], '/nope/foo.txt', { authorization }))
+        .catch((e: any) => {
+          t.throws(() => { throw e }, errors.ValidationError, 'invalid prefix should fail')
+        })
+        .then(() => server.handleDelete(testAddrs[0], '/foo/bar/nope.txt', { authorization }))
+        .catch((e: any) => {
+          t.throws(() => { throw e }, errors.ValidationError, 'deleteFile does not permit prefixes')
+          t.end()
+        })
+      })
   })
 
   test('handle scoped writes with association tokens', async (t) => {
