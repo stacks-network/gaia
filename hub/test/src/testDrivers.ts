@@ -155,6 +155,15 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
         }
       }
 
+      try {
+        const deleteArgs : any = { path: '../foo.js'}
+        await driver.performDelete(deleteArgs)
+        t.fail('Should have thrown deleting file with invalid path')
+      }
+      catch (err) {
+        t.equal(err.message, 'Invalid Path', 'Should have thrown deleting file with invalid path')
+      }
+
       if (!mockTest) {
         sampleData = getSampleData();
         const bogusContentType = 'x'.repeat(3000)
