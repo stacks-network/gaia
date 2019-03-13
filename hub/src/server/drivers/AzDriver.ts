@@ -76,7 +76,9 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
       if (error.body && error.body.Code === 'ContainerAlreadyExists') {
         logger.info('Container initialized.')
       } else {
+        /* istanbul ignore next */
         logger.error(`Failed to create container: ${error}`)
+        /* istanbul ignore next */
         throw error
       }
     }
@@ -86,6 +88,7 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
     const prefix: any = undefined
     const files = await this.listFiles(prefix)
     if (files.entries.length > 0) {
+      /* istanbul ignore next */
       throw new Error('Tried deleting non-empty bucket')
     }
     await this.container.delete(azure.Aborter.none)
@@ -195,7 +198,9 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
       if (error.statusCode === 404) {
         throw new BadPathError('File does not exist')
       }
+      /* istanbul ignore next */
       logger.error(`failed to delete ${azBlob} in ${this.bucket}: ${error}`)
+      /* istanbul ignore next */
       throw new Error('Azure storage failure: failed to delete' +
         ` ${azBlob} in container ${this.bucket}: ${error}`)
     }

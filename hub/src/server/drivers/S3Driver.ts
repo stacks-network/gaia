@@ -86,7 +86,9 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
         }
         logger.info(`initialized s3 bucket: ${this.bucket}`)
       } catch (error) {
+        /* istanbul ignore next */
         logger.error(`failed to initialize s3 bucket: ${error}`)
+        /* istanbul ignore next */
         throw error
       }
     }
@@ -100,7 +102,9 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
       if (['NoSuchBucket', 'NotFound'].includes(error.code)) {
         return false
       }
+      /* istanbul ignore next */
       logger.error(`Unexpected error while checking if bucket exists: ${error}`)
+      /* istanbul ignore next */
       throw error
     }
   }
@@ -108,6 +112,7 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
   async deleteEmptyBucket() {
     const files = await this.listFiles('')
     if (files.entries.length > 0) {
+      /* istanbul ignore next */
       throw new Error('Tried deleting non-empty bucket')
     }
     await this.s3.deleteBucket({ Bucket: this.bucket }).promise()
@@ -191,7 +196,9 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
       if (error.statusCode === 404) {
         throw new BadPathError('File does not exist')
       }
+      /* istanbul ignore next */
       logger.error(`failed to delete ${s3key} in bucket ${this.bucket}`)
+      /* istanbul ignore next */
       throw new Error('S3 storage failure: failed to delete' +
         ` ${s3key} in bucket ${this.bucket}: ${error}`)
     }

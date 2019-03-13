@@ -219,6 +219,7 @@ class DiskDriver implements DriverModel {
       if (error.code === 'ENOENT') {
         throw new BadPathError('File does not exist')
       }
+      /* istanbul ignore next */
       throw error
     }
     if (!stat.isFile()) {

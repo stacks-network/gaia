@@ -108,6 +108,7 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
   async deleteEmptyBucket() {
     const files = await this.listFiles('')
     if (files.entries.length > 0) {
+      /* istanbul ignore next */
       throw new Error('Tried deleting non-empty bucket')
     }
     await this.storage.bucket(this.bucket).delete()
@@ -214,7 +215,9 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
       if (error.code === 404) {
         throw new BadPathError('File does not exist')
       }
+      /* istanbul ignore next */
       logger.error(`failed to delete ${filename} in bucket ${this.bucket}`)
+      /* istanbul ignore next */
       throw new Error('Google cloud storage failure: failed to delete' +
         ` ${filename} in bucket ${this.bucket}: ${error}`)
     }
