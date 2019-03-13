@@ -12,6 +12,7 @@ import S3Driver from '../../../src/server/drivers/S3Driver'
 import GcDriver from '../../../src/server/drivers/GcDriver'
 import DiskDriver from '../../../src/server/drivers/diskDriver'
 import InMemoryDriver from './InMemoryDriver'
+import * as gaiaReader from '../../../../reader/src/http'
 
 /**
  * Either a:
@@ -88,7 +89,7 @@ availableDrivers.diskSelfHosted = {
   create: config => {
     const tmpStorageDir = path.resolve(os.tmpdir(), `disktest-${Date.now()-Math.random()}`)
     fs.mkdirSync(tmpStorageDir)
-    const selfHostedConfig = {
+    const selfHostedConfig  = {
       bucket: "spokes", 
       readURL: "not yet initialized",
       diskSettings: {
@@ -97,10 +98,7 @@ availableDrivers.diskSelfHosted = {
       ...config
     };
 
-    // Pull in the gaia-reader http server.
-    //$FlowFixMe
-    const gaiaReader = require('gaia-reader/lib/http');
-    const app: express.Application = gaiaReader.makeHttpServer(selfHostedConfig);
+    const app = gaiaReader.makeHttpServer(<any>selfHostedConfig);
     const serverPromise = new Promise<http.Server>((res, rej) => {
       const server = app.listen(0, 'localhost', err => err ? rej(err) : res(server));
     });

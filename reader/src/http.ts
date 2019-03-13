@@ -15,7 +15,7 @@ export function makeHttpServer(config: Config) {
 
   app.use(cors())
 
-  app.get(/\/([a-zA-Z0-9]+)\/(.+)/, (req, res) => {
+  app.get(/\/([a-zA-Z0-9-_]+)\/(.+)/, (req, res) => {
     let filename = req.params[1]
     if (filename.endsWith('/')) {
       filename = filename.substring(0, filename.length - 1)

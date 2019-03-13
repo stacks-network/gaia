@@ -266,6 +266,40 @@ export function testServer() {
     })
   })
 
+  test('fail writes with auth token fetch errors', async (t) => {
+    await usingMemoryDriver(async (driver) => {
+
+      const testPath = `/${Date.now()}/${Math.random()}`;
+      const { testPairs, testAddrs } = createTestKeys(2);
+
+      const server = new HubServer(driver, new MockProofs(), {
+                                    serverName: TEST_SERVER_NAME,
+                                    authTimestampCacheSize: TEST_AUTH_CACHE_SIZE})
+      const challengeText = auth.getChallengeText(TEST_SERVER_NAME)
+      let authPart = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText)
+      let authorization = `bearer ${authPart}`
+
+      const getJunkData = () => {
+        const s = new Readable()
+        s.push('hello world')
+        s.push(null)
+        return s
+      }
+      
+      // simulate a hub driver endpoint being offline during the auth token fetch
+      server.authTimestampCache.readUrlPrefix = 'http://unreachable.local/'
+
+      // no revocation timestamp has been set, but the write should still fail
+      // since the revocation token cannot be retrieved (or 404ed) from the driver
+      // read endpoint. 
+      await t.rejects(server.handleRequest(testAddrs[0], testPath,
+                          { 'content-type' : 'text/text',
+                            'content-length': 400,
+                            authorization }, getJunkData()), errors.ValidationError, 'write with auth token failing to fetch should fail')
+
+    })
+  })
+
   test('fail writes with revoked auth token', async (t) => {
     await usingIntegrationDrivers(async (mockDriver, name) => {
       t.comment(`testing driver: ${name}`);
@@ -303,6 +337,13 @@ export function testServer() {
                             'content-length': 400,
                             authorization }, getJunkData()), errors.AuthTokenTimestampValidationError, 'write with revoked auth token should fail')
 
+      // simulate auth token being dropped from cache and ensure it gets re-fetched
+      server.authTimestampCache.cache.reset()
+      await t.rejects(server.handleRequest(testAddrs[0], testPath,
+        { 'content-type' : 'text/text',
+          'content-length': 400,
+          authorization }, getJunkData()), errors.AuthTokenTimestampValidationError, 'write with revoked auth token should fail if not in cache')
+
       // create a auth token with iat forced further into the future
       authPart = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText, undefined, undefined, undefined, futureDate + 10000)
       authorization = `bearer ${authPart}`
@@ -312,6 +353,15 @@ export function testServer() {
                                 { 'content-type' : 'text/text',
                                   'content-length': 400,
                                   authorization }, getJunkData())
+
+      // simulate auth token being dropped from cache and ensure it gets re-fetched
+      server.authTimestampCache.cache.reset()
+
+      // request should still succeed after re-fetching to populate cache
+      await server.handleRequest(testAddrs[0], testPath, 
+        { 'content-type' : 'text/text',
+          'content-length': 400,
+          authorization }, getJunkData())
     })
   })
 

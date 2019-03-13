@@ -2,12 +2,11 @@
 
 import LRUCache from 'lru-cache'
 import { DriverModel } from './driverModel'
-import fetch from 'node-fetch'
+import fetch, { Response } from 'node-fetch'
 import { logger } from './utils'
 import { Readable } from 'stream'
 import * as errors from './errors'
 
-const MAX_AUTH_FILE_BYTES = 1024
 const AUTH_TIMESTAMP_FILE_NAME = 'authTimestamp'
 
 export class AuthTimestampCache {
@@ -53,8 +52,8 @@ export class AuthTimestampCache {
 
     const authTimestampDir = this.getAuthTimestampFileDir(bucketAddress)
     
-    let fetchResponse
-    let authNumberText
+    let fetchResponse: Response
+    let authNumberText: string
     try {
       const authNumberFileUrl = `${this.readUrlPrefix}${authTimestampDir}/${AUTH_TIMESTAMP_FILE_NAME}`
       fetchResponse = await fetch(authNumberFileUrl, {
@@ -105,7 +104,7 @@ export class AuthTimestampCache {
     return authTimestamp
   }
 
-  async writeAuthTimestamp(bucketAddress: string, timestamp: number): Promise<void> {
+  private async writeAuthTimestamp(bucketAddress: string, timestamp: number): Promise<void> {
 
     // Recheck cache for a larger timestamp to avoid race conditions from slow storage.
     let cachedTimestamp = this.cache.get(bucketAddress)
@@ -123,13 +122,6 @@ export class AuthTimestampCache {
     contentStream.push(contentBuffer, 'utf8')
     contentStream.push(null) // Mark EOF
 
-    const contentLength = contentBuffer.length
-
-    // Content size sanity check.
-    if (contentLength > MAX_AUTH_FILE_BYTES) {
-      throw new errors.ValidationError(`Auth number file content size is ${contentLength}, it should never be greater than ${MAX_AUTH_FILE_BYTES}`)
-    }
-    
     await this.driver.performWrite({
       storageTopLevel: authTimestampFileDir, 
       path: AUTH_TIMESTAMP_FILE_NAME,

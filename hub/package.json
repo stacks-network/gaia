@@ -40,7 +40,6 @@
     "@typescript-eslint/parser": "^1.4.2",
     "eslint": "^5.15.1",
     "fetch-mock": "^7.3.1",
-    "gaia-reader": "file:../reader",
     "istanbul": "^0.4.5",
     "nyc": "^13.3.0",
     "proxyquire": "^2.1.0",
