@@ -17,7 +17,7 @@ import DiskDriver from '../../src/server/drivers/diskDriver'
 
 import * as mockTestDrivers from './testDrivers/mockTestDrivers'
 import * as integrationTestDrivers from './testDrivers/integrationTestDrivers'
-import { BadPathError } from '../../src/server/errors'
+import { BadPathError, DoesNotExist } from '../../src/server/errors'
 
 export function addMockFetches(fetchLib: FetchMock.FetchMockSandbox, prefix: any, dataMap: {key: string, data: string}[]) {
   dataMap.forEach(item => {
@@ -140,8 +140,8 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
         t.fail('Should fail to performDelete on non-existent file')
       } catch (error) {
         t.pass('Should fail to performDelete on non-existent file')
-        if (!(error instanceof BadPathError)) {
-          t.equal(error.constructor.name, 'BadPathError', 'Should throw BadPathError trying to performDelete on non-existent file')
+        if (!(error instanceof DoesNotExist)) {
+          t.equal(error.constructor.name, 'DoesNotExist', 'Should throw DoesNotExist trying to performDelete on non-existent file')
         }
       }
 
@@ -150,18 +150,20 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
         t.fail('Should fail to performDelete on a directory')
       } catch (error) {
         t.pass('Should fail to performDelete on a directory')
-        if (!(error instanceof BadPathError)) {
-          t.equal(error.constructor.name, 'BadPathError', 'Should throw BadPathError trying to performDelete on directory')
+        if (!(error instanceof DoesNotExist)) {
+          t.equal(error.constructor.name, 'DoesNotExist', 'Should throw DoesNotExist trying to performDelete on directory')
         }
       }
 
       try {
-        const deleteArgs : any = { path: '../foo.js'}
-        await driver.performDelete(deleteArgs)
+        await driver.performDelete({path: '../foo.js', storageTopLevel: topLevelStorage})
         t.fail('Should have thrown deleting file with invalid path')
       }
-      catch (err) {
-        t.equal(err.message, 'Invalid Path', 'Should have thrown deleting file with invalid path')
+      catch (error) {
+        t.pass('Should fail to performDelete on invalid path')
+        if (!(error instanceof BadPathError)) {
+          t.equal(error.constructor.name, 'BadPathError', 'Should throw BadPathError trying to performDelete on directory')
+        }
       }
 
       if (!mockTest) {

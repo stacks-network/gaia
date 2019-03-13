@@ -16,6 +16,13 @@ export class AuthTokenTimestampValidationError extends Error {
   }
 }
 
+export class DoesNotExist extends Error {
+  constructor (message: string) {
+    super(message)
+    this.name = this.constructor.name
+  }
+}
+
 export class BadPathError extends Error {
   constructor (message: string) {
     super(message)

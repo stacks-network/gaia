@@ -2,7 +2,7 @@
 
 import * as azure from '@azure/storage-blob'
 import { logger } from '../utils'
-import { BadPathError, InvalidInputError } from '../errors'
+import { BadPathError, InvalidInputError, DoesNotExist } from '../errors'
 import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs } from '../driverModel'
 import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
 
@@ -196,7 +196,7 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
       await blockBlobURL.delete(azure.Aborter.none)
     } catch (error) {
       if (error.statusCode === 404) {
-        throw new BadPathError('File does not exist')
+        throw new DoesNotExist('File does not exist')
       }
       /* istanbul ignore next */
       logger.error(`failed to delete ${azBlob} in ${this.bucket}: ${error}`)

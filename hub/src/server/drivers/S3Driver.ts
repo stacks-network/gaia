@@ -1,6 +1,6 @@
 import S3 from 'aws-sdk/clients/s3'
 
-import { BadPathError, InvalidInputError } from '../errors'
+import { BadPathError, InvalidInputError, DoesNotExist } from '../errors'
 import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs } from '../driverModel'
 import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
 import { timeout, logger } from '../utils'
@@ -194,7 +194,7 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
       await this.s3.deleteObject(s3params).promise()
     } catch (error) {
       if (error.statusCode === 404) {
-        throw new BadPathError('File does not exist')
+        throw new DoesNotExist('File does not exist')
       }
       /* istanbul ignore next */
       logger.error(`failed to delete ${s3key} in bucket ${this.bucket}`)

@@ -1,5 +1,5 @@
 import fs from 'fs-extra'
-import { BadPathError, InvalidInputError } from '../errors'
+import { BadPathError, InvalidInputError, DoesNotExist } from '../errors'
 import Path from 'path'
 import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs } from '../driverModel'
 import { DriverStatics, DriverModel } from '../driverModel'
@@ -217,13 +217,17 @@ class DiskDriver implements DriverModel {
       stat = await fs.stat(absoluteFilePath)
     } catch (error) {
       if (error.code === 'ENOENT') {
-        throw new BadPathError('File does not exist')
+        throw new DoesNotExist('File does not exist')
       }
       /* istanbul ignore next */
       throw error
     }
     if (!stat.isFile()) {
-      throw new BadPathError('Path is not a file')
+      // Disk driver is special here in that it mirrors the behavior of cloud storage APIs. 
+      // Directories are not first-class objects in blob storages, and so they will 
+      // simply return 404s for the blob name even if the name happens to be a prefix
+      // (pseudo-directory) of existing blobs.
+      throw new DoesNotExist('Path is not a file')
     }
     await fs.unlink(absoluteFilePath)
     await fs.unlink(contentTypeFilePath)

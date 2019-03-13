@@ -104,7 +104,9 @@ export function makeHttpServer(config: MakeHttpServerConfig & HubServerConfig & 
         } else if (err instanceof errors.AuthTokenTimestampValidationError) {
           writeResponse(res, { message: err.message, error: err.name  }, 401)
         } else if (err instanceof errors.BadPathError) {
-          writeResponse(res, { message: err.message, error: err.name  }, 403)
+          writeResponse(res, { message: err.message, error: err.name  }, 400)
+        } else if (err instanceof errors.DoesNotExist) {
+          writeResponse(res, { message: err.message, error: err.name  }, 404)
         } else if (err instanceof errors.NotEnoughProofError) {
           writeResponse(res, { message: err.message, error: err.name  }, 402)
         } else {

@@ -1,6 +1,6 @@
 import { Storage, File } from '@google-cloud/storage'
 
-import { BadPathError, InvalidInputError } from '../errors'
+import { BadPathError, InvalidInputError, DoesNotExist } from '../errors'
 import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs } from '../driverModel'
 import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
 import { pipeline, logger } from '../utils'
@@ -213,7 +213,7 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
       await bucketFile.delete()
     } catch (error) {
       if (error.code === 404) {
-        throw new BadPathError('File does not exist')
+        throw new DoesNotExist('File does not exist')
       }
       /* istanbul ignore next */
       logger.error(`failed to delete ${filename} in bucket ${this.bucket}`)
