@@ -269,8 +269,7 @@ performWrite (options: { path, storageToplevel, contentType,
                          stream, contentLength: Number })
 
 /**
- * Deletes a file. Throws a 403 if the path does not exist, is not a file, or is 
- * otherwise invalid. 
+ * Deletes a file. Throws a `DoesNotExist` if the file does not exist. 
  * @param { String } options.path - path of the file
  * @param { String } options.storageToplevel - the top level directory
  * @param { String } options.contentType - the HTTP content-type of the file
@@ -340,8 +339,8 @@ DELETE ${hubUrl}/delete/${address}/${path}
 
 This performs a deletion of a file in the gaia hub at `${path}`. 
 
-On success, it returns a `202` status. Returns a `403` if the path does 
-not exist, is not a file, or is otherwise invalid. 
+On success, it returns a `202` status. Returns a `404` if the path does 
+not exist. Returns `400` if the path is invalid. 
 
 The `DELETE` must contain an authentication header with a bearer token.
 The bearer token's content and generation is described in
