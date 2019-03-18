@@ -53,6 +53,8 @@
     "Jude Nelson (jude@blockstack.com)"
   ],
   "nyc": {
+    "cache": false,
+    "all": true,
     "extension": [
       ".ts"
     ],
@@ -63,7 +65,7 @@
       "**/*.d.ts"
     ],
     "require": [
-      "ts-node/register",
+      "ts-node/register/transpile-only",
       "source-map-support/register"
     ],
     "reporter": [
