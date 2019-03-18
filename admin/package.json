@@ -62,6 +62,7 @@
   "homepage": "https://github.com/blockstack/gaia",
   "nyc": {
     "cache": false,
+    "all": true,
     "extension": [
       ".ts"
     ],

@@ -43,6 +43,9 @@ class MemoryStream extends stream.Writable {
     callback(null)
   }
   getData() {
+    if (this.buffers.length === 1) {
+      return this.buffers[0]
+    }
     return Buffer.concat(this.buffers)
   }
 }
