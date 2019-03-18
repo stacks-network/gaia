@@ -22,7 +22,7 @@ jobs:
       # Download and cache dependencies
       - restore_cache:
           keys:
-          - v1-dependencies-{{ checksum "hub/package.json" }}
+          - v1-dependencies-{{ checksum "hub/package.json" }}-{{ checksum "reader/package.json" }}-{{ checksum "admin/package.json" }}
           # fallback to using the latest cache if no exact match is found
           - v1-dependencies-
 
@@ -31,7 +31,7 @@ jobs:
       - save_cache:
           paths:
             - hub/node_modules
-          key: v1-dependencies-{{ checksum "hub/package.json" }}
+          key: v1-dependencies-{{ checksum "hub/package.json" }}-{{ checksum "reader/package.json" }}-{{ checksum "admin/package.json" }}
 
       - run: mkdir $HOME/.config
 
