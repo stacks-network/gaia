@@ -141,14 +141,15 @@ export function getConfig() {
 
   const formats = [
     config.argsTransport.colorize ? winston.format.colorize() : null,
-    config.argsTransport.json ? winston.format.json() : null,
-    config.argsTransport.timestamp ? winston.format.timestamp() : null
+    config.argsTransport.timestamp ?
+      winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }) : null,
+    config.argsTransport.json ? winston.format.json() : winston.format.simple()
   ].filter(f => f !== null)
   const format = formats.length ? winston.format.combine(...formats) : null
 
   logger.configure({
     format: format,
-    transports: [new winston.transports.Console(config.argsTransport)] 
+    transports: [new winston.transports.Console(config.argsTransport)]
   })
 
   return config
