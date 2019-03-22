@@ -38,7 +38,9 @@ export type TokenType = {
 
 export const AuthScopes = [
   'putFile',
-  'putFilePrefix'
+  'putFilePrefix',
+  'deleteFile',
+  'deleteFilePrefix'
 ]
 
 export class V1Authentication {

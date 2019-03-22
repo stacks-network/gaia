@@ -7,7 +7,7 @@ import fs from 'fs'
 import proxyquire from 'proxyquire'
 
 import { readStream } from '../../../src/server/utils'
-import { DriverModel, DriverConstructor } from '../../../src/server/driverModel'
+import { DriverModel, DriverConstructor, PerformDeleteArgs } from '../../../src/server/driverModel'
 import { ListFilesResult, PerformWriteArgs } from '../../../src/server/driverModel'
 import AzDriver from '../../../src/server/drivers/AzDriver'
 import S3Driver from '../../../src/server/drivers/S3Driver'
@@ -37,7 +37,7 @@ export function makeMockedAzureDriver() {
   const dataMap: DataMap = []
   const uploadStreamToBlockBlob = async (aborter, stream, blockBlobURL, bufferSize, maxBuffers, options) => {
     const buffer = await readStream(stream)
-    dataMap.push({data: buffer.toString(), key: blockBlobURL })
+    dataMap.push({data: buffer.toString(), key: blockBlobURL.blobName })
   }
 
   const listBlobFlatSegment = (_, __, { prefix }) => {
@@ -58,6 +58,24 @@ export function makeMockedAzureDriver() {
       }
     }
   }
+
+  const fromBlobURL = (blobName: string) => {
+    return {
+      blobName,
+      delete: () => {
+        return Promise.resolve().then(() => {
+          const newDataMap = dataMap.filter((d) => d.key !== blobName)
+          if (newDataMap.length === dataMap.length) {
+            const err: any = new Error()
+            err.statusCode = 404
+            throw err
+          }
+          dataMap.length = 0
+          dataMap.push(...newDataMap)
+        })
+      }
+    }
+  }
   
   const driverClass = proxyquire('../../../src/server/drivers/AzDriver', {
     '@azure/storage-blob': {
@@ -66,7 +84,7 @@ export function makeMockedAzureDriver() {
       StorageURL: { newPipeline: () => null },
       ServiceURL: class { },
       BlobURL: { fromContainerURL: (_, blobName) => blobName },
-      BlockBlobURL: { fromBlobURL: (blobName) => blobName },
+      BlockBlobURL: { fromBlobURL: fromBlobURL },
       Aborter: { none: null },
       uploadStreamToBlockBlob: uploadStreamToBlockBlob
     }
@@ -95,6 +113,30 @@ export function makeMockedS3Driver() {
           }
           const buffer = await readStream(options.Body)
           dataMap.push({ data: buffer.toString(), key: options.Key })
+        }
+      }
+    }
+    headObject(options) {
+      return {
+        promise: () => {
+          return Promise.resolve().then(() => {
+            if (!dataMap.find((d) => d.key === options.Key)) {
+              const err: any = new Error()
+              err.statusCode = 404
+              throw err
+            }
+          })
+        }
+      }
+    }
+    deleteObject(options) {
+      return {
+        promise: () => {
+          return Promise.resolve().then(() => {
+            const newDataMap = dataMap.filter((d) => d.key !== options.Key)
+            dataMap.length = 0
+            dataMap.push(...newDataMap)
+          })
         }
       }
     }
@@ -133,7 +175,21 @@ export function makeMockedGcDriver() {
     const createWriteStream = function() {
       return new MockWriteStream(dataMap, filename)
     }
-    return { createWriteStream }
+    return { 
+      createWriteStream, 
+      delete: () => {
+        return Promise.resolve().then(() => {
+          const newDataMap = dataMap.filter((d) => d.key !== filename)
+          if (newDataMap.length === dataMap.length) {
+            const err: any = new Error()
+            err.code = 404
+            throw err
+          }
+          dataMap.length = 0
+          dataMap.push(...newDataMap)
+        })
+      } 
+    }
   }
   const exists = function () {
     return Promise.resolve([true])
@@ -184,6 +240,13 @@ export function makeMockedDiskDriver() {
       const fileContent = fs.readFileSync(filePath, {encoding: 'utf8'})
       dataMap.push({ key: `${args.storageTopLevel}/${args.path}`, data: fileContent })
       return result
+    }
+    async performDelete(args: PerformDeleteArgs): Promise<void> {
+      await super.performDelete(args)
+      const key = `${args.storageTopLevel}/${args.path}`
+      const newDataMap = dataMap.filter((d) => d.key !== key)
+      dataMap.length = 0
+      dataMap.push(...newDataMap)
     }
   }
 

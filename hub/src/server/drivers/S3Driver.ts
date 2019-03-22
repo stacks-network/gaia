@@ -1,7 +1,7 @@
 import S3 from 'aws-sdk/clients/s3'
 
-import { BadPathError, InvalidInputError } from '../errors'
-import { ListFilesResult, PerformWriteArgs } from '../driverModel'
+import { BadPathError, InvalidInputError, DoesNotExist } from '../errors'
+import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs } from '../driverModel'
 import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
 import { timeout, logger } from '../utils'
 
@@ -86,7 +86,9 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
         }
         logger.info(`initialized s3 bucket: ${this.bucket}`)
       } catch (error) {
+        /* istanbul ignore next */
         logger.error(`failed to initialize s3 bucket: ${error}`)
+        /* istanbul ignore next */
         throw error
       }
     }
@@ -100,7 +102,9 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
       if (['NoSuchBucket', 'NotFound'].includes(error.code)) {
         return false
       }
+      /* istanbul ignore next */
       logger.error(`Unexpected error while checking if bucket exists: ${error}`)
+      /* istanbul ignore next */
       throw error
     }
   }
@@ -108,6 +112,7 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
   async deleteEmptyBucket() {
     const files = await this.listFiles('')
     if (files.entries.length > 0) {
+      /* istanbul ignore next */
       throw new Error('Tried deleting non-empty bucket')
     }
     await this.s3.deleteBucket({ Bucket: this.bucket }).promise()
@@ -141,6 +146,10 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
     if (args.contentType && args.contentType.length > 1024) {
       throw new InvalidInputError('Invalid content-type')
     }
+    if (!S3Driver.isPathValid(args.path)){
+      throw new BadPathError('Invalid Path')
+    }
+
     const s3key = `${args.storageTopLevel}/${args.path}`
     const s3params: S3.Types.PutObjectRequest = {
       Bucket: this.bucket,
@@ -151,10 +160,6 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
     }
     if (this.cacheControl) {
       s3params.CacheControl = this.cacheControl
-    }
-
-    if (!S3Driver.isPathValid(args.path)){
-      throw new BadPathError('Invalid Path')
     }
 
     // Upload stream to s3
@@ -170,6 +175,35 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
     logger.debug(`storing ${s3key} in bucket ${this.bucket}`)
     return publicURL
   }
+
+  async performDelete(args: PerformDeleteArgs): Promise<void> {
+    if (!S3Driver.isPathValid(args.path)){
+      throw new BadPathError('Invalid Path')
+    }
+    const s3key = `${args.storageTopLevel}/${args.path}`
+    const s3params: S3.Types.DeleteObjectRequest & S3.Types.HeadObjectRequest = {
+      Bucket: this.bucket,
+      Key: s3key
+    }
+
+    // S3 does not return an error if file does not exist, yet still writes a delete marker.
+    // So first check if the file exists using `headObject` which throws 404. 
+    // https://stackoverflow.com/a/53530749/794962
+    try {
+      await this.s3.headObject(s3params).promise()
+      await this.s3.deleteObject(s3params).promise()
+    } catch (error) {
+      if (error.statusCode === 404) {
+        throw new DoesNotExist('File does not exist')
+      }
+      /* istanbul ignore next */
+      logger.error(`failed to delete ${s3key} in bucket ${this.bucket}`)
+      /* istanbul ignore next */
+      throw new Error('S3 storage failure: failed to delete' +
+        ` ${s3key} in bucket ${this.bucket}: ${error}`)
+    }
+  }
+
 }
 
 const driver: typeof S3Driver & DriverStatics = S3Driver

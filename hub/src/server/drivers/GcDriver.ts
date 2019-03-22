@@ -1,7 +1,7 @@
 import { Storage, File } from '@google-cloud/storage'
 
-import { BadPathError, InvalidInputError } from '../errors'
-import { ListFilesResult, PerformWriteArgs } from '../driverModel'
+import { BadPathError, InvalidInputError, DoesNotExist } from '../errors'
+import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs } from '../driverModel'
 import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
 import { pipeline, logger } from '../utils'
 
@@ -108,6 +108,7 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
   async deleteEmptyBucket() {
     const files = await this.listFiles('')
     if (files.entries.length > 0) {
+      /* istanbul ignore next */
       throw new Error('Tried deleting non-empty bucket')
     }
     await this.storage.bucket(this.bucket).delete()
@@ -198,6 +199,30 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
 
     return publicURL
   }
+
+  async performDelete(args: PerformDeleteArgs): Promise<void> {
+    if (!GcDriver.isPathValid(args.path)) {
+      throw new BadPathError('Invalid Path')
+    }
+    const filename = `${args.storageTopLevel}/${args.path}`
+    const bucketFile = this.storage
+      .bucket(this.bucket)
+      .file(filename)
+
+    try {
+      await bucketFile.delete()
+    } catch (error) {
+      if (error.code === 404) {
+        throw new DoesNotExist('File does not exist')
+      }
+      /* istanbul ignore next */
+      logger.error(`failed to delete ${filename} in bucket ${this.bucket}`)
+      /* istanbul ignore next */
+      throw new Error('Google cloud storage failure: failed to delete' +
+        ` ${filename} in bucket ${this.bucket}: ${error}`)
+    }
+  }
+  
 }
 
 const driver: typeof GcDriver & DriverStatics = GcDriver

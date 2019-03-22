@@ -1,7 +1,7 @@
 import fs from 'fs-extra'
-import { BadPathError, InvalidInputError } from '../errors'
+import { BadPathError, InvalidInputError, DoesNotExist } from '../errors'
 import Path from 'path'
-import { ListFilesResult, PerformWriteArgs } from '../driverModel'
+import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs } from '../driverModel'
 import { DriverStatics, DriverModel } from '../driverModel'
 import { pipeline, logger } from '../utils'
 
@@ -151,26 +151,16 @@ class DiskDriver implements DriverModel {
     return await this.listFilesInDirectory(listPath, pageNum)
   }
 
-  async performWrite(args: PerformWriteArgs): Promise<string> {
-
-    const path = args.path
-    const topLevelDir = args.storageTopLevel
-    const contentType = args.contentType
-
-    if (!topLevelDir) {
+  getFullFilePathInfo(args: {storageTopLevel: string, path: string} ) {
+    if (!args.storageTopLevel) {
       throw new BadPathError('Invalid Path')
     }
 
-    if (contentType && contentType.length > 1024) {
-      // no way this is valid 
-      throw new InvalidInputError('Invalid content-type')
-    }
-
-    if (!DiskDriver.isPathValid(path) || !DiskDriver.isPathValid(topLevelDir)) {
+    if (!DiskDriver.isPathValid(args.path) || !DiskDriver.isPathValid(args.storageTopLevel)) {
       throw new BadPathError('Invalid Path')
     }
 
-    const abspath = Path.join(this.storageRootDirectory, topLevelDir, path)
+    const abspath = Path.join(this.storageRootDirectory, args.storageTopLevel, args.path)
 
     // too long?
     if (abspath.length > 4096) {
@@ -184,25 +174,63 @@ class DiskDriver implements DriverModel {
       throw new BadPathError('Path is too deep')
     }
 
-    const absdirname = Path.dirname(abspath)
-    await this.mkdirs(absdirname)
-
-    const writePipe = fs.createWriteStream(abspath, { mode: 0o600, flags: 'w' })
-    await pipeline(args.stream, writePipe)
-
     // remember content type in $storageRootDir/.gaia-metadata/$address/$path
     // (i.e. these files are outside the address bucket, and are thus hidden)
     const contentTypePath = Path.join(
-      this.storageRootDirectory, METADATA_DIRNAME, topLevelDir, path)
+      this.storageRootDirectory, METADATA_DIRNAME, args.storageTopLevel, args.path)
 
-    const contentTypeDirPath = Path.dirname(contentTypePath)
+    return { absoluteFilePath: abspath, contentTypeFilePath: contentTypePath }
+  }
+
+  async performWrite(args: PerformWriteArgs): Promise<string> {
+
+    const contentType = args.contentType
+
+    if (contentType && contentType.length > 1024) {
+      // no way this is valid 
+      throw new InvalidInputError('Invalid content-type')
+    }
+
+    const { absoluteFilePath, contentTypeFilePath } = this.getFullFilePathInfo(args)
+
+    const absdirname = Path.dirname(absoluteFilePath)
+    await this.mkdirs(absdirname)
+
+    const writePipe = fs.createWriteStream(absoluteFilePath, { mode: 0o600, flags: 'w' })
+    await pipeline(args.stream, writePipe)
+
+
+    const contentTypeDirPath = Path.dirname(contentTypeFilePath)
     await this.mkdirs(contentTypeDirPath)
     await fs.writeFile(
-      contentTypePath, 
+      contentTypeFilePath, 
       JSON.stringify({ 'content-type': contentType }), { mode: 0o600 })
 
-    return `${this.readURL}${topLevelDir}/${path}`
+    return `${this.readURL}${args.storageTopLevel}/${args.path}`
     
+  }
+
+  async performDelete(args: PerformDeleteArgs): Promise<void> {
+    const { absoluteFilePath, contentTypeFilePath } = this.getFullFilePathInfo(args)
+    let stat: fs.Stats
+    try {
+      stat = await fs.stat(absoluteFilePath)
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        throw new DoesNotExist('File does not exist')
+      }
+      /* istanbul ignore next */
+      throw error
+    }
+    if (!stat.isFile()) {
+      // Disk driver is special here in that it mirrors the behavior of cloud storage APIs. 
+      // Directories are not first-class objects in blob storages, and so they will 
+      // simply return 404s for the blob name even if the name happens to be a prefix
+      // (pseudo-directory) of existing blobs.
+      throw new DoesNotExist('Path is not a file')
+    }
+    await fs.unlink(absoluteFilePath)
+    await fs.unlink(contentTypeFilePath)
   }
 }
 

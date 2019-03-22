@@ -3,9 +3,9 @@
 import { readStream } from '../../../src/server/utils'
 import { Server } from 'http'
 import express from 'express'
-import { DriverModel, DriverStatics } from '../../../src/server/driverModel'
+import { DriverModel, DriverStatics, PerformDeleteArgs } from '../../../src/server/driverModel'
 import { ListFilesResult, PerformWriteArgs } from '../../../src/server/driverModel'
-import { BadPathError, InvalidInputError } from '../../../src/server/errors'
+import { BadPathError, InvalidInputError, DoesNotExist } from '../../../src/server/errors'
 
 export class InMemoryDriver implements DriverModel {
 
@@ -82,6 +82,18 @@ export class InMemoryDriver implements DriverModel {
     })
     const resultUrl = `${this.readUrl}${args.storageTopLevel}/${args.path}`
     return resultUrl
+  }
+
+  performDelete(args: PerformDeleteArgs): Promise<void> {
+    return Promise.resolve().then(() => {
+      if (!InMemoryDriver.isPathValid(args.path)) {
+        throw new BadPathError('Invalid Path')
+      }
+      if (!this.files.has(`${args.storageTopLevel}/${args.path}`)) {
+        throw new DoesNotExist('File does not exist')
+      }
+      this.files.delete(`${args.storageTopLevel}/${args.path}`)
+    })
   }
 
   listFiles(storageTopLevel: string, page?: string): Promise<ListFilesResult> {

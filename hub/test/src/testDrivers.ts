@@ -17,6 +17,7 @@ import DiskDriver from '../../src/server/drivers/diskDriver'
 
 import * as mockTestDrivers from './testDrivers/mockTestDrivers'
 import * as integrationTestDrivers from './testDrivers/integrationTestDrivers'
+import { BadPathError, DoesNotExist } from '../../src/server/errors'
 
 export function addMockFetches(fetchLib: FetchMock.FetchMockSandbox, prefix: any, dataMap: {key: string, data: string}[]) {
   dataMap.forEach(item => {
@@ -57,8 +58,9 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
         t.equal(err.message, 'Invalid Path', 'Should throw bad path')
       }
 
+      const fileSubDir = 'somedir'
       // Test binary data content-type
-      const binFileName = 'somedir/foo.bin';
+      const binFileName = `${fileSubDir}/foo.bin`;
       let sampleData = getSampleData();
       let readUrl = await driver.performWrite({
         path: binFileName,
@@ -88,7 +90,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
       t.ok(!files.page, 'list files for 1 result should not have returned a page')
 
       // Test a text content-type that has implicit charset set
-      const txtFileName = 'somedir/foo_text.txt';
+      const txtFileName = `${fileSubDir}/foo_text.txt`;
       sampleData = getSampleData();
       readUrl = await driver.performWrite(
           { path: txtFileName,
@@ -120,6 +122,49 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
       t.equal(files.entries.length, 1, 'List files on a file rather than directory should return a single entry')
       t.equal(files.entries[0], '', 'List files on a file rather than directory should return a single empty entry')
       t.strictEqual(files.page, null, 'List files page result should be null')
+
+      try {
+        await driver.performDelete({path: txtFileName, storageTopLevel: topLevelStorage})
+        t.pass('Should performDelete on an existing file')
+
+        files = await driver.listFiles(topLevelStorage)
+        t.equal(files.entries.length, 1, 'Should return single file after one was deleted')
+        t.ok(!files.entries.includes(txtFileName), `Should not have listed deleted file ${txtFileName}`)
+
+      } catch (error) {
+        t.error(error, 'Should performDelete on an existing file')
+      }
+
+      try {
+        await driver.performDelete({path: txtFileName, storageTopLevel: topLevelStorage})
+        t.fail('Should fail to performDelete on non-existent file')
+      } catch (error) {
+        t.pass('Should fail to performDelete on non-existent file')
+        if (!(error instanceof DoesNotExist)) {
+          t.equal(error.constructor.name, 'DoesNotExist', 'Should throw DoesNotExist trying to performDelete on non-existent file')
+        }
+      }
+
+      try {
+        await driver.performDelete({path: fileSubDir, storageTopLevel: topLevelStorage})
+        t.fail('Should fail to performDelete on a directory')
+      } catch (error) {
+        t.pass('Should fail to performDelete on a directory')
+        if (!(error instanceof DoesNotExist)) {
+          t.equal(error.constructor.name, 'DoesNotExist', 'Should throw DoesNotExist trying to performDelete on directory')
+        }
+      }
+
+      try {
+        await driver.performDelete({path: '../foo.js', storageTopLevel: topLevelStorage})
+        t.fail('Should have thrown deleting file with invalid path')
+      }
+      catch (error) {
+        t.pass('Should fail to performDelete on invalid path')
+        if (!(error instanceof BadPathError)) {
+          t.equal(error.constructor.name, 'BadPathError', 'Should throw BadPathError trying to performDelete on directory')
+        }
+      }
 
       if (!mockTest) {
         sampleData = getSampleData();

@@ -82,6 +82,39 @@ export function makeHttpServer(config: MakeHttpServerConfig & HubServerConfig & 
       })
   })
 
+  app.delete(/^\/delete\/([a-zA-Z0-9]+)\/(.+)/, (
+    req: express.Request,
+    res: express.Response
+  ) => {
+    let filename = req.params[1]
+    if (filename.endsWith('/')){
+      filename = filename.substring(0, filename.length - 1)
+    }
+    const address = req.params[0]
+
+    server.handleDelete(address, filename, req.headers)
+      .then(() => {
+        res.writeHead(202)
+        res.end()
+      })
+      .catch((err: any) => {
+        logger.error(err)
+        if (err instanceof errors.ValidationError) {
+          writeResponse(res, { message: err.message, error: err.name }, 401)
+        } else if (err instanceof errors.AuthTokenTimestampValidationError) {
+          writeResponse(res, { message: err.message, error: err.name  }, 401)
+        } else if (err instanceof errors.BadPathError) {
+          writeResponse(res, { message: err.message, error: err.name  }, 400)
+        } else if (err instanceof errors.DoesNotExist) {
+          writeResponse(res, { message: err.message, error: err.name  }, 404)
+        } else if (err instanceof errors.NotEnoughProofError) {
+          writeResponse(res, { message: err.message, error: err.name  }, 402)
+        } else {
+          writeResponse(res, { message: 'Server Error' }, 500)
+        }
+      })
+  })
+
   app.post(
     /^\/list-files\/([a-zA-Z0-9]+)\/?/, express.json(),
     (req: express.Request, res: express.Response) => {
