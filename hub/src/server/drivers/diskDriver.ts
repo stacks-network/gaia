@@ -1,7 +1,7 @@
 import fs from 'fs-extra'
 import { BadPathError, InvalidInputError, DoesNotExist } from '../errors'
 import Path from 'path'
-import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs } from '../driverModel'
+import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs } from '../driverModel'
 import { DriverStatics, DriverModel } from '../driverModel'
 import { pipeline, logger } from '../utils'
 
@@ -232,6 +232,44 @@ class DiskDriver implements DriverModel {
     await fs.unlink(absoluteFilePath)
     await fs.unlink(contentTypeFilePath)
   }
+
+  async performRename(args: PerformRenameArgs): Promise<void> {
+    const pathsOrig = this.getFullFilePathInfo(args)
+    const pathsNew = this.getFullFilePathInfo({
+      storageTopLevel: args.newStorageTopLevel, 
+      path: args.newPath
+    })
+
+    let statOrig: fs.Stats
+    try {
+      statOrig = await fs.stat(pathsOrig.absoluteFilePath)
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        throw new DoesNotExist('File does not exist')
+      }
+      /* istanbul ignore next */
+      throw error
+    }
+    if (!statOrig.isFile()) {
+      throw new DoesNotExist('Path is not a file')
+    }
+
+    let statNew: fs.Stats
+    try {
+      statNew = await fs.stat(pathsNew.absoluteFilePath)
+    } catch (error) {
+      if (error.code !== 'ENOENT') {
+        throw new Error(`Unexpected new file location stat error: ${error}`)
+      }
+    }
+    if (!statNew.isFile()) {
+      throw new DoesNotExist('New path exists and is not a file')
+    }
+
+    await fs.move(pathsOrig.absoluteFilePath, pathsNew.absoluteFilePath, {overwrite: true})
+    await fs.move(pathsOrig.contentTypeFilePath, pathsNew.contentTypeFilePath, {overwrite: true})
+  }
+
 }
 
 const driver: typeof DiskDriver & DriverStatics = DiskDriver

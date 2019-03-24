@@ -1,7 +1,7 @@
 import S3 from 'aws-sdk/clients/s3'
 
 import { BadPathError, InvalidInputError, DoesNotExist } from '../errors'
-import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs } from '../driverModel'
+import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs } from '../driverModel'
 import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
 import { timeout, logger } from '../utils'
 
@@ -201,6 +201,42 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
       /* istanbul ignore next */
       throw new Error('S3 storage failure: failed to delete' +
         ` ${s3key} in bucket ${this.bucket}: ${error}`)
+    }
+  }
+
+  async performRename(args: PerformRenameArgs): Promise<void> {
+    if (!S3Driver.isPathValid(args.path)){
+      throw new BadPathError('Invalid Path')
+    }
+    if (!S3Driver.isPathValid(args.newPath)){
+      throw new BadPathError('Invalid new path')
+    }
+
+    const s3KeyOrig = `${args.newStorageTopLevel}/${args.newPath}`
+    const s3keyNew = `${args.storageTopLevel}/${args.path}`
+
+    const s3RenameParams: S3.Types.CopyObjectRequest = {
+      Bucket: this.bucket,
+      Key: s3keyNew,
+      CopySource: s3KeyOrig
+    }
+    const s3DeleteParams: S3.Types.DeleteObjectRequest = {
+      Bucket: this.bucket,
+      Key: s3KeyOrig
+    }
+
+    try {
+      await this.s3.copyObject(s3RenameParams).promise()
+      await this.s3.deleteObject(s3DeleteParams).promise()
+    } catch (error) {
+      if (error.statusCode === 404) {
+        throw new DoesNotExist('File does not exist')
+      }
+      /* istanbul ignore next */
+      logger.error(`failed to rename ${s3KeyOrig} to ${s3keyNew} in bucket ${this.bucket}`)
+      /* istanbul ignore next */
+      throw new Error('S3 storage failure: failed to rename' +
+        ` ${s3KeyOrig} to ${s3keyNew} in bucket ${this.bucket}: ${error}`)
     }
   }
 

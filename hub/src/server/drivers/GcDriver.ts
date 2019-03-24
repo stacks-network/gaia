@@ -1,7 +1,7 @@
 import { Storage, File } from '@google-cloud/storage'
 
 import { BadPathError, InvalidInputError, DoesNotExist } from '../errors'
-import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs } from '../driverModel'
+import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs } from '../driverModel'
 import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
 import { pipeline, logger } from '../utils'
 
@@ -222,7 +222,38 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
         ` ${filename} in bucket ${this.bucket}: ${error}`)
     }
   }
-  
+
+  async performRename(args: PerformRenameArgs): Promise<void> {
+    if (!GcDriver.isPathValid(args.path)) {
+      throw new BadPathError('Invalid Path')
+    }
+    if (!GcDriver.isPathValid(args.newPath)) {
+      throw new BadPathError('New path is invalid')
+    }
+
+    const filename = `${args.storageTopLevel}/${args.path}`
+    const bucketFile = this.storage
+      .bucket(this.bucket)
+      .file(filename)
+
+    const newFilename = `${args.newStorageTopLevel}/${args.newPath}`
+    const newBucketFile = this.storage
+      .bucket(this.bucket)
+      .file(newFilename)
+
+    try {
+      await bucketFile.move(newBucketFile)
+    } catch (error) {
+      if (error.code === 404) {
+        throw new DoesNotExist('File does not exist')
+      }
+      /* istanbul ignore next */
+      logger.error(`failed to rename ${filename} to ${newFilename} in bucket ${this.bucket}`)
+      /* istanbul ignore next */
+      throw new Error('Google cloud storage failure: failed to rename' +
+        ` ${filename} to ${newFilename} in bucket ${this.bucket}: ${error}`)
+    }
+  }
 }
 
 const driver: typeof GcDriver & DriverStatics = GcDriver

@@ -20,10 +20,18 @@ export interface PerformDeleteArgs {
   storageTopLevel: string;
 }
 
+export interface PerformRenameArgs {
+  path: string;
+  storageTopLevel: string;
+  newPath: string;
+  newStorageTopLevel: string;
+}
+
 export interface DriverModel {
   getReadURLPrefix(): string;
   performWrite(args: PerformWriteArgs): Promise<string>;
   performDelete(args: PerformDeleteArgs): Promise<void>;
+  performRename(args: PerformRenameArgs): Promise<void>;
   listFiles(storageTopLevel: string, page?: string): Promise<ListFilesResult>;
   ensureInitialized(): Promise<void>;
   dispose(): Promise<void>;

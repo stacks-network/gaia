@@ -3,7 +3,7 @@
 import * as azure from '@azure/storage-blob'
 import { logger } from '../utils'
 import { BadPathError, InvalidInputError, DoesNotExist } from '../errors'
-import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs } from '../driverModel'
+import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs } from '../driverModel'
 import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
 
 export type AZ_CONFIG_TYPE = {
@@ -203,6 +203,40 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
       /* istanbul ignore next */
       throw new Error('Azure storage failure: failed to delete' +
         ` ${azBlob} in container ${this.bucket}: ${error}`)
+    }
+  }
+
+  async performRename(args: PerformRenameArgs): Promise<void> {
+    if (!AzDriver.isPathValid(args.path)) {
+      throw new BadPathError('Invalid Path')
+    }
+    if (!AzDriver.isPathValid(args.newPath)) {
+      throw new BadPathError('Invalid new path')
+    }
+
+    const origAzBlob = `${args.storageTopLevel}/${args.path}`
+    const origBlobUrl = azure.BlobURL.fromContainerURL(this.container, origAzBlob)
+    const origBlockBlobURL = azure.BlockBlobURL.fromBlobURL(origBlobUrl)
+
+    const newAzBlob = `${args.newStorageTopLevel}/${args.newPath}`
+    const newBlobURL = azure.BlobURL.fromContainerURL(this.container, newAzBlob)
+    const newBlockBlobURL = azure.BlockBlobURL.fromBlobURL(newBlobURL)
+
+    try {
+      const copyResult = await newBlockBlobURL.startCopyFromURL(azure.Aborter.none, origAzBlob)
+      if (copyResult.copyStatus !== 'success') {
+        throw new Error(`Expected copy status to be success, got ${copyResult.copyStatus}`)
+      }
+      await origBlockBlobURL.delete(azure.Aborter.none)
+    } catch (error) {
+      if (error.statusCode === 404) {
+        throw new DoesNotExist('File does not exist')
+      }
+      /* istanbul ignore next */
+      logger.error(`failed to rename ${origAzBlob} to ${newAzBlob} in ${this.bucket}: ${error}`)
+      /* istanbul ignore next */
+      throw new Error('Azure storage failure: failed to rename' +
+        ` ${origAzBlob} to ${newAzBlob} in container ${this.bucket}: ${error}`)
     }
   }
 }
