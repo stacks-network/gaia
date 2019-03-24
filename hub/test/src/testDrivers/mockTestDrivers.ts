@@ -153,7 +153,20 @@ export function makeMockedS3Driver() {
           return { Contents: contents, IsTruncated: false }
         }
       }
-
+    }
+    listObjects(options) {
+      return {
+        promise: async () => {
+          const contents = dataMap
+            .filter((entry) => {
+              return (entry.key.slice(0, options.Prefix.length) === options.Prefix)
+            })
+            .map((entry) => {
+              return { Key: entry.key }
+            })
+          return { Contents: contents, IsTruncated: false }
+        }
+      }
     }
   }
 

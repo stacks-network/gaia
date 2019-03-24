@@ -216,8 +216,11 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
         t.equal(remainingFiles.entries.length, 2, 'List files with pagination should have returned 2 remaining entries')
 
         try {
-          await driver.listFiles(`${topLevelStorage}/${pageTestDir}`, "bogus page data")
-          t.fail('List files with invalid page data should have failed')
+          const bogusPageResult = await driver.listFiles(`${topLevelStorage}/${pageTestDir}`, "bogus page data")
+          if (bogusPageResult.entries.length > 0) {
+            t.fail('List files with invalid page data should fail or return no results')
+          }
+          t.pass('List files with invalid page data should fail or return no results')
         } catch (error) {
           t.pass('List files with invalid page data should have failed')
         }
