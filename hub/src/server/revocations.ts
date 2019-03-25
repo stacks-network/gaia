@@ -53,25 +53,33 @@ export class AuthTimestampCache {
     const authTimestampDir = this.getAuthTimestampFileDir(bucketAddress)
     
     let fetchResponse: Response
-    let authNumberText: string
     try {
       const authNumberFileUrl = `${this.readUrlPrefix}${authTimestampDir}/${AUTH_TIMESTAMP_FILE_NAME}`
       fetchResponse = await fetch(authNumberFileUrl, {
-        redirect: 'manual'
+        redirect: 'manual',
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
       })
-      authNumberText = await fetchResponse.text()
     } catch (err) {
-      // Catch any errors that may occur from network issues during `fetch` and `.text()` async operations..
+      // Catch any errors that may occur from network issues during `fetch` async operation.
       const errMsg = (err instanceof Error) ? err.message : err
       throw new errors.ValidationError(`Error trying to fetch bucket authentication revocation timestamp: ${errMsg}`)
     }
 
     if (fetchResponse.ok) {
-      const authNumber = parseInt(authNumberText)
-      if (Number.isFinite(authNumber)) {
-        return authNumber
-      } else {
-        throw new errors.ValidationError(`Bucket contained an invalid authentication revocation timestamp: ${authNumberText}`)
+      try {
+        const authNumberText = await fetchResponse.text()
+        const authNumber = parseInt(authNumberText)
+        if (Number.isFinite(authNumber)) {
+          return authNumber
+        } else {
+          throw new errors.ValidationError(`Bucket contained an invalid authentication revocation timestamp: ${authNumberText}`)
+        }
+      } catch (err) {
+        // Catch any errors that may occur from network issues during `.text()` async operation.
+        const errMsg = (err instanceof Error) ? err.message : err
+        throw new errors.ValidationError(`Error trying to read fetch stream of bucket authentication revocation timestamp: ${errMsg}`)
       }
     } else if (fetchResponse.status === 404) {
       // 404 incidates no revocation file has been created.
