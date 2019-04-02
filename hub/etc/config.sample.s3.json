@@ -9,7 +9,7 @@
   "pageSize": 20,
   "bucket": "YOUR_BUCKET_NAME",
   "awsCredentials": {
-     "accessKeyID": "YOUR_ACCESS_KEY",
+     "accessKeyId": "YOUR_ACCESS_KEY",
      "secretAccessKey": "YOUR_SECRET_KEY"
   },
   "argsTransport": {
