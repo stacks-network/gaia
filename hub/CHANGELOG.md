@@ -10,12 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `/delete/${address}/${path}` endpoint. This includes new scopes 
   `deleteFile` and `deleteFilePrefix` which work the same way as their 
   `putFile` equivalents. 
-
-## [2.4.0]
-### Added
 - Added support for revoking authentication tokens. Uses the JWT `iat`
   (issued-at date) field in the token and a new `/revoke-all/${bucket}` 
   endpoint that invalidates tokens issued before the given date. 
+### Changed
+- Repository is now built using Typescript
 
 ## [2.3.3]
 ### Fixed
