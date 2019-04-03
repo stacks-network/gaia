@@ -54,7 +54,8 @@
     "blockstack-gaia-hub": "./lib/index.js"
   },
   "scripts": {
-    "start": "ts-node src/index.ts",
+    "start": "npm run build && node lib/index.js",
+    "start-dev": "ts-node src/index.ts",
     "build": "npm run lint && tsc && chmod +x lib/index.js",
     "lint": "eslint --ext .ts ./src",
     "test": "npm run lint && NODE_ENV=test nyc node ./test/src/index.ts"
