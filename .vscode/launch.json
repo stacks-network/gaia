@@ -38,6 +38,18 @@
             "cwd": "${workspaceFolder}/admin",
             "runtimeArgs": ["-r", "@babel/register"],
             "outputCapture": "std"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "gaia-hub-test",
+            "args": ["${workspaceFolder}/hub/test/src/index.ts"],
+            "runtimeArgs": ["--nolazy", "-r", "ts-node/register/transpile-only"],
+            "env": {
+                "DRIVER_CONFIG_TEST_DATA": "${workspaceFolder}/hub/configs/drivers.json",
+            },
+            "cwd": "${workspaceFolder}/hub",
+            "outputCapture": "std"
         }
     ],
     "compounds": [

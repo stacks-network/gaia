@@ -68,5 +68,5 @@ target/
 */.nyc_output
 */node_modules/*
 tmp/gaia-disk
-node_modules/*
+*/coverage/*
 /docker/packer/vars.json

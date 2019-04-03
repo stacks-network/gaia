@@ -4,18 +4,14 @@
   "description": "Service for administrating a Gaia hub",
   "main": "lib/index.js",
   "engines": {
-    "node": "^8",
+    "node": ">=10",
     "npm": ">=6"
   },
   "scripts": {
-    "compile": "rm -rf lib; babel src -d lib",
-    "prepublish": "npm run build",
-    "unit-test": "npm run flow && npm run compile && node ./test/test.js",
-    "build": "npm run lint && npm run flow && npm run compile",
-    "flow": "flow",
-    "lint": "eslint src",
-    "test": "nyc --reporter=text npm run unit-test",
-    "start": "npm run build && node lib/index.js"
+    "start": "ts-node src/index.ts",
+    "build": "npm run lint && tsc && chmod +x lib/index.js",
+    "lint": "eslint --ext .ts ./src",
+    "test": "npm run lint && NODE_ENV=test nyc node ./test/test.ts"
   },
   "bin": {
     "blockstack-gaia-admin": "lib/index.js"
@@ -34,26 +30,56 @@
     "url": "https://github.com/blockstack/gaia"
   },
   "dependencies": {
-    "ajv": "^6.5.5",
-    "body-parser": "^1.18.1",
-    "cors": "^2.8.4",
-    "cross-fetch": "^2.2.2",
-    "express": "^4.15.4",
-    "express-winston": "^2.4.0",
-    "winston": "^2.3.1"
+    "ajv": "^6.9.2",
+    "body-parser": "^1.18.3",
+    "cors": "^2.8.5",
+    "cross-fetch": "^3.0.1",
+    "express": "^4.16.4",
+    "express-winston": "^3.1.0",
+    "winston": "^3.2.1"
   },
   "devDependencies": {
-    "@babel/cli": "^7.2.0",
-    "@babel/core": "^7.2.0",
+    "@babel/cli": "^7.2.3",
+    "@babel/core": "^7.3.4",
     "@babel/plugin-transform-modules-commonjs": "^7.2.0",
-    "@babel/preset-flow": "^7.0.0",
     "@babel/register": "^7.0.0",
+    "@types/cors": "^2.8.4",
+    "@types/express": "^4.16.1",
+    "@types/express-winston": "^3.0.1",
+    "@types/node": "^10.12.30",
+    "@types/tape": "^4.2.33",
+    "@typescript-eslint/eslint-plugin": "^1.4.2",
+    "@typescript-eslint/parser": "^1.4.2",
     "babel-eslint": "^10.0.1",
-    "eslint": "^5.9.0",
-    "eslint-plugin-flowtype": "^3.2.0",
-    "flow-bin": "^0.87.0",
-    "nyc": "^13.0.0",
-    "tape": "^4.9.0"
+    "babel-plugin-istanbul": "^5.1.1",
+    "eslint": "^5.15.1",
+    "nyc": "^13.3.0",
+    "source-map-support": "^0.5.10",
+    "tape": "^4.10.1",
+    "ts-node": "^8.0.3",
+    "typescript": "^3.3.3333"
   },
-  "homepage": "https://github.com/blockstack/gaia"
+  "homepage": "https://github.com/blockstack/gaia",
+  "nyc": {
+    "cache": false,
+    "all": true,
+    "extension": [
+      ".ts"
+    ],
+    "include": [
+      "src/**/*.ts"
+    ],
+    "exclude": [
+      "**/*.d.ts"
+    ],
+    "require": [
+      "ts-node/register/transpile-only",
+      "source-map-support/register"
+    ],
+    "reporter": [
+      "text",
+      "html",
+      "lcov"
+    ]
+  }
 }

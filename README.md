@@ -1,6 +1,8 @@
 Gaia: A decentralized high-performance storage system
 ====================================
 
+[![codecov](https://codecov.io/gh/blockstack/gaia/branch/master/graph/badge.svg)](https://codecov.io/gh/blockstack/gaia)
+
 This document describes the high-level design and implementation of the
 Gaia storage system. It includes specifications for backend storage drivers
 and interactions between developer APIs and the Gaia service. 
@@ -120,6 +122,7 @@ structure is:
  'properties': {
    'iss': { 'type': 'string' },
    'exp': { 'type': 'IntDate' },
+   'iat': { 'type': 'IntDate' },
    'gaiaChallenge': { 'type': 'string' },
    'associationToken': { 'type': 'string' },
    'salt': { 'type': 'string' }
@@ -138,6 +141,7 @@ by ensuring:
 2. That `iss` matches the address associated with the bucket.
 3. That `gaiaChallenge` is equal to the server's challenge text.
 4. That the epoch time `exp` is greater than the server's current epoch time.
+5. That the epoch time `iat` (issued-at date) is greater than the bucket's revocation date (only if such a date has been set by the bucket owner).
 
 ### Association Tokens
 
@@ -164,6 +168,7 @@ The association token JWT has the following structure in its payload:
   'properties': {
     'iss': { 'type': 'string' },
     'exp': { 'type': 'IntDate' },
+    'iat': { 'type': 'IntDate' },
     'childToAssociate': { 'type': 'string' },
     'salt': { 'type': 'string' },
   },
@@ -260,10 +265,17 @@ a gaia hub driver must implement the following two functions:
  * @param { Integer } options.contentLength - the bytes of content in the stream
  * @returns { Promise } that resolves to the public-readable URL of the stored content.
  */
-
-
-performWrite (options: { path, contentType,
+performWrite (options: { path, storageToplevel, contentType,
                          stream, contentLength: Number })
+
+/**
+ * Deletes a file. Throws a `DoesNotExist` if the file does not exist. 
+ * @param { String } options.path - path of the file
+ * @param { String } options.storageToplevel - the top level directory
+ * @param { String } options.contentType - the HTTP content-type of the file
+ * @returns {Promise}
+ */
+performDelete (options: { path, storageToplevel })
 
 /**
  * Return the prefix for reading files from.
@@ -285,7 +297,9 @@ listFiles(prefix: string, page: string)
 
 # HTTP API
 
-The Gaia storage API defines only three endpoints.
+The Gaia storage API defines the following endpoints:
+
+---
 
 ```
 GET ${read-url-prefix}/${address}/${path}
@@ -295,6 +309,8 @@ This returns the data stored by the gaia hub at `${path}`. In order
 for this to be usable from web applications, this read path _must_
 set the appropriate CORS headers. The HTTP Content-Type of the file
 should match the Content-Type of the corresponding write.
+
+---
 
 ```
 POST ${hubUrl}/store/${address}/${path}
@@ -315,6 +331,24 @@ The bearer token's content and generation is described in
 the [access control](#address-based-access-control) section of this
 document.
 
+---
+
+```
+DELETE ${hubUrl}/delete/${address}/${path}
+```
+
+This performs a deletion of a file in the gaia hub at `${path}`. 
+
+On success, it returns a `202` status. Returns a `404` if the path does 
+not exist. Returns `400` if the path is invalid. 
+
+The `DELETE` must contain an authentication header with a bearer token.
+The bearer token's content and generation is described in
+the [access control](#address-based-access-control) section of this
+document.
+
+---
+
 ```
 GET ${hubUrl}/hub_info/
 ```
@@ -331,6 +365,30 @@ Returns a JSON object:
 
 The latest auth version allows the client to figure out which auth versions the
 gaia hub supports.
+
+---
+
+```
+POST ${hubUrl}/revoke-all/${address}
+```
+The post body must be a JSON object with the following field:
+```json
+{ "oldestValidTimestamp": "${timestamp}" }
+```
+Where the `timestamp` is an epoch time in seconds. The timestamp is written
+to a bucket-specific file (`/${address}-auth`). This becomes the oldest valid 
+`iat` timestamp for authentication tokens that write to the `/${address}/` bucket.
+
+On success, it returns a `202` status, and a JSON object:
+
+```json
+{ "status": "success" }
+```
+
+The `POST` must contain an authentication header with a bearer token.
+The bearer token's content and generation is described in
+the [access control](#address-based-access-control) section of this
+document.
 
 # Future Design Goals
 
