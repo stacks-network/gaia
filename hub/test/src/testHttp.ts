@@ -19,7 +19,7 @@ import { makeMockedAzureDriver } from './testDrivers/mockTestDrivers'
 import { testPairs, testAddrs } from './common'
 import InMemoryDriver from './testDrivers/InMemoryDriver'
 import { MockAuthTimestampCache } from './MockAuthTimestampCache'
-import { HubConfig } from '../../src/server/config'
+import { HubConfigInterface } from '../../src/server/config'
 
 const TEST_SERVER_NAME = 'test-server'
 const TEST_AUTH_CACHE_SIZE = 10
@@ -222,7 +222,7 @@ function testHttpDriverOption() {
 
 function testHttpWithAzure() {
   const azConfigPath = process.env.AZ_CONFIG_PATH
-  let config : HubConfig & AZ_CONFIG_TYPE = {
+  let config : HubConfigInterface & AZ_CONFIG_TYPE = {
     'azCredentials': {
       'accountName': 'mock-azure',
       'accountKey': 'mock-azure-key'

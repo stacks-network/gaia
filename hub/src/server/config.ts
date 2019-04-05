@@ -5,23 +5,33 @@ import process from 'process'
 import { getDriverClass, logger } from './utils'
 import { DriverModel, DriverConstructor } from './driverModel'
 
+import { AZ_CONFIG_TYPE } from './drivers/AzDriver'
+import { DISK_CONFIG_TYPE } from './drivers/diskDriver'
+import { GC_CONFIG_TYPE } from './drivers/GcDriver'
+import { S3_CONFIG_TYPE } from './drivers/S3Driver'
+
 export type DriverName = 'aws' | 'azure' | 'disk' | 'google-cloud'
 
+export type LogLevel = 'error' | 'warn' | 'info' | 'verbose' | 'debug'
+
 export interface LoggingConfig {
-  timestamp: boolean;
-  colorize: boolean;
-  json: boolean;
-  level: 'error' | 'warn' | 'info' | 'verbose' | 'debug';
-  handleExceptions: boolean;
+  timestamp?: boolean;
+  colorize?: boolean;
+  json?: boolean;
+  level?: LogLevel;
+  handleExceptions?: boolean;
 }
 
 export interface ProofCheckerConfig { 
-  proofsRequired: number;
+  /**
+   * @TJS-type integer
+   */
+  proofsRequired?: number;
 }
 
-export interface HubConfig {
+export interface HubConfigInterface {
   whitelist?: string[];
-  serverName?: string;
+  serverName: string;
   authTimestampCacheSize?: number;
   readURL?: string;
   requireCorrectHubUrl?: boolean;
@@ -37,38 +47,102 @@ export interface HubConfig {
   /**
    * Only used in tests
    * @private
+   * @ignore
    */
   driverInstance?: DriverModel;
 
   /**
    * Only used in tests
    * @private
+   * @ignore
    */
   driverClass?: DriverConstructor;
-
 }
 
-export const configDefaults: HubConfig = {
-  argsTransport: {
-    level: 'warn',
+// Class responsible for specifying default config values,
+// as well as used for generating the config-schema.json file. 
+class HubConfig implements HubConfigInterface, AZ_CONFIG_TYPE, DISK_CONFIG_TYPE, GC_CONFIG_TYPE, S3_CONFIG_TYPE {
+  argsTransport = {
+    /**
+     * @default warn
+     */
+    level: 'warn' as LogLevel,
     handleExceptions: true,
     timestamp: true,
     colorize: true,
     json: false
-  },
-  whitelist: null,
-  readURL: null,
-  driver: undefined,
-  validHubUrls: undefined,
-  requireCorrectHubUrl: false,
-  serverName: 'gaia-0',
-  bucket: 'hub',
-  pageSize: 100,
-  cacheControl: 'public, max-age=1',
-  port: 3000,
-  proofsConfig: undefined,
-  authTimestampCacheSize: 50000
+  };
+  proofsConfig = {
+    proofsRequired: undefined as number
+  };
+  requireCorrectHubUrl = false;
+  serverName = 'gaia-0';
+  bucket = 'hub';
+  /**
+   * @minimum 1
+   * @maximum 4096
+   * @TJS-type integer
+   */
+  pageSize = 100;
+  cacheControl = 'public, max-age=1';
+  /**
+   * @minimum 0
+   * @maximum 65535
+   * @TJS-type integer
+   */
+  port = 3000;
+  /**
+   * @TJS-type integer
+   */
+  authTimestampCacheSize = 50000;
+
+  driver = undefined as DriverName;
+
+  // --- Optional values with unused defaults
+  whitelist = undefined as string[]
+  readURL = undefined as string;
+  validHubUrls = undefined as string[];
+  // ---
+
+  /**
+   * Required if `driver` is `azure`
+   */
+  azCredentials = {
+    accountName: undefined as string,
+    accountKey: undefined as string
+  };
+
+  /**
+   * Required if `driver` is `disk`
+   */
+  diskSettings = {
+    storageRootDirectory: undefined as string 
+  };
+
+  /**
+   * Required if `driver` is `google-cloud`
+   */
+  gcCredentials = {
+    projectId: undefined as string,
+    credentials: {
+      private_key: undefined as string,
+      client_email: undefined as string
+    }
+  };
+
+  /**
+   * Required if `driver` is `aws`
+   */
+  awsCredentials = {
+    endpoint: undefined as string,
+    accessKeyId: undefined as string,
+    secretAccessKey: undefined as string
+  };
 }
+
+
+export const configDefaults: HubConfigInterface = new HubConfig()
+
 
 const globalEnvVars = { whitelist: 'GAIA_WHITELIST',
                         readURL: 'GAIA_READ_URL',
@@ -147,15 +221,15 @@ export function getConfig() {
     delete configJSON.servername
   }
 
-  const configENV = getConfigEnv(globalEnvVars)
+  const configENV = getConfigEnv(globalEnvVars) as any
 
-  const configGlobal = deepMerge<HubConfig>({}, configDefaults, configJSON, configENV)
+  const configGlobal = deepMerge<HubConfigInterface>({} as any, configDefaults, configJSON, configENV)
 
   let config = configGlobal
   if (config.driver) {
     const driverClass = getDriverClass(config.driver)
     const driverConfigInfo = driverClass.getConfigInformation()
-    config = deepMerge<HubConfig>({}, driverConfigInfo.defaults, configGlobal, driverConfigInfo.envVars)
+    config = deepMerge<HubConfigInterface>({} as any, driverConfigInfo.defaults, configGlobal, driverConfigInfo.envVars)
   }
 
   const formats = [

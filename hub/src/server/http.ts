@@ -8,7 +8,7 @@ import { HubServer } from './server'
 import { getDriverClass, logger } from './utils'
 import { DriverModel } from './driverModel'
 import * as errors from './errors'
-import { HubConfig } from './config'
+import { HubConfigInterface } from './config'
 
 function writeResponse(res: express.Response, data: any, statusCode: number) {
   res.writeHead(statusCode, {'Content-Type' : 'application/json'})
@@ -16,7 +16,7 @@ function writeResponse(res: express.Response, data: any, statusCode: number) {
   res.end()
 }
 
-export function makeHttpServer(config: HubConfig): { app: express.Application, server: HubServer, driver: DriverModel } {
+export function makeHttpServer(config: HubConfigInterface): { app: express.Application, server: HubServer, driver: DriverModel } {
 
   const app: express.Application = express()
 

@@ -6,7 +6,7 @@ import { BadPathError, InvalidInputError, DoesNotExist } from '../errors'
 import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs } from '../driverModel'
 import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
 
-export type AZ_CONFIG_TYPE = {
+export interface AZ_CONFIG_TYPE {
   azCredentials: {
     accountName: string,
     accountKey: string

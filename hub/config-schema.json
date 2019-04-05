@@ -1,0 +1,159 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "properties": {
+        "argsTransport": {
+            "properties": {
+                "colorize": {
+                    "default": true,
+                    "type": "boolean"
+                },
+                "handleExceptions": {
+                    "default": true,
+                    "type": "boolean"
+                },
+                "json": {
+                    "default": false,
+                    "type": "boolean"
+                },
+                "level": {
+                    "default": "warn",
+                    "enum": [
+                        "debug",
+                        "error",
+                        "info",
+                        "verbose",
+                        "warn"
+                    ],
+                    "type": "string"
+                },
+                "timestamp": {
+                    "default": true,
+                    "type": "boolean"
+                }
+            },
+            "type": "object"
+        },
+        "authTimestampCacheSize": {
+            "default": 50000,
+            "type": "integer"
+        },
+        "awsCredentials": {
+            "description": "Required if `driver` is `aws`",
+            "properties": {
+                "accessKeyId": {
+                    "type": "string"
+                },
+                "endpoint": {
+                    "type": "string"
+                },
+                "secretAccessKey": {
+                    "type": "string"
+                }
+            },
+            "type": "object"
+        },
+        "azCredentials": {
+            "description": "Required if `driver` is `azure`",
+            "properties": {
+                "accountKey": {
+                    "type": "string"
+                },
+                "accountName": {
+                    "type": "string"
+                }
+            },
+            "type": "object"
+        },
+        "bucket": {
+            "default": "hub",
+            "type": "string"
+        },
+        "cacheControl": {
+            "default": "public, max-age=1",
+            "type": "string"
+        },
+        "diskSettings": {
+            "description": "Required if `driver` is `disk`",
+            "properties": {
+                "storageRootDirectory": {
+                    "type": "string"
+                }
+            },
+            "type": "object"
+        },
+        "driver": {
+            "enum": [
+                "aws",
+                "azure",
+                "disk",
+                "google-cloud"
+            ],
+            "type": "string"
+        },
+        "gcCredentials": {
+            "description": "Required if `driver` is `google-cloud`",
+            "properties": {
+                "credentials": {
+                    "properties": {
+                        "client_email": {
+                            "type": "string"
+                        },
+                        "private_key": {
+                            "type": "string"
+                        }
+                    },
+                    "type": "object"
+                },
+                "projectId": {
+                    "type": "string"
+                }
+            },
+            "type": "object"
+        },
+        "pageSize": {
+            "default": 100,
+            "maximum": 4096,
+            "minimum": 1,
+            "type": "integer"
+        },
+        "port": {
+            "default": 3000,
+            "maximum": 65535,
+            "minimum": 0,
+            "type": "integer"
+        },
+        "proofsConfig": {
+            "properties": {
+                "proofsRequired": {
+                    "type": "number"
+                }
+            },
+            "type": "object"
+        },
+        "readURL": {
+            "type": "string"
+        },
+        "requireCorrectHubUrl": {
+            "default": false,
+            "type": "boolean"
+        },
+        "serverName": {
+            "default": "gaia-0",
+            "type": "string"
+        },
+        "validHubUrls": {
+            "items": {
+                "type": "string"
+            },
+            "type": "array"
+        },
+        "whitelist": {
+            "items": {
+                "type": "string"
+            },
+            "type": "array"
+        }
+    },
+    "type": "object"
+}
+
