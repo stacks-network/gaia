@@ -9,7 +9,7 @@ export function testConfig() {
 
   test('initial defaults', (t) => {
     const configResult = config.getConfig()
-    t.deepEqual(configResult, config.configDefaults)
+    t.deepEqual(configResult, config.getConfigDefaults())
     t.end()
   })
 
@@ -17,14 +17,14 @@ export function testConfig() {
   test('read envvar with parseInt or parseList', (t) => {
     process.env.GAIA_PAGE_SIZE = '1003'
     let configResult = config.getConfig()
-    t.deepEqual(configResult, Object.assign({}, config.configDefaults, { pageSize: 1003 }))
+    t.deepEqual(configResult, Object.assign({}, config.getConfigDefaults(), { pageSize: 1003 }))
     process.env.GAIA_PAGE_SIZE = 'abc'
     t.throws(() => config.getConfig(), undefined, 'Should throw error on non-number input')
     delete process.env.GAIA_PAGE_SIZE
 
     process.env.GAIA_WHITELIST = "aaron.id, blankstein.id"
     configResult = config.getConfig()
-    t.deepEqual(configResult, Object.assign({}, config.configDefaults, { whitelist: ['aaron.id', 'blankstein.id'] }))
+    t.deepEqual(configResult, Object.assign({}, config.getConfigDefaults(), { whitelist: ['aaron.id', 'blankstein.id'] }))
 
     delete process.env.GAIA_WHITELIST
 
@@ -36,7 +36,7 @@ export function testConfig() {
     process.env.CONFIG_PATH = `${configDir}/config.0.json`
 
     const configResult = config.getConfig()
-    const configExpected = Object.assign({}, config.configDefaults, { driver: 'azure' },
+    const configExpected = Object.assign({}, config.getConfigDefaults(), { driver: 'azure' },
                                          { azCredentials: { accountName: undefined,
                                                             accountKey: undefined }})
 
@@ -50,7 +50,7 @@ export function testConfig() {
     process.env.CONFIG_PATH = `${configDir}/config.1.json`
 
     const configResult = config.getConfig()
-    const configExpected = Object.assign({}, config.configDefaults, { driver: 'azure' },
+    const configExpected = Object.assign({}, config.getConfigDefaults(), { driver: 'azure' },
                                          { azCredentials: { accountName: 'pancakes', accountKey: undefined }})
 
     t.deepEqual(configResult, configExpected)
@@ -67,7 +67,7 @@ export function testConfig() {
 
 
     let configResult = config.getConfig()
-    let configExpected: any = Object.assign({}, config.configDefaults, { driver: 'azure' },
+    let configExpected: any = Object.assign({}, config.getConfigDefaults(), { driver: 'azure' },
                                    { azCredentials: { accountName: 'pancakes',
                                                       accountKey: 'apples' }})
 
@@ -76,7 +76,7 @@ export function testConfig() {
     process.env.GAIA_AZURE_ACCOUNT_NAME = 'latkes'
 
     configResult = config.getConfig()
-    configExpected = Object.assign({}, config.configDefaults, { driver: 'azure' },
+    configExpected = Object.assign({}, config.getConfigDefaults(), { driver: 'azure' },
                                    { azCredentials: { accountName: 'latkes', accountKey: 'apples' }})
 
 
@@ -89,7 +89,7 @@ export function testConfig() {
 
     process.env.GAIA_DRIVER = 'aws'
     configResult = config.getConfig()
-    configExpected = Object.assign({}, config.configDefaults, { driver: 'aws' },
+    configExpected = Object.assign({}, config.getConfigDefaults(), { driver: 'aws' },
                                    { awsCredentials: undefined })
 
     t.deepEqual(configResult, configExpected)
@@ -99,7 +99,7 @@ export function testConfig() {
     process.env.GAIA_S3_SESSION_TOKEN = 'baz'
 
     configResult = config.getConfig()
-    configExpected = Object.assign({}, config.configDefaults, { driver: 'aws' },
+    configExpected = Object.assign({}, config.getConfigDefaults(), { driver: 'aws' },
                                    { awsCredentials: {
                                      accessKeyId: 'foo',
                                      secretAccessKey: 'bar',
@@ -110,7 +110,7 @@ export function testConfig() {
     process.env.GAIA_DRIVER = 'google-cloud'
 
     configResult = config.getConfig()
-    configExpected = Object.assign({}, config.configDefaults, { driver: 'google-cloud' },
+    configExpected = Object.assign({}, config.getConfigDefaults(), { driver: 'google-cloud' },
                                    { gcCredentials: {} })
 
     t.deepEqual(configResult, configExpected)
@@ -122,7 +122,7 @@ export function testConfig() {
     process.env.GAIA_GCP_CLIENT_PRIVATE_KEY = '5'
 
     configResult = config.getConfig()
-    configExpected = Object.assign({}, config.configDefaults, { driver: 'google-cloud' },
+    configExpected = Object.assign({}, config.getConfigDefaults(), { driver: 'google-cloud' },
                                    { gcCredentials: {
                                      email: '1', projectId: '2', keyFilename: '3', credentials: { client_email: '4', private_key: '5' }
                                    } })
@@ -132,7 +132,7 @@ export function testConfig() {
     process.env.GAIA_DRIVER = 'disk'
 
     configResult = config.getConfig()
-    configExpected = Object.assign({}, config.configDefaults, { driver: 'disk' },
+    configExpected = Object.assign({}, config.getConfigDefaults(), { driver: 'disk' },
                                    { diskSettings: { storageRootDirectory: undefined } })
 
     t.deepEqual(configResult, configExpected)
@@ -140,7 +140,7 @@ export function testConfig() {
     process.env.GAIA_DISK_STORAGE_ROOT_DIR = '1'
 
     configResult = config.getConfig()
-    configExpected = Object.assign({}, config.configDefaults, { driver: 'disk' },
+    configExpected = Object.assign({}, config.getConfigDefaults(), { driver: 'disk' },
                                    { diskSettings: { storageRootDirectory: '1' } })
 
     t.deepEqual(configResult, configExpected, 'Disk driver reads env vars correctly')

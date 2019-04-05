@@ -4,12 +4,12 @@ import { logger } from './utils'
 import fetch from 'node-fetch'
 
 import { NotEnoughProofError } from './errors'
-import { ProofCheckerConfig } from './config'
+import { ProofCheckerConfigInterface } from './config'
 
 export class ProofChecker {
   proofsRequired: number
 
-  constructor(proofsConfig?: ProofCheckerConfig) {
+  constructor(proofsConfig?: ProofCheckerConfigInterface) {
     if (!proofsConfig) {
       this.proofsRequired = 0
     } else {

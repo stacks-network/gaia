@@ -14,7 +14,7 @@ export type DriverName = 'aws' | 'azure' | 'disk' | 'google-cloud'
 
 export type LogLevel = 'error' | 'warn' | 'info' | 'verbose' | 'debug'
 
-export interface LoggingConfig {
+export interface LoggingConfigInterface {
   timestamp?: boolean;
   colorize?: boolean;
   json?: boolean;
@@ -22,16 +22,33 @@ export interface LoggingConfig {
   handleExceptions?: boolean;
 }
 
-export interface ProofCheckerConfig { 
+// LoggingConfig defaults
+class LoggingConfig implements LoggingConfigInterface {
+  /**
+   * @default warn
+   */
+  level? = 'warn' as LogLevel;
+  handleExceptions? = true;
+  timestamp? = true;
+  colorize? = true;
+  json? = false;
+}
+
+export interface ProofCheckerConfigInterface { 
+  proofsRequired?: number;
+}
+
+// ProofCheckerConfig defaults
+class ProofCheckerConfig implements ProofCheckerConfigInterface {
   /**
    * @TJS-type integer
    */
-  proofsRequired?: number;
+  proofsRequired? = 0;
 }
 
 export interface HubConfigInterface {
   whitelist?: string[];
-  serverName: string;
+  serverName?: string;
   authTimestampCacheSize?: number;
   readURL?: string;
   requireCorrectHubUrl?: boolean;
@@ -41,7 +58,7 @@ export interface HubConfigInterface {
   pageSize?: number;
   cacheControl?: string;
   argsTransport?: LoggingConfig;
-  proofsConfig?: ProofCheckerConfig;
+  proofsConfig?: ProofCheckerConfigInterface;
   driver?: DriverName;
 
   /**
@@ -59,32 +76,49 @@ export interface HubConfigInterface {
   driverClass?: DriverConstructor;
 }
 
-// Class responsible for specifying default config values,
-// as well as used for generating the config-schema.json file. 
-class HubConfig implements HubConfigInterface, AZ_CONFIG_TYPE, DISK_CONFIG_TYPE, GC_CONFIG_TYPE, S3_CONFIG_TYPE {
-  argsTransport = {
-    /**
-     * @default warn
-     */
-    level: 'warn' as LogLevel,
-    handleExceptions: true,
-    timestamp: true,
-    colorize: true,
-    json: false
-  };
-  proofsConfig = {
-    proofsRequired: undefined as number
-  };
-  requireCorrectHubUrl = false;
-  serverName = 'gaia-0';
-  bucket = 'hub';
+type SubType<T, K extends keyof T> = K extends keyof T ? T[K] : never;
+
+// This class is responsible for:
+//  A) Specifying default config values.
+//  B) Used for generating the config-schema.json file. 
+// The undefined values are explicitly specified so the schema generator
+// will pick them up. 
+// Having the config params and their default values specified here is useful 
+// for providing a single-source-of-truth for both the schema and the actual code. 
+class HubConfig implements HubConfigInterface {
+
+  /**
+   * Required if `driver` is `azure`
+   */
+  azCredentials?: SubType<AZ_CONFIG_TYPE, 'azCredentials'>;
+
+  /**
+   * Required if `driver` is `disk`
+   */
+  diskSettings?: SubType<DISK_CONFIG_TYPE, 'diskSettings'>;
+
+  /**
+   * Required if `driver` is `google-cloud`
+   */
+  gcCredentials?: SubType<GC_CONFIG_TYPE, 'gcCredentials'>;
+
+  /**
+   * Required if `driver` is `aws`
+   */
+  awsCredentials?: SubType<S3_CONFIG_TYPE, 'awsCredentials'>;
+
+  argsTransport? = new LoggingConfig();
+  proofsConfig? = new ProofCheckerConfig();
+  requireCorrectHubUrl? = false;
+  serverName? = 'gaia-0';
+  bucket? = 'hub';
   /**
    * @minimum 1
    * @maximum 4096
    * @TJS-type integer
    */
-  pageSize = 100;
-  cacheControl = 'public, max-age=1';
+  pageSize? = 100;
+  cacheControl? = 'public, max-age=1';
   /**
    * @minimum 0
    * @maximum 65535
@@ -94,54 +128,17 @@ class HubConfig implements HubConfigInterface, AZ_CONFIG_TYPE, DISK_CONFIG_TYPE,
   /**
    * @TJS-type integer
    */
-  authTimestampCacheSize = 50000;
+  authTimestampCacheSize? = 50000;
 
   driver = undefined as DriverName;
 
-  // --- Optional values with unused defaults
-  whitelist = undefined as string[]
-  readURL = undefined as string;
-  validHubUrls = undefined as string[];
+  // --- Optional values that default to undefined & unused
+  whitelist?: string[]
+  readURL?: string;
+  validHubUrls?: string[];
   // ---
 
-  /**
-   * Required if `driver` is `azure`
-   */
-  azCredentials = {
-    accountName: undefined as string,
-    accountKey: undefined as string
-  };
-
-  /**
-   * Required if `driver` is `disk`
-   */
-  diskSettings = {
-    storageRootDirectory: undefined as string 
-  };
-
-  /**
-   * Required if `driver` is `google-cloud`
-   */
-  gcCredentials = {
-    projectId: undefined as string,
-    credentials: {
-      private_key: undefined as string,
-      client_email: undefined as string
-    }
-  };
-
-  /**
-   * Required if `driver` is `aws`
-   */
-  awsCredentials = {
-    endpoint: undefined as string,
-    accessKeyId: undefined as string,
-    secretAccessKey: undefined as string
-  };
 }
-
-
-export const configDefaults: HubConfigInterface = new HubConfig()
 
 
 const globalEnvVars = { whitelist: 'GAIA_WHITELIST',
@@ -205,6 +202,27 @@ function deepMerge<T>(target: T, ...sources: T[]): T {
   return deepMerge(target, ...sources)
 }
 
+export function getConfigDefaults(): HubConfigInterface {
+  const configDefaults = new HubConfig()
+
+  // Remove explicit `undefined` values and empty objects
+  function removeEmptyOrUndefined(obj: any) {
+    Object.entries(obj).forEach(([key, val]) => {
+      if (typeof val === 'undefined') {
+        delete obj[key]
+      } else if (typeof val === 'object' && val !== null) {
+        removeEmptyOrUndefined(val)
+        if (Object.keys(val).length === 0) {
+          delete obj[key]
+        }
+      }
+    })
+  }
+  removeEmptyOrUndefined(configDefaults)
+
+  return configDefaults
+} 
+
 export function getConfig() {
   const configPath = process.env.CONFIG_PATH || process.argv[2] || './config.json'
   let configJSON
@@ -223,6 +241,7 @@ export function getConfig() {
 
   const configENV = getConfigEnv(globalEnvVars) as any
 
+  const configDefaults = getConfigDefaults()
   const configGlobal = deepMerge<HubConfigInterface>({} as any, configDefaults, configJSON, configENV)
 
   let config = configGlobal

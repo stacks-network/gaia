@@ -8,8 +8,8 @@ import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverMod
 
 export interface AZ_CONFIG_TYPE {
   azCredentials: {
-    accountName: string,
-    accountKey: string
+    accountName?: string,
+    accountKey?: string
   },
   bucket: string,
   pageSize?: number,

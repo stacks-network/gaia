@@ -6,7 +6,7 @@ import { DriverStatics, DriverModel } from '../driverModel'
 import { pipeline, logger } from '../utils'
 
 export interface DISK_CONFIG_TYPE { 
-  diskSettings: { storageRootDirectory: string },
+  diskSettings: { storageRootDirectory?: string },
   bucket?: string,
   pageSize?: number,
   readURL: string 

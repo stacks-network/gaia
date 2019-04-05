@@ -48,6 +48,9 @@
                 },
                 "secretAccessKey": {
                     "type": "string"
+                },
+                "sessionToken": {
+                    "type": "string"
                 }
             },
             "type": "object"
@@ -104,6 +107,12 @@
                     },
                     "type": "object"
                 },
+                "email": {
+                    "type": "string"
+                },
+                "keyFilename": {
+                    "type": "string"
+                },
                 "projectId": {
                     "type": "string"
                 }
@@ -125,7 +134,8 @@
         "proofsConfig": {
             "properties": {
                 "proofsRequired": {
-                    "type": "number"
+                    "default": 0,
+                    "type": "integer"
                 }
             },
             "type": "object"
@@ -154,6 +164,10 @@
             "type": "array"
         }
     },
+    "required": [
+        "driver",
+        "port"
+    ],
     "type": "object"
 }
 

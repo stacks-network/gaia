@@ -10,9 +10,8 @@ import FetchMock from 'fetch-mock'
 import NodeFetch from 'node-fetch'
 
 import { makeHttpServer } from '../../src/server/http'
-import DiskDriver from '../../src/server/drivers/diskDriver'
+import DiskDriver, { DISK_CONFIG_TYPE } from '../../src/server/drivers/diskDriver'
 import { AZ_CONFIG_TYPE } from '../../src/server/drivers/AzDriver'
-import { AuthTimestampCache } from '../../src/server/revocations'
 import { addMockFetches } from './testDrivers'
 import { makeMockedAzureDriver } from './testDrivers/mockTestDrivers'
 
@@ -191,7 +190,7 @@ function testHttpDriverOption() {
       diskSettings: {
         storageRootDirectory: os.tmpdir()
       }
-    })
+    } as HubConfigInterface & DISK_CONFIG_TYPE)
     t.end()
   })
 

@@ -57,7 +57,7 @@
   "scripts": {
     "start": "ts-node src/index.ts",
     "build": "npm run lint && tsc && chmod +x lib/index.js && npm run build-schema",
-    "build-schema": "typescript-json-schema tsconfig.json HubConfig -o config-schema.json",
+    "build-schema": "typescript-json-schema tsconfig.json HubConfig --required --refs=false -o config-schema.json",
     "lint": "eslint --ext .ts ./src",
     "test": "npm run build && npm run lint && NODE_ENV=test nyc node ./test/src/index.ts"
   },
