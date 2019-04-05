@@ -12,15 +12,14 @@ import NodeFetch from 'node-fetch'
 import { makeHttpServer } from '../../src/server/http'
 import DiskDriver from '../../src/server/drivers/diskDriver'
 import { AZ_CONFIG_TYPE } from '../../src/server/drivers/AzDriver'
-import { MakeHttpServerConfig, } from '../../src/server/http'
 import { AuthTimestampCache } from '../../src/server/revocations'
-import { HubServerConfig } from '../../src/server/server'
 import { addMockFetches } from './testDrivers'
 import { makeMockedAzureDriver } from './testDrivers/mockTestDrivers'
 
 import { testPairs, testAddrs } from './common'
 import InMemoryDriver from './testDrivers/InMemoryDriver'
 import { MockAuthTimestampCache } from './MockAuthTimestampCache'
+import { HubConfig } from '../../src/server/config'
 
 const TEST_SERVER_NAME = 'test-server'
 const TEST_AUTH_CACHE_SIZE = 10
@@ -223,7 +222,7 @@ function testHttpDriverOption() {
 
 function testHttpWithAzure() {
   const azConfigPath = process.env.AZ_CONFIG_PATH
-  let config : MakeHttpServerConfig & HubServerConfig & AZ_CONFIG_TYPE = {
+  let config : HubConfig & AZ_CONFIG_TYPE = {
     'azCredentials': {
       'accountName': 'mock-azure',
       'accountKey': 'mock-azure-key'

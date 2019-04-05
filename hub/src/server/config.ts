@@ -3,33 +3,52 @@ import fs from 'fs'
 import process from 'process'
 
 import { getDriverClass, logger } from './utils'
-import { ConsoleTransportOptions } from 'winston/lib/winston/transports'
+import { DriverModel, DriverConstructor } from './driverModel'
 
 export type DriverName = 'aws' | 'azure' | 'disk' | 'google-cloud'
 
-interface LoggingConfig {
+export interface LoggingConfig {
   timestamp: boolean;
   colorize: boolean;
   json: boolean;
+  level: 'error' | 'warn' | 'info' | 'verbose' | 'debug';
+  handleExceptions: boolean;
 }
 
-export interface Config {
-  serverName: string;
-  port: number;
-  driver?: DriverName;
-  bucket: string;
+export interface ProofCheckerConfig { 
+  proofsRequired: number;
+}
+
+export interface HubConfig {
+  whitelist?: string[];
+  serverName?: string;
+  authTimestampCacheSize?: number;
   readURL?: string;
-  pageSize: number;
-  requireCorrectHubUrl: boolean;
-  cacheControl: string;
-  whitelist?: string[],
+  requireCorrectHubUrl?: boolean;
   validHubUrls?: string[];
-  proofsConfig?: { proofsRequired: number };
-  authTimestampCacheSize: number,
-  argsTransport: ConsoleTransportOptions & LoggingConfig;
+  port?: number;
+  bucket?: string;
+  pageSize?: number;
+  cacheControl?: string;
+  argsTransport?: LoggingConfig;
+  proofsConfig?: ProofCheckerConfig;
+  driver?: DriverName;
+
+  /**
+   * Only used in tests
+   * @private
+   */
+  driverInstance?: DriverModel;
+
+  /**
+   * Only used in tests
+   * @private
+   */
+  driverClass?: DriverConstructor;
+
 }
 
-export const configDefaults: Config = {
+export const configDefaults: HubConfig = {
   argsTransport: {
     level: 'warn',
     handleExceptions: true,
@@ -130,13 +149,13 @@ export function getConfig() {
 
   const configENV = getConfigEnv(globalEnvVars)
 
-  const configGlobal: Config = deepMerge({}, configDefaults, configJSON, configENV)
+  const configGlobal = deepMerge<HubConfig>({}, configDefaults, configJSON, configENV)
 
   let config = configGlobal
   if (config.driver) {
     const driverClass = getDriverClass(config.driver)
     const driverConfigInfo = driverClass.getConfigInformation()
-    config = deepMerge({}, driverConfigInfo.defaults, configGlobal, driverConfigInfo.envVars)
+    config = deepMerge<HubConfig>({}, driverConfigInfo.defaults, configGlobal, driverConfigInfo.envVars)
   }
 
   const formats = [

@@ -7,15 +7,7 @@ import { AuthTimestampCache } from './revocations'
 
 import { Readable } from 'stream'
 import { DriverModel } from './driverModel'
-
-export type HubServerConfig = {
-  whitelist?: Array<string>, 
-  serverName: string, 
-  authTimestampCacheSize: number,
-  readURL?: string, 
-  requireCorrectHubUrl?: boolean, 
-  validHubUrls?: Array<string> 
-}
+import { HubServerConfig } from './config'
 
 export class HubServer {
   driver: DriverModel

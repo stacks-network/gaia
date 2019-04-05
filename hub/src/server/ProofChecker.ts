@@ -4,8 +4,7 @@ import { logger } from './utils'
 import fetch from 'node-fetch'
 
 import { NotEnoughProofError } from './errors'
-
-export type ProofCheckerConfig = { proofsRequired: number }
+import { ProofCheckerConfig } from './config'
 
 export class ProofChecker {
   proofsRequired: number
