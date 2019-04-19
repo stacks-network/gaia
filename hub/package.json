@@ -10,7 +10,6 @@
     "@azure/storage-blob": "^10.3.0",
     "@google-cloud/storage": "^2.4.2",
     "aws-sdk": "^2.413.0",
-    "bigi": "^1.4.2",
     "bitcoinjs-lib": "^4.0.3",
     "blockstack": "^18.3.0",
     "body-parser": "^1.18.3",
@@ -56,7 +55,7 @@
   },
   "scripts": {
     "start": "npm run build && node lib/index.js",
-    "start-dev": "ts-node src/index.ts",
+    "dev": "ts-node src/index.ts",
     "build": "npm run lint && tsc && chmod +x lib/index.js && npm run build-schema",
     "build-schema": "typescript-json-schema tsconfig.json HubConfig --required --refs=false -o config-schema.json",
     "lint": "eslint --ext .ts ./src",
