@@ -3,14 +3,12 @@ import expressWinston from 'express-winston'
 import cors from 'cors'
 
 import { ProofChecker } from './ProofChecker'
-import { ProofCheckerConfig } from './ProofChecker'
 import { getChallengeText, LATEST_AUTH_VERSION } from './authentication'
 import { HubServer } from './server'
-import { HubServerConfig } from './server'
 import { getDriverClass, logger } from './utils'
-import { DriverModel, DriverConstructor } from './driverModel'
+import { DriverModel } from './driverModel'
 import * as errors from './errors'
-import { DriverName } from './config'
+import { HubConfigInterface } from './config'
 
 function writeResponse(res: express.Response, data: any, statusCode: number) {
   res.writeHead(statusCode, {'Content-Type' : 'application/json'})
@@ -18,12 +16,7 @@ function writeResponse(res: express.Response, data: any, statusCode: number) {
   res.end()
 }
 
-export interface MakeHttpServerConfig { 
-  proofsConfig?: ProofCheckerConfig,
-  driverInstance?: DriverModel, driverClass?: DriverConstructor, driver?: DriverName
-}
-
-export function makeHttpServer(config: MakeHttpServerConfig & HubServerConfig & {[k: string]: any}): { app: express.Application, server: HubServer, driver: DriverModel } {
+export function makeHttpServer(config: HubConfigInterface): { app: express.Application, server: HubServer, driver: DriverModel } {
 
   const app: express.Application = express()
 

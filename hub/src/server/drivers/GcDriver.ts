@@ -5,7 +5,7 @@ import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs } from '../driverM
 import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
 import { pipeline, logger } from '../utils'
 
-type GC_CONFIG_TYPE = {
+export interface GC_CONFIG_TYPE {
   gcCredentials?: {
     email?: string,
     projectId?: string,

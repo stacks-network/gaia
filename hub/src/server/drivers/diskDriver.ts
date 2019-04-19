@@ -5,10 +5,12 @@ import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs } from '../driverM
 import { DriverStatics, DriverModel } from '../driverModel'
 import { pipeline, logger } from '../utils'
 
-type DISK_CONFIG_TYPE = { diskSettings: { storageRootDirectory: string },
-                          bucket?: string,
-                          pageSize?: number,
-                          readURL: string }
+export interface DISK_CONFIG_TYPE { 
+  diskSettings: { storageRootDirectory?: string },
+  bucket?: string,
+  pageSize?: number,
+  readURL: string 
+}
 
 const METADATA_DIRNAME = '.gaia-metadata'
 
