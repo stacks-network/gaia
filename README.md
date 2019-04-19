@@ -11,9 +11,7 @@ Developers who wish to _use_ the Gaia storage system should see the
 `blockstack.js` APIs
 documented [here](https://github.com/blockstack/blockstack.js/tree/master/src/storage) and [here](http://blockstack.github.io/blockstack.js/#storage).
 
-If you would like to deploy your own you can easily do so using Heroku:
-
-[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/blockstack/gaia/)
+If you would like to deploy your own hub, there are instructions available [here](https://docs.blockstack.org/storage/hub-operation.html)
 
 Instructions on setting up and configuring a Gaia Hub can be found in [this readme](https://github.com/blockstack/gaia/blob/master/hub/README.md).
 
