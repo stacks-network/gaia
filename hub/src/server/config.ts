@@ -1,6 +1,7 @@
 import winston from 'winston'
 import fs from 'fs'
 import process from 'process'
+import Ajv from 'ajv'
 
 import { getDriverClass, logger } from './utils'
 import { DriverModel, DriverConstructor } from './driverModel'
@@ -222,6 +223,37 @@ export function getConfigDefaults(): HubConfigInterface {
 
   return configDefaults
 } 
+
+export function validateConfigSchema(schemaFilePath: string, configObj: any) {
+  try {
+    const ajv = new Ajv({
+      allErrors: true,
+      strictDefaults: true,
+      verbose: true,
+      errorDataPath: 'property'
+    })
+    if (!fs.existsSync(schemaFilePath)) {
+      console.error(`Could not find config schema file at ${schemaFilePath}`)
+      return
+    }
+    let schemaJson: any
+    try {
+      schemaJson = JSON.parse(fs.readFileSync(schemaFilePath, { encoding: 'utf8' }))
+    } catch (error) {
+      console.error(`Error reading config schema JSON file: ${error}`)
+      return
+    }
+    const valid = ajv.validate(schemaJson, configObj)
+    if (!valid) {
+      const errorText = ajv.errorsText(ajv.errors, {
+        dataVar: 'config'
+      })
+      console.error(`Config schema validation warning: ${errorText}`)
+    }
+  } catch (error) {
+    console.error(`Error validating config schema JSON file: ${error}`)
+  }
+}
 
 export function getConfig() {
   const configPath = process.env.CONFIG_PATH || process.argv[2] || './config.json'

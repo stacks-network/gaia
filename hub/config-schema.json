@@ -1,7 +1,9 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema#",
+    "additionalProperties": false,
     "properties": {
         "argsTransport": {
+            "additionalProperties": false,
             "properties": {
                 "colorize": {
                     "default": true,
@@ -38,6 +40,7 @@
             "type": "integer"
         },
         "awsCredentials": {
+            "additionalProperties": false,
             "description": "Required if `driver` is `aws`",
             "properties": {
                 "accessKeyId": {
@@ -56,6 +59,7 @@
             "type": "object"
         },
         "azCredentials": {
+            "additionalProperties": false,
             "description": "Required if `driver` is `azure`",
             "properties": {
                 "accountKey": {
@@ -76,6 +80,7 @@
             "type": "string"
         },
         "diskSettings": {
+            "additionalProperties": false,
             "description": "Required if `driver` is `disk`",
             "properties": {
                 "storageRootDirectory": {
@@ -94,9 +99,11 @@
             "type": "string"
         },
         "gcCredentials": {
+            "additionalProperties": false,
             "description": "Required if `driver` is `google-cloud`",
             "properties": {
                 "credentials": {
+                    "additionalProperties": false,
                     "properties": {
                         "client_email": {
                             "type": "string"
@@ -132,6 +139,7 @@
             "type": "integer"
         },
         "proofsConfig": {
+            "additionalProperties": false,
             "properties": {
                 "proofsRequired": {
                     "default": 0,
