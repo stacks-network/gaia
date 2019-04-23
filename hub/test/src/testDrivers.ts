@@ -252,14 +252,18 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
             contentType: 'text/plain; charset=utf-8',
             contentLength: 100
           })
-          await utils.timeout(1)
+          await utils.timeout(10)
           stream1.end()
-          await utils.timeout(100)
+          await utils.timeout(10)
           stream2.end()
           const [ readEndpoint ] = await Promise.all([writeRequest1, writeRequest2])
           resp = await fetch(readEndpoint)
           resptxt = await resp.text()
-          t.equal(resptxt, 'xyz sample content 2', 'Concurrent writes resulted in an unconditional update (last writer wins)')
+          if (resptxt === 'xyz sample content 2' || resptxt === 'abc sample content 1') {
+            t.ok(resptxt, 'Concurrent writes resulted in conflict resolution at the storage provider')
+          } else {
+            t.fail(`Concurrent writes resulted in mangled data: ${resptxt}`)
+          }
         } catch (error) {
           if (error instanceof ConflictError) {
             t.pass('Concurrent writes resulted in ConflictError')
