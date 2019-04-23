@@ -69,6 +69,8 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
           writeResponse(res, { message: err.message, error: err.name  }, 403)
         } else if (err instanceof errors.NotEnoughProofError) {
           writeResponse(res, { message: err.message, error: err.name  }, 402)
+        } else if (err instanceof errors.ConflictError) {
+          writeResponse(res, { message: err.message, error: err.name  }, 409)
         } else {
           writeResponse(res, { message: 'Server Error' }, 500)
         }

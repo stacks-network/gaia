@@ -68,6 +68,14 @@ export function testHttpWithInMemoryDriver() {
       t.equal(files.entries.length, 1, 'Should return one file')
       t.equal(files.entries[0], 'helloWorld', 'Should be helloworld')
       t.ok(files.hasOwnProperty('page'), 'Response is missing a page')
+
+      inMemoryDriver.filesInProgress.set(`${address}/helloWorld`, null)
+      await request(app).post(path)
+        .set('Content-Type', 'application/octet-stream')
+        .set('Authorization', authorization)
+        .send(blob)
+        .expect(409)
+
       t.end()
 
     } finally {

@@ -2,7 +2,7 @@
 
 import * as azure from '@azure/storage-blob'
 import { logger } from '../utils'
-import { BadPathError, InvalidInputError, DoesNotExist } from '../errors'
+import { BadPathError, InvalidInputError, DoesNotExist, ConflictError } from '../errors'
 import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs } from '../driverModel'
 import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
 
@@ -173,6 +173,9 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
       )
     } catch (error) {
       logger.error(`failed to store ${azBlob} in ${this.bucket}: ${error}`)
+      if (error.body && error.body.Code === 'InvalidBlockList') {
+        throw new ConflictError('Likely failed due to concurrent PUTs to the same file')
+      }
       throw new Error('Azure storage failure: failed to store' +
         ` ${azBlob} in container ${this.bucket}: ${error}`)
     }
