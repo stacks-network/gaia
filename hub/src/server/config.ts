@@ -235,7 +235,11 @@ export function getConfigDefaults(): HubConfigInterface {
   return configDefaults
 } 
 
-export function validateConfigSchema(schemaFilePath: string, configObj: any) {
+export function validateConfigSchema(
+  schemaFilePath: string, 
+  configObj: any, 
+  warnCallback: (msg: string) => void = console.error
+) {
   try {
     const ajv = new Ajv({
       allErrors: true,
@@ -244,14 +248,14 @@ export function validateConfigSchema(schemaFilePath: string, configObj: any) {
       errorDataPath: 'property'
     })
     if (!fs.existsSync(schemaFilePath)) {
-      console.error(`Could not find config schema file at ${schemaFilePath}`)
+      warnCallback(`Could not find config schema file at ${schemaFilePath}`)
       return
     }
     let schemaJson: any
     try {
       schemaJson = JSON.parse(fs.readFileSync(schemaFilePath, { encoding: 'utf8' }))
     } catch (error) {
-      console.error(`Error reading config schema JSON file: ${error}`)
+      warnCallback(`Error reading config schema JSON file: ${error}`)
       return
     }
     const valid = ajv.validate(schemaJson, configObj)
@@ -259,10 +263,10 @@ export function validateConfigSchema(schemaFilePath: string, configObj: any) {
       const errorText = ajv.errorsText(ajv.errors, {
         dataVar: 'config'
       })
-      console.error(`Config schema validation warning: ${errorText}`)
+      warnCallback(`Config schema validation warning: ${errorText}`)
     }
   } catch (error) {
-    console.error(`Error validating config schema JSON file: ${error}`)
+    warnCallback(`Error validating config schema JSON file: ${error}`)
   }
 }
 
