@@ -157,15 +157,18 @@
         },
         "serverName": {
             "default": "gaia-0",
+            "description": "Domain name used for auth/signing challenges. \nIf `requireCorrectHubUrl` is true then this must match the hub url in an auth payload.",
             "type": "string"
         },
         "validHubUrls": {
+            "description": "If `requireCorrectHubUrl` is true then the hub specified in an auth payload can also be\ncontained within in array.",
             "items": {
                 "type": "string"
             },
             "type": "array"
         },
         "whitelist": {
+            "description": "List of ID addresses allowed to use this hub. Specifying this makes the hub private \nand only accessible to the specified addresses. Leaving this unspecified makes the hub \npublicly usable by any ID.",
             "items": {
                 "type": "string"
             },

@@ -111,6 +111,10 @@ class HubConfig implements HubConfigInterface {
   argsTransport? = new LoggingConfig();
   proofsConfig? = new ProofCheckerConfig();
   requireCorrectHubUrl? = false;
+  /**
+   * Domain name used for auth/signing challenges. 
+   * If `requireCorrectHubUrl` is true then this must match the hub url in an auth payload. 
+   */
   serverName? = 'gaia-0';
   bucket? = 'hub';
   /**
@@ -133,11 +137,18 @@ class HubConfig implements HubConfigInterface {
 
   driver = undefined as DriverName;
 
-  // --- Optional values that default to undefined & unused
+  /**
+   * List of ID addresses allowed to use this hub. Specifying this makes the hub private 
+   * and only accessible to the specified addresses. Leaving this unspecified makes the hub 
+   * publicly usable by any ID. 
+   */
   whitelist?: string[]
   readURL?: string;
+  /**
+   * If `requireCorrectHubUrl` is true then the hub specified in an auth payload can also be
+   * contained within in array.  
+   */
   validHubUrls?: string[];
-  // ---
 
 }
 

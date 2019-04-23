@@ -1,23 +1,17 @@
 {
-  "servername": "localhost",
-  "port": 4000,
+  "port": 3000,
   "driver": "aws",
-  "readURL": "https://YOUR_BUCKET_NAME.s3.amazonaws.com/",
-  "proofsConfig": {
-    "proofsRequired" : 0
-  },
-  "pageSize": 20,
   "bucket": "YOUR_BUCKET_NAME",
-  "awsCredentials": {
-     "accessKeyId": "YOUR_ACCESS_KEY",
-     "secretAccessKey": "YOUR_SECRET_KEY"
-  },
+  "readURL": "https://YOUR_BUCKET_NAME.s3.amazonaws.com/",
   "argsTransport": {
     "level": "debug",
     "handleExceptions": true,
-    "stringify": true,
     "timestamp": true,
     "colorize": false,
     "json": true
+  },
+  "awsCredentials": {
+     "accessKeyId": "YOUR_ACCESS_KEY",
+     "secretAccessKey": "YOUR_SECRET_KEY"
   }
 }
