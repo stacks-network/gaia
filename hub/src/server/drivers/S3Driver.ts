@@ -5,7 +5,7 @@ import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs } from '../driverM
 import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
 import { timeout, logger } from '../utils'
 
-type S3_CONFIG_TYPE = {
+export interface S3_CONFIG_TYPE {
   awsCredentials: {
     accessKeyId?: string,
     secretAccessKey?: string,
