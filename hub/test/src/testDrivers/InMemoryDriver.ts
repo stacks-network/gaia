@@ -5,7 +5,7 @@ import { Server } from 'http'
 import express from 'express'
 import { DriverModel, DriverStatics, PerformDeleteArgs } from '../../../src/server/driverModel'
 import { ListFilesResult, PerformWriteArgs } from '../../../src/server/driverModel'
-import { BadPathError, InvalidInputError, DoesNotExist } from '../../../src/server/errors'
+import { BadPathError, InvalidInputError, DoesNotExist, ConflictError } from '../../../src/server/errors'
 
 export class InMemoryDriver implements DriverModel {
 
@@ -14,6 +14,7 @@ export class InMemoryDriver implements DriverModel {
   pageSize: number
   readUrl: string
   files: Map<string, { content: Buffer, contentType: string }>
+  filesInProgress: Map<string, object> = new Map<string, object>()
   lastWrite: PerformWriteArgs
   initPromise: Promise<void>
 
@@ -75,8 +76,14 @@ export class InMemoryDriver implements DriverModel {
       throw new InvalidInputError('Invalid content-type')
     }
     this.lastWrite = args
+    const filePath = `${args.storageTopLevel}/${args.path}`
+    if (this.filesInProgress.has(filePath)) {
+      throw new ConflictError('Concurrent writes to same file')
+    }
+    this.filesInProgress.set(filePath, null)
     const contentBuffer = await readStream(args.stream)
-    this.files.set(`${args.storageTopLevel}/${args.path}`, {
+    this.filesInProgress.delete(filePath)
+    this.files.set(filePath, {
       content: contentBuffer,
       contentType: args.contentType
     })

@@ -329,6 +329,11 @@ The bearer token's content and generation is described in
 the [access control](#address-based-access-control) section of this
 document.
 
+Some backend storage drivers will return error `409 Conflict` when a 
+concurrent write to the same file path occurs. This can be handled with
+a retry. Other storage drivers tend to use `last writer wins` conflict
+resolution and will not throw an error. 
+
 ---
 
 ```
