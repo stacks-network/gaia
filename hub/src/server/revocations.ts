@@ -20,6 +20,7 @@ export class AuthTimestampCache {
     this.currentCacheEvictions = 0
     this.cache = new LRUCache<string, number>({ 
       max: maxCacheSize, 
+      noDisposeOnSet: true, 
       dispose: () => {
         this.currentCacheEvictions++
       }
