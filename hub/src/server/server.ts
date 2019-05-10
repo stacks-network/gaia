@@ -11,7 +11,7 @@ import { HubConfigInterface } from './config'
 
 interface RequestHeaders {
   contentType?: string;
-  contentLength?: string;
+  contentLength?: string | number;
   authorization?: string;
 }
 

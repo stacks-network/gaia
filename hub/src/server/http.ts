@@ -54,8 +54,13 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
       filename = filename.substring(0, filename.length - 1)
     }
     const address = req.params[0]
+    const headers = {
+      contentType: req.headers['content-type'],
+      contentLength: req.headers['content-length'],
+      authorization: req.headers['authorization']
+    }
 
-    server.handleRequest(address, filename, req.headers, req)
+    server.handleRequest(address, filename, headers, req)
       .then((publicURL) => {
         writeResponse(res, { publicURL }, 202)
       })
@@ -86,8 +91,13 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
       filename = filename.substring(0, filename.length - 1)
     }
     const address = req.params[0]
+    const headers = {
+      contentType: req.headers['content-type'],
+      contentLength: req.headers['content-length'],
+      authorization: req.headers['authorization']
+    }
 
-    server.handleDelete(address, filename, req.headers)
+    server.handleDelete(address, filename, headers)
       .then(() => {
         res.writeHead(202)
         res.end()
@@ -122,8 +132,14 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
       const address = req.params[0]
       const requestBody = req.body
       const page = requestBody.page ? requestBody.page : null
-
-      server.handleListFiles(address, page, req.headers)
+      
+      const headers = {
+        contentType: req.headers['content-type'],
+        contentLength: req.headers['content-length'],
+        authorization: req.headers['authorization']
+      }
+  
+      server.handleListFiles(address, page, headers)
         .then((files) => {
           writeResponse(res, { entries: files.entries, page: files.page }, 202)
         })
@@ -144,7 +160,13 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
     express.json(),
     (req: express.Request, res: express.Response) => {
       // sanity check...
-      if (parseInt(req.headers['content-length']) > 4096) {
+      const headers = {
+        contentType: req.headers['content-type'],
+        contentLength: req.headers['content-length'],
+        authorization: req.headers['authorization']
+      }
+
+      if (parseInt(headers.contentLength) > 4096) {
         writeResponse(res, { message: 'Invalid JSON: too long'}, 400)
         return
       }
@@ -162,7 +184,7 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
         return
       }
 
-      server.handleAuthBump(address, oldestValidTimestamp, req.headers)
+      server.handleAuthBump(address, oldestValidTimestamp, headers)
         .then(() => {
           writeResponse(res, { status: 'success' }, 202)
         })
