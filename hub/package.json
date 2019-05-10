@@ -23,6 +23,7 @@
     "winston": "^3.2.1"
   },
   "devDependencies": {
+    "@types/aws-lambda": "^8.10.25",
     "@types/bitcoinjs-lib": "^4.0.0",
     "@types/cors": "^2.8.4",
     "@types/express": "^4.16.1",

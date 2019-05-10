@@ -1,0 +1,52 @@
+service: gaia
+provider:
+  name: aws
+  runtime: nodejs8.10
+functions:
+  handleRequest:
+    handler: lib/serverless/aws.handleRequest
+    events:
+      - http:
+          path: store/{any+}
+          method: post
+          cors: true
+  handleDelete:
+    handler: lib/serverless/aws.handleDelete
+    events:
+      - http:
+          path: delete/{any+}
+          method: delete
+          cors: true
+  handleListFiles:
+    handler: lib/serverless/aws.handleListFiles
+    events:
+      - http:
+          path: list-files/{any+}
+          method: post
+          cors: true
+  handleAuthBump:
+    handler: lib/serverless/aws.handleAuthBump
+    events:
+      - http:
+          path: revoke-all/{any+}
+          method: post
+          cors: true
+  handleHubInfo:
+    handler: lib/serverless/aws.handleHubInfo
+    events:
+      - http:
+          path: hub_info
+          method: get
+          cors: true
+#    environment:
+#      ENV: production
+#resources:
+#  Resources:
+#    NewResource:
+#      Type: AWS::S3::Bucket
+#      Properties:
+#        BucketName: gaia-bucket
+#  Outputs:
+#     NewOutput:
+#       Description: "S3 Bucket used for storage"
+#       Value: "arn"
