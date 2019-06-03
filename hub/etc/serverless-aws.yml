@@ -2,6 +2,17 @@ service: gaia
 provider:
   name: aws
   runtime: nodejs10.x
+  stackName: gaia-serverless
+  apiName: gaia-serverless
+  usagePlan:
+    quota:
+      limit: 500
+      offset: 2
+      period: DAY
+    throttle:
+      burstLimit: 5
+      rateLimit: 5
+
 functions:
   handleRequest:
     handler: lib/serverless/aws.handleRequest
@@ -38,6 +49,7 @@ functions:
           path: hub_info
           method: get
           cors: true
+
 #    environment:
 #      ENV: production
 #resources:
