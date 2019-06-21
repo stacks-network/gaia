@@ -1,14 +1,14 @@
 'use strict'
 
 import { APIGatewayProxyEvent } from 'aws-lambda'
-import { HubServer } from '../server/server'
-import { getConfig } from '../server/config'
-import { DriverModel } from '../server/driverModel'
-import { getDriverClass } from '../server/utils'
-import { ProofChecker } from '../server/ProofChecker'
-import * as errors from '../server/errors'
+import { HubServer } from '../../server/server'
+import { getConfig } from '../../server/config'
+import { DriverModel } from '../../server/driverModel'
+import { getDriverClass } from '../../server/utils'
+import { ProofChecker } from '../../server/ProofChecker'
+import * as errors from '../../server/errors'
 import { Readable } from 'stream'
-import { getChallengeText, LATEST_AUTH_VERSION } from '../server/authentication'
+import { getChallengeText, LATEST_AUTH_VERSION } from '../../server/authentication'
 
 module.exports.handleRequest = async (event: APIGatewayProxyEvent) => {
 
@@ -212,7 +212,10 @@ module.exports.handleHubInfo = async (_: APIGatewayProxyEvent) => {
 
 const buildHubServer = (): HubServer => {
   
-  const config = getConfig()
+  var config = getConfig()
+  config.bucket = process.env.GAIA_READ_URL
+  config.serverName = process.env.GAIA_HUB_URL
+  config.readURL = process.env.GAIA_READ_URL
 
   // Handle driver configuration
   let driver: DriverModel
