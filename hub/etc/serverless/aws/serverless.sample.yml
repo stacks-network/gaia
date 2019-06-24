@@ -2,8 +2,8 @@ service: gaia
 provider:
   name: aws
   runtime: nodejs10.x
-  stackName: gaia-serverless
-  apiName: gaia-serverless
+  stackName: gaia-faas
+  apiName: gaia-faas
   usagePlan:
     quota:
       limit: 500
@@ -15,6 +15,12 @@ provider:
 custom:
   stage: ${opt:stage, self:provider.stage}
   region: ${opt:region, self:provider.region}
+  environment:
+    GAIA_HUB_URL: { "Fn::Join" : ["", ["https://", { "Ref" : "ApiGatewayRestApi" }, ".execute-api.${self:custom.region}.amazonaws.com/${self:custom.stage}/" ] ]  }
+    GAIA_READ_URL: { "Fn::Join" : ["", ["https://", { "Ref" : "AttachmentsBucket" }, ".s3.amazonaws.com/" ] ]  }
+    GAIA_BUCKET_NAME: { "Fn::Join" : ["", [{ "Ref" : "AttachmentsBucket" }] ]  }
+    GAIA_SERVER_NAME: { "Fn::Join" : ["", [{ "Ref" : "ApiGatewayRestApi" }, ".execute-api.${self:custom.region}.amazonaws.com"] ]  }
+
 resources:
   - ${file(etc/serverless/aws/resources/s3-bucket.yml)}
 functions:
@@ -25,9 +31,7 @@ functions:
           path: store/{any+}
           method: post
           cors: true
-    environment:
-      GAIA_HUB_URL: { "Fn::Join" : ["", [" https://", { "Ref" : "ApiGatewayRestApi" }, ".execute-api.${self:custom.region}.amazonaws.com/${self:custom.stage}/" ] ]  }
-      GAIA_READ_URL: { "Fn::Join" : ["", [" https://", { "Ref" : "AttachmentsBucket" }, ".s3.amazonaws.com/" ] ]  }
+    environment: ${self:custom.environment}
   handleDelete:
     handler: lib/serverless/aws/index.handleDelete
     events:
@@ -35,9 +39,7 @@ functions:
           path: delete/{any+}
           method: delete
           cors: true
-    environment:
-      GAIA_HUB_URL: { "Fn::Join" : ["", [" https://", { "Ref" : "ApiGatewayRestApi" }, ".execute-api.${self:custom.region}.amazonaws.com/${self:custom.stage}/" ] ]  }
-      GAIA_READ_URL: { "Fn::Join" : ["", [" https://", { "Ref" : "AttachmentsBucket" }, ".s3.amazonaws.com/" ] ]  }
+    environment: ${self:custom.environment}
   handleListFiles:
     handler: lib/serverless/aws/index.handleListFiles
     events:
@@ -45,9 +47,7 @@ functions:
           path: list-files/{any+}
           method: post
           cors: true
-    environment:
-      GAIA_HUB_URL: { "Fn::Join" : ["", [" https://", { "Ref" : "ApiGatewayRestApi" }, ".execute-api.${self:custom.region}.amazonaws.com/${self:custom.stage}/" ] ]  }
-      GAIA_READ_URL: { "Fn::Join" : ["", [" https://", { "Ref" : "AttachmentsBucket" }, ".s3.amazonaws.com/" ] ]  }
+    environment: ${self:custom.environment}
   handleAuthBump:
     handler: lib/serverless/aws/index.handleAuthBump
     events:
@@ -55,9 +55,7 @@ functions:
           path: revoke-all/{any+}
           method: post
           cors: true
-    environment:
-      GAIA_HUB_URL: { "Fn::Join" : ["", [" https://", { "Ref" : "ApiGatewayRestApi" }, ".execute-api.${self:custom.region}.amazonaws.com/${self:custom.stage}/" ] ]  }
-      GAIA_READ_URL: { "Fn::Join" : ["", [" https://", { "Ref" : "AttachmentsBucket" }, ".s3.amazonaws.com/" ] ]  }
+    environment: ${self:custom.environment}
   handleHubInfo:
     handler: lib/serverless/aws/index.handleHubInfo
     events:
@@ -65,6 +63,4 @@ functions:
           path: hub_info
           method: get
           cors: true
-    environment:
-      GAIA_HUB_URL: { "Fn::Join" : ["", [" https://", { "Ref" : "ApiGatewayRestApi" }, ".execute-api.${self:custom.region}.amazonaws.com/${self:custom.stage}/" ] ]  }
-      GAIA_READ_URL: { "Fn::Join" : ["", [" https://", { "Ref" : "AttachmentsBucket" }, ".s3.amazonaws.com/" ] ]  }
+    environment: ${self:custom.environment}
