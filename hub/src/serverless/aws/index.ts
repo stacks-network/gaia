@@ -29,9 +29,9 @@ module.exports.handleRequest = async (event: APIGatewayProxyEvent) => {
   const filename = match[match.length - 1]
 
   const headers = {
-    contentType: event.headers['content-type'],
-    contentLength: event.headers['content-length'],
-    authorization: event.headers['authorization']
+    contentType: event.headers['Content-Type'],
+    contentLength: event.headers['Content-Length'],
+    authorization: event.headers['Authorization']
   }
 
   const buffer = new Buffer(event.body, 'base64')
@@ -79,9 +79,9 @@ module.exports.handleDelete = async (event: APIGatewayProxyEvent) => {
   const filename = match[match.length - 1]
 
   const headers = {
-    contentType: event.headers['content-type'],
-    contentLength: event.headers['content-length'],
-    authorization: event.headers['authorization']
+    contentType: event.headers['Content-Type'],
+    contentLength: event.headers['Content-Length'],
+    authorization: event.headers['Authorization']
   }
 
   // Sanity checks
@@ -120,9 +120,9 @@ module.exports.handleListFiles = async (event: APIGatewayProxyEvent) => {
   const address = match[match.length - 1]
 
   const headers = {
-    contentType: event.headers['content-type'],
-    contentLength: event.headers['content-length'],
-    authorization: event.headers['authorization']
+    contentType: event.headers['Content-Type'],
+    contentLength: event.headers['Content-Length'],
+    authorization: event.headers['Authorization']
   }
 
   const body = JSON.parse(event.body)
@@ -152,9 +152,9 @@ module.exports.handleAuthBump = async (event: APIGatewayProxyEvent) => {
   const hubServer = buildHubServer()
 
   const headers = {
-    contentType: event.headers['content-type'],
-    contentLength: event.headers['content-length'],
-    authorization: event.headers['authorization']
+    contentType: event.headers['Content-Type'],
+    contentLength: event.headers['Content-Length'],
+    authorization: event.headers['Authorization']
   }
 
   // Sanity checks
@@ -213,8 +213,8 @@ module.exports.handleHubInfo = async (_: APIGatewayProxyEvent) => {
 const buildHubServer = (): HubServer => {
   
   var config = getConfig()
-  config.bucket = process.env.GAIA_READ_URL
-  config.serverName = process.env.GAIA_HUB_URL
+  config.bucket = process.env.GAIA_BUCKET_NAME
+  config.serverName = process.env.GAIA_SERVER_NAME
   config.readURL = process.env.GAIA_READ_URL
 
   // Handle driver configuration
