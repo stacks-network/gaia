@@ -226,7 +226,7 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
     const newBlockBlobURL = azure.BlockBlobURL.fromBlobURL(newBlobURL)
 
     try {
-      const copyResult = await newBlockBlobURL.startCopyFromURL(azure.Aborter.none, origAzBlob)
+      const copyResult = await newBlockBlobURL.startCopyFromURL(azure.Aborter.none, origBlockBlobURL.url)
       if (copyResult.copyStatus !== 'success') {
         throw new Error(`Expected copy status to be success, got ${copyResult.copyStatus}`)
       }
