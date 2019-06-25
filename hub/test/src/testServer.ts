@@ -256,10 +256,12 @@ export function testServer() {
         const challengeText = auth.getChallengeText(TEST_SERVER_NAME)
         let authPart = auth.V1Authentication.makeAuthPart(testPairs[i], challengeText)
         let authorization = `bearer ${authPart}`
-        await server.handleRequest(testAddrs[i], '/foo/bar', 
-                                  { 'content-type' : 'text/text',
-                                    'content-length': 400,
-                                    authorization }, getJunkData())
+        for (let f = 0; f < 3; f++) {
+          await server.handleRequest(testAddrs[i], '/foo/bar', 
+                                    { 'content-type' : 'text/text',
+                                      'content-length': 400,
+                                      authorization }, getJunkData())
+        }
       }
 
       t.equal(server.authTimestampCache.currentCacheEvictions, 6, 'Auth cache should have correct number of evictions')
