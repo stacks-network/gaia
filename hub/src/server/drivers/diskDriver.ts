@@ -259,13 +259,13 @@ class DiskDriver implements DriverModel {
     let statNew: fs.Stats
     try {
       statNew = await fs.stat(pathsNew.absoluteFilePath)
+      if (!statNew.isFile()) {
+        throw new DoesNotExist('New path exists and is not a file')
+      }
     } catch (error) {
       if (error.code !== 'ENOENT') {
         throw new Error(`Unexpected new file location stat error: ${error}`)
       }
-    }
-    if (!statNew.isFile()) {
-      throw new DoesNotExist('New path exists and is not a file')
     }
 
     await fs.move(pathsOrig.absoluteFilePath, pathsNew.absoluteFilePath, {overwrite: true})
