@@ -5,11 +5,12 @@ import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs
 import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
 import { timeout, logger } from '../utils'
 
-type S3_CONFIG_TYPE = {
+export interface S3_CONFIG_TYPE {
   awsCredentials: {
     accessKeyId?: string,
     secretAccessKey?: string,
-    sessionToken?: string
+    sessionToken?: string,
+    endpoint?: string
   },
   pageSize?: number,
   cacheControl?: string,
@@ -18,6 +19,7 @@ type S3_CONFIG_TYPE = {
 
 class S3Driver implements DriverModel, DriverModelTestMethods {
   s3: S3
+  endpoint: string
   bucket: string
   pageSize: number
   cacheControl?: string
@@ -46,6 +48,11 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
   }
 
   constructor (config: S3_CONFIG_TYPE) {
+    if (config.awsCredentials && config.awsCredentials.endpoint) {
+      this.endpoint = config.awsCredentials.endpoint
+    } else {
+      this.endpoint = 's3.amazonaws.com'
+    }
     this.s3 = new S3(config.awsCredentials)
     this.bucket = config.bucket
     this.pageSize = config.pageSize ? config.pageSize : 100
@@ -67,7 +74,7 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
   }
 
   getReadURLPrefix(): string {
-    return `https://${this.bucket}.s3.amazonaws.com/`
+    return `https://${this.bucket}.${this.endpoint}/`
   }
 
   async createIfNeeded () {
@@ -120,19 +127,27 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
 
   async listAllKeys(prefix: string, page?: string): Promise<ListFilesResult> {
     // returns {'entries': [...], 'page': next_page}
-    const opts: { Bucket: string, MaxKeys: number, Prefix: string, ContinuationToken?: string } = {
+    const opts: S3.ListObjectsRequest = {
       Bucket: this.bucket,
       MaxKeys: this.pageSize,
       Prefix: prefix
     }
     if (page) {
-      opts.ContinuationToken = page
+      opts.Marker = page
     }
-
-    const data = await this.s3.listObjectsV2(opts).promise()
+    const data = await this.s3.listObjects(opts).promise()
     const res: ListFilesResult = {
       entries: data.Contents.map((e) => e.Key.slice(prefix.length + 1)),
-      page: data.IsTruncated ? data.NextContinuationToken : null
+      page: data.IsTruncated ? data.NextMarker : null
+    }
+    /**
+     * "If the response does not include the NextMarker and it is truncated, you 
+     *  can use the value of the last Key in the response as the marker in the 
+     *  subsequent request to get the next set of object keys."
+     * @see https://docs.aws.amazon.com/AmazonS3/latest/API/RESTBucketGET.html
+     */
+    if (data.IsTruncated && !res.page && data.Contents.length > 0) {
+      res.page = data.Contents[data.Contents.length - 1].Key
     }
     return res
   }

@@ -8,16 +8,17 @@ import fs from 'fs'
 import path from 'path'
 import os from 'os'
 
-import { Readable, Writable } from 'stream'
+import { Readable, Writable, PassThrough } from 'stream'
 import InMemoryDriver from './testDrivers/InMemoryDriver'
 import { DriverModel, DriverModelTestMethods } from '../../src/server/driverModel'
 import { ListFilesResult } from '../../src/server/driverModel'
+import * as utils from '../../src/server/utils'
 
 import DiskDriver from '../../src/server/drivers/diskDriver'
 
 import * as mockTestDrivers from './testDrivers/mockTestDrivers'
 import * as integrationTestDrivers from './testDrivers/integrationTestDrivers'
-import { BadPathError, DoesNotExist } from '../../src/server/errors'
+import { BadPathError, DoesNotExist, ConflictError } from '../../src/server/errors'
 
 export function addMockFetches(fetchLib: FetchMock.FetchMockSandbox, prefix: any, dataMap: {key: string, data: string}[]) {
   dataMap.forEach(item => {
@@ -216,10 +217,59 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
         t.equal(remainingFiles.entries.length, 2, 'List files with pagination should have returned 2 remaining entries')
 
         try {
-          await driver.listFiles(`${topLevelStorage}/${pageTestDir}`, "bogus page data")
-          t.fail('List files with invalid page data should have failed')
+          const bogusPageResult = await driver.listFiles(`${topLevelStorage}/${pageTestDir}`, "bogus page data")
+          if (bogusPageResult.entries.length > 0) {
+            t.fail('List files with invalid page data should fail or return no results')
+          }
+          t.pass('List files with invalid page data should fail or return no results')
         } catch (error) {
           t.pass('List files with invalid page data should have failed')
+        }
+
+        // test concurrent writes to same file
+        try {
+          const concurrentTestFile = 'concurrent_file_test'
+
+          const stream1 = new PassThrough()
+          stream1.write('abc sample content 1', 'utf8')
+
+          const writeRequest1 = driver.performWrite({
+            path: concurrentTestFile,
+            storageTopLevel: topLevelStorage,
+            stream: stream1,
+            contentType: 'text/plain; charset=utf-8',
+            contentLength: 100
+          });
+
+          const stream2 = new PassThrough()
+          stream2.write('xyz sample content 2', 'utf8')
+
+          await utils.timeout(1)
+          const writeRequest2 = driver.performWrite({
+            path: concurrentTestFile,
+            storageTopLevel: topLevelStorage,
+            stream: stream2,
+            contentType: 'text/plain; charset=utf-8',
+            contentLength: 100
+          })
+          await utils.timeout(10)
+          stream1.end()
+          await utils.timeout(10)
+          stream2.end()
+          const [ readEndpoint ] = await Promise.all([writeRequest1, writeRequest2])
+          resp = await fetch(readEndpoint)
+          resptxt = await resp.text()
+          if (resptxt === 'xyz sample content 2' || resptxt === 'abc sample content 1') {
+            t.ok(resptxt, 'Concurrent writes resulted in conflict resolution at the storage provider')
+          } else {
+            t.fail(`Concurrent writes resulted in mangled data: ${resptxt}`)
+          }
+        } catch (error) {
+          if (error instanceof ConflictError) {
+            t.pass('Concurrent writes resulted in ConflictError')
+          } else {
+            t.error(error, 'Unexpected error during concurrent writes')
+          }
         }
 
         try {

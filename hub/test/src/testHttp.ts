@@ -10,17 +10,15 @@ import FetchMock from 'fetch-mock'
 import NodeFetch from 'node-fetch'
 
 import { makeHttpServer } from '../../src/server/http'
-import DiskDriver from '../../src/server/drivers/diskDriver'
+import DiskDriver, { DISK_CONFIG_TYPE } from '../../src/server/drivers/diskDriver'
 import { AZ_CONFIG_TYPE } from '../../src/server/drivers/AzDriver'
-import { MakeHttpServerConfig, } from '../../src/server/http'
-import { AuthTimestampCache } from '../../src/server/revocations'
-import { HubServerConfig } from '../../src/server/server'
 import { addMockFetches } from './testDrivers'
 import { makeMockedAzureDriver } from './testDrivers/mockTestDrivers'
 
 import { testPairs, testAddrs } from './common'
 import InMemoryDriver from './testDrivers/InMemoryDriver'
 import { MockAuthTimestampCache } from './MockAuthTimestampCache'
+import { HubConfigInterface } from '../../src/server/config'
 
 const TEST_SERVER_NAME = 'test-server'
 const TEST_AUTH_CACHE_SIZE = 10
@@ -70,6 +68,14 @@ export function testHttpWithInMemoryDriver() {
       t.equal(files.entries.length, 1, 'Should return one file')
       t.equal(files.entries[0], 'helloWorld', 'Should be helloworld')
       t.ok(files.hasOwnProperty('page'), 'Response is missing a page')
+
+      inMemoryDriver.filesInProgress.set(`${address}/helloWorld`, null)
+      await request(app).post(path)
+        .set('Content-Type', 'application/octet-stream')
+        .set('Authorization', authorization)
+        .send(blob)
+        .expect(409)
+
       t.end()
 
     } finally {
@@ -192,7 +198,7 @@ function testHttpDriverOption() {
       diskSettings: {
         storageRootDirectory: os.tmpdir()
       }
-    })
+    } as HubConfigInterface & DISK_CONFIG_TYPE)
     t.end()
   })
 
@@ -223,7 +229,7 @@ function testHttpDriverOption() {
 
 function testHttpWithAzure() {
   const azConfigPath = process.env.AZ_CONFIG_PATH
-  let config : MakeHttpServerConfig & HubServerConfig & AZ_CONFIG_TYPE = {
+  let config : HubConfigInterface & AZ_CONFIG_TYPE = {
     'azCredentials': {
       'accountName': 'mock-azure',
       'accountKey': 'mock-azure-key'

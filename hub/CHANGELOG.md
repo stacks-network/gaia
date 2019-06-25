@@ -4,18 +4,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.3]
+### Fixed
+- LRUCache count evictions is no longer overestimated. 
+
+## [2.5.2]
+### Fixed
+- Concurrent writes to the same file using the Azure driver now returns
+  error 409 Conflict rather than 500 Internal Server Error. 
+
+## [2.5.1]
+### Fixed
+- Use regular (non-ts) node invocation on `npm run start`
+
 ## [2.5.0]
 ### Added
 - Added support for deleting files using HTTP DELETE requests to the
   `/delete/${address}/${path}` endpoint. This includes new scopes 
   `deleteFile` and `deleteFilePrefix` which work the same way as their 
   `putFile` equivalents. 
-
-## [2.4.0]
-### Added
 - Added support for revoking authentication tokens. Uses the JWT `iat`
   (issued-at date) field in the token and a new `/revoke-all/${bucket}` 
   endpoint that invalidates tokens issued before the given date. 
+### Changed
+- Repository is now built using Typescript
 
 ## [2.3.3]
 ### Fixed

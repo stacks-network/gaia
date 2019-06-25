@@ -11,9 +11,7 @@ Developers who wish to _use_ the Gaia storage system should see the
 `blockstack.js` APIs
 documented [here](https://github.com/blockstack/blockstack.js/tree/master/src/storage) and [here](http://blockstack.github.io/blockstack.js/#storage).
 
-If you would like to deploy your own you can easily do so using Heroku:
-
-[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/blockstack/gaia/)
+If you would like to deploy your own hub, there are instructions available [here](https://docs.blockstack.org/storage/hub-operation.html)
 
 Instructions on setting up and configuring a Gaia Hub can be found in [this readme](https://github.com/blockstack/gaia/blob/master/hub/README.md).
 
@@ -330,6 +328,11 @@ The `POST` must contain an authentication header with a bearer token.
 The bearer token's content and generation is described in
 the [access control](#address-based-access-control) section of this
 document.
+
+Some backend storage drivers will return error `409 Conflict` when a 
+concurrent write to the same file path occurs. This can be handled with
+a retry. Other storage drivers tend to use `last writer wins` conflict
+resolution and will not throw an error. 
 
 ---
 

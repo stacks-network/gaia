@@ -7,15 +7,7 @@ import { AuthTimestampCache } from './revocations'
 
 import { Readable } from 'stream'
 import { DriverModel } from './driverModel'
-
-export type HubServerConfig = {
-  whitelist?: Array<string>, 
-  serverName: string, 
-  authTimestampCacheSize: number,
-  readURL?: string, 
-  requireCorrectHubUrl?: boolean, 
-  validHubUrls?: Array<string> 
-}
+import { HubConfigInterface } from './config'
 
 export class HubServer {
   driver: DriverModel
@@ -27,7 +19,7 @@ export class HubServer {
   validHubUrls?: Array<string>
   authTimestampCache: AuthTimestampCache
 
-  constructor(driver: DriverModel, proofChecker: ProofChecker, config: HubServerConfig) {
+  constructor(driver: DriverModel, proofChecker: ProofChecker, config: HubConfigInterface) {
     this.driver = driver
     this.proofChecker = proofChecker
     this.whitelist = config.whitelist

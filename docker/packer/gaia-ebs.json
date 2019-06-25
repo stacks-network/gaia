@@ -67,6 +67,7 @@
       "echo '** Shreding sensitive data ...'",
       "shred -u /etc/ssh/*_key /etc/ssh/*_key.pub",
       "shred -u /home/core/.ssh/authorized_keys",
+      "shred -u /home/core/.ssh/authorized_keys.d/*",
       "sudo touch /boot/coreos/first_boot",
       "sudo rm /etc/machine-id",
       "sync; sleep 1; sync"
