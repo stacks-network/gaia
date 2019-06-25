@@ -170,8 +170,7 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
       Bucket: this.bucket,
       Key: s3key,
       Body: args.stream,
-      ContentType: args.contentType,
-      ACL: 'public-read'
+      ContentType: args.contentType
     }
     if (this.cacheControl) {
       s3params.CacheControl = this.cacheControl
@@ -227,13 +226,13 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
       throw new BadPathError('Invalid new path')
     }
 
-    const s3KeyOrig = `${args.newStorageTopLevel}/${args.newPath}`
-    const s3keyNew = `${args.storageTopLevel}/${args.path}`
+    const s3KeyOrig = `${args.storageTopLevel}/${args.path}`
+    const s3keyNew = `${args.newStorageTopLevel}/${args.newPath}`
 
     const s3RenameParams: S3.Types.CopyObjectRequest = {
       Bucket: this.bucket,
       Key: s3keyNew,
-      CopySource: s3KeyOrig
+      CopySource: `${this.bucket}/${s3KeyOrig}`
     }
     const s3DeleteParams: S3.Types.DeleteObjectRequest = {
       Bucket: this.bucket,
