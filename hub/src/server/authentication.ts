@@ -1,4 +1,4 @@
-import bitcoin from 'bitcoinjs-lib'
+import * as bitcoinjs from 'bitcoinjs-lib'
 import crypto from 'crypto'
 //@ts-ignore
 import { decodeToken, TokenSigner, TokenVerifier } from 'jsontokens'
@@ -12,7 +12,7 @@ export const LATEST_AUTH_VERSION = 'v1'
 
 function pubkeyHexToECPair (pubkeyHex: string) {
   const pkBuff = Buffer.from(pubkeyHex, 'hex')
-  return bitcoin.ECPair.fromPublicKey(pkBuff)
+  return bitcoinjs.ECPair.fromPublicKey(pkBuff)
 }
 
 export type AuthScopeType = {
@@ -30,10 +30,6 @@ export type TokenPayloadType = {
   associationToken?: string,
   scopes?: AuthScopeType[],
   childToAssociate?: string
-}
-
-export type TokenType = {
-  payload: TokenPayloadType
 }
 
 export const AuthScopes = [
@@ -55,14 +51,20 @@ export class V1Authentication {
       throw new ValidationError('Authorization header should start with v1:')
     }
     const token = authPart.slice('v1:'.length)
-    let decodedToken: TokenType
-    try {
-      decodedToken = decodeToken(token)
-    } catch (e) {
-      logger.error(e)
-      logger.error('fromAuthPart')
-      throw new ValidationError('Failed to decode authentication JWT')
+    const decodedToken = (() => {
+      try {
+        return decodeToken(token)
+      } catch (e) {
+        logger.error(e)
+        logger.error('fromAuthPart')
+        throw new ValidationError('Failed to decode authentication JWT')
+      }
+    })()
+
+    if (typeof decodedToken.payload === 'string') {
+      throw new Error('Unexpected token payload type of string')
     }
+
     const publicKey = decodedToken.payload.iss
     if (!publicKey || !decodedToken) {
       throw new ValidationError('Auth token should be a JWT with at least an `iss` claim')
@@ -74,7 +76,7 @@ export class V1Authentication {
     return new V1Authentication(token)
   }
 
-  static makeAuthPart(secretKey: bitcoin.ECPair, challengeText: string,
+  static makeAuthPart(secretKey: bitcoinjs.ECPairInterface, challengeText: string,
                       associationToken?: string, hubUrl?: string, scopes?: Array<AuthScopeType>,
                       issuedAtDate?: number) {
 
@@ -102,7 +104,7 @@ export class V1Authentication {
     return `v1:${token}`
   }
 
-  static makeAssociationToken(secretKey: bitcoin.ECPair, childPublicKey: string) {
+  static makeAssociationToken(secretKey: bitcoinjs.ECPairInterface, childPublicKey: string) {
     const FOUR_MONTH_SECONDS = 60 * 60 * 24 * 31 * 4
     const publicKeyHex = secretKey.publicKey.toString('hex')
     const salt = crypto.randomBytes(16).toString('hex')
@@ -126,11 +128,16 @@ export class V1Authentication {
     // associationToken and verifies that it authorizes the "outer"
     // JWT's address (`bearerAddress`)
 
-    let associationToken: TokenType
-    try {
-      associationToken = decodeToken(token)
-    } catch (e) {
-      throw new ValidationError('Failed to decode association token in JWT')
+    const associationToken = (() => {
+      try {
+        return decodeToken(token)
+      } catch (e) {
+        throw new ValidationError('Failed to decode association token in JWT')
+      }
+    })()
+
+    if (typeof associationToken.payload === 'string') {
+      throw new Error('Unexpected token payload type of string')
     }
 
     // publicKey (the issuer of the association token)
@@ -182,13 +189,18 @@ export class V1Authentication {
    * Returns [] if there is no association token, or if the association token has no scopes
    */
   getAuthenticationScopes(): Array<AuthScopeType> {
-    let decodedToken: TokenType
-    try {
-      decodedToken = decodeToken(this.token)
-    } catch (e) {
-      logger.error(this.token)
-      logger.error('getAuthenticationScopes')
-      throw new ValidationError('Failed to decode authentication JWT')
+    const decodedToken = (() => {
+      try {
+        return decodeToken(this.token)
+      } catch (e) {
+        logger.error(this.token)
+        logger.error('getAuthenticationScopes')
+        throw new ValidationError('Failed to decode authentication JWT')
+      }
+    })()
+
+    if (typeof decodedToken.payload === 'string') {
+      throw new Error('Unexpected token payload type of string')
     }
 
     if (!decodedToken.payload.hasOwnProperty('scopes')) {
@@ -197,7 +209,7 @@ export class V1Authentication {
     }
 
     // unambiguously convert to AuthScope
-    const scopes = decodedToken.payload.scopes.map((s) => {
+    const scopes = decodedToken.payload.scopes.map((s: any) => {
       const r = {
         scope: String(s.scope),
         domain: String(s.domain)
@@ -227,13 +239,18 @@ export class V1Authentication {
                         options?: { requireCorrectHubUrl?: boolean,
                                     validHubUrls?: Array<string>,
                                     oldestValidTokenTimestamp?: number }): string {
-    let decodedToken: TokenType
-    try {
-      decodedToken = decodeToken(this.token)
-    } catch (e) {
-      logger.error(this.token)
-      logger.error('isAuthenticationValid')
-      throw new ValidationError('Failed to decode authentication JWT')
+    const decodedToken = (() => {
+      try {
+        return decodeToken(this.token)
+      } catch (e) {
+        logger.error(this.token)
+        logger.error('isAuthenticationValid')
+        throw new ValidationError('Failed to decode authentication JWT')
+      }
+    })()
+
+    if (typeof decodedToken.payload === 'string') {
+      throw new Error('Unexpected token payload type of string')
     }
 
     const publicKey = decodedToken.payload.iss
@@ -325,9 +342,9 @@ export class V1Authentication {
 }
 
 export class LegacyAuthentication {
-  publickey: bitcoin.ECPair
+  publickey: bitcoinjs.ECPairInterface
   signature: string
-  constructor(publickey: bitcoin.ECPair, signature: string) {
+  constructor(publickey: bitcoinjs.ECPairInterface, signature: string) {
     this.publickey = publickey
     this.signature = signature
   }
@@ -335,17 +352,17 @@ export class LegacyAuthentication {
   static fromAuthPart(authPart: string) {
     const decoded = JSON.parse(Buffer.from(authPart, 'base64').toString())
     const publickey = pubkeyHexToECPair(decoded.publickey)
-    const hashType = Buffer.from([bitcoin.Transaction.SIGHASH_NONE])
+    const hashType = Buffer.from([bitcoinjs.Transaction.SIGHASH_NONE])
     const signatureBuffer = Buffer.concat([Buffer.from(decoded.signature, 'hex'), hashType])
-    const signature = bitcoin.script.signature.decode(signatureBuffer).signature.toString('hex')
+    const signature = bitcoinjs.script.signature.decode(signatureBuffer).signature.toString('hex')
     return new LegacyAuthentication(publickey, signature)
   }
 
-  static makeAuthPart(secretKey: bitcoin.ECPair, challengeText: string) {
+  static makeAuthPart(secretKey: bitcoinjs.ECPairInterface, challengeText: string) {
     const publickey = secretKey.publicKey.toString('hex')
-    const digest = bitcoin.crypto.sha256(Buffer.from(challengeText))
+    const digest = bitcoinjs.crypto.sha256(Buffer.from(challengeText))
     const signatureBuffer = secretKey.sign(digest)
-    const signatureWithHash = bitcoin.script.signature.encode(signatureBuffer, bitcoin.Transaction.SIGHASH_NONE)
+    const signatureWithHash = bitcoinjs.script.signature.encode(signatureBuffer, bitcoinjs.Transaction.SIGHASH_NONE)
     
     // We only want the DER encoding so remove the sighash version byte at the end.
     // See: https://github.com/bitcoinjs/bitcoinjs-lib/issues/1241#issuecomment-428062912
@@ -368,7 +385,7 @@ export class LegacyAuthentication {
     }
 
     for (const challengeText of challengeTexts) {
-      const digest = bitcoin.crypto.sha256(Buffer.from(challengeText))
+      const digest = bitcoinjs.crypto.sha256(Buffer.from(challengeText))
       const valid = (this.publickey.verify(digest, Buffer.from(this.signature, 'hex')) === true)
 
       if (valid) {

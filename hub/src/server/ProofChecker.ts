@@ -1,4 +1,3 @@
-//@ts-ignore
 import { validateProofs, verifyProfileToken } from 'blockstack'
 import { logger } from './utils'
 import fetch from 'node-fetch'
@@ -25,6 +24,9 @@ export class ProofChecker {
     const json = await result.json()
     const token = json[0].token
     const verified = await verifyProfileToken(token, address)
+    if (typeof verified.payload === 'string') {
+      throw new Error('Unexpected token payload type of string')
+    }
     return verified.payload.claim
   }
 
