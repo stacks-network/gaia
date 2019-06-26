@@ -1,22 +1,16 @@
 {
-  "servername": "localhost",
-  "port": 4000,
-  "driver": "disk",
-  "readURL": "http://localhost:4000/",
-  "proofsConfig": {
-    "proofsRequired" : 0
-  },
-  "pageSize": 20,
+  "port": 3000,
+  "driver": "google-cloud",
   "bucket": "YOUR_BUCKET_NAME",
-  "gcCredentials": {
-     "keyFilename": "YOUR_KEY_FILE_PATH"
-  },
+  "readURL": "",
   "argsTransport": {
     "level": "debug",
     "handleExceptions": true,
-    "stringify": true,
     "timestamp": true,
     "colorize": false,
     "json": true
+  },
+  "gcCredentials": {
+     "keyFilename": "YOUR_KEY_FILE_PATH"
   }
 }
