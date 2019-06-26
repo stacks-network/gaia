@@ -287,6 +287,23 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           t.error(error, `File rename error`)
         }
 
+        // test invalid file rename
+        try {
+          await driver.performRename({
+            path: 'does-not-exist-rename.txt',
+            storageTopLevel: topLevelStorage,
+            newPath: 'new-location.txt',
+            newStorageTopLevel: topLevelStorage
+          })
+          t.fail('File rename for non-existent file should have thrown')
+        } catch(error) {
+          if (error instanceof DoesNotExist) {
+            t.pass('Rename of non-existent file resulted in DoesNotExist')
+          } else {
+            t.error(error, 'Unexpected error during rename of non-existent file')
+          }
+        }
+
         // test concurrent writes to same file
         try {
           const concurrentTestFile = 'concurrent_file_test'
