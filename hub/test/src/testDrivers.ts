@@ -212,6 +212,15 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
             t.equal(error.constructor.name, 'BadPathError', 'Should throw BadPathError trying to performStat on directory')
           }
         }
+
+        // test file stat on subdirectory
+        try {
+          const result = await driver.performStat({path: fileSubDir, storageTopLevel: topLevelStorage})
+          t.equal(result.exists, false, 'performStat on a directory should return not exists')
+        } catch (error) {
+          t.error(error, 'File stat directory error')
+        }
+
       }
 
       if (!mockTest) {
