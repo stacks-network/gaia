@@ -4,6 +4,7 @@ import fetch from 'node-fetch'
 
 import { NotEnoughProofError } from './errors'
 import { ProofCheckerConfigInterface } from './config'
+import { getTokenPayload } from './authentication'
 
 export class ProofChecker {
   proofsRequired: number
@@ -24,10 +25,7 @@ export class ProofChecker {
     const json = await result.json()
     const token = json[0].token
     const verified = await verifyProfileToken(token, address)
-    if (typeof verified.payload === 'string') {
-      throw new Error('Unexpected token payload type of string')
-    }
-    return verified.payload.claim
+    return getTokenPayload(verified).claim
   }
 
   validEnough(validProofs: Array<any>) {

@@ -3,7 +3,6 @@ import * as auth from '../../src/server/authentication'
 import os from 'os'
 import fs from 'fs'
 import request from 'supertest'
-//@ts-ignore
 import { ecPairToAddress } from 'blockstack'
 
 import FetchMock from 'fetch-mock'
