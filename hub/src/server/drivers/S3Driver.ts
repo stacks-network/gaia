@@ -1,7 +1,7 @@
 import S3 from 'aws-sdk/clients/s3'
 
 import { BadPathError, InvalidInputError, DoesNotExist } from '../errors'
-import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs } from '../driverModel'
+import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult } from '../driverModel'
 import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
 import { timeout, logger } from '../utils'
 
@@ -214,6 +214,44 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
       logger.error(`failed to delete ${s3key} in bucket ${this.bucket}`)
       /* istanbul ignore next */
       throw new Error('S3 storage failure: failed to delete' +
+        ` ${s3key} in bucket ${this.bucket}: ${error}`)
+    }
+  }
+
+  async performStat(args: PerformStatArgs): Promise<StatResult> {
+    if (!S3Driver.isPathValid(args.path)){
+      throw new BadPathError('Invalid Path')
+    }
+    const s3key = `${args.storageTopLevel}/${args.path}`
+    const s3params: S3.Types.DeleteObjectRequest & S3.Types.HeadObjectRequest = {
+      Bucket: this.bucket,
+      Key: s3key
+    }
+    try {
+      const headResult = await this.s3.headObject(s3params).promise()
+      let lastModified: number | undefined
+      if (headResult.LastModified) {
+        // TODO: is this UTC time or local time?
+        lastModified = Math.round(headResult.LastModified.getTime() / 1000)
+      }
+      const result: StatResult = {
+        exists: true,
+        lastModifiedDate: lastModified,
+        contentLength: headResult.ContentLength,
+        contentType: headResult.ContentType
+      }
+      return result
+    } catch (error) {
+      if (error.statusCode === 404) {
+        const result: StatResult = {
+          exists: false
+        }
+        return result
+      }
+      /* istanbul ignore next */
+      logger.error(`failed to stat ${s3key} in bucket ${this.bucket}`)
+      /* istanbul ignore next */
+      throw new Error('S3 storage failure: failed to stat' +
         ` ${s3key} in bucket ${this.bucket}: ${error}`)
     }
   }

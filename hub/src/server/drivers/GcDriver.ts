@@ -1,7 +1,7 @@
 import { Storage, File } from '@google-cloud/storage'
 
 import { BadPathError, InvalidInputError, DoesNotExist } from '../errors'
-import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs } from '../driverModel'
+import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, StatResult, PerformStatArgs } from '../driverModel'
 import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
 import { pipeline, logger } from '../utils'
 
@@ -219,6 +219,35 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
       logger.error(`failed to delete ${filename} in bucket ${this.bucket}`)
       /* istanbul ignore next */
       throw new Error('Google cloud storage failure: failed to delete' +
+        ` ${filename} in bucket ${this.bucket}: ${error}`)
+    }
+  }
+
+  async performStat(args: PerformStatArgs): Promise<StatResult> {
+    if (!GcDriver.isPathValid(args.path)) {
+      throw new BadPathError('Invalid Path')
+    }
+    const filename = `${args.storageTopLevel}/${args.path}`
+    const bucketFile = this.storage
+      .bucket(this.bucket)
+      .file(filename)
+    try {
+      const metadataResult = await bucketFile.getMetadata({})
+      const result: StatResult = {
+        exists: true
+      }
+      return result
+    } catch (error) {
+      if (error.code === 404) {
+        const result: StatResult = {
+          exists: false
+        }
+        return result
+      }
+      /* istanbul ignore next */
+      logger.error(`failed to stat ${filename} in bucket ${this.bucket}`)
+      /* istanbul ignore next */
+      throw new Error('Google cloud storage failure: failed to stat ' +
         ` ${filename} in bucket ${this.bucket}: ${error}`)
     }
   }

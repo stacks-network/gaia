@@ -20,6 +20,18 @@ export interface PerformDeleteArgs {
   storageTopLevel: string;
 }
 
+export interface PerformStatArgs {
+  path: string;
+  storageTopLevel: string;
+}
+
+export interface StatResult {
+  exists: boolean;
+  lastModifiedDate?: number;
+  contentLength?: number;
+  contentType?: string;
+}
+
 export interface PerformRenameArgs {
   path: string;
   storageTopLevel: string;
@@ -32,6 +44,7 @@ export interface DriverModel {
   performWrite(args: PerformWriteArgs): Promise<string>;
   performDelete(args: PerformDeleteArgs): Promise<void>;
   performRename(args: PerformRenameArgs): Promise<void>;
+  performStat(args: PerformStatArgs): Promise<StatResult>;
   listFiles(storageTopLevel: string, page?: string): Promise<ListFilesResult>;
   ensureInitialized(): Promise<void>;
   dispose(): Promise<void>;

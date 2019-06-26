@@ -3,7 +3,7 @@
 import * as azure from '@azure/storage-blob'
 import { logger } from '../utils'
 import { BadPathError, InvalidInputError, DoesNotExist, ConflictError } from '../errors'
-import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs } from '../driverModel'
+import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult } from '../driverModel'
 import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
 
 export interface AZ_CONFIG_TYPE {
@@ -205,6 +205,42 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
       logger.error(`failed to delete ${azBlob} in ${this.bucket}: ${error}`)
       /* istanbul ignore next */
       throw new Error('Azure storage failure: failed to delete' +
+        ` ${azBlob} in container ${this.bucket}: ${error}`)
+    }
+  }
+
+  async performStat(args: PerformStatArgs): Promise<StatResult> {
+    if (!AzDriver.isPathValid(args.path)) {
+      throw new BadPathError('Invalid Path')
+    }
+    const azBlob = `${args.storageTopLevel}/${args.path}`
+    const blobURL = azure.BlobURL.fromContainerURL(this.container, azBlob)
+    const blockBlobURL = azure.BlockBlobURL.fromBlobURL(blobURL)
+    try {
+      const propertiesResult = await blockBlobURL.getProperties(azure.Aborter.none)
+      let lastModified: number | undefined
+      if (propertiesResult.lastModified) {
+        // TODO: is this UTC time or local time?
+        lastModified = Math.round(propertiesResult.lastModified.getTime() / 1000)
+      }
+      const result: StatResult = {
+        exists: true,
+        contentLength: propertiesResult.contentLength,
+        contentType: propertiesResult.contentType,
+        lastModifiedDate: lastModified
+      }
+      return result
+    } catch (error) {
+      if (error.statusCode === 404) {
+        const result: StatResult = {
+          exists: false
+        }
+        return result
+      }
+      /* istanbul ignore next */
+      logger.error(`failed to stat ${azBlob} in ${this.bucket}: ${error}`)
+      /* istanbul ignore next */
+      throw new Error('Azure storage failure: failed to stat' +
         ` ${azBlob} in container ${this.bucket}: ${error}`)
     }
   }

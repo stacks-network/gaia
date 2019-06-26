@@ -1,7 +1,7 @@
 import fs from 'fs-extra'
 import { BadPathError, InvalidInputError, DoesNotExist } from '../errors'
 import Path from 'path'
-import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs } from '../driverModel'
+import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult } from '../driverModel'
 import { DriverStatics, DriverModel } from '../driverModel'
 import { pipeline, logger } from '../utils'
 
@@ -233,6 +233,42 @@ class DiskDriver implements DriverModel {
     }
     await fs.unlink(absoluteFilePath)
     await fs.unlink(contentTypeFilePath)
+  }
+
+  async performStat(args: PerformStatArgs): Promise<StatResult> {
+    const { absoluteFilePath, contentTypeFilePath } = this.getFullFilePathInfo(args)
+    let stat: fs.Stats
+    try {
+      stat = await fs.stat(absoluteFilePath)
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        const result: StatResult = {
+          exists: false
+        }
+        return result
+      }
+      /* istanbul ignore next */
+      throw error
+    }
+    if (!stat.isFile()) {
+      // Disk driver is special here in that it mirrors the behavior of cloud storage APIs. 
+      // Directories are not first-class objects in blob storages, and so they will 
+      // simply return 404s for the blob name even if the name happens to be a prefix
+      // (pseudo-directory) of existing blobs.
+      const result: StatResult = {
+        exists: false
+      }
+      return result
+    }
+    const contentTypeData = await fs.readFile(contentTypeFilePath, 'utf8')
+    const lastModified = Math.round(stat.mtime.getTime() / 1000)
+    const result: StatResult = {
+      exists: true,
+      contentLength: stat.size,
+      contentType: contentTypeData,
+      lastModifiedDate: lastModified
+    }
+    return result
   }
 
   async performRename(args: PerformRenameArgs): Promise<void> {

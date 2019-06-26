@@ -3,7 +3,7 @@
 import { readStream } from '../../../src/server/utils'
 import { Server } from 'http'
 import express from 'express'
-import { DriverModel, DriverStatics, PerformDeleteArgs, PerformRenameArgs } from '../../../src/server/driverModel'
+import { DriverModel, DriverStatics, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult } from '../../../src/server/driverModel'
 import { ListFilesResult, PerformWriteArgs } from '../../../src/server/driverModel'
 import { BadPathError, InvalidInputError, DoesNotExist, ConflictError } from '../../../src/server/errors'
 
@@ -13,14 +13,14 @@ export class InMemoryDriver implements DriverModel {
   server: Server;
   pageSize: number
   readUrl: string
-  files: Map<string, { content: Buffer, contentType: string }>
+  files: Map<string, { content: Buffer, contentType: string, lastModified: Date }>
   filesInProgress: Map<string, object> = new Map<string, object>()
   lastWrite: PerformWriteArgs
   initPromise: Promise<void>
 
   constructor(config: any) {
     this.pageSize = (config && config.pageSize) ? config.pageSize : 100
-    this.files = new Map<string, { content: Buffer, contentType: string }>()
+    this.files = new Map<string, { content: Buffer, contentType: string, lastModified: Date }>()
     this.app = express()
     this.app.use((req, res, next) => {
       const requestPath = req.path.slice(1)
@@ -85,7 +85,8 @@ export class InMemoryDriver implements DriverModel {
     this.filesInProgress.delete(filePath)
     this.files.set(filePath, {
       content: contentBuffer,
-      contentType: args.contentType
+      contentType: args.contentType,
+      lastModified: new Date()
     })
     const resultUrl = `${this.readUrl}${args.storageTopLevel}/${args.path}`
     return resultUrl
@@ -100,6 +101,30 @@ export class InMemoryDriver implements DriverModel {
         throw new DoesNotExist('File does not exist')
       }
       this.files.delete(`${args.storageTopLevel}/${args.path}`)
+    })
+  }
+
+  performStat(args: PerformStatArgs): Promise<StatResult> {
+    return Promise.resolve().then(() => {
+      if (!InMemoryDriver.isPathValid(args.path)) {
+        throw new BadPathError('Invalid Path')
+      }
+      if (!this.files.has(`${args.storageTopLevel}/${args.path}`)) {
+        const result: StatResult = {
+          exists: false
+        }
+        return result
+      } else {
+        const file = this.files.get(`${args.storageTopLevel}/${args.path}`)
+        const lastModified = Math.round(file.lastModified.getTime() / 1000)
+        const result: StatResult = {
+          exists: true,
+          contentLength: file.content.byteLength,
+          contentType: file.contentType,
+          lastModifiedDate: lastModified
+        }
+        return result;
+      }
     })
   }
 
