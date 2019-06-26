@@ -247,7 +247,7 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
 
   async performRename(args: PerformRenameArgs): Promise<void> {
     if (!AzDriver.isPathValid(args.path)) {
-      throw new BadPathError('Invalid Path')
+      throw new BadPathError('Invalid original path')
     }
     if (!AzDriver.isPathValid(args.newPath)) {
       throw new BadPathError('Invalid new path')

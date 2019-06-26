@@ -131,7 +131,10 @@ export class InMemoryDriver implements DriverModel {
   performRename(args: PerformRenameArgs): Promise<void> {
     return Promise.resolve().then(() => {
       if (!InMemoryDriver.isPathValid(args.path)) {
-        throw new BadPathError('Invalid Path')
+        throw new BadPathError('Invalid original path')
+      }
+      if (!InMemoryDriver.isPathValid(args.newPath)) {
+        throw new BadPathError('Invalid new path')
       }
       if (!this.files.has(`${args.storageTopLevel}/${args.path}`)) {
         throw new DoesNotExist('File does not exist')

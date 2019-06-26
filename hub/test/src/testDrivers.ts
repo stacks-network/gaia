@@ -189,6 +189,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           t.error(error, 'File stat error')
         }
 
+        // test file stat on non-existent file
         try {
           const nonExistentFile = 'stat_none.txt'
           const statResult = await driver.performStat({
@@ -198,6 +199,18 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           t.equal(statResult.exists, false, 'File stat should return not exist')
         } catch (error) {
           t.error(error, 'File stat non-exists error')
+        }
+
+        // test file stat on invalid path
+        try {
+          await driver.performStat({path: '../foo.js', storageTopLevel: topLevelStorage})
+          t.fail('Should have thrown performing file stat with invalid path')
+        }
+        catch (error) {
+          t.pass('Should fail to performStat on invalid path')
+          if (!(error instanceof BadPathError)) {
+            t.equal(error.constructor.name, 'BadPathError', 'Should throw BadPathError trying to performStat on directory')
+          }
         }
       }
 
@@ -304,6 +317,40 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           }
         }
 
+        // test file renames with invalid original path
+        try {
+          await driver.performRename({
+            path: '../foo.js', 
+            storageTopLevel: topLevelStorage,
+            newPath: 'new-location.txt',
+            newStorageTopLevel: topLevelStorage
+          })
+          t.fail('Should have thrown performing file rename with invalid original path')
+        }
+        catch (error) {
+          t.pass('Should fail to performRename on invalid original path')
+          if (!(error instanceof BadPathError)) {
+            t.equal(error.constructor.name, 'BadPathError', 'Should throw BadPathError trying to performRename on invalid original path')
+          }
+        }
+        
+        // test file renames with invalid target path
+        try {
+          await driver.performRename({
+            path: 'some-file.txt', 
+            storageTopLevel: topLevelStorage,
+            newPath: '../foo.js',
+            newStorageTopLevel: topLevelStorage
+          })
+          t.fail('Should have thrown performing file rename with invalid new path')
+        }
+        catch (error) {
+          t.pass('Should fail to performRename on invalid new path')
+          if (!(error instanceof BadPathError)) {
+            t.equal(error.constructor.name, 'BadPathError', 'Should throw BadPathError trying to performRename on invalid new path')
+          }
+        }
+        
         // test concurrent writes to same file
         try {
           const concurrentTestFile = 'concurrent_file_test'

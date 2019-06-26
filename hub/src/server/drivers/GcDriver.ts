@@ -254,10 +254,10 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
 
   async performRename(args: PerformRenameArgs): Promise<void> {
     if (!GcDriver.isPathValid(args.path)) {
-      throw new BadPathError('Invalid Path')
+      throw new BadPathError('Invalid original path')
     }
     if (!GcDriver.isPathValid(args.newPath)) {
-      throw new BadPathError('New path is invalid')
+      throw new BadPathError('Invalid new path')
     }
 
     const filename = `${args.storageTopLevel}/${args.path}`

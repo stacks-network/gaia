@@ -258,7 +258,7 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
 
   async performRename(args: PerformRenameArgs): Promise<void> {
     if (!S3Driver.isPathValid(args.path)){
-      throw new BadPathError('Invalid Path')
+      throw new BadPathError('Invalid original path')
     }
     if (!S3Driver.isPathValid(args.newPath)){
       throw new BadPathError('Invalid new path')
