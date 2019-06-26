@@ -359,7 +359,24 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
             t.equal(error.constructor.name, 'BadPathError', 'Should throw BadPathError trying to performRename on invalid new path')
           }
         }
-        
+
+        // test file renames with subdirectories
+        try {
+          await driver.performRename({
+            path: fileSubDir, 
+            storageTopLevel: topLevelStorage,
+            newPath: 'some-file-from-dir.txt',
+            newStorageTopLevel: topLevelStorage
+          })
+          t.fail('Should have thrown performing file rename with sub-directory as original path')
+        }
+        catch (error) {
+          t.pass('Should fail to performRename on sub-directory as original path')
+          if (!(error instanceof DoesNotExist)) {
+            t.equal(error.constructor.name, 'DoesNotExist', 'Should throw DoesNotExist trying to performRename on sub-directory as new path')
+          }
+        }
+
         // test concurrent writes to same file
         try {
           const concurrentTestFile = 'concurrent_file_test'
