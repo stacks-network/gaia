@@ -231,7 +231,6 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
       const headResult = await this.s3.headObject(s3params).promise()
       let lastModified: number | undefined
       if (headResult.LastModified) {
-        // TODO: is this UTC time or local time?
         lastModified = Math.round(headResult.LastModified.getTime() / 1000)
       }
       const result: StatResult = {

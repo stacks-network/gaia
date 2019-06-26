@@ -232,9 +232,13 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
       .bucket(this.bucket)
       .file(filename)
     try {
-      const metadataResult = await bucketFile.getMetadata({})
+      const [metadataResult] = await bucketFile.getMetadata()
+      const lastModified = Math.round(new Date(metadataResult.updated).getTime() / 1000)
       const result: StatResult = {
-        exists: true
+        exists: true,
+        contentType: metadataResult.contentType,
+        contentLength: parseInt(metadataResult.size),
+        lastModifiedDate: lastModified
       }
       return result
     } catch (error) {

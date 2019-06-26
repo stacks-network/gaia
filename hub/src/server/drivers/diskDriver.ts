@@ -260,12 +260,13 @@ class DiskDriver implements DriverModel {
       }
       return result
     }
-    const contentTypeData = await fs.readFile(contentTypeFilePath, 'utf8')
+    const contentTypeJsonStr = await fs.readFile(contentTypeFilePath, 'utf8')
+    const contentType = JSON.parse(contentTypeJsonStr)['content-type']
     const lastModified = Math.round(stat.mtime.getTime() / 1000)
     const result: StatResult = {
       exists: true,
       contentLength: stat.size,
-      contentType: contentTypeData,
+      contentType: contentType,
       lastModifiedDate: lastModified
     }
     return result

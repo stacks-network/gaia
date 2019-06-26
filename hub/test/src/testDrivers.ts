@@ -173,6 +173,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           const statTestFile = 'stat_test.txt'
           const stream1 = new PassThrough()
           stream1.end('abc sample content 1', 'utf8')
+          const dateNow1 = Math.round(Date.now() / 1000)
           await driver.performWrite({
             path: statTestFile,
             storageTopLevel: topLevelStorage,
@@ -184,7 +185,12 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
             path: statTestFile, 
             storageTopLevel: topLevelStorage
           })
+
           t.equal(statResult.exists, true, 'File stat should return exists after write')
+          t.equal(statResult.contentLength, 20, 'File stat should have correct content length')
+          t.equal(statResult.contentType, "text/plain; charset=utf-8", 'File stat should have correct content type')
+          const dateDiff = Math.abs(statResult.lastModifiedDate - dateNow1)
+          t.equal(dateDiff < 10, true, `File stat last modified date is not within range, diff: ${dateDiff} -- ${statResult.lastModifiedDate} vs ${dateNow1}`)
         } catch (error) {
           t.error(error, 'File stat error')
         }

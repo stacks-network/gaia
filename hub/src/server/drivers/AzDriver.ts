@@ -220,7 +220,6 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
       const propertiesResult = await blockBlobURL.getProperties(azure.Aborter.none)
       let lastModified: number | undefined
       if (propertiesResult.lastModified) {
-        // TODO: is this UTC time or local time?
         lastModified = Math.round(propertiesResult.lastModified.getTime() / 1000)
       }
       const result: StatResult = {
