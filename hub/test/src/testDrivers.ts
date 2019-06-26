@@ -168,6 +168,40 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
       }
 
       if (!mockTest) {
+        // test file stat
+        try {
+          const statTestFile = 'stat_test.txt'
+          const stream1 = new PassThrough()
+          stream1.end('abc sample content 1', 'utf8')
+          await driver.performWrite({
+            path: statTestFile,
+            storageTopLevel: topLevelStorage,
+            stream: stream1,
+            contentType: 'text/plain; charset=utf-8',
+            contentLength: 100
+          })
+          const statResult = await driver.performStat({
+            path: statTestFile, 
+            storageTopLevel: topLevelStorage
+          })
+          t.equal(statResult.exists, true, 'File stat should return exists after write')
+        } catch (error) {
+          t.error(error, 'File stat error')
+        }
+
+        try {
+          const nonExistentFile = 'stat_none.txt'
+          const statResult = await driver.performStat({
+            path: nonExistentFile,
+            storageTopLevel: topLevelStorage
+          })
+          t.equal(statResult.exists, false, 'File stat should return not exist')
+        } catch (error) {
+          t.error(error, 'File stat non-exists error')
+        }
+      }
+
+      if (!mockTest) {
         sampleData = getSampleData();
         const bogusContentType = 'x'.repeat(3000)
         try {
