@@ -226,6 +226,33 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           t.pass('List files with invalid page data should have failed')
         }
 
+        // test file renames
+        try {
+          const renameTestFile1a = 'renamable1a.txt'
+
+          const stream1 = new PassThrough()
+          stream1.end('abc sample content 1', 'utf8')
+
+          await driver.performWrite({
+            path: renameTestFile1a,
+            storageTopLevel: topLevelStorage,
+            stream: stream1,
+            contentType: 'text/plain; charset=utf-8',
+            contentLength: 100
+          });
+
+          const renameTestFile2b = 'renamable2b.txt'
+          await driver.performRename({
+            path: renameTestFile1a,
+            storageTopLevel: topLevelStorage,
+            newPath: renameTestFile2b,
+            newStorageTopLevel: topLevelStorage
+          })
+
+        } catch (error) {
+          t.error(error, `File rename error`)
+        }
+
         // test concurrent writes to same file
         try {
           const concurrentTestFile = 'concurrent_file_test'
