@@ -19,6 +19,8 @@ import { testPairs, testAddrs } from './common'
 import InMemoryDriver from './testDrivers/InMemoryDriver'
 import { MockAuthTimestampCache } from './MockAuthTimestampCache'
 import { HubConfigInterface } from '../../src/server/config'
+import { PassThrough } from 'stream';
+import { ClientRequest } from 'http';
 
 const TEST_SERVER_NAME = 'test-server'
 const TEST_AUTH_CACHE_SIZE = 10
@@ -76,12 +78,113 @@ export function testHttpWithInMemoryDriver() {
         .send(blob)
         .expect(409)
 
-      t.end()
-
     } finally {
       inMemoryDriver.dispose()
     }
   })
+
+  test.skip('reject concurrent requests to same resource (InMemory driver)', async (t) => {
+    const fetch = NodeFetch
+    const inMemoryDriver = await InMemoryDriver.spawn()
+    try {
+      const { app, server } = makeHttpServer({ driverInstance: inMemoryDriver, serverName: TEST_SERVER_NAME, authTimestampCacheSize: TEST_AUTH_CACHE_SIZE })
+      server.authTimestampCache = new MockAuthTimestampCache()
+
+      const sk = testPairs[1]
+      const fileContents = sk.toWIF()
+      const blob = Buffer.from(fileContents)
+
+      const address = ecPairToAddress(sk)
+      const path = `/store/${address}/helloWorld`
+      const listPath = `/list-files/${address}`
+
+      let response = await request(app)
+        .get('/hub_info/')
+        .expect(200)
+    
+      const challenge = JSON.parse(response.text).challenge_text
+      const authPart = auth.V1Authentication.makeAuthPart(sk, challenge)
+      const authorization = `bearer ${authPart}`
+
+      const passThrough1 = new PassThrough()
+      passThrough1.write("stuff", "utf8")
+      const concurrentTest1 = await request(app)
+      const postTest1 = concurrentTest1.post(`/store/${address}/concurrent_test`)
+      postTest1
+        .set('Content-Type', 'application/octet-stream')
+        .set('Authorization', authorization)
+        //.pipe(passThrough1)
+        .write("stuff", "utf8")
+      // passThrough1._flush(() => {});
+
+      const req1 = (postTest1 as any).req as ClientRequest
+      await new Promise((resolve) => {
+        req1.write("stuff", "utf8", (err) => {
+          req1.flushHeaders()
+          setTimeout(() => { resolve() }, 1000)
+        })
+      })
+
+      /*const concurrentTest2 = await request(app)
+      const postTest2 = concurrentTest2.post(`/store/${address}/concurrent_test`)
+      postTest2
+        .set('Content-Type', 'application/octet-stream')
+        .set('Authorization', authorization)
+        .write("stuff", "utf8")*/
+
+      const passThrough2 = new PassThrough()
+      const concurrentTest2 = await request(app)
+      const postTest2 = concurrentTest2.post(`/store/${address}/concurrent_test`)
+      postTest2
+          .set('Content-Type', 'application/octet-stream')
+          .set('Authorization', authorization)
+          .write("stuff", "utf8")
+          //.pipe(passThrough2)
+      
+      const req2 = (postTest2 as any).req as ClientRequest
+      await new Promise((resolve) => {
+        req2.write("stuff", "utf8", (err) => {
+          req2.flushHeaders()
+          setTimeout(() => { resolve() }, 1000)
+        })
+      })
+
+      passThrough2.write("stuff", "utf8", err => {
+        console.log(err);
+        //passThrough.uncork()
+      })
+      /*passThrough2._flush((err, data) => {
+        console.log(err);
+      })*/
+      /*
+      await request(app)
+        .post(`/store/${address}/concurrent_test`).set('Content-Type', 'application/octet-stream')
+        .set('Authorization', authorization)
+        .send(blob)
+        .expect(409)
+      */
+
+      await new Promise((resolve, reject) => {
+        setTimeout(() => {
+          postTest1.end((err, res) => {
+            t.equal(res.status, 202)
+            resolve()
+          });
+        }, 200)
+      })
+
+      await new Promise((resolve, reject) => {
+        setTimeout(() => {
+          postTest2.end((err, res) => {
+            t.equal(res.status, 202)
+            resolve()
+          });
+        }, 200)
+      })
+    } finally {
+      inMemoryDriver.dispose()
+    }
+  });
 
   test('handle revocation via POST', async (t) => {
     const inMemoryDriver = await InMemoryDriver.spawn()

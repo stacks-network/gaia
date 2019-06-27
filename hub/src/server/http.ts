@@ -10,6 +10,8 @@ import { DriverModel } from './driverModel'
 import * as errors from './errors'
 import { HubConfigInterface } from './config'
 
+import AsyncLock from 'async-lock'
+
 function writeResponse(res: express.Response, data: any, statusCode: number) {
   res.writeHead(statusCode, {'Content-Type' : 'application/json'})
   res.write(JSON.stringify(data))
@@ -17,6 +19,8 @@ function writeResponse(res: express.Response, data: any, statusCode: number) {
 }
 
 export function makeHttpServer(config: HubConfigInterface): { app: express.Application, server: HubServer, driver: DriverModel } {
+
+  const lock = new AsyncLock({maxPending: -1, domainReentrant: false, timeout: 1})
 
   const app: express.Application = express()
 
@@ -54,12 +58,12 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
       filename = filename.substring(0, filename.length - 1)
     }
     const address = req.params[0]
-
-    server.handleRequest(address, filename, req.headers, req)
-      .then((publicURL) => {
+    lock.acquire(`${address}/${filename}`, async (done) => {
+      try {
+        await new Promise((resolve) => setTimeout(() => resolve(), 3000))
+        const publicURL = await server.handleRequest(address, filename, req.headers, req)
         writeResponse(res, { publicURL }, 202)
-      })
-      .catch((err: any) => {
+      } catch(err) {
         logger.error(err)
         if (err instanceof errors.ValidationError) {
           writeResponse(res, { message: err.message, error: err.name }, 401)
@@ -74,7 +78,14 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
         } else {
           writeResponse(res, { message: 'Server Error' }, 500)
         }
-      })
+      } finally {
+        done()
+      }
+    }, (err, ret) => {
+      writeResponse(res, { message: `Concurrent option attempted on file ${filename}`, error: errors.ConflictError.name }, 409)
+    })/*.catch(error => {
+      writeResponse(res, { message: `Concurrent option attempted on file ${filename}`, error: errors.ConflictError.name }, 409)
+    })*/
   })
 
   app.delete(/^\/delete\/([a-zA-Z0-9]+)\/(.+)/, (
@@ -86,13 +97,12 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
       filename = filename.substring(0, filename.length - 1)
     }
     const address = req.params[0]
-
-    server.handleDelete(address, filename, req.headers)
-      .then(() => {
+    lock.acquire(`${address}/${filename}`, async () => {
+      try {
+        await server.handleDelete(address, filename, req.headers)
         res.writeHead(202)
         res.end()
-      })
-      .catch((err: any) => {
+      } catch (err) {
         logger.error(err)
         if (err instanceof errors.ValidationError) {
           writeResponse(res, { message: err.message, error: err.name }, 401)
@@ -107,7 +117,10 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
         } else {
           writeResponse(res, { message: 'Server Error' }, 500)
         }
-      })
+      }
+    }).catch(error => {
+      writeResponse(res, { message: `Concurrent option attempted on file ${filename}`, error: errors.ConflictError.name }, 409)
+    })
   })
 
   app.post(

@@ -9,6 +9,7 @@
   "dependencies": {
     "@azure/storage-blob": "^10.3.0",
     "@google-cloud/storage": "^2.5.0",
+    "async-lock": "^1.2.0",
     "aws-sdk": "^2.482.0",
     "bitcoinjs-lib": "^5.0.5",
     "blockstack": "github:blockstack/blockstack.js#feature/update-jsontokens",
@@ -23,6 +24,7 @@
     "winston": "^3.2.1"
   },
   "devDependencies": {
+    "@types/async-lock": "^1.1.1",
     "@types/cors": "^2.8.5",
     "@types/express": "^4.17.0",
     "@types/express-winston": "^3.0.3",
