@@ -1,6 +1,6 @@
 
 
-import { validateAuthorizationHeader, getAuthenticationScopes } from './authentication'
+import { validateAuthorizationHeader, getAuthenticationScopes, parseAuthScopes } from './authentication'
 import { ValidationError } from './errors'
 import { ProofChecker } from './ProofChecker'
 import { AuthTimestampCache } from './revocations'
@@ -73,25 +73,16 @@ export class HubServer {
     this.validate(address, requestHeaders, oldestValidTokenTimestamp)
 
     // can the caller delete? if so, in what paths?
-    const scopes = getAuthenticationScopes(requestHeaders.authorization)
-    const deletePrefixes = []
-    const deletePaths = []
-    for (let i = 0; i < scopes.length; i++) {
-      if (scopes[i].scope == 'deleteFilePrefix') {
-        deletePrefixes.push(scopes[i].domain)
-      } else if (scopes[i].scope == 'deleteFile') {
-        deletePaths.push(scopes[i].domain)
-      }
-    }
+    const scopes = parseAuthScopes(requestHeaders.authorization)
 
-    if (deletePrefixes.length > 0 || deletePaths.length > 0) {
+    if (scopes.deletePrefixes.length > 0 || scopes.deletePaths.length > 0) {
       // we're limited to a set of prefixes and paths.
       // does the given path match any prefixes?
-      let match = !!deletePrefixes.find((p) => (path.startsWith(p)))
+      let match = !!scopes.deletePrefixes.find((p) => (path.startsWith(p)))
 
       if (!match) {
         // check for exact paths
-        match = !!deletePaths.find((p) => (path === p))
+        match = !!scopes.deletePaths.find((p) => (path === p))
       }
 
       if (!match) {
@@ -129,25 +120,16 @@ export class HubServer {
     }
 
     // can the caller write? if so, in what paths?
-    const scopes = getAuthenticationScopes(requestHeaders.authorization)
-    const writePrefixes = []
-    const writePaths = []
-    for (let i = 0; i < scopes.length; i++) {
-      if (scopes[i].scope == 'putFilePrefix') {
-        writePrefixes.push(scopes[i].domain)
-      } else if (scopes[i].scope == 'putFile') {
-        writePaths.push(scopes[i].domain)
-      }
-    }
+    const scopes = parseAuthScopes(requestHeaders.authorization)
 
-    if (writePrefixes.length > 0 || writePaths.length > 0) {
+    if (scopes.writePrefixes.length > 0 || scopes.writePaths.length > 0) {
       // we're limited to a set of prefixes and paths.
       // does the given path match any prefixes?
-      let match = !!writePrefixes.find((p) => (path.startsWith(p)))
+      let match = !!scopes.writePrefixes.find((p) => (path.startsWith(p)))
 
       if (!match) {
         // check for exact paths
-        match = !!writePaths.find((p) => (path === p))
+        match = !!scopes.writePaths.find((p) => (path === p))
       }
 
       if (!match) {

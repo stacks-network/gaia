@@ -44,7 +44,29 @@ export function getTokenPayload(token: import('jsontokens/lib/decode').TokenInte
   return token.payload
 }
 
-export class V1Authentication {
+export interface AuthScopeTypes {
+  writePrefixes: string[];
+  writePaths: string[];
+  deletePrefixes: string[];
+  deletePaths: string[];
+}
+
+export interface AuthenticationInterface {
+  checkAssociationToken(token: string, bearerAddress: string): void
+  getAuthenticationScopes(): Array<AuthScopeType>
+  isAuthenticationValid(
+    address: string, 
+    challengeTexts: Array<string>,
+    options?: { 
+      requireCorrectHubUrl?: boolean,
+      validHubUrls?: Array<string>,
+      oldestValidTokenTimestamp?: number 
+    }
+  ): string
+  parseAuthScopes(): AuthScopeTypes
+}
+
+export class V1Authentication implements AuthenticationInterface {
   token: string
 
   constructor(token: string) {
@@ -175,6 +197,36 @@ export class V1Authentication {
     const signerAddress = ecPairToAddress(pubkeyHexToECPair(publicKey))
     return signerAddress
 
+  }
+
+  parseAuthScopes() {
+    const scopes = this.getAuthenticationScopes()
+    const writePrefixes: string[] = []
+    const writePaths: string[] = []
+    const deletePrefixes: string[] = []
+    const deletePaths: string[] = []
+    for (let i = 0; i < scopes.length; i++) {
+      switch (scopes[i].scope) {
+      case 'putFilePrefix':
+        writePrefixes.push(scopes[i].domain)
+        break
+      case 'putFile':
+        writePaths.push(scopes[i].domain)
+        break
+      case 'deleteFilePrefix':
+        deletePrefixes.push(scopes[i].domain)
+        break
+      case 'deleteFile':
+        deletePaths.push(scopes[i].domain)
+        break
+      }
+    }
+    return {
+      writePrefixes,
+      writePaths,
+      deletePrefixes,
+      deletePaths
+    }
   }
 
   /*
@@ -330,7 +382,22 @@ export class V1Authentication {
   }
 }
 
-export class LegacyAuthentication {
+export class LegacyAuthentication implements AuthenticationInterface {
+
+  checkAssociationToken(token: string, bearerAddress: string): void {
+    throw new Error('Method not implemented.')
+  }
+
+  parseAuthScopes(): AuthScopeTypes {
+    // TODO: can legacy auth tokens be maliciously created to get around restrictive auth scopes?
+    return {
+      writePaths: [],
+      writePrefixes: [],
+      deletePaths: [],
+      deletePrefixes: []
+    }
+  }
+
   publickey: bitcoinjs.ECPairInterface
   signature: string
   constructor(publickey: bitcoinjs.ECPairInterface, signature: string) {
@@ -402,7 +469,7 @@ export function getLegacyChallengeTexts(myURL: string = DEFAULT_STORAGE_URL): Ar
     [header, year, myURL, myChallenge]))
 }
 
-export function parseAuthHeader(authHeader: string) {
+export function parseAuthHeader(authHeader: string): AuthenticationInterface {
   if (!authHeader || !authHeader.toLowerCase().startsWith('bearer')) {
     throw new ValidationError('Failed to parse authentication header.')
   }
@@ -462,6 +529,11 @@ export function validateAuthorizationHeader(authHeader: string, serverName: stri
 export function getAuthenticationScopes(authHeader: string) {
   const authObject = parseAuthHeader(authHeader)
   return authObject.getAuthenticationScopes()
+}
+
+export function parseAuthScopes(authHeader: string) {
+  const authObject = parseAuthHeader(authHeader)
+  return authObject.parseAuthScopes()
 }
 
 
