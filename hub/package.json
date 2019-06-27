@@ -11,7 +11,7 @@
     "@google-cloud/storage": "^2.5.0",
     "aws-sdk": "^2.482.0",
     "bitcoinjs-lib": "^5.0.5",
-    "blockstack": "github:blockstack/blockstack.js#feature/update-jsontokens",
+    "blockstack": "^19.2.2-beta.1",
     "body-parser": "^1.18.3",
     "cors": "^2.8.5",
     "express": "^4.16.4",

@@ -1,8 +1,6 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
 import crypto from 'crypto'
-//@ts-ignore
 import { decodeToken, TokenSigner, TokenVerifier } from 'jsontokens'
-//@ts-ignore
 import { ecPairToHexString, ecPairToAddress } from 'blockstack'
 import { ValidationError, AuthTokenTimestampValidationError } from './errors'
 import { logger } from './utils'
@@ -39,6 +37,13 @@ export const AuthScopes = [
   'deleteFilePrefix'
 ]
 
+export function getTokenPayload(token: import('jsontokens/lib/decode').TokenInterface) {
+  if (typeof token.payload === 'string') {
+    throw new Error('Unexpected token payload type of string')
+  }
+  return token.payload
+}
+
 export class V1Authentication {
   token: string
 
@@ -51,9 +56,9 @@ export class V1Authentication {
       throw new ValidationError('Authorization header should start with v1:')
     }
     const token = authPart.slice('v1:'.length)
-    const decodedToken = (() => {
+    const payload = (() => {
       try {
-        return decodeToken(token)
+        return getTokenPayload(decodeToken(token))
       } catch (e) {
         logger.error(e)
         logger.error('fromAuthPart')
@@ -61,15 +66,11 @@ export class V1Authentication {
       }
     })()
 
-    if (typeof decodedToken.payload === 'string') {
-      throw new Error('Unexpected token payload type of string')
-    }
-
-    const publicKey = decodedToken.payload.iss
-    if (!publicKey || !decodedToken) {
+    const publicKey = payload.iss
+    if (!publicKey) {
       throw new ValidationError('Auth token should be a JWT with at least an `iss` claim')
     }
-    const scopes = decodedToken.payload.scopes
+    const scopes = payload.scopes
     if (scopes) {
       validateScopes(scopes)
     }
@@ -128,23 +129,19 @@ export class V1Authentication {
     // associationToken and verifies that it authorizes the "outer"
     // JWT's address (`bearerAddress`)
 
-    const associationToken = (() => {
+    const payload = (() => {
       try {
-        return decodeToken(token)
+        return getTokenPayload(decodeToken(token))
       } catch (e) {
         throw new ValidationError('Failed to decode association token in JWT')
       }
     })()
 
-    if (typeof associationToken.payload === 'string') {
-      throw new Error('Unexpected token payload type of string')
-    }
-
     // publicKey (the issuer of the association token)
     // will be the whitelisted address (i.e. the identity address)
-    const publicKey = associationToken.payload.iss
-    const childPublicKey = associationToken.payload.childToAssociate
-    const expiresAt = associationToken.payload.exp
+    const publicKey = payload.iss
+    const childPublicKey = payload.childToAssociate
+    const expiresAt = payload.exp
 
     if (! publicKey) {
       throw new ValidationError('Must provide `iss` claim in association JWT.')
@@ -189,9 +186,9 @@ export class V1Authentication {
    * Returns [] if there is no association token, or if the association token has no scopes
    */
   getAuthenticationScopes(): Array<AuthScopeType> {
-    const decodedToken = (() => {
+    const payload = (() => {
       try {
-        return decodeToken(this.token)
+        return getTokenPayload(decodeToken(this.token))
       } catch (e) {
         logger.error(this.token)
         logger.error('getAuthenticationScopes')
@@ -199,17 +196,13 @@ export class V1Authentication {
       }
     })()
 
-    if (typeof decodedToken.payload === 'string') {
-      throw new Error('Unexpected token payload type of string')
-    }
-
-    if (!decodedToken.payload.hasOwnProperty('scopes')) {
+    if (!payload.hasOwnProperty('scopes')) {
       // not given
       return []
     }
 
     // unambiguously convert to AuthScope
-    const scopes = decodedToken.payload.scopes.map((s: any) => {
+    const scopes = payload.scopes.map((s: any) => {
       const r = {
         scope: String(s.scope),
         domain: String(s.domain)
@@ -239,9 +232,9 @@ export class V1Authentication {
                         options?: { requireCorrectHubUrl?: boolean,
                                     validHubUrls?: Array<string>,
                                     oldestValidTokenTimestamp?: number }): string {
-    const decodedToken = (() => {
+    const payload = (() => {
       try {
-        return decodeToken(this.token)
+        return getTokenPayload(decodeToken(this.token))
       } catch (e) {
         logger.error(this.token)
         logger.error('isAuthenticationValid')
@@ -249,13 +242,9 @@ export class V1Authentication {
       }
     })()
 
-    if (typeof decodedToken.payload === 'string') {
-      throw new Error('Unexpected token payload type of string')
-    }
-
-    const publicKey = decodedToken.payload.iss
-    const gaiaChallenge = decodedToken.payload.gaiaChallenge
-    const scopes = decodedToken.payload.scopes
+    const publicKey = payload.iss
+    const gaiaChallenge = payload.gaiaChallenge
+    const scopes = payload.scopes
 
     if (!publicKey) {
       throw new ValidationError('Must provide `iss` claim in JWT.')
@@ -263,7 +252,7 @@ export class V1Authentication {
 
     // check for revocations
     if (options && options.oldestValidTokenTimestamp && options.oldestValidTokenTimestamp > 0) {
-      const tokenIssuedAtDate = decodedToken.payload.iat
+      const tokenIssuedAtDate = payload.iat
       const oldestValidTokenTimestamp: number = options.oldestValidTokenTimestamp
       if (!tokenIssuedAtDate) {
         const message = `Gaia bucket requires auth token issued after ${oldestValidTokenTimestamp}` +
@@ -285,7 +274,7 @@ export class V1Authentication {
     }
 
     if (options && options.requireCorrectHubUrl) {
-      let claimedHub = decodedToken.payload.hubUrl
+      let claimedHub = payload.hubUrl
       if (!claimedHub) {
         throw new ValidationError(
           'Authentication must provide a claimed hub. You may need to update blockstack.js.')
@@ -325,16 +314,16 @@ export class V1Authentication {
                                 ` not found in ${JSON.stringify(challengeTexts)}`)
     }
 
-    const expiresAt = decodedToken.payload.exp
+    const expiresAt = payload.exp
     if (expiresAt && expiresAt < (Date.now()/1000)) {
       throw new ValidationError(
         `Expired authentication token: expire time of ${expiresAt} (secs since epoch)`)
     }
 
-    if (decodedToken.payload.hasOwnProperty('associationToken') &&
-        decodedToken.payload.associationToken) {
+    if (payload.hasOwnProperty('associationToken') &&
+        payload.associationToken) {
       return this.checkAssociationToken(
-        decodedToken.payload.associationToken, address)
+        payload.associationToken, address)
     } else {
       return address
     }

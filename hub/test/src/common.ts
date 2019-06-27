@@ -1,6 +1,5 @@
 
 import { ECPair } from 'bitcoinjs-lib'
-//@ts-ignore
 import { ecPairToAddress } from 'blockstack'
 
 export const testWIFs = [
@@ -14,11 +13,11 @@ export const testWIFs = [
   'L58yVu1P1GwHkV9jeuPSJYpSYoUgcHJRWzQpT1RRHQq6WX4vu6kh',
   'L4axr2vJzeb3JcsF2gRFApmBUscuEujcCCf335bnA4oTtGUKeLAc',
   'L1zYdjKVhU9yrzeptfdqsffGQ1GLp6ypdCCbBdLT2KdMDX5P2aLK']
-export const testPairs: ECPair[] = testWIFs.map(x => ECPair.fromWIF(x))
+export const testPairs = testWIFs.map(x => ECPair.fromWIF(x))
 export const testAddrs: string[] = testPairs.map(x => ecPairToAddress(x))
 
 export const createTestKeys = (count: number) => {
-  const testPairs: ECPair[] = [...Array(count)].map(_ => ECPair.makeRandom());
+  const testPairs = [...Array(count)].map(_ => ECPair.makeRandom());
   const testAddrs: string[] = testPairs.map(x => ecPairToAddress(x));
   return { testPairs, testAddrs };
 }
