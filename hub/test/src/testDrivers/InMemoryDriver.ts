@@ -3,9 +3,10 @@
 import { readStream } from '../../../src/server/utils'
 import { Server } from 'http'
 import express from 'express'
-import { DriverModel, DriverStatics, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult } from '../../../src/server/driverModel'
+import { DriverModel, DriverStatics, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult, PerformReadArgs, ReadResult } from '../../../src/server/driverModel'
 import { ListFilesResult, PerformWriteArgs } from '../../../src/server/driverModel'
 import { BadPathError, InvalidInputError, DoesNotExist, ConflictError } from '../../../src/server/errors'
+import { PassThrough } from 'stream';
 
 export class InMemoryDriver implements DriverModel {
 
@@ -101,6 +102,31 @@ export class InMemoryDriver implements DriverModel {
         throw new DoesNotExist('File does not exist')
       }
       this.files.delete(`${args.storageTopLevel}/${args.path}`)
+    })
+  }
+
+  performRead(args: PerformReadArgs): Promise<ReadResult> {
+    return Promise.resolve().then(() => {
+      if (!InMemoryDriver.isPathValid(args.path)) {
+        throw new BadPathError('Invalid Path')
+      }
+      if (!this.files.has(`${args.storageTopLevel}/${args.path}`)) {
+        throw new DoesNotExist('File does not exist')
+      }
+      const file = this.files.get(`${args.storageTopLevel}/${args.path}`)
+      const lastModified = Math.round(file.lastModified.getTime() / 1000)
+
+      const dataStream = new PassThrough()
+      dataStream.end(file.content)
+
+      const result: ReadResult = {
+        exists: true,
+        contentLength: file.content.byteLength,
+        contentType: file.contentType,
+        lastModifiedDate: lastModified,
+        data: dataStream
+      }
+      return result;
     })
   }
 
