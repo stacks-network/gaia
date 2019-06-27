@@ -212,7 +212,7 @@ module.exports.handleHubInfo = async (_: APIGatewayProxyEvent) => {
 
 const buildHubServer = (): HubServer => {
   
-  var config = getConfig()
+  const config = getConfig()
   config.bucket = process.env.GAIA_BUCKET_NAME
   config.serverName = process.env.GAIA_SERVER_NAME
   config.readURL = process.env.GAIA_READ_URL
