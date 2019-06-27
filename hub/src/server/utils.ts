@@ -9,11 +9,10 @@ import DiskDriver from './drivers/diskDriver'
 import { promisify } from 'util'
 import winston from 'winston'
 
-//$FlowFixMe - Flow is unaware of the stream.pipeline Node API
-import { pipeline as _pipline } from 'stream'
+import { pipeline } from 'stream'
 import { DriverName } from './config'
 
-export const pipeline = promisify(_pipline)
+export const pipelineAsync = promisify(pipeline)
 
 export const logger = winston.createLogger()
 
@@ -52,7 +51,7 @@ class MemoryStream extends stream.Writable {
 
 export async function readStream(stream: stream.Readable): Promise<Buffer> {
   const memStream = new MemoryStream()
-  await pipeline(stream, memStream)
+  await pipelineAsync(stream, memStream)
   return memStream.getData()
 }
 
@@ -62,4 +61,49 @@ export function timeout(milliseconds: number): Promise<void> {
       resolve()
     }, milliseconds)
   })
+}
+
+
+export interface AsyncMutex {
+  id: string;
+  owner: Promise<void>;
+  alive: boolean;
+}
+
+export class AsyncMutexScope {
+
+  private readonly _opened: Map<string, AsyncMutex> = new Map()
+
+  public get openedCount() {
+    return this._opened.size
+  }
+
+  /**
+   * If no mutex of the given `id` is already taken, then a mutex is created and the 
+   * given promise is invoked. The mutex is released once the promise resolves -- either by 
+   * success or error. 
+   * @param id A unique mutex name used in a Map.
+   * @param spawnOwner A function that creates a Promise if the mutex is acquired. 
+   * @returns `true` if the mutex was acquired, otherwise returns `false`
+   */
+  public tryAcquire(id: string, spawnOwner: () => Promise<void>): boolean {
+    if (this._opened.has(id)) {
+      return false
+    }
+
+    // Wrap in Promise.resolve to ensure potential synchronous errors are not throw within this function. 
+    const owner = Promise.resolve().then(() => spawnOwner())
+    const mutex: AsyncMutex = {
+      id: id,
+      owner: owner,
+      alive: true
+    }
+    this._opened.set(id, mutex)
+    owner.finally(() => {
+      this._opened.delete(id)
+      mutex.alive = false
+    })
+    return true
+  }
+
 }

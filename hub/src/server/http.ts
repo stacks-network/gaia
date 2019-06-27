@@ -5,7 +5,7 @@ import cors from 'cors'
 import { ProofChecker } from './ProofChecker'
 import { getChallengeText, LATEST_AUTH_VERSION } from './authentication'
 import { HubServer } from './server'
-import { getDriverClass, logger } from './utils'
+import { getDriverClass, logger, AsyncMutexScope } from './utils'
 import { DriverModel } from './driverModel'
 import * as errors from './errors'
 import { HubConfigInterface } from './config'
@@ -16,9 +16,11 @@ function writeResponse(res: express.Response, data: any, statusCode: number) {
   res.end()
 }
 
-export function makeHttpServer(config: HubConfigInterface): { app: express.Application, server: HubServer, driver: DriverModel } {
+export function makeHttpServer(config: HubConfigInterface): { app: express.Application, server: HubServer, driver: DriverModel, asyncMutex: AsyncMutexScope } {
 
   const app: express.Application = express()
+
+  const asyncMutex = new AsyncMutexScope()
 
   // Handle driver configuration
   let driver: DriverModel
@@ -54,12 +56,13 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
       filename = filename.substring(0, filename.length - 1)
     }
     const address = req.params[0]
+    const endpoint = `${address}/${filename}`
 
-    server.handleRequest(address, filename, req.headers, req)
-      .then((publicURL) => {
+    const handleRequest = async () => {
+      try {
+        const publicURL = await server.handleRequest(address, filename, req.headers, req)
         writeResponse(res, { publicURL }, 202)
-      })
-      .catch((err: any) => {
+      } catch (err) {
         logger.error(err)
         if (err instanceof errors.ValidationError) {
           writeResponse(res, { message: err.message, error: err.name }, 401)
@@ -74,7 +77,18 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
         } else {
           writeResponse(res, { message: 'Server Error' }, 500)
         }
-      })
+      }
+    }
+
+    if (!asyncMutex.tryAcquire(endpoint, handleRequest)) {
+      const errMsg = `Concurrent operation (store) attempted on ${endpoint}`
+      logger.error(errMsg)
+      writeResponse(res, { 
+        message: errMsg, 
+        error: errors.ConflictError.name 
+      }, 409)
+    }
+
   })
 
   app.delete(/^\/delete\/([a-zA-Z0-9]+)\/(.+)/, (
@@ -86,13 +100,14 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
       filename = filename.substring(0, filename.length - 1)
     }
     const address = req.params[0]
+    const endpoint = `${address}/${filename}`
 
-    server.handleDelete(address, filename, req.headers)
-      .then(() => {
+    const handleRequest = async () => {
+      try {
+        await server.handleDelete(address, filename, req.headers)
         res.writeHead(202)
         res.end()
-      })
-      .catch((err: any) => {
+      } catch (err) {
         logger.error(err)
         if (err instanceof errors.ValidationError) {
           writeResponse(res, { message: err.message, error: err.name }, 401)
@@ -107,7 +122,17 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
         } else {
           writeResponse(res, { message: 'Server Error' }, 500)
         }
-      })
+      }
+    }
+
+    if (!asyncMutex.tryAcquire(endpoint, handleRequest)) {
+      const errMsg = `Concurrent operation (delete) attempted on ${endpoint}`
+      logger.error(errMsg)
+      writeResponse(res, { 
+        message: errMsg, 
+        error: errors.ConflictError.name 
+      }, 409)
+    }
   })
 
   app.post(
@@ -191,5 +216,5 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
   })
 
   // Instantiate express application
-  return { app, server, driver }
+  return { app, server, driver, asyncMutex }
 }

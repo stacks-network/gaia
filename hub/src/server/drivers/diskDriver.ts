@@ -3,7 +3,7 @@ import { BadPathError, InvalidInputError, DoesNotExist } from '../errors'
 import Path from 'path'
 import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult, PerformReadArgs, ReadResult } from '../driverModel'
 import { DriverStatics, DriverModel } from '../driverModel'
-import { pipeline, logger } from '../utils'
+import { pipelineAsync, logger } from '../utils'
 
 export interface DISK_CONFIG_TYPE { 
   diskSettings: { storageRootDirectory?: string },
@@ -199,7 +199,7 @@ class DiskDriver implements DriverModel {
     await this.mkdirs(absdirname)
 
     const writePipe = fs.createWriteStream(absoluteFilePath, { mode: 0o600, flags: 'w' })
-    await pipeline(args.stream, writePipe)
+    await pipelineAsync(args.stream, writePipe)
 
 
     const contentTypeDirPath = Path.dirname(contentTypeFilePath)

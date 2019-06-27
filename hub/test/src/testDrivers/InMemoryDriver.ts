@@ -19,6 +19,8 @@ export class InMemoryDriver implements DriverModel {
   lastWrite: PerformWriteArgs
   initPromise: Promise<void>
 
+  onWriteMiddleware: Set<((PerformWriteArgs) => Promise<void>)> = new Set()
+
   constructor(config: any) {
     this.pageSize = (config && config.pageSize) ? config.pageSize : 100
     this.files = new Map<string, { content: Buffer, contentType: string, lastModified: Date }>()
@@ -56,6 +58,7 @@ export class InMemoryDriver implements DriverModel {
     await driver.start()
     return driver
   }
+
   start() {
     return new Promise<void>((resolve) => {
       this.server = this.app.listen(0, 'localhost', () => {
@@ -65,10 +68,17 @@ export class InMemoryDriver implements DriverModel {
       })
     })
   }
+
   getReadURLPrefix() {
     return this.readUrl
   }
+
   async performWrite(args: PerformWriteArgs) {
+
+    for (const middleware of this.onWriteMiddleware) {
+      await middleware(args)
+    }
+
     // cancel write and return 402 if path is invalid
     if (!InMemoryDriver.isPathValid(args.path)) {
       throw new BadPathError('Invalid Path')

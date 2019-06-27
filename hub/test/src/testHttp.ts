@@ -18,12 +18,110 @@ import { testPairs, testAddrs } from './common'
 import InMemoryDriver from './testDrivers/InMemoryDriver'
 import { MockAuthTimestampCache } from './MockAuthTimestampCache'
 import { HubConfigInterface } from '../../src/server/config'
+import { PassThrough } from 'stream';
 
 const TEST_SERVER_NAME = 'test-server'
 const TEST_AUTH_CACHE_SIZE = 10
 
 
 export function testHttpWithInMemoryDriver() {
+
+  test('reject concurrent requests to same resource (InMemory driver)', async (t) => {
+    const inMemoryDriver = await InMemoryDriver.spawn()
+    try {
+      const makeResult = makeHttpServer({ driverInstance: inMemoryDriver, serverName: TEST_SERVER_NAME, authTimestampCacheSize: TEST_AUTH_CACHE_SIZE })
+      const app = makeResult.app
+      const server = makeResult.server
+      const asyncMutexScope = makeResult.asyncMutex
+      server.authTimestampCache = new MockAuthTimestampCache()
+
+      const sk = testPairs[1]
+      const fileContents = sk.toWIF()
+      const blob = Buffer.from(fileContents)
+
+      const address = ecPairToAddress(sk)
+
+      let response = await request(app)
+        .get('/hub_info/')
+        .expect(200)
+    
+      const challenge = JSON.parse(response.text).challenge_text
+      const authPart = auth.V1Authentication.makeAuthPart(sk, challenge)
+      const authorization = `bearer ${authPart}`
+
+      const passThrough1 = new PassThrough()
+      passThrough1.write("stuff", "utf8")
+
+      const resolves: Set<() => void> = new Set()
+      inMemoryDriver.onWriteMiddleware.add((args) => {
+        return new Promise(resolve => {
+          resolves.add(resolve)
+        })
+      })
+
+      const reqPromise1 = request(app).post(`/store/${address}/helloWorld`)
+        .set('Content-Type', 'application/octet-stream')
+        .set('Authorization', authorization)
+        .send(blob)
+        .expect(202)
+
+      const reqPromise2 = request(app).post(`/store/${address}/helloWorld`)
+        .set('Content-Type', 'application/octet-stream')
+        .set('Authorization', authorization)
+        .send(blob)
+        .expect(409)
+
+      const reqPromise3 = request(app).delete(`/delete/${address}/helloWorld`)
+        .set('Content-Type', 'application/octet-stream')
+        .set('Authorization', authorization)
+        .send(blob)
+        .expect(409)
+
+      const releaseRequests = new Promise(resolve => {
+        setTimeout(() => {
+          for (const release of resolves) {
+            release()
+          }
+          resolve()
+        }, 50)
+      })
+
+      await Promise.all([reqPromise2, reqPromise1, reqPromise3, releaseRequests])
+
+      await reqPromise1
+      t.ok('First request (store) passes with no concurrent conflict')
+      await reqPromise2
+      t.ok('Second request (store) fails with concurrent conflict')
+      await reqPromise3
+      t.ok('Third request (delete) fails with concurrent conflict')
+
+      inMemoryDriver.onWriteMiddleware.clear()
+
+      await request(app).post(`/store/${address}/helloWorld`)
+        .set('Content-Type', 'application/octet-stream')
+        .set('Authorization', authorization)
+        .send(blob)
+        .expect(202)
+
+      t.ok('Fourth request (store) passes with no concurrent conflict')
+
+      await request(app).delete(`/delete/${address}/helloWorld`)
+        .set('Content-Type', 'application/octet-stream')
+        .set('Authorization', authorization)
+        .send(blob)
+        .expect(202)
+
+      t.ok('Fifth request (delete) passes with no concurrent conflict')
+
+      t.equals(asyncMutexScope.openedCount, 0, 'Should have no open mutexes when no requests are open')
+
+    } finally {
+      inMemoryDriver.dispose()
+    }
+  });
+
+
+
   test('handle request (InMemory driver)', async (t) => {
     const fetch = NodeFetch
     const inMemoryDriver = await InMemoryDriver.spawn()
