@@ -9,6 +9,7 @@
   "dependencies": {
     "@azure/storage-blob": "^10.3.0",
     "@google-cloud/storage": "^2.5.0",
+    "ajv": "^6.10.0",
     "aws-sdk": "^2.482.0",
     "bitcoinjs-lib": "^5.0.5",
     "blockstack": "^19.2.1",
@@ -56,7 +57,7 @@
     "start": "npm run build && node lib/index.js",
     "dev": "ts-node src/index.ts",
     "build": "tsc && chmod +x lib/index.js && npm run build-schema",
-    "build-schema": "typescript-json-schema tsconfig.json HubConfig --required --refs=false -o config-schema.json",
+    "build-schema": "typescript-json-schema tsconfig.json HubConfig --required --noExtraProps --refs=false -o config-schema.json",
     "lint": "eslint --ext .ts ./src",
     "test": "npm run build && npm run lint && NODE_ENV=test nyc node ./test/src/index.ts"
   },
