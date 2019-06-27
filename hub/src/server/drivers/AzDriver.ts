@@ -219,7 +219,8 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
     const blockBlobURL = azure.BlockBlobURL.fromBlobURL(blobURL)
 
     try {
-      const downloadResult = await blockBlobURL.download(azure.Aborter.none, 0, undefined)
+      const offset = 0
+      const downloadResult = await blockBlobURL.download(azure.Aborter.none, offset)
       const dataStream = downloadResult.readableStreamBody as Readable
       let lastModified: number | undefined
       if (downloadResult.lastModified) {
