@@ -373,6 +373,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
             contentLength: 100
           });
 
+          const dateNow1 = Math.round(Date.now() / 1000)
           const renameTestFile2b = 'renamable2b.txt'
           await driver.performRename({
             path: renameTestFile1a,
@@ -380,6 +381,23 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
             newPath: renameTestFile2b,
             newStorageTopLevel: topLevelStorage
           })
+
+          // test that the renamed file has the properties of the original file
+          const renamedFileRead = await driver.performRead({
+            path: renameTestFile2b,
+            storageTopLevel: topLevelStorage
+          })
+          const renamedFileContent = (await utils.readStream(renamedFileRead.data)).toString('utf8')
+          t.equal(renamedFileContent, 'abc sample content 1')
+          t.equal(renamedFileRead.exists, true, 'File stat should return exists after write')
+          t.equal(renamedFileRead.contentLength, 20, 'File stat should have correct content length')
+          t.equal(renamedFileRead.contentType, "text/plain; charset=utf-8", 'File stat should have correct content type')
+          const dateDiff = Math.abs(renamedFileRead.lastModifiedDate - dateNow1)
+          t.equal(dateDiff < 10, true, `File stat last modified date is not within range, diff: ${dateDiff} -- ${renamedFileRead.lastModifiedDate} vs ${dateNow1}`)
+
+          // test that the original file is reported as deleted
+          const movedFileStat = await driver.performStat({path: renameTestFile1a, storageTopLevel: topLevelStorage})
+          t.equal(movedFileStat.exists, false, 'Renamed file original path should report as non-existent')
 
         } catch (error) {
           t.error(error, `File rename error`)
