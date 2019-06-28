@@ -516,6 +516,16 @@ export function testServer() {
         return s
       }
 
+      // test .history. file write rejection
+      try {
+        await server.handleRequest(testAddrs[0], 'baz/.history.not_ok.txt', { 
+          'content-length': 400,
+          authorization }, getDataStream())
+      } catch (e) {
+        t.throws(() => { throw e }, errors.ValidationError, 'does not allow operations to .history. prefix')
+      }
+      t.equal(mockDriver.files.size, 0)
+
       await server.handleRequest(testAddrs[0], 'baz/foo.txt', { 
         'content-length': 400,
         authorization }, getDataStream())

@@ -56,9 +56,6 @@ export class AuthScopeValues {
 }
 
 export class AuthScopesTypes {
-  private constructor() {
-    // Disable class construction
-  }
   static readonly putFile = 'putFile'
   static readonly putFilePrefix = 'putFilePrefix'
   static readonly deleteFile = 'deleteFile'
