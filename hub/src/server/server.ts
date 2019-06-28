@@ -1,13 +1,14 @@
 
 
 import { validateAuthorizationHeader, getAuthenticationScopes } from './authentication'
-import { ValidationError } from './errors'
+import { ValidationError, DoesNotExist } from './errors'
 import { ProofChecker } from './ProofChecker'
 import { AuthTimestampCache } from './revocations'
 
 import { Readable } from 'stream'
-import { DriverModel } from './driverModel'
+import { DriverModel, PerformWriteArgs, PerformRenameArgs, PerformDeleteArgs } from './driverModel'
 import { HubConfigInterface } from './config'
+import { logger } from './utils'
 
 export class HubServer {
   driver: DriverModel
@@ -65,6 +66,23 @@ export class HubServer {
     }
   }
 
+  getHistoricalFileName(address: string, filePath: string) {
+    const pathParts = filePath.split('/')
+    const fileName = pathParts[pathParts.length - 1]
+    const filePathPrefix = filePath.slice(0, filePath.length - fileName.length)
+  
+    // reject writes to historical files
+    if (fileName.startsWith('.history.')) {
+      logger.warn(`Attempt was made to write directly to a historical file ${address}/${filePath}`)
+      throw new ValidationError('putFileArchival scope restricts writes to files that match the historical file naming scheme')
+    }
+  
+    const historicalName = `.history.${Date.now()}.${fileName}`
+    const historicalPath = `${filePathPrefix}${historicalName}`
+    return historicalPath
+  }
+  
+
   async handleDelete(
     address: string, path: string,
     requestHeaders: { authorization?: string }
@@ -74,6 +92,22 @@ export class HubServer {
 
     // can the caller delete? if so, in what paths?
     const scopes = getAuthenticationScopes(requestHeaders.authorization)
+    const isArchivalRestricted = scopes.writeArchivalPaths.length > 0 || scopes.writeArchivalPrefixes.length > 0
+    if (isArchivalRestricted) {
+      // we're limited to a set of prefixes and paths.
+      // does the given path match any prefixes?
+      let match = !!scopes.writeArchivalPrefixes.find((p) => (path.startsWith(p)))
+
+      if (!match) {
+        // check for exact paths
+        match = !!scopes.writeArchivalPaths.find((p) => (path === p))
+      }
+
+      if (!match) {
+        // not authorized to write to this path
+        throw new ValidationError(`Address ${address} not authorized to delete from ${path} by scopes`)
+      }
+    }
 
     if (scopes.deletePrefixes.length > 0 || scopes.deletePaths.length > 0) {
       // we're limited to a set of prefixes and paths.
@@ -93,12 +127,23 @@ export class HubServer {
 
     await this.proofChecker.checkProofs(address, path, this.getReadURLPrefix())
 
-    const deleteCommand = {
-      storageTopLevel: address,
-      path
+    if (isArchivalRestricted){
+      // if archival restricted then just rename the canonical file to the historical file
+      const historicalPath = this.getHistoricalFileName(address, path)
+      const renameCommand: PerformRenameArgs = {
+        path: path,
+        storageTopLevel: address,
+        newPath: historicalPath,
+        newStorageTopLevel: address
+      } 
+      await this.driver.performRename(renameCommand)
+    } else {
+      const deleteCommand: PerformDeleteArgs = {
+        storageTopLevel: address,
+        path
+      }
+      await this.driver.performDelete(deleteCommand)
     }
-
-    await this.driver.performDelete(deleteCommand)
   }
 
   async handleRequest(
@@ -121,6 +166,22 @@ export class HubServer {
 
     // can the caller write? if so, in what paths?
     const scopes = getAuthenticationScopes(requestHeaders.authorization)
+    const isArchivalRestricted = scopes.writeArchivalPaths.length > 0 || scopes.writeArchivalPrefixes.length > 0
+    if (isArchivalRestricted) {
+      // we're limited to a set of prefixes and paths.
+      // does the given path match any prefixes?
+      let match = !!scopes.writeArchivalPrefixes.find((p) => (path.startsWith(p)))
+
+      if (!match) {
+        // check for exact paths
+        match = !!scopes.writeArchivalPaths.find((p) => (path === p))
+      }
+
+      if (!match) {
+        // not authorized to write to this path
+        throw new ValidationError(`Address ${address} not authorized to write to ${path} by scopes`)
+      }
+    }
 
     if (scopes.writePrefixes.length > 0 || scopes.writePaths.length > 0) {
       // we're limited to a set of prefixes and paths.
@@ -138,14 +199,39 @@ export class HubServer {
       }
     }
 
-    const writeCommand = {
+    const writeCommand: PerformWriteArgs = {
       storageTopLevel: address,
       path, stream, contentType,
-      contentLength: parseInt(<string>requestHeaders['content-length'])
+      contentLength: parseInt(requestHeaders['content-length'] as string)
     }
 
     await this.proofChecker.checkProofs(address, path, this.getReadURLPrefix())
     
+    if (isArchivalRestricted) {
+      const historicalPath = this.getHistoricalFileName(address, path)
+      try {
+        await this.driver.performRename({
+          path: path,
+          storageTopLevel: address,
+          newPath: historicalPath,
+          newStorageTopLevel: address
+        })
+      } catch (error) {
+        if (error instanceof DoesNotExist) {
+          // ignore
+          logger.debug(
+            '404 on putFileArchival rename attempt -- usually this is okay and ' + 
+            'only indicates that this is the first time the file was written: ' +
+            `${address}/${path}`
+          )
+        } else {
+          logger.error(`Error performing historical file rename: ${address}/${path}`)
+          logger.error(error)
+          throw error
+        }
+      }
+    }
+
     const readURL = await this.driver.performWrite(writeCommand)
     const driverPrefix = this.driver.getReadURLPrefix()
     const readURLPrefix = this.getReadURLPrefix()

@@ -45,10 +45,10 @@ export class AuthScopeValues {
       switch (entry.scope) {
       case AuthScopesTypes.putFilePrefix: return scopeTypes.writePrefixes.push(entry.domain)
       case AuthScopesTypes.putFile: return scopeTypes.writePaths.push(entry.domain)
+      case AuthScopesTypes.putFileArchival: return scopeTypes.writeArchivalPaths.push(entry.domain)
+      case AuthScopesTypes.putFileArchivalPrefix: return scopeTypes.writeArchivalPrefixes.push(entry.domain)
       case AuthScopesTypes.deleteFilePrefix: return scopeTypes.deletePrefixes.push(entry.domain)
       case AuthScopesTypes.deleteFile: return scopeTypes.deletePaths.push(entry.domain)
-      case AuthScopesTypes.deleteFilePrefix: return scopeTypes.writeArchivalPrefixes.push(entry.domain)
-      case AuthScopesTypes.deleteFile: return scopeTypes.writeArchivalPaths.push(entry.domain)
       }
     })
     return scopeTypes
@@ -384,7 +384,7 @@ export class V1Authentication implements AuthenticationInterface {
 
 export class LegacyAuthentication implements AuthenticationInterface {
 
-  checkAssociationToken(token: string, bearerAddress: string): void {
+  checkAssociationToken(_token: string, _bearerAddress: string): void {
     throw new Error('Method not implemented.')
   }
 

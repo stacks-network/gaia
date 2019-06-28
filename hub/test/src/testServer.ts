@@ -3,13 +3,15 @@ import * as auth from '../../src/server/authentication'
 import * as errors from '../../src/server/errors'
 import { HubServer }  from '../../src/server/server'
 import { ProofChecker } from '../../src/server/ProofChecker'
-import { Readable } from 'stream'
+import { Readable, PassThrough } from 'stream'
 import { DriverModel } from '../../src/server/driverModel'
 import { ListFilesResult } from '../../src/server/driverModel'
 import { InMemoryDriver } from './testDrivers/InMemoryDriver'
 import { testPairs, testAddrs, createTestKeys } from './common'
 import { MockAuthTimestampCache } from './MockAuthTimestampCache'
 import * as integrationTestDrivers from './testDrivers/integrationTestDrivers'
+import { utils } from 'mocha';
+import { timeout } from '../../src/server/utils';
 
 const TEST_SERVER_NAME = 'test-server'
 const TEST_AUTH_CACHE_SIZE = 10
@@ -469,6 +471,126 @@ export function testServer() {
                                 { 'content-type' : 'text/text',
                                   'content-length': 400,
                                   authorization }, getJunkData())
+    })
+  })
+
+  test('handle archival writes', async (t) => {
+    await usingMemoryDriver(async (mockDriver) => {
+      const scopes = [
+        {
+          scope: 'putFileArchival',
+          domain: '/foo/bar',
+        },
+        {
+          scope: 'putFileArchivalPrefix',
+          domain: 'baz'
+        }
+      ]
+
+      const server = new HubServer(mockDriver, new MockProofs(),
+                                  { whitelist: [testAddrs[0]], serverName: TEST_SERVER_NAME,
+                                    authTimestampCacheSize: TEST_AUTH_CACHE_SIZE })
+      const challengeText = auth.getChallengeText(TEST_SERVER_NAME)
+
+      const authPart = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText, undefined, undefined, scopes)
+
+      const authorization = `bearer ${authPart}`
+      const authenticator = auth.parseAuthHeader(authorization)
+      t.throws(() => authenticator.isAuthenticationValid(testAddrs[1], [challengeText]),
+              errors.ValidationError, 'Wrong address must throw')
+      t.throws(() => authenticator.isAuthenticationValid(testAddrs[0], ['potatos are tasty']),
+              errors.ValidationError, 'Wrong challenge text must throw')
+      t.ok(authenticator.isAuthenticationValid(testAddrs[0], [challengeText]),
+          'Good signature must pass')
+
+      // scopes must be present
+      const authScopes = authenticator.getAuthenticationScopes()
+      t.equal(authScopes[0].scope, 'putFileArchival', 'scope 0 is putFileArchival')
+      t.equal(authScopes[0].domain, '/foo/bar', 'scope 0 is for /foo/bar')
+      t.equal(authScopes[1].scope, 'putFileArchivalPrefix', 'scope 1 is putFileArchivalPrefix')
+      t.equal(authScopes[1].domain, 'baz', 'scope 1 is for baz')
+
+      const getDataStream = () => {
+        const s = new PassThrough()
+        s.end('hello world')
+        return s
+      }
+
+      await server.handleRequest(testAddrs[0], 'baz/foo.txt', { 
+        'content-length': 400,
+        authorization }, getDataStream())
+      await timeout(1)
+      t.equal(mockDriver.files.has(`${testAddrs[0]}/baz/foo.txt`), true)
+      t.equal(mockDriver.files.size, 1)
+
+      await server.handleRequest(testAddrs[0], 'baz/foo.txt', { 
+        'content-length': 400,
+        authorization }, getDataStream())
+      await timeout(1)
+      t.equal(mockDriver.files.size, 2)
+      const historyEntries = [...mockDriver.files.keys()].filter(k => k.match(RegExp(`${testAddrs[0]}/baz/.history.[0-9]+.foo.txt`)))
+      t.equal(historyEntries.length === 1, true)
+
+
+      await server.handleRequest(testAddrs[0], 'baz/foo.txt', { 
+        'content-length': 400,
+        authorization }, getDataStream())
+      await timeout(1)
+      t.equal(mockDriver.files.size, 3)
+      const historyEntries2 = [...mockDriver.files.keys()].filter(k => k.match(RegExp(`${testAddrs[0]}/baz/.history.[0-9]+.foo.txt`)))
+      t.equal(historyEntries2.length === 2, true)
+
+      await server.handleRequest(testAddrs[0], '/foo/bar', { 
+        'content-type' : 'text/text',
+        'content-length': 400,
+        authorization }, getDataStream())
+      await timeout(1)
+      t.equal(mockDriver.files.size, 4)
+
+      await server.handleRequest(testAddrs[0], '/foo/bar',{ 
+        'content-type' : 'text/text',
+        'content-length': 400,
+        authorization }, getDataStream())
+      await timeout(1)
+      t.equal(mockDriver.files.size, 5)
+      t.equal(mockDriver.files.has(`${testAddrs[0]}//foo/bar`), true)
+      const historyEntries3 = [...mockDriver.files.keys()].filter(k => k.match(RegExp(`${testAddrs[0]}//foo/.history.[0-9]+.bar`)))
+      t.equal(historyEntries3.length === 1, true)
+
+      await server.handleDelete(testAddrs[0], '/foo/bar', { authorization })
+      await timeout(1)
+      t.equal(mockDriver.files.size, 5)
+      t.equal(mockDriver.files.has(`${testAddrs[0]}//foo/bar`), false)
+      const historyEntries4 = [...mockDriver.files.keys()].filter(k => k.match(RegExp(`${testAddrs[0]}//foo/.history.[0-9]+.bar`)))
+      t.equal(historyEntries4.length === 2, true)
+
+      await server.handleDelete(testAddrs[0], 'baz/foo.txt', { authorization })
+      await timeout(1)
+      t.equal(mockDriver.files.size, 5)
+      t.equal(mockDriver.files.has(`${testAddrs[0]}/baz/foo.txt`), false)
+      const historyEntries5 = [...mockDriver.files.keys()].filter(k => k.match(RegExp(`${testAddrs[0]}/baz/.history.[0-9]+.foo.txt`)))
+      t.equal(historyEntries5.length === 3, true)
+
+      await server.handleRequest(testAddrs[0], 'baz/foo.txt', { 
+        'content-length': 400,
+        authorization }, getDataStream())
+      await timeout(1)
+      t.equal(mockDriver.files.size, 6)
+      t.equal(mockDriver.files.has(`${testAddrs[0]}/baz/foo.txt`), true)
+      const historyEntries6 = [...mockDriver.files.keys()].filter(k => k.match(RegExp(`${testAddrs[0]}/baz/.history.[0-9]+.foo.txt`)))
+      t.equal(historyEntries6.length === 3, true)
+
+      try {
+        await server.handleDelete(testAddrs[0], '/nope/foo.txt', { authorization })
+      } catch (e) {
+        t.throws(() => { throw e }, errors.ValidationError, 'invalid path prefix should fail')
+      }
+
+      try {
+        await server.handleDelete(testAddrs[0], '/foo/bar/nope.txt', { authorization })
+      } catch (e) {
+        t.throws(() => { throw e }, errors.ValidationError, 'deleteFile does not allow prefixes')
+      }
     })
   })
 
