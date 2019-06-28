@@ -1,6 +1,6 @@
 
 
-import { validateAuthorizationHeader, getAuthenticationScopes, parseAuthScopes } from './authentication'
+import { validateAuthorizationHeader, getAuthenticationScopes } from './authentication'
 import { ValidationError } from './errors'
 import { ProofChecker } from './ProofChecker'
 import { AuthTimestampCache } from './revocations'
@@ -73,7 +73,7 @@ export class HubServer {
     this.validate(address, requestHeaders, oldestValidTokenTimestamp)
 
     // can the caller delete? if so, in what paths?
-    const scopes = parseAuthScopes(requestHeaders.authorization)
+    const scopes = getAuthenticationScopes(requestHeaders.authorization)
 
     if (scopes.deletePrefixes.length > 0 || scopes.deletePaths.length > 0) {
       // we're limited to a set of prefixes and paths.
@@ -120,7 +120,7 @@ export class HubServer {
     }
 
     // can the caller write? if so, in what paths?
-    const scopes = parseAuthScopes(requestHeaders.authorization)
+    const scopes = getAuthenticationScopes(requestHeaders.authorization)
 
     if (scopes.writePrefixes.length > 0 || scopes.writePaths.length > 0) {
       // we're limited to a set of prefixes and paths.

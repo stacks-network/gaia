@@ -13,29 +13,61 @@ function pubkeyHexToECPair (pubkeyHex: string) {
   return bitcoinjs.ECPair.fromPublicKey(pkBuff)
 }
 
-export type AuthScopeType = {
-  scope: string,
+export interface AuthScopeEntry {
+  scope: string
   domain: string
 }
 
-export type TokenPayloadType = {
-  gaiaChallenge: string,
-  iss: string,
-  exp: number,
-  iat?: number,
-  salt: string,
-  hubUrl?: string,
-  associationToken?: string,
-  scopes?: AuthScopeType[],
+export interface TokenPayloadType {
+  gaiaChallenge: string
+  iss: string
+  exp: number
+  iat?: number
+  salt: string
+  hubUrl?: string
+  associationToken?: string
+  scopes?: AuthScopeEntry[]
   childToAssociate?: string
 }
 
-export const AuthScopes = [
-  'putFile',
-  'putFilePrefix',
-  'deleteFile',
-  'deleteFilePrefix'
-]
+export class AuthScopeValues {
+
+  writePrefixes: string[] = []
+  writePaths: string[] = []
+  deletePrefixes: string[] = []
+  deletePaths: string[] = []
+  writeArchivalPrefixes: string[] = []
+  writeArchivalPaths: string[] = []
+
+  static parseEntries(scopes: AuthScopeEntry[]) {
+    const scopeTypes = new AuthScopeValues()
+    scopes.forEach(entry => {
+      switch (entry.scope) {
+      case AuthScopesTypes.putFilePrefix: return scopeTypes.writePrefixes.push(entry.domain)
+      case AuthScopesTypes.putFile: return scopeTypes.writePaths.push(entry.domain)
+      case AuthScopesTypes.deleteFilePrefix: return scopeTypes.deletePrefixes.push(entry.domain)
+      case AuthScopesTypes.deleteFile: return scopeTypes.deletePaths.push(entry.domain)
+      case AuthScopesTypes.deleteFilePrefix: return scopeTypes.writeArchivalPrefixes.push(entry.domain)
+      case AuthScopesTypes.deleteFile: return scopeTypes.writeArchivalPaths.push(entry.domain)
+      }
+    })
+    return scopeTypes
+  }
+}
+
+export class AuthScopesTypes {
+  private constructor() {
+    // Disable class construction
+  }
+  static readonly putFile = 'putFile'
+  static readonly putFilePrefix = 'putFilePrefix'
+  static readonly deleteFile = 'deleteFile'
+  static readonly deleteFilePrefix = 'deleteFilePrefix'
+  static readonly putFileArchival = 'putFileArchival'
+  static readonly putFileArchivalPrefix = 'putFileArchivalPrefix'
+}
+
+export const AuthScopeTypeArray: string[] = Object.values(AuthScopesTypes).filter(val => typeof val === 'string')
 
 export function getTokenPayload(token: import('jsontokens/lib/decode').TokenInterface) {
   if (typeof token.payload === 'string') {
@@ -44,26 +76,19 @@ export function getTokenPayload(token: import('jsontokens/lib/decode').TokenInte
   return token.payload
 }
 
-export interface AuthScopeTypes {
-  writePrefixes: string[];
-  writePaths: string[];
-  deletePrefixes: string[];
-  deletePaths: string[];
-}
-
 export interface AuthenticationInterface {
   checkAssociationToken(token: string, bearerAddress: string): void
-  getAuthenticationScopes(): Array<AuthScopeType>
+  getAuthenticationScopes(): AuthScopeEntry[]
   isAuthenticationValid(
     address: string, 
-    challengeTexts: Array<string>,
+    challengeTexts: string[],
     options?: { 
       requireCorrectHubUrl?: boolean,
-      validHubUrls?: Array<string>,
+      validHubUrls?: string[],
       oldestValidTokenTimestamp?: number 
     }
   ): string
-  parseAuthScopes(): AuthScopeTypes
+  parseAuthScopes(): AuthScopeValues
 }
 
 export class V1Authentication implements AuthenticationInterface {
@@ -100,7 +125,7 @@ export class V1Authentication implements AuthenticationInterface {
   }
 
   static makeAuthPart(secretKey: bitcoinjs.ECPairInterface, challengeText: string,
-                      associationToken?: string, hubUrl?: string, scopes?: Array<AuthScopeType>,
+                      associationToken?: string, hubUrl?: string, scopes?: AuthScopeEntry[],
                       issuedAtDate?: number) {
 
     const FOUR_MONTH_SECONDS = 60 * 60 * 24 * 31 * 4
@@ -201,32 +226,7 @@ export class V1Authentication implements AuthenticationInterface {
 
   parseAuthScopes() {
     const scopes = this.getAuthenticationScopes()
-    const writePrefixes: string[] = []
-    const writePaths: string[] = []
-    const deletePrefixes: string[] = []
-    const deletePaths: string[] = []
-    for (let i = 0; i < scopes.length; i++) {
-      switch (scopes[i].scope) {
-      case 'putFilePrefix':
-        writePrefixes.push(scopes[i].domain)
-        break
-      case 'putFile':
-        writePaths.push(scopes[i].domain)
-        break
-      case 'deleteFilePrefix':
-        deletePrefixes.push(scopes[i].domain)
-        break
-      case 'deleteFile':
-        deletePaths.push(scopes[i].domain)
-        break
-      }
-    }
-    return {
-      writePrefixes,
-      writePaths,
-      deletePrefixes,
-      deletePaths
-    }
+    return AuthScopeValues.parseEntries(scopes)
   }
 
   /*
@@ -237,7 +237,7 @@ export class V1Authentication implements AuthenticationInterface {
    * Returns the scopes, if there are any given.
    * Returns [] if there is no association token, or if the association token has no scopes
    */
-  getAuthenticationScopes(): Array<AuthScopeType> {
+  getAuthenticationScopes() {
     const payload = (() => {
       try {
         return getTokenPayload(decodeToken(this.token))
@@ -254,7 +254,7 @@ export class V1Authentication implements AuthenticationInterface {
     }
 
     // unambiguously convert to AuthScope
-    const scopes = payload.scopes.map((s: any) => {
+    const scopes: AuthScopeEntry[] = payload.scopes.map((s: any) => {
       const r = {
         scope: String(s.scope),
         domain: String(s.domain)
@@ -388,14 +388,9 @@ export class LegacyAuthentication implements AuthenticationInterface {
     throw new Error('Method not implemented.')
   }
 
-  parseAuthScopes(): AuthScopeTypes {
+  parseAuthScopes(): AuthScopeValues {
     // TODO: can legacy auth tokens be maliciously created to get around restrictive auth scopes?
-    return {
-      writePaths: [],
-      writePrefixes: [],
-      deletePaths: [],
-      deletePrefixes: []
-    }
+    return new AuthScopeValues()
   }
 
   publickey: bitcoinjs.ECPairInterface
@@ -429,7 +424,7 @@ export class LegacyAuthentication implements AuthenticationInterface {
     return Buffer.from(JSON.stringify(authObj)).toString('base64')
   }
 
-  getAuthenticationScopes(): Array<AuthScopeType> {
+  getAuthenticationScopes(): AuthScopeEntry[] {
     // no scopes supported in this version
     return []
   }
@@ -528,14 +523,8 @@ export function validateAuthorizationHeader(authHeader: string, serverName: stri
  */
 export function getAuthenticationScopes(authHeader: string) {
   const authObject = parseAuthHeader(authHeader)
-  return authObject.getAuthenticationScopes()
-}
-
-export function parseAuthScopes(authHeader: string) {
-  const authObject = parseAuthHeader(authHeader)
   return authObject.parseAuthScopes()
 }
-
 
 /*
  * Validate authentication scopes.  They must be well-formed,
@@ -543,7 +532,7 @@ export function parseAuthScopes(authHeader: string) {
  * Return true if valid.
  * Throw ValidationError on error
  */
-function validateScopes(scopes: Array<AuthScopeType>) {
+function validateScopes(scopes: AuthScopeEntry[]) {
   if (scopes.length > 8) {
     throw new ValidationError('Too many authentication scopes')
   }
@@ -552,7 +541,7 @@ function validateScopes(scopes: Array<AuthScopeType>) {
     const scope = scopes[i]
 
     // valid scope?
-    const found = AuthScopes.find((s) => (s === scope.scope))
+    const found = AuthScopeTypeArray.find((s) => (s === scope.scope))
     if (!found) {
       throw new ValidationError(`Unrecognized scope ${scope.scope}`)
     }
