@@ -64,15 +64,9 @@ export function timeout(milliseconds: number): Promise<void> {
 }
 
 
-export interface AsyncMutex {
-  id: string;
-  owner: Promise<void>;
-  alive: boolean;
-}
-
 export class AsyncMutexScope {
 
-  private readonly _opened: Map<string, AsyncMutex> = new Map()
+  private readonly _opened = new Set<string>()
 
   public get openedCount() {
     return this._opened.size
@@ -93,15 +87,9 @@ export class AsyncMutexScope {
 
     // Wrap in Promise.resolve to ensure potential synchronous errors are not throw within this function. 
     const owner = Promise.resolve().then(() => spawnOwner())
-    const mutex: AsyncMutex = {
-      id: id,
-      owner: owner,
-      alive: true
-    }
-    this._opened.set(id, mutex)
+    this._opened.add(id)
     owner.finally(() => {
       this._opened.delete(id)
-      mutex.alive = false
     })
     return true
   }
