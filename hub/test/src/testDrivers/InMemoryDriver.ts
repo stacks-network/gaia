@@ -1,9 +1,9 @@
 
 
-import { readStream } from '../../../src/server/utils'
+import { readStream, dateToUnixTimeSeconds } from '../../../src/server/utils'
 import { Server } from 'http'
 import express from 'express'
-import { DriverModel, DriverStatics, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult, PerformReadArgs, ReadResult } from '../../../src/server/driverModel'
+import { DriverModel, DriverStatics, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult, PerformReadArgs, ReadResult, PerformListFilesArgs, ListFilesStatResult } from '../../../src/server/driverModel'
 import { ListFilesResult, PerformWriteArgs } from '../../../src/server/driverModel'
 import { BadPathError, InvalidInputError, DoesNotExist, ConflictError } from '../../../src/server/errors'
 import { PassThrough } from 'stream';
@@ -114,7 +114,7 @@ export class InMemoryDriver implements DriverModel {
         throw new DoesNotExist('File does not exist')
       }
       const file = this.files.get(`${args.storageTopLevel}/${args.path}`)
-      const lastModified = Math.round(file.lastModified.getTime() / 1000)
+      const lastModified = dateToUnixTimeSeconds(file.lastModified)
 
       const dataStream = new PassThrough()
       dataStream.end(file.content)
@@ -136,13 +136,13 @@ export class InMemoryDriver implements DriverModel {
         throw new BadPathError('Invalid Path')
       }
       if (!this.files.has(`${args.storageTopLevel}/${args.path}`)) {
-        const result: StatResult = {
+        const result = {
           exists: false
-        }
+        } as StatResult
         return result
       } else {
         const file = this.files.get(`${args.storageTopLevel}/${args.path}`)
-        const lastModified = Math.round(file.lastModified.getTime() / 1000)
+        const lastModified = dateToUnixTimeSeconds(file.lastModified)
         const result: StatResult = {
           exists: true,
           contentLength: file.content.byteLength,
@@ -171,20 +171,24 @@ export class InMemoryDriver implements DriverModel {
     })
   }
 
-  listFiles(storageTopLevel: string, page?: string): Promise<ListFilesResult> {
-    if (page && !page.match(/^[0-9]+$/)) {
+  listFiles(args: PerformListFilesArgs): Promise<ListFilesResult> {
+    if (args.page && !args.page.match(/^[0-9]+$/)) {
       throw new Error('Invalid page number')
     }
-    const pageNum = page ? parseInt(page) : 0
+    const pageNum = args.page ? parseInt(args.page) : 0
     const names = Array.from(this.files.keys())
-      .filter(path => path.startsWith(storageTopLevel))
-      .map(path => path.slice(storageTopLevel.length + 1))
+      .filter(path => path.startsWith(args.pathPrefix))
+      .map(path => path.slice(args.pathPrefix.length + 1))
     const entries = names.slice(pageNum * this.pageSize, (pageNum + 1) * this.pageSize)
     const pageResult = entries.length === names.length ? null : `${pageNum + 1}`
     return Promise.resolve({
       entries,
       page: pageResult
     })
+  }
+
+  listFilesStat(args: PerformListFilesArgs): Promise<ListFilesStatResult> {
+    throw new Error('not implemented')
   }
 
   async dispose() {

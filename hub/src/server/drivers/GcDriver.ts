@@ -1,9 +1,9 @@
 import { Storage, File } from '@google-cloud/storage'
 
 import { BadPathError, InvalidInputError, DoesNotExist } from '../errors'
-import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, StatResult, PerformStatArgs, PerformReadArgs, ReadResult } from '../driverModel'
+import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, StatResult, PerformStatArgs, PerformReadArgs, ReadResult, PerformListFilesArgs, ListFilesStatResult, ListFileStatResult } from '../driverModel'
 import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
-import { pipeline, logger } from '../utils'
+import { pipeline, logger, dateToUnixTimeSeconds } from '../utils'
 
 export interface GC_CONFIG_TYPE {
   gcCredentials?: {
@@ -106,7 +106,7 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
   }
 
   async deleteEmptyBucket() {
-    const files = await this.listFiles('')
+    const files = await this.listFiles({pathPrefix: ''})
     if (files.entries.length > 0) {
       /* istanbul ignore next */
       throw new Error('Tried deleting non-empty bucket')
@@ -122,7 +122,7 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
       pageToken: page || undefined
     }
 
-    const result: any = await new Promise((resolve, reject) => {
+    const getFilesResult = await new Promise<{files: File[], nextQuery: any}>((resolve, reject) => {
       this.storage
         .bucket(this.bucket)
         .getFiles(opts, (err, files, nextQuery) => {
@@ -133,21 +133,44 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
           }
         })
     })
-
-    const files: File[] = result.files
-    const nextQuery: any = result.nextQuery
-
-    const fileNames = files.map(file => file.name.slice(prefix.length + 1))
-    const ret: ListFilesResult = {
-      entries: fileNames,
-      page: (nextQuery && nextQuery.pageToken) || null
+    const fileEntries = getFilesResult.files.map(file => {
+      return {
+        name: file.name.slice(prefix.length + 1),
+        file: file
+      }
+    })
+    const result = {
+      entries: fileEntries,
+      page: (getFilesResult.nextQuery && getFilesResult.nextQuery.pageToken) || null
     }
-    return ret
+    return result
   }
 
-  listFiles(prefix: string, page?: string) {
+  async listFiles(args: PerformListFilesArgs): Promise<ListFilesResult> {
     // returns {'entries': [...], 'page': next_page}
-    return this.listAllObjects(prefix, page)
+    const listResult = await this.listAllObjects(args.pathPrefix, args.page)
+    const result: ListFilesResult = {
+      page: listResult.page,
+      entries: listResult.entries.map(file => file.name)
+    }
+    return result
+  }
+
+  async listFilesStat(args: PerformListFilesArgs): Promise<ListFilesStatResult> {
+    const listResult = await this.listAllObjects(args.pathPrefix, args.page)
+    const result: ListFilesStatResult = {
+      page: listResult.page,
+      entries: listResult.entries.map(entry => {
+        const statResult = GcDriver.parseFileMetadataStat(entry.file.metadata)
+        const entryResult: ListFileStatResult = {
+          ...statResult,
+          name: entry.name,
+          exists: true
+        }
+        return entryResult
+      })
+    }
+    return result
   }
 
   async performWrite(args: PerformWriteArgs): Promise<string> {
@@ -223,6 +246,17 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
     }
   }
 
+  static parseFileMetadataStat(metadata: any): StatResult {
+    const lastModified = dateToUnixTimeSeconds(new Date(metadata.updated))
+    const result: StatResult = {
+      exists: true,
+      contentType: metadata.contentType,
+      contentLength: parseInt(metadata.size),
+      lastModifiedDate: lastModified
+    }
+    return result
+  }
+
   async performRead(args: PerformReadArgs): Promise<ReadResult> {
     if (!GcDriver.isPathValid(args.path)) {
       throw new BadPathError('Invalid Path')
@@ -233,14 +267,11 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
       .file(filename)
     try {
       const [getResult] = await bucketFile.get({autoCreate: false})
-      const metadataResult = getResult.metadata
+      const statResult = GcDriver.parseFileMetadataStat(getResult.metadata)
       const dataStream = getResult.createReadStream()
-      const lastModified = Math.round(new Date(metadataResult.updated).getTime() / 1000)
       const result: ReadResult = {
+        ...statResult,
         exists: true,
-        contentType: metadataResult.contentType,
-        contentLength: parseInt(metadataResult.size),
-        lastModifiedDate: lastModified,
         data: dataStream
       }
       return result
@@ -266,19 +297,13 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
       .file(filename)
     try {
       const [metadataResult] = await bucketFile.getMetadata()
-      const lastModified = Math.round(new Date(metadataResult.updated).getTime() / 1000)
-      const result: StatResult = {
-        exists: true,
-        contentType: metadataResult.contentType,
-        contentLength: parseInt(metadataResult.size),
-        lastModifiedDate: lastModified
-      }
+      const result = GcDriver.parseFileMetadataStat(metadataResult)
       return result
     } catch (error) {
       if (error.code === 404) {
-        const result: StatResult = {
+        const result = {
           exists: false
-        }
+        } as StatResult
         return result
       }
       /* istanbul ignore next */

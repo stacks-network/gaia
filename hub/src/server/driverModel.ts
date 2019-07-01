@@ -3,7 +3,22 @@
 import { Readable } from 'stream'
 
 export interface ListFilesResult { 
-  entries: Array<string>;
+  entries: string[];
+  page?: string;
+}
+
+export interface ListFilesStatResult {
+  entries: ListFileStatResult[];
+  page?: string;
+}
+
+export interface ListFileStatResult extends Required<StatResult> {
+  name: string;
+  exists: true;
+}
+
+export interface PerformListFilesArgs {
+  pathPrefix: string;
   page?: string;
 }
 
@@ -25,7 +40,7 @@ export interface PerformReadArgs {
   storageTopLevel: string;
 }
 
-export interface ReadResult extends Required<StatResult> {
+export interface ReadResult extends StatResult {
   data: Readable;
   exists: true
 }
@@ -37,9 +52,9 @@ export interface PerformStatArgs {
 
 export interface StatResult {
   exists: boolean;
-  lastModifiedDate?: number;
-  contentLength?: number;
-  contentType?: string;
+  lastModifiedDate: number;
+  contentLength: number;
+  contentType: string;
 }
 
 export interface PerformRenameArgs {
@@ -56,7 +71,8 @@ export interface DriverModel {
   performRename(args: PerformRenameArgs): Promise<void>;
   performStat(args: PerformStatArgs): Promise<StatResult>;
   performRead(args: PerformReadArgs): Promise<ReadResult>;
-  listFiles(storageTopLevel: string, page?: string): Promise<ListFilesResult>;
+  listFiles(args: PerformListFilesArgs): Promise<ListFilesResult>;
+  listFilesStat(args: PerformListFilesArgs): Promise<ListFilesStatResult>;
   ensureInitialized(): Promise<void>;
   dispose(): Promise<void>;
 }

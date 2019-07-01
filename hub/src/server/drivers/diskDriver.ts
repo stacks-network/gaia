@@ -1,9 +1,10 @@
 import fs from 'fs-extra'
+import { readdir } from 'fs'
 import { BadPathError, InvalidInputError, DoesNotExist } from '../errors'
 import Path from 'path'
-import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult, PerformReadArgs, ReadResult } from '../driverModel'
+import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult, PerformReadArgs, ReadResult, PerformListFilesArgs, ListFilesStatResult, ListFileStatResult } from '../driverModel'
 import { DriverStatics, DriverModel } from '../driverModel'
-import { pipeline, logger } from '../utils'
+import { pipeline, logger, dateToUnixTimeSeconds } from '../utils'
 
 export interface DISK_CONFIG_TYPE { 
   diskSettings: { storageRootDirectory?: string },
@@ -93,13 +94,22 @@ class DiskDriver implements DriverModel {
 
   async findAllFiles(listPath: string): Promise<string[]> {
     // returns a list of files prefixed by listPath
-    const dirEntries: fs.Dirent[] = await (<any>fs.readdir)(listPath, { withFileTypes: true })
-    const fileNames = []
+    const dirEntries: fs.Dirent[] = await new Promise((resolve, reject) => {
+      readdir(listPath, {withFileTypes: true}, (err, files) => {
+        if (err) {
+          reject(err)
+        } else {
+          resolve(files)
+        }
+      })
+    })
+
+    const fileNames: string[] = []
     for (const dirEntry of dirEntries) {
       const fileOrDir = `${listPath}${Path.sep}${dirEntry.name}`
       if (dirEntry.isDirectory()) {
-        const childNames = await this.findAllFiles(fileOrDir)
-        fileNames.push(...childNames)
+        const childEntries = await this.findAllFiles(fileOrDir)
+        fileNames.push(...childEntries)
       } else {
         fileNames.push(Path.posix.normalize(fileOrDir))
       }
@@ -109,35 +119,35 @@ class DiskDriver implements DriverModel {
 
   async listFilesInDirectory(listPath: string, pageNum: number): Promise<ListFilesResult> {
     const files = await this.findAllFiles(listPath)
-    const names = files.map(fileName => fileName.slice(listPath.length + 1))
-    const entries = names.slice(pageNum * this.pageSize, (pageNum + 1) * this.pageSize)
-    const page = entries.length === names.length ? null : `${pageNum + 1}`
+    const entries = files.map(file => file.slice(listPath.length + 1))
+    const sliced = entries.slice(pageNum * this.pageSize, (pageNum + 1) * this.pageSize)
+    const page = sliced.length === entries.length ? null : `${pageNum + 1}`
     return {
-      entries,
-      page
+      entries: sliced,
+      page: page
     }
   }
 
-  async listFiles(prefix: string, page?: string) {
+  async listFilesInternal(args: PerformListFilesArgs): Promise<ListFilesResult> {
     // returns {'entries': [...], 'page': next_page}
     let pageNum
-    const listPath = Path.normalize(`${this.storageRootDirectory}/${prefix}`)
-    const emptyResponse: ListFilesResult = {
-      entries: [],
-      page: null
-    }
+    const listPath = Path.normalize(`${this.storageRootDirectory}/${args.pathPrefix}`)
 
-    if (!(await (<any>fs.exists)(listPath))) {
+    if (!await fs.pathExists(listPath)) {
       // nope 
+      const emptyResponse: ListFilesResult = {
+        entries: [],
+        page: null
+      }
       return emptyResponse
     }
       
     try {
-      if (page) {
-        if (!page.match(/^[0-9]+$/)) {
+      if (args.page) {
+        if (!args.page.match(/^[0-9]+$/)) {
           throw new Error('Invalid page number')
         }
-        pageNum = parseInt(page)
+        pageNum = parseInt(args.page)
       } else {
         pageNum = 0
       }
@@ -150,7 +160,29 @@ class DiskDriver implements DriverModel {
       throw new Error('Invalid arguments: invalid page or not a directory')
     }
 
-    return await this.listFilesInDirectory(listPath, pageNum)
+    const listResult = await this.listFilesInDirectory(listPath, pageNum)
+    return listResult
+  }
+
+  async listFiles(args: PerformListFilesArgs): Promise<ListFilesResult> {
+    return await this.listFilesInternal(args)
+  }
+
+  async listFilesStat(args: PerformListFilesArgs): Promise<ListFilesStatResult> {
+    const filePathResult = await this.listFilesInternal(args)
+    const fileStats: ListFileStatResult[] = []
+    for (const file in filePathResult) {
+      const fileStat = await this.performStat({storageTopLevel: args.pathPrefix, path: file})
+      fileStats.push({
+        ...fileStat,
+        name: file,
+        exists: true
+      })
+    }
+    return {
+      page: filePathResult.page,
+      entries: fileStats
+    }
   }
 
   getFullFilePathInfo(args: {storageTopLevel: string, path: string} ) {
@@ -235,6 +267,19 @@ class DiskDriver implements DriverModel {
     await fs.unlink(contentTypeFilePath)
   }
 
+  static async parseFileStat(stat: fs.Stats, contentTypeFilePath: string): Promise<StatResult> {
+    const contentTypeJsonStr = await fs.readFile(contentTypeFilePath, 'utf8')
+    const contentType = JSON.parse(contentTypeJsonStr)['content-type']
+    const lastModified = dateToUnixTimeSeconds(stat.mtime)
+    const result: StatResult = {
+      exists: true,
+      contentLength: stat.size,
+      contentType: contentType,
+      lastModifiedDate: lastModified
+    }
+    return result
+  }
+
   async performRead(args: PerformReadArgs): Promise<ReadResult> {
     const { absoluteFilePath, contentTypeFilePath } = this.getFullFilePathInfo(args)
     let stat: fs.Stats
@@ -254,15 +299,11 @@ class DiskDriver implements DriverModel {
       // (pseudo-directory) of existing blobs.
       throw new DoesNotExist('File does not exist')
     }
-    const contentTypeJsonStr = await fs.readFile(contentTypeFilePath, 'utf8')
-    const contentType = JSON.parse(contentTypeJsonStr)['content-type']
+    const fileStat = await DiskDriver.parseFileStat(stat, contentTypeFilePath)
     const dataStream = fs.createReadStream(absoluteFilePath)
-    const lastModified = Math.round(stat.mtime.getTime() / 1000)
     const result: ReadResult = {
+      ...fileStat,
       exists: true,
-      contentLength: stat.size,
-      contentType: contentType,
-      lastModifiedDate: lastModified,
       data: dataStream
     }
     return result
@@ -275,9 +316,9 @@ class DiskDriver implements DriverModel {
       stat = await fs.stat(absoluteFilePath)
     } catch (error) {
       if (error.code === 'ENOENT') {
-        const result: StatResult = {
+        const result = {
           exists: false
-        }
+        } as StatResult
         return result
       }
       /* istanbul ignore next */
@@ -288,20 +329,12 @@ class DiskDriver implements DriverModel {
       // Directories are not first-class objects in blob storages, and so they will 
       // simply return 404s for the blob name even if the name happens to be a prefix
       // (pseudo-directory) of existing blobs.
-      const result: StatResult = {
+      const result = {
         exists: false
-      }
+      } as StatResult
       return result
     }
-    const contentTypeJsonStr = await fs.readFile(contentTypeFilePath, 'utf8')
-    const contentType = JSON.parse(contentTypeJsonStr)['content-type']
-    const lastModified = Math.round(stat.mtime.getTime() / 1000)
-    const result: StatResult = {
-      exists: true,
-      contentLength: stat.size,
-      contentType: contentType,
-      lastModifiedDate: lastModified
-    }
+    const result = await DiskDriver.parseFileStat(stat, contentTypeFilePath)
     return result
   }
 
