@@ -269,16 +269,16 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
     }
   }
 
-  static parseFileStat(headResult: S3.HeadObjectOutput): StatResult {
+  static parseFileStat(obj: S3.HeadObjectOutput | S3.Object): StatResult {
     let lastModified: number | undefined
-    if (headResult.LastModified) {
-      lastModified = dateToUnixTimeSeconds(headResult.LastModified)
+    if (obj.LastModified) {
+      lastModified = dateToUnixTimeSeconds(obj.LastModified)
     }
     const result: StatResult = {
       exists: true,
       lastModifiedDate: lastModified,
-      contentLength: headResult.ContentLength,
-      contentType: headResult.ContentType
+      contentLength: (obj as S3.HeadObjectOutput).ContentLength || (obj as S3.Object).Size,
+      contentType: (obj as S3.HeadObjectOutput).ContentType
     }
     return result
   }

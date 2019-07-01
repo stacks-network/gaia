@@ -3,7 +3,7 @@
 import { readStream, dateToUnixTimeSeconds } from '../../../src/server/utils'
 import { Server } from 'http'
 import express from 'express'
-import { DriverModel, DriverStatics, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult, PerformReadArgs, ReadResult, PerformListFilesArgs, ListFilesStatResult } from '../../../src/server/driverModel'
+import { DriverModel, DriverStatics, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult, PerformReadArgs, ReadResult, PerformListFilesArgs, ListFilesStatResult, ListFileStatResult } from '../../../src/server/driverModel'
 import { ListFilesResult, PerformWriteArgs } from '../../../src/server/driverModel'
 import { BadPathError, InvalidInputError, DoesNotExist, ConflictError } from '../../../src/server/errors'
 import { PassThrough } from 'stream';
@@ -171,24 +171,37 @@ export class InMemoryDriver implements DriverModel {
     })
   }
 
-  listFiles(args: PerformListFilesArgs): Promise<ListFilesResult> {
+  async listFiles(args: PerformListFilesArgs): Promise<ListFilesResult> {
+    const listResult = await this.listFilesStat(args)
+    return {
+      entries: listResult.entries.map(e => e.name),
+      page: listResult.page
+    }
+  }
+
+  listFilesStat(args: PerformListFilesArgs): Promise<ListFilesStatResult> {
     if (args.page && !args.page.match(/^[0-9]+$/)) {
       throw new Error('Invalid page number')
     }
     const pageNum = args.page ? parseInt(args.page) : 0
-    const names = Array.from(this.files.keys())
-      .filter(path => path.startsWith(args.pathPrefix))
-      .map(path => path.slice(args.pathPrefix.length + 1))
+    const names = Array.from(this.files.entries())
+      .filter(([path]) => path.startsWith(args.pathPrefix))
+      .map(([path, val]) => {
+        const entry: ListFileStatResult = {
+          name: path.slice(args.pathPrefix.length + 1),
+          exists: true,
+          contentLength: val.content.byteLength,
+          contentType: val.contentType,
+          lastModifiedDate: dateToUnixTimeSeconds(val.lastModified)
+        }
+        return entry
+      })
     const entries = names.slice(pageNum * this.pageSize, (pageNum + 1) * this.pageSize)
     const pageResult = entries.length === names.length ? null : `${pageNum + 1}`
     return Promise.resolve({
       entries,
       page: pageResult
     })
-  }
-
-  listFilesStat(args: PerformListFilesArgs): Promise<ListFilesStatResult> {
-    throw new Error('not implemented')
   }
 
   async dispose() {

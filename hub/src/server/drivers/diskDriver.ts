@@ -171,7 +171,7 @@ class DiskDriver implements DriverModel {
   async listFilesStat(args: PerformListFilesArgs): Promise<ListFilesStatResult> {
     const filePathResult = await this.listFilesInternal(args)
     const fileStats: ListFileStatResult[] = []
-    for (const file in filePathResult) {
+    for (const file of filePathResult.entries) {
       const fileStat = await this.performStat({storageTopLevel: args.pathPrefix, path: file})
       fileStats.push({
         ...fileStat,
