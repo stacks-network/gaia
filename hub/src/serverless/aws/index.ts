@@ -241,8 +241,8 @@ const buildHubServer = async (): Promise<HubServer> => {
 
   let config = getConfig()
 
-  var gaiaServerName = String(process.env.GAIA_SERVER_NAME);
-  if (gaiaServerName.length === 0) {
+  var gaiaServerName = process.env.GAIA_SERVER_NAME;
+  if (gaiaServerName === undefined || gaiaServerName === "") {
     // A bug / limitation with AWS SAM makes the creation of an env var GAIA_SERVER_NAME impossible.
     // As a consequence, when gaia is being deployed via AWS Lambda Marketplace / SAM,
     // We fallback on fetching GAIA_SERVER_NAME from a parameter store.
@@ -257,8 +257,8 @@ const buildHubServer = async (): Promise<HubServer> => {
       throw "Unable to fetch the Parameter Store"
     }
 
-    gaiaServerName = String(req.Parameter.Value)
-    if (gaiaServerName.length === 0) {
+    gaiaServerName = req.Parameter.Value
+    if (gaiaServerName === undefined || gaiaServerName === "") {
       throw "Unable to retrieve GAIA_SERVER_NAME"
     }
   }
