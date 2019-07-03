@@ -1,18 +1,25 @@
 'use strict'
 
 import { APIGatewayProxyEvent } from 'aws-lambda'
+import AWS from 'aws-sdk'
 import { HubServer } from '../../server/server'
 import { getConfig } from '../../server/config'
-import { DriverModel } from '../../server/driverModel'
+import S3Driver, { S3_CONFIG_TYPE } from '../../server/drivers/S3Driver'
 import { getDriverClass } from '../../server/utils'
 import { ProofChecker } from '../../server/ProofChecker'
 import * as errors from '../../server/errors'
 import { Readable } from 'stream'
 import { getChallengeText, LATEST_AUTH_VERSION } from '../../server/authentication'
 
+let hubServer: HubServer = undefined
+
 module.exports.handleRequest = async (event: APIGatewayProxyEvent) => {
 
-  const hubServer = buildHubServer()
+  try {
+    hubServer = await buildHubServer()
+  } catch (err) {
+    return writeResponse({ message: err.message, error: err.name }, 500)
+  }
 
   // Extract address from path
   let match = event.path.match(/\/store\/([a-zA-Z0-9]+)\//)
@@ -62,7 +69,11 @@ module.exports.handleRequest = async (event: APIGatewayProxyEvent) => {
 
 module.exports.handleDelete = async (event: APIGatewayProxyEvent) => {
 
-  const hubServer = buildHubServer()
+  try {
+    hubServer = await buildHubServer()
+  } catch (err) {
+    return writeResponse({ message: err.message, error: err.name }, 500)
+  }
 
   // Extract address from path
   let match = event.path.match(/\/delete\/([a-zA-Z0-9]+)\//)
@@ -111,8 +122,12 @@ module.exports.handleDelete = async (event: APIGatewayProxyEvent) => {
 
 module.exports.handleListFiles = async (event: APIGatewayProxyEvent) => {
 
-  const hubServer = buildHubServer()
-
+  try {
+    hubServer = await buildHubServer()
+  } catch (err) {
+    return writeResponse({ message: err.message, error: err.name }, 500)
+  }
+  
   const match = event.path.match(/^\/list-files\/([a-zA-Z0-9]+)\/?/)
   if (!match) {
     return writeResponse({ message: 'Unprocessable entity: address missing' }, 422)
@@ -149,8 +164,12 @@ module.exports.handleListFiles = async (event: APIGatewayProxyEvent) => {
 
 module.exports.handleAuthBump = async (event: APIGatewayProxyEvent) => {
 
-  const hubServer = buildHubServer()
-
+  try {
+    hubServer = await buildHubServer()
+  } catch (err) {
+    return writeResponse({ message: err.message, error: err.name }, 500)
+  }
+  
   const headers = {
     contentType: event.headers['Content-Type'],
     contentLength: event.headers['Content-Length'],
@@ -197,8 +216,12 @@ module.exports.handleAuthBump = async (event: APIGatewayProxyEvent) => {
 
 module.exports.handleHubInfo = async (_: APIGatewayProxyEvent) => {
 
-  const hubServer = buildHubServer()
-
+  try {
+    hubServer = await buildHubServer()
+  } catch (err) {
+    return writeResponse({ message: err.message, error: err.name }, 500)
+  }
+  
   const challengeText = getChallengeText(hubServer.serverName)
   if (challengeText.length < 10) {
     return writeResponse({ message: 'Server challenge text misconfigured' }, 500)
@@ -210,30 +233,52 @@ module.exports.handleHubInfo = async (_: APIGatewayProxyEvent) => {
     'read_url_prefix': readURLPrefix }, 200)
 }
 
-const buildHubServer = (): HubServer => {
+const buildHubServer = async (): Promise<HubServer> => {
   
-  const config = getConfig()
+  if (hubServer !== undefined) {
+    return hubServer;
+  } 
+
+  let config = getConfig()
+
+  var gaiaServerName = String(process.env.GAIA_SERVER_NAME);
+  if (gaiaServerName.length === 0) {
+    // A bug / limitation with AWS SAM makes the creation of an env var GAIA_SERVER_NAME impossible.
+    // As a consequence, when gaia is being deployed via AWS Lambda Marketplace / SAM,
+    // We fallback on fetching GAIA_SERVER_NAME from a parameter store.
+    const ssm = new AWS.SSM()
+    const params = {
+      Name: `/${process.env.HUB_NAME}/${process.env.GAIA_BUCKET_NAME}/GAIA_SERVER_NAME`,
+      WithDecryption: false
+    }
+
+    const req = await ssm.getParameter(params).promise()
+    if (!req.$response.data || req.$response.error !== null) {
+      throw "Unable to fetch the Parameter Store"
+    }
+
+    gaiaServerName = String(req.Parameter.Value)
+    if (gaiaServerName.length === 0) {
+      throw "Unable to retrieve GAIA_SERVER_NAME"
+    }
+  }
+
+  config.serverName = gaiaServerName
   config.bucket = process.env.GAIA_BUCKET_NAME
-  config.serverName = process.env.GAIA_SERVER_NAME
   config.readURL = process.env.GAIA_READ_URL
 
-  // Handle driver configuration
-  let driver: DriverModel
-
-  if (config.driverInstance) {
-    driver = config.driverInstance
-  } else if (config.driverClass) {
-    driver = new config.driverClass(config)
-  } else if (config.driver) {
-    const driverClass = getDriverClass(config.driver)
-    driver = new driverClass(config)
-  } else {
-    throw new Error('Driver option not configured')
-  }
+  // We set shouldCheckStorage to false in order to avoid asynchronism and potential race conditions
+  // on a lambda cold starting.
+  // The request will return a 4xx/5xx anyway if the storage can't be reached.
+  let driver = new S3Driver(config as S3_CONFIG_TYPE, false)
   
+  driver.ensureInitialized().catch((error) => {
+    throw `Error initializing driver ${error}`
+  })
+
   const proofChecker = new ProofChecker(config.proofsConfig)
-  const server = new HubServer(driver, proofChecker, config)
-  return server
+  hubServer = new HubServer(driver, proofChecker, config)
+  return hubServer
 }
 
 const writeResponse = (data: any, statusCode: number) => {
