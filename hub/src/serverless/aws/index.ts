@@ -5,7 +5,6 @@ import AWS from 'aws-sdk'
 import { HubServer } from '../../server/server'
 import { getConfig } from '../../server/config'
 import S3Driver, { S3_CONFIG_TYPE } from '../../server/drivers/S3Driver'
-import { getDriverClass } from '../../server/utils'
 import { ProofChecker } from '../../server/ProofChecker'
 import * as errors from '../../server/errors'
 import { Readable } from 'stream'
@@ -236,13 +235,13 @@ module.exports.handleHubInfo = async (_: APIGatewayProxyEvent) => {
 const buildHubServer = async (): Promise<HubServer> => {
   
   if (hubServer !== undefined) {
-    return hubServer;
+    return hubServer
   } 
 
-  let config = getConfig()
+  const config = getConfig()
 
-  var gaiaServerName = process.env.GAIA_SERVER_NAME;
-  if (gaiaServerName === undefined || gaiaServerName === "") {
+  let gaiaServerName = process.env.GAIA_SERVER_NAME
+  if (gaiaServerName === undefined || gaiaServerName === '') {
     // A bug / limitation with AWS SAM makes the creation of an env var GAIA_SERVER_NAME impossible.
     // As a consequence, when gaia is being deployed via AWS Lambda Marketplace / SAM,
     // We fallback on fetching GAIA_SERVER_NAME from a parameter store.
@@ -254,12 +253,12 @@ const buildHubServer = async (): Promise<HubServer> => {
 
     const req = await ssm.getParameter(params).promise()
     if (!req.$response.data || req.$response.error !== null) {
-      throw "Unable to fetch the Parameter Store"
+      throw 'Unable to fetch the Parameter Store'
     }
 
     gaiaServerName = req.Parameter.Value
-    if (gaiaServerName === undefined || gaiaServerName === "") {
-      throw "Unable to retrieve GAIA_SERVER_NAME"
+    if (gaiaServerName === undefined || gaiaServerName === '') {
+      throw 'Unable to retrieve GAIA_SERVER_NAME'
     }
   }
 
@@ -270,7 +269,7 @@ const buildHubServer = async (): Promise<HubServer> => {
   // We set shouldCheckStorage to false in order to avoid asynchronism and potential race conditions
   // on a lambda cold starting.
   // The request will return a 4xx/5xx anyway if the storage can't be reached.
-  let driver = new S3Driver(config as S3_CONFIG_TYPE, false)
+  const driver = new S3Driver(config as S3_CONFIG_TYPE, false)
   
   driver.ensureInitialized().catch((error) => {
     throw `Error initializing driver ${error}`
