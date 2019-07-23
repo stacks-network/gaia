@@ -44,6 +44,21 @@ export function getTokenPayload(token: import('jsontokens/lib/decode').TokenInte
   return token.payload
 }
 
+export function decodeTokenForPayload(opts: { 
+  encodedToken: string; 
+  caller: string; 
+  validationErrorMsg: string; 
+  errorLogger: (msg: string) => void 
+}) {
+  try {
+    return getTokenPayload(decodeToken(opts.encodedToken))
+  } catch (e) {
+    opts.errorLogger(`${opts.caller}: ${opts.validationErrorMsg}, ${e}`)
+    opts.errorLogger(opts.encodedToken)
+    throw new ValidationError(opts.validationErrorMsg)
+  }
+}
+
 export class V1Authentication {
   token: string
 
@@ -56,15 +71,12 @@ export class V1Authentication {
       throw new ValidationError('Authorization header should start with v1:')
     }
     const token = authPart.slice('v1:'.length)
-    const payload = (() => {
-      try {
-        return getTokenPayload(decodeToken(token))
-      } catch (e) {
-        logger.error(e)
-        logger.error('fromAuthPart')
-        throw new ValidationError('Failed to decode authentication JWT')
-      }
-    })()
+    const payload = decodeTokenForPayload({
+      encodedToken: token, 
+      caller: 'fromAuthPart', 
+      validationErrorMsg: 'Failed to decode authentication JWT',
+      errorLogger: logger.error
+    })
 
     const publicKey = payload.iss
     if (!publicKey) {
@@ -129,13 +141,12 @@ export class V1Authentication {
     // associationToken and verifies that it authorizes the "outer"
     // JWT's address (`bearerAddress`)
 
-    const payload = (() => {
-      try {
-        return getTokenPayload(decodeToken(token))
-      } catch (e) {
-        throw new ValidationError('Failed to decode association token in JWT')
-      }
-    })()
+    const payload = decodeTokenForPayload({
+      encodedToken: token, 
+      caller: 'checkAssociationToken', 
+      validationErrorMsg: 'Failed to decode association token in JWT',
+      errorLogger: logger.error
+    })
 
     // publicKey (the issuer of the association token)
     // will be the whitelisted address (i.e. the identity address)
@@ -186,15 +197,13 @@ export class V1Authentication {
    * Returns [] if there is no association token, or if the association token has no scopes
    */
   getAuthenticationScopes(): Array<AuthScopeType> {
-    const payload = (() => {
-      try {
-        return getTokenPayload(decodeToken(this.token))
-      } catch (e) {
-        logger.error(this.token)
-        logger.error('getAuthenticationScopes')
-        throw new ValidationError('Failed to decode authentication JWT')
-      }
-    })()
+
+    const payload = decodeTokenForPayload({
+      encodedToken: this.token, 
+      caller: 'getAuthenticationScopes', 
+      validationErrorMsg: 'Failed to decode authentication JWT',
+      errorLogger: logger.error
+    })
 
     if (!payload.hasOwnProperty('scopes')) {
       // not given
@@ -232,15 +241,12 @@ export class V1Authentication {
                         options?: { requireCorrectHubUrl?: boolean,
                                     validHubUrls?: Array<string>,
                                     oldestValidTokenTimestamp?: number }): string {
-    const payload = (() => {
-      try {
-        return getTokenPayload(decodeToken(this.token))
-      } catch (e) {
-        logger.error(this.token)
-        logger.error('isAuthenticationValid')
-        throw new ValidationError('Failed to decode authentication JWT')
-      }
-    })()
+    const payload = decodeTokenForPayload({
+      encodedToken: this.token, 
+      caller: 'isAuthenticationValid', 
+      validationErrorMsg: 'Failed to decode authentication JWT',
+      errorLogger: logger.error
+    })
 
     const publicKey = payload.iss
     const gaiaChallenge = payload.gaiaChallenge
