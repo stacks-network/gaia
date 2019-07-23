@@ -1,8 +1,6 @@
-import bitcoin from 'bitcoinjs-lib'
+import * as bitcoinjs from 'bitcoinjs-lib'
 import crypto from 'crypto'
-//@ts-ignore
 import { decodeToken, TokenSigner, TokenVerifier } from 'jsontokens'
-//@ts-ignore
 import { ecPairToHexString, ecPairToAddress } from 'blockstack'
 import { ValidationError, AuthTokenTimestampValidationError } from './errors'
 import { logger } from './utils'
@@ -12,7 +10,7 @@ export const LATEST_AUTH_VERSION = 'v1'
 
 function pubkeyHexToECPair (pubkeyHex: string) {
   const pkBuff = Buffer.from(pubkeyHex, 'hex')
-  return bitcoin.ECPair.fromPublicKey(pkBuff)
+  return bitcoinjs.ECPair.fromPublicKey(pkBuff)
 }
 
 export type AuthScopeType = {
@@ -32,16 +30,34 @@ export type TokenPayloadType = {
   childToAssociate?: string
 }
 
-export type TokenType = {
-  payload: TokenPayloadType
-}
-
 export const AuthScopes = [
   'putFile',
   'putFilePrefix',
   'deleteFile',
   'deleteFilePrefix'
 ]
+
+export function getTokenPayload(token: import('jsontokens/lib/decode').TokenInterface) {
+  if (typeof token.payload === 'string') {
+    throw new Error('Unexpected token payload type of string')
+  }
+  return token.payload
+}
+
+export function decodeTokenForPayload(opts: { 
+  encodedToken: string; 
+  caller: string; 
+  validationErrorMsg: string; 
+  errorLogger: (msg: string) => void 
+}) {
+  try {
+    return getTokenPayload(decodeToken(opts.encodedToken))
+  } catch (e) {
+    opts.errorLogger(`${opts.caller}: ${opts.validationErrorMsg}, ${e}`)
+    opts.errorLogger(opts.encodedToken)
+    throw new ValidationError(opts.validationErrorMsg)
+  }
+}
 
 export class V1Authentication {
   token: string
@@ -55,26 +71,25 @@ export class V1Authentication {
       throw new ValidationError('Authorization header should start with v1:')
     }
     const token = authPart.slice('v1:'.length)
-    let decodedToken: TokenType
-    try {
-      decodedToken = decodeToken(token)
-    } catch (e) {
-      logger.error(e)
-      logger.error('fromAuthPart')
-      throw new ValidationError('Failed to decode authentication JWT')
-    }
-    const publicKey = decodedToken.payload.iss
-    if (!publicKey || !decodedToken) {
+    const payload = decodeTokenForPayload({
+      encodedToken: token, 
+      caller: 'fromAuthPart', 
+      validationErrorMsg: 'Failed to decode authentication JWT',
+      errorLogger: logger.error
+    })
+
+    const publicKey = payload.iss
+    if (!publicKey) {
       throw new ValidationError('Auth token should be a JWT with at least an `iss` claim')
     }
-    const scopes = decodedToken.payload.scopes
+    const scopes = payload.scopes
     if (scopes) {
       validateScopes(scopes)
     }
     return new V1Authentication(token)
   }
 
-  static makeAuthPart(secretKey: bitcoin.ECPair, challengeText: string,
+  static makeAuthPart(secretKey: bitcoinjs.ECPairInterface, challengeText: string,
                       associationToken?: string, hubUrl?: string, scopes?: Array<AuthScopeType>,
                       issuedAtDate?: number) {
 
@@ -102,7 +117,7 @@ export class V1Authentication {
     return `v1:${token}`
   }
 
-  static makeAssociationToken(secretKey: bitcoin.ECPair, childPublicKey: string) {
+  static makeAssociationToken(secretKey: bitcoinjs.ECPairInterface, childPublicKey: string) {
     const FOUR_MONTH_SECONDS = 60 * 60 * 24 * 31 * 4
     const publicKeyHex = secretKey.publicKey.toString('hex')
     const salt = crypto.randomBytes(16).toString('hex')
@@ -126,18 +141,18 @@ export class V1Authentication {
     // associationToken and verifies that it authorizes the "outer"
     // JWT's address (`bearerAddress`)
 
-    let associationToken: TokenType
-    try {
-      associationToken = decodeToken(token)
-    } catch (e) {
-      throw new ValidationError('Failed to decode association token in JWT')
-    }
+    const payload = decodeTokenForPayload({
+      encodedToken: token, 
+      caller: 'checkAssociationToken', 
+      validationErrorMsg: 'Failed to decode association token in JWT',
+      errorLogger: logger.error
+    })
 
     // publicKey (the issuer of the association token)
     // will be the whitelisted address (i.e. the identity address)
-    const publicKey = associationToken.payload.iss
-    const childPublicKey = associationToken.payload.childToAssociate
-    const expiresAt = associationToken.payload.exp
+    const publicKey = payload.iss
+    const childPublicKey = payload.childToAssociate
+    const expiresAt = payload.exp
 
     if (! publicKey) {
       throw new ValidationError('Must provide `iss` claim in association JWT.')
@@ -182,22 +197,21 @@ export class V1Authentication {
    * Returns [] if there is no association token, or if the association token has no scopes
    */
   getAuthenticationScopes(): Array<AuthScopeType> {
-    let decodedToken: TokenType
-    try {
-      decodedToken = decodeToken(this.token)
-    } catch (e) {
-      logger.error(this.token)
-      logger.error('getAuthenticationScopes')
-      throw new ValidationError('Failed to decode authentication JWT')
-    }
 
-    if (!decodedToken.payload.hasOwnProperty('scopes')) {
+    const payload = decodeTokenForPayload({
+      encodedToken: this.token, 
+      caller: 'getAuthenticationScopes', 
+      validationErrorMsg: 'Failed to decode authentication JWT',
+      errorLogger: logger.error
+    })
+
+    if (!payload.hasOwnProperty('scopes')) {
       // not given
       return []
     }
 
     // unambiguously convert to AuthScope
-    const scopes = decodedToken.payload.scopes.map((s) => {
+    const scopes = payload.scopes.map((s: any) => {
       const r = {
         scope: String(s.scope),
         domain: String(s.domain)
@@ -227,18 +241,16 @@ export class V1Authentication {
                         options?: { requireCorrectHubUrl?: boolean,
                                     validHubUrls?: Array<string>,
                                     oldestValidTokenTimestamp?: number }): string {
-    let decodedToken: TokenType
-    try {
-      decodedToken = decodeToken(this.token)
-    } catch (e) {
-      logger.error(this.token)
-      logger.error('isAuthenticationValid')
-      throw new ValidationError('Failed to decode authentication JWT')
-    }
+    const payload = decodeTokenForPayload({
+      encodedToken: this.token, 
+      caller: 'isAuthenticationValid', 
+      validationErrorMsg: 'Failed to decode authentication JWT',
+      errorLogger: logger.error
+    })
 
-    const publicKey = decodedToken.payload.iss
-    const gaiaChallenge = decodedToken.payload.gaiaChallenge
-    const scopes = decodedToken.payload.scopes
+    const publicKey = payload.iss
+    const gaiaChallenge = payload.gaiaChallenge
+    const scopes = payload.scopes
 
     if (!publicKey) {
       throw new ValidationError('Must provide `iss` claim in JWT.')
@@ -246,7 +258,7 @@ export class V1Authentication {
 
     // check for revocations
     if (options && options.oldestValidTokenTimestamp && options.oldestValidTokenTimestamp > 0) {
-      const tokenIssuedAtDate = decodedToken.payload.iat
+      const tokenIssuedAtDate = payload.iat
       const oldestValidTokenTimestamp: number = options.oldestValidTokenTimestamp
       if (!tokenIssuedAtDate) {
         const message = `Gaia bucket requires auth token issued after ${oldestValidTokenTimestamp}` +
@@ -268,7 +280,7 @@ export class V1Authentication {
     }
 
     if (options && options.requireCorrectHubUrl) {
-      let claimedHub = decodedToken.payload.hubUrl
+      let claimedHub = payload.hubUrl
       if (!claimedHub) {
         throw new ValidationError(
           'Authentication must provide a claimed hub. You may need to update blockstack.js.')
@@ -308,16 +320,16 @@ export class V1Authentication {
                                 ` not found in ${JSON.stringify(challengeTexts)}`)
     }
 
-    const expiresAt = decodedToken.payload.exp
+    const expiresAt = payload.exp
     if (expiresAt && expiresAt < (Date.now()/1000)) {
       throw new ValidationError(
         `Expired authentication token: expire time of ${expiresAt} (secs since epoch)`)
     }
 
-    if (decodedToken.payload.hasOwnProperty('associationToken') &&
-        decodedToken.payload.associationToken) {
+    if (payload.hasOwnProperty('associationToken') &&
+        payload.associationToken) {
       return this.checkAssociationToken(
-        decodedToken.payload.associationToken, address)
+        payload.associationToken, address)
     } else {
       return address
     }
@@ -325,9 +337,9 @@ export class V1Authentication {
 }
 
 export class LegacyAuthentication {
-  publickey: bitcoin.ECPair
+  publickey: bitcoinjs.ECPairInterface
   signature: string
-  constructor(publickey: bitcoin.ECPair, signature: string) {
+  constructor(publickey: bitcoinjs.ECPairInterface, signature: string) {
     this.publickey = publickey
     this.signature = signature
   }
@@ -335,17 +347,17 @@ export class LegacyAuthentication {
   static fromAuthPart(authPart: string) {
     const decoded = JSON.parse(Buffer.from(authPart, 'base64').toString())
     const publickey = pubkeyHexToECPair(decoded.publickey)
-    const hashType = Buffer.from([bitcoin.Transaction.SIGHASH_NONE])
+    const hashType = Buffer.from([bitcoinjs.Transaction.SIGHASH_NONE])
     const signatureBuffer = Buffer.concat([Buffer.from(decoded.signature, 'hex'), hashType])
-    const signature = bitcoin.script.signature.decode(signatureBuffer).signature.toString('hex')
+    const signature = bitcoinjs.script.signature.decode(signatureBuffer).signature.toString('hex')
     return new LegacyAuthentication(publickey, signature)
   }
 
-  static makeAuthPart(secretKey: bitcoin.ECPair, challengeText: string) {
+  static makeAuthPart(secretKey: bitcoinjs.ECPairInterface, challengeText: string) {
     const publickey = secretKey.publicKey.toString('hex')
-    const digest = bitcoin.crypto.sha256(Buffer.from(challengeText))
+    const digest = bitcoinjs.crypto.sha256(Buffer.from(challengeText))
     const signatureBuffer = secretKey.sign(digest)
-    const signatureWithHash = bitcoin.script.signature.encode(signatureBuffer, bitcoin.Transaction.SIGHASH_NONE)
+    const signatureWithHash = bitcoinjs.script.signature.encode(signatureBuffer, bitcoinjs.Transaction.SIGHASH_NONE)
     
     // We only want the DER encoding so remove the sighash version byte at the end.
     // See: https://github.com/bitcoinjs/bitcoinjs-lib/issues/1241#issuecomment-428062912
@@ -368,7 +380,7 @@ export class LegacyAuthentication {
     }
 
     for (const challengeText of challengeTexts) {
-      const digest = bitcoin.crypto.sha256(Buffer.from(challengeText))
+      const digest = bitcoinjs.crypto.sha256(Buffer.from(challengeText))
       const valid = (this.publickey.verify(digest, Buffer.from(this.signature, 'hex')) === true)
 
       if (valid) {
