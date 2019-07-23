@@ -326,10 +326,26 @@ getReadURLPrefix ()
  * Return a list of files beginning with the given prefix,
  * as well as a driver-specific page identifier for requesting
  * the next page of entries.  The return structure should
- * take the form { "entries": [string], "page": string }
- * @returns {Promise} the list of files and a page identifier.
+ * take the form { "entries": [string], "page"?: string }
+ * @returns {Promise} the list of files and a possible page identifier.
  */
-listFiles(prefix: string, page: string)
+listFiles(options: { pathPrefix, page })
+
+/**
+ * Return a list of files beginning with the given prefix,
+ * as well as file metadata, and a driver-specific page identifier 
+ * for requesting the next page of entries. 
+ * @returns { Promise<{
+ *  entries: Array<{
+ *    lastModifiedDate?: number,
+ *    contentLength?: number,
+ *    contentType?: string
+ *  }>,
+ *  page?: string
+ * }
+ */
+listFilesStat(options: { pathPrefix, page })
+
 ```
 
 # HTTP API
