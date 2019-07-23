@@ -8,7 +8,7 @@ import { AuthTimestampCache } from './revocations'
 import { Readable } from 'stream'
 import { DriverModel, PerformWriteArgs, PerformRenameArgs, PerformDeleteArgs } from './driverModel'
 import { HubConfigInterface } from './config'
-import { logger } from './utils'
+import { logger, generateUniqueID } from './utils'
 
 export class HubServer {
   driver: DriverModel
@@ -77,7 +77,7 @@ export class HubServer {
       throw new ValidationError('putFileArchival scope restricts writes to files that match the historical file naming scheme')
     }
   
-    const historicalName = `.history.${Date.now()}.${fileName}`
+    const historicalName = `.history.${Date.now()}.${generateUniqueID()}.${fileName}`
     const historicalPath = `${filePathPrefix}${historicalName}`
     return historicalPath
   }

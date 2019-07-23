@@ -538,7 +538,7 @@ export function testServer() {
         authorization }, getDataStream())
       await timeout(1)
       t.equal(mockDriver.files.size, 2)
-      const historyEntries = [...mockDriver.files.keys()].filter(k => k.match(RegExp(`${testAddrs[0]}/baz/.history.[0-9]+.foo.txt`)))
+      const historyEntries = [...mockDriver.files.keys()].filter(k => k.match(RegExp(`${testAddrs[0]}/baz/.history.[0-9]+.[A-Za-z0-9]+.foo.txt`)))
       t.equal(historyEntries.length === 1, true)
 
 
@@ -547,7 +547,7 @@ export function testServer() {
         authorization }, getDataStream())
       await timeout(1)
       t.equal(mockDriver.files.size, 3)
-      const historyEntries2 = [...mockDriver.files.keys()].filter(k => k.match(RegExp(`${testAddrs[0]}/baz/.history.[0-9]+.foo.txt`)))
+      const historyEntries2 = [...mockDriver.files.keys()].filter(k => k.match(RegExp(`${testAddrs[0]}/baz/.history.[0-9]+.[A-Za-z0-9]+.foo.txt`)))
       t.equal(historyEntries2.length === 2, true)
 
       await server.handleRequest(testAddrs[0], '/foo/bar', { 
@@ -564,21 +564,21 @@ export function testServer() {
       await timeout(1)
       t.equal(mockDriver.files.size, 5)
       t.equal(mockDriver.files.has(`${testAddrs[0]}//foo/bar`), true)
-      const historyEntries3 = [...mockDriver.files.keys()].filter(k => k.match(RegExp(`${testAddrs[0]}//foo/.history.[0-9]+.bar`)))
+      const historyEntries3 = [...mockDriver.files.keys()].filter(k => k.match(RegExp(`${testAddrs[0]}//foo/.history.[0-9]+.[A-Za-z0-9]+.bar`)))
       t.equal(historyEntries3.length === 1, true)
 
       await server.handleDelete(testAddrs[0], '/foo/bar', { authorization })
       await timeout(1)
       t.equal(mockDriver.files.size, 5)
       t.equal(mockDriver.files.has(`${testAddrs[0]}//foo/bar`), false)
-      const historyEntries4 = [...mockDriver.files.keys()].filter(k => k.match(RegExp(`${testAddrs[0]}//foo/.history.[0-9]+.bar`)))
+      const historyEntries4 = [...mockDriver.files.keys()].filter(k => k.match(RegExp(`${testAddrs[0]}//foo/.history.[0-9]+.[A-Za-z0-9]+.bar`)))
       t.equal(historyEntries4.length === 2, true)
 
       await server.handleDelete(testAddrs[0], 'baz/foo.txt', { authorization })
       await timeout(1)
       t.equal(mockDriver.files.size, 5)
       t.equal(mockDriver.files.has(`${testAddrs[0]}/baz/foo.txt`), false)
-      const historyEntries5 = [...mockDriver.files.keys()].filter(k => k.match(RegExp(`${testAddrs[0]}/baz/.history.[0-9]+.foo.txt`)))
+      const historyEntries5 = [...mockDriver.files.keys()].filter(k => k.match(RegExp(`${testAddrs[0]}/baz/.history.[0-9]+.[A-Za-z0-9]+.foo.txt`)))
       t.equal(historyEntries5.length === 3, true)
 
       await server.handleRequest(testAddrs[0], 'baz/foo.txt', { 
@@ -587,7 +587,7 @@ export function testServer() {
       await timeout(1)
       t.equal(mockDriver.files.size, 6)
       t.equal(mockDriver.files.has(`${testAddrs[0]}/baz/foo.txt`), true)
-      const historyEntries6 = [...mockDriver.files.keys()].filter(k => k.match(RegExp(`${testAddrs[0]}/baz/.history.[0-9]+.foo.txt`)))
+      const historyEntries6 = [...mockDriver.files.keys()].filter(k => k.match(RegExp(`${testAddrs[0]}/baz/.history.[0-9]+.[A-Za-z0-9]+.foo.txt`)))
       t.equal(historyEntries6.length === 3, true)
 
       try {
