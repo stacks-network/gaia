@@ -1,11 +1,13 @@
 
 import test from 'tape-promise/tape'
 import * as config from '../../src/server/config'
+import path from 'path'
 
 
 export function testConfig() {
 
   const configDir = `${__dirname}/../data`
+  const schemaFilePath = path.normalize(`${__dirname}/../../config-schema.json`)
 
   test('initial defaults', (t) => {
     const configResult = config.getConfig()
@@ -13,6 +15,79 @@ export function testConfig() {
     t.end()
   })
 
+  test('config schema does not warn on valid config', (t) => {
+    let msg = ''
+    const configObj = {
+      driver: 'azure',
+      port: 12345
+    }
+    config.validateConfigSchema(schemaFilePath, configObj, warning => {
+      msg += warning
+    })
+    t.equals(msg, '', 'Should have correct schema warning')
+    t.end()
+  })
+
+  test('config schema warning for required params', (t) => {
+    let msg = ''
+    config.validateConfigSchema(schemaFilePath, {}, warning => {
+      msg += warning
+    })
+    t.equals(msg, 
+      'Config schema validation warning: config.driver is a required property, config.port is a required property', 
+      'Should have correct schema warning')
+    t.end()
+  })
+
+  test('config schema warning for extra unused param', (t) => {
+    let msg = ''
+    const configObj = {
+      driver: 'azure',
+      port: 12345,
+      typo: 'asdf'
+    }
+    config.validateConfigSchema(schemaFilePath, configObj, warning => {
+      msg += warning
+    })
+    t.equals(msg, 
+      'Config schema validation warning: config[\'typo\'] is an invalid additional property', 
+      'Should have correct schema warning')
+    t.end()
+  })
+
+  test('config schema warning for missing schema file', (t) => {
+    let msg = ''
+    config.validateConfigSchema('missing-schema-file.json', {}, warning => {
+      msg += warning
+    })
+    t.equals(msg, 
+      'Could not find config schema file at missing-schema-file.json', 
+      'Should have correct schema warning')
+    t.end()
+  })
+
+  test('config schema warning for invalid schema json file', (t) => {
+    let msg = ''
+    config.validateConfigSchema(__filename, {}, warning => {
+      msg += warning
+    })
+    t.equals(msg, 
+      'Error reading config schema JSON file: SyntaxError: Unexpected token i in JSON at position 1', 
+      'Should have correct schema warning')
+    t.end()
+  })
+
+  test('config schema warning for invalid schema definition file', (t) => {
+    let msg = ''
+    const invalidSchemaDefFile = path.normalize(`${configDir}/invalid-schema-def.json`)
+    config.validateConfigSchema(invalidSchemaDefFile, {}, warning => {
+      msg += warning
+    })
+    t.equals(msg, 
+      'Error validating config schema JSON file: Error: schema is invalid: data.additionalProperties should be object,boolean', 
+      'Should have correct schema warning')
+    t.end()
+  })
 
   test('read envvar with parseInt or parseList', (t) => {
     process.env.GAIA_PAGE_SIZE = '1003'
