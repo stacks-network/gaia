@@ -84,9 +84,7 @@ export class AsyncMutexScope {
     if (this._opened.has(id)) {
       return false
     }
-
-    // Wrap in Promise.resolve to ensure potential synchronous errors are not throw within this function. 
-    const owner = Promise.resolve().then(() => spawnOwner())
+    const owner = spawnOwner()
     this._opened.add(id)
     owner.finally(() => {
       this._opened.delete(id)
