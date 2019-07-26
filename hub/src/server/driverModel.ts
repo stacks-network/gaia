@@ -46,7 +46,6 @@ export interface PerformRenameArgs {
   path: string;
   storageTopLevel: string;
   newPath: string;
-  newStorageTopLevel: string;
 }
 
 export interface DriverModel {
