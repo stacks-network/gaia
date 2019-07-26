@@ -256,7 +256,7 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
     const origBlobUrl = azure.BlobURL.fromContainerURL(this.container, origAzBlob)
     const origBlockBlobURL = azure.BlockBlobURL.fromBlobURL(origBlobUrl)
 
-    const newAzBlob = `${args.newStorageTopLevel}/${args.newPath}`
+    const newAzBlob = `${args.storageTopLevel}/${args.newPath}`
     const newBlobURL = azure.BlobURL.fromContainerURL(this.container, newAzBlob)
     const newBlockBlobURL = azure.BlockBlobURL.fromBlobURL(newBlobURL)
 

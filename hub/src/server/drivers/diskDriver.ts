@@ -275,7 +275,7 @@ class DiskDriver implements DriverModel {
   async performRename(args: PerformRenameArgs): Promise<void> {
     const pathsOrig = this.getFullFilePathInfo(args)
     const pathsNew = this.getFullFilePathInfo({
-      storageTopLevel: args.newStorageTopLevel, 
+      storageTopLevel: args.storageTopLevel, 
       path: args.newPath
     })
 

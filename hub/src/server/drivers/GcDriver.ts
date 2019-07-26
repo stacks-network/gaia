@@ -269,7 +269,7 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
       .bucket(this.bucket)
       .file(filename)
 
-    const newFilename = `${args.newStorageTopLevel}/${args.newPath}`
+    const newFilename = `${args.storageTopLevel}/${args.newPath}`
     const newBucketFile = this.storage
       .bucket(this.bucket)
       .file(newFilename)

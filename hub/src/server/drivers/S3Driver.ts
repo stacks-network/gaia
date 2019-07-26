@@ -264,7 +264,7 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
     }
 
     const s3KeyOrig = `${args.storageTopLevel}/${args.path}`
-    const s3keyNew = `${args.newStorageTopLevel}/${args.newPath}`
+    const s3keyNew = `${args.storageTopLevel}/${args.newPath}`
 
     const s3RenameParams: S3.Types.CopyObjectRequest = {
       Bucket: this.bucket,
