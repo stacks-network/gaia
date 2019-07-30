@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.0]
+### Added
+- The `/list-files/${address}` endpoint now returns file metadata 
+  (last modified date, content length) if the `POST` body contains 
+  a `stat: true` option. 
+- Implemented `readFile` and `fileStat` methods on all drivers, however, 
+  these are not yet in use or publicly exposed via any endpoints. 
+### Changed
+- Concurrent requests to modify a resource using the `/store/${address}/...`
+  or `/delete/${address}/...` endpoints are now always rejected with a 
+  `HTTP 409 Conflict` error. Previously, this was undefined behavior
+  that the back-end storage drivers dealt with in different ways. \
+
+
 ## [2.5.3]
 ### Fixed
 - LRUCache count evictions is no longer overestimated. 
