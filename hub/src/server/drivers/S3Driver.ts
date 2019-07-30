@@ -1,7 +1,7 @@
 import S3 from 'aws-sdk/clients/s3'
 
 import { BadPathError, InvalidInputError, DoesNotExist } from '../errors'
-import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs } from '../driverModel'
+import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult } from '../driverModel'
 import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
 import { timeout, logger } from '../utils'
 
@@ -170,8 +170,7 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
       Bucket: this.bucket,
       Key: s3key,
       Body: args.stream,
-      ContentType: args.contentType,
-      ACL: 'public-read'
+      ContentType: args.contentType
     }
     if (this.cacheControl) {
       s3params.CacheControl = this.cacheControl
@@ -216,6 +215,79 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
       /* istanbul ignore next */
       throw new Error('S3 storage failure: failed to delete' +
         ` ${s3key} in bucket ${this.bucket}: ${error}`)
+    }
+  }
+
+  async performStat(args: PerformStatArgs): Promise<StatResult> {
+    if (!S3Driver.isPathValid(args.path)){
+      throw new BadPathError('Invalid Path')
+    }
+    const s3key = `${args.storageTopLevel}/${args.path}`
+    const s3params: S3.Types.DeleteObjectRequest & S3.Types.HeadObjectRequest = {
+      Bucket: this.bucket,
+      Key: s3key
+    }
+    try {
+      const headResult = await this.s3.headObject(s3params).promise()
+      let lastModified: number | undefined
+      if (headResult.LastModified) {
+        lastModified = Math.round(headResult.LastModified.getTime() / 1000)
+      }
+      const result: StatResult = {
+        exists: true,
+        lastModifiedDate: lastModified,
+        contentLength: headResult.ContentLength,
+        contentType: headResult.ContentType
+      }
+      return result
+    } catch (error) {
+      if (error.statusCode === 404) {
+        const result: StatResult = {
+          exists: false
+        }
+        return result
+      }
+      /* istanbul ignore next */
+      logger.error(`failed to stat ${s3key} in bucket ${this.bucket}`)
+      /* istanbul ignore next */
+      throw new Error('S3 storage failure: failed to stat' +
+        ` ${s3key} in bucket ${this.bucket}: ${error}`)
+    }
+  }
+
+  async performRename(args: PerformRenameArgs): Promise<void> {
+    if (!S3Driver.isPathValid(args.path)){
+      throw new BadPathError('Invalid original path')
+    }
+    if (!S3Driver.isPathValid(args.newPath)){
+      throw new BadPathError('Invalid new path')
+    }
+
+    const s3KeyOrig = `${args.storageTopLevel}/${args.path}`
+    const s3keyNew = `${args.storageTopLevel}/${args.newPath}`
+
+    const s3RenameParams: S3.Types.CopyObjectRequest = {
+      Bucket: this.bucket,
+      Key: s3keyNew,
+      CopySource: `${this.bucket}/${s3KeyOrig}`
+    }
+    const s3DeleteParams: S3.Types.DeleteObjectRequest = {
+      Bucket: this.bucket,
+      Key: s3KeyOrig
+    }
+
+    try {
+      await this.s3.copyObject(s3RenameParams).promise()
+      await this.s3.deleteObject(s3DeleteParams).promise()
+    } catch (error) {
+      if (error.statusCode === 404) {
+        throw new DoesNotExist('File does not exist')
+      }
+      /* istanbul ignore next */
+      logger.error(`failed to rename ${s3KeyOrig} to ${s3keyNew} in bucket ${this.bucket}`)
+      /* istanbul ignore next */
+      throw new Error('S3 storage failure: failed to rename' +
+        ` ${s3KeyOrig} to ${s3keyNew} in bucket ${this.bucket}: ${error}`)
     }
   }
 

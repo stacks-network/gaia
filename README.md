@@ -276,6 +276,30 @@ performWrite (options: { path, storageToplevel, contentType,
 performDelete (options: { path, storageToplevel })
 
 /**
+ * Renames a file given a path. Some implementations do not support
+ * a first class move operation and this can be implemented as a copy and delete. 
+ * @param { String } options.path - path of the original file
+ * @param { String } options.storageTopLevel - the top level directory for the original file
+ * @param { String } options.newPath - new path for the file
+ * @returns {Promise}
+ */
+performRename (options: { path, storageTopLevel,
+                          newPath })
+
+/**
+ * Retrieves metadata for a given file. 
+ * @param { String } options.path - path of the file
+ * @param { String } options.storageTopLevel - the top level directory
+ * @returns { Promise {
+ *  exists: boolean,
+ *  lastModifiedDate?: number,
+ *  contentLength?: number,
+ *  contentType?: string
+ * }}
+ */
+performStat (options: { path, storageTopLevel })
+
+/**
  * Return the prefix for reading files from.
  *  a write to the path `foo` should be readable from
  *  `${getReadURLPrefix()}foo`
