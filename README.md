@@ -383,9 +383,7 @@ The Gaia storage API defines the following endpoints:
 
 ---
 
-```
-GET ${read-url-prefix}/${address}/${path}
-```
+##### `GET ${read-url-prefix}/${address}/${path}`
 
 This returns the data stored by the gaia hub at `${path}`. In order
 for this to be usable from web applications, this read path _must_
@@ -394,9 +392,7 @@ should match the Content-Type of the corresponding write.
 
 ---
 
-```
-POST ${hubUrl}/store/${address}/${path}
-```
+##### `POST ${hubUrl}/store/${address}/${path}`
 
 This performs a write to the gaia hub at `${path}`. 
 
@@ -420,9 +416,7 @@ resolution and will not throw an error.
 
 ---
 
-```
-DELETE ${hubUrl}/delete/${address}/${path}
-```
+##### `DELETE ${hubUrl}/delete/${address}/${path}`
 
 This performs a deletion of a file in the gaia hub at `${path}`. 
 
@@ -436,9 +430,7 @@ document.
 
 ---
 
-```
-GET ${hubUrl}/hub_info/
-```
+##### `GET ${hubUrl}/hub_info/`
 
 Returns a JSON object:
 
@@ -455,9 +447,8 @@ gaia hub supports.
 
 ---
 
-```
-POST ${hubUrl}/revoke-all/${address}
-```
+##### `POST ${hubUrl}/revoke-all/${address}`
+
 The post body must be a JSON object with the following field:
 ```json
 { "oldestValidTimestamp": "${timestamp}" }
@@ -476,6 +467,46 @@ The `POST` must contain an authentication header with a bearer token.
 The bearer token's content and generation is described in
 the [access control](#address-based-access-control) section of this
 document.
+
+---
+
+##### `POST ${hubUrl}/list-files/${address}`
+
+The post body can contain a `page` field with the pagination identifier from a previous request:
+```json
+{ "page": "${lastListFilesResult.page}" }
+```
+If the post body contains a `stat: true` field then the returned JSON includes file metadata:
+```jsonc
+{
+  "entries": [
+    { "name": "string", "lastModifiedDate": "number", "contentLength": "number" },
+    { "name": "string", "lastModifiedDate": "number", "contentLength": "number" },
+    // ...
+  ],
+  "page": "string" // possible pagination marker
+}
+```
+
+If the post body does not contain a `stat: true` field then the returned JSON entries will only be
+file name strings:
+```jsonc
+{
+  "entries": [
+    "fileNameExample1",
+    "fileNameExample2",
+    // ...
+  ],
+  "page": "string" // possible pagination marker
+}
+```
+
+The `POST` must contain an authentication header with a bearer token.
+The bearer token's content and generation is described in
+the [access control](#address-based-access-control) section of this
+document.
+
+-----
 
 # Future Design Goals
 
