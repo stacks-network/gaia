@@ -250,8 +250,8 @@ can be configured via the [config.json](#configuration-files).
 Gaia hub drivers are fairly simple. The biggest requirement is the ability
 to fulfill the _write-to/read-from_ URL guarantee. 
 
-A driver can expect that each of its functions will be mutexed by a path. 
-As in, no function will be invoked concurrently with a given unique path. 
+A driver can expect that two modification operations to the same path will be mutually exclusive. 
+No writes, renames, or deletes to the same path will be concurrent.
 
 As currently implemented
 a gaia hub driver must implement the following functions:
@@ -286,11 +286,10 @@ performDelete (options: { path, storageToplevel })
  * @param { String } options.path - path of the original file
  * @param { String } options.storageTopLevel - the top level directory for the original file
  * @param { String } options.newPath - new path for the file
- * @param { String } options.newStorageTopLevel - new top level directory for the file
  * @returns {Promise}
  */
 performRename (options: { path, storageTopLevel,
-                          newPath, newStorageTopLevel })
+                          newPath })
 
 /**
  * Returns an object with a NodeJS stream.Readable for the file content

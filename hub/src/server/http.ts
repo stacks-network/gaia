@@ -80,13 +80,18 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
       }
     }
 
-    if (!asyncMutex.tryAcquire(endpoint, handleRequest)) {
-      const errMsg = `Concurrent operation (store) attempted on ${endpoint}`
-      logger.error(errMsg)
-      writeResponse(res, { 
-        message: errMsg, 
-        error: errors.ConflictError.name 
-      }, 409)
+    try {
+      if (!asyncMutex.tryAcquire(endpoint, handleRequest)) {
+        const errMsg = `Concurrent operation (store) attempted on ${endpoint}`
+        logger.error(errMsg)
+        writeResponse(res, { 
+          message: errMsg, 
+          error: errors.ConflictError.name 
+        }, 409)
+      }
+    } catch (err) {
+      logger.error(err)
+      writeResponse(res, { message: 'Server Error' }, 500)
     }
 
   })
@@ -125,14 +130,20 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
       }
     }
 
-    if (!asyncMutex.tryAcquire(endpoint, handleRequest)) {
-      const errMsg = `Concurrent operation (delete) attempted on ${endpoint}`
-      logger.error(errMsg)
-      writeResponse(res, { 
-        message: errMsg, 
-        error: errors.ConflictError.name 
-      }, 409)
+    try {
+      if (!asyncMutex.tryAcquire(endpoint, handleRequest)) {
+        const errMsg = `Concurrent operation (delete) attempted on ${endpoint}`
+        logger.error(errMsg)
+        writeResponse(res, { 
+          message: errMsg, 
+          error: errors.ConflictError.name 
+        }, 409)
+      }
+    } catch (err) {
+      logger.error(err)
+      writeResponse(res, { message: 'Server Error' }, 500)
     }
+
   })
 
   app.post(
