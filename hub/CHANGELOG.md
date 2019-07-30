@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.6.0]
 ### Added
+- Implemented the `putFileArchival` restrictive auth scope which causes any 
+  file modifications such as `POST /store/...` or `DELETE /delete/...` to 
+  "backup" the original file by using a historical naming scheme. For example, 
+  a file write to `{address}/foo/bar/photo.png` will cause the original
+  file, if it exists, to be renamed to 
+  `{address}/foo/bar/.history.{timestamp}.{guid}.photo.png`. 
 - The `/list-files/${address}` endpoint now returns file metadata 
   (last modified date, content length) if the `POST` body contains 
   a `stat: true` option. 
