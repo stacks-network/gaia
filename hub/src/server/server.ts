@@ -133,9 +133,8 @@ export class HubServer {
       const renameCommand: PerformRenameArgs = {
         path: path,
         storageTopLevel: address,
-        newPath: historicalPath,
-        newStorageTopLevel: address
-      } 
+        newPath: historicalPath
+      }
       await this.driver.performRename(renameCommand)
     } else {
       const deleteCommand: PerformDeleteArgs = {
@@ -213,8 +212,7 @@ export class HubServer {
         await this.driver.performRename({
           path: path,
           storageTopLevel: address,
-          newPath: historicalPath,
-          newStorageTopLevel: address
+          newPath: historicalPath
         })
       } catch (error) {
         if (error instanceof DoesNotExist) {
