@@ -34,7 +34,6 @@ module.exports = {
     "new-cap": 0,
     "brace-style": 2,
     "semi": [2, "never"],
-    "valid-jsdoc": ["error"],
 
     "@typescript-eslint/indent": [2, 2, {
       "FunctionDeclaration": { "parameters": "first" },

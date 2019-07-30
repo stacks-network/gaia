@@ -3,7 +3,7 @@ import { Storage, File } from '@google-cloud/storage'
 import { BadPathError, InvalidInputError, DoesNotExist } from '../errors'
 import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, StatResult, PerformStatArgs, PerformReadArgs, ReadResult, PerformListFilesArgs, ListFilesStatResult, ListFileStatResult } from '../driverModel'
 import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
-import { pipeline, logger, dateToUnixTimeSeconds } from '../utils'
+import { pipelineAsync, logger, dateToUnixTimeSeconds } from '../utils'
 
 export interface GC_CONFIG_TYPE {
   gcCredentials?: {
@@ -212,7 +212,7 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
     })
 
     try {
-      await pipeline(args.stream, fileWriteStream)
+      await pipelineAsync(args.stream, fileWriteStream)
       logger.debug(`storing ${filename} in bucket ${this.bucket}`)
     } catch (error) {
       logger.error(`failed to store ${filename} in bucket ${this.bucket}`)
@@ -327,7 +327,7 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
       .bucket(this.bucket)
       .file(filename)
 
-    const newFilename = `${args.newStorageTopLevel}/${args.newPath}`
+    const newFilename = `${args.storageTopLevel}/${args.newPath}`
     const newBucketFile = this.storage
       .bucket(this.bucket)
       .file(newFilename)
