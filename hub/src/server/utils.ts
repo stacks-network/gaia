@@ -84,11 +84,26 @@ export class AsyncMutexScope {
     if (this._opened.has(id)) {
       return false
     }
-    const owner = spawnOwner()
+
+    // Lock before invoking the given func to prevent potential synchronous 
+    // reentrant locking attempts. 
     this._opened.add(id)
-    owner.finally(() => {
+    
+    try {
+      const owner = spawnOwner()
+      // If spawnOwner does not throw an error then we can safely attach the
+      // unlock to the returned Promise. Once the Promise has evaluated (with or 
+      // without error), we unlock. 
+      owner.finally(() => {
+        this._opened.delete(id)
+      })
+    } catch (error) {
+      // If spawnOwner throws a synchronous error then unlock and re-throw the
+      // error for the caller to handle. This is okay in js because re-throwing
+      // an error preserves the original error call stack. 
       this._opened.delete(id)
-    })
+      throw error
+    }
     return true
   }
 
