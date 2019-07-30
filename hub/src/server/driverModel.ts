@@ -20,6 +20,16 @@ export interface PerformDeleteArgs {
   storageTopLevel: string;
 }
 
+export interface PerformReadArgs {
+  path: string;
+  storageTopLevel: string;
+}
+
+export interface ReadResult extends Required<StatResult> {
+  data: Readable;
+  exists: true
+}
+
 export interface PerformStatArgs {
   path: string;
   storageTopLevel: string;
@@ -44,6 +54,7 @@ export interface DriverModel {
   performDelete(args: PerformDeleteArgs): Promise<void>;
   performRename(args: PerformRenameArgs): Promise<void>;
   performStat(args: PerformStatArgs): Promise<StatResult>;
+  performRead(args: PerformReadArgs): Promise<ReadResult>;
   listFiles(storageTopLevel: string, page?: string): Promise<ListFilesResult>;
   ensureInitialized(): Promise<void>;
   dispose(): Promise<void>;

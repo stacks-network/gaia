@@ -1,7 +1,7 @@
 import S3 from 'aws-sdk/clients/s3'
 
 import { BadPathError, InvalidInputError, DoesNotExist } from '../errors'
-import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult } from '../driverModel'
+import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult, PerformReadArgs, ReadResult } from '../driverModel'
 import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
 import { timeout, logger } from '../utils'
 
@@ -218,12 +218,49 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
     }
   }
 
+  async performRead(args: PerformReadArgs): Promise<ReadResult> {
+    if (!S3Driver.isPathValid(args.path)){
+      throw new BadPathError('Invalid Path')
+    }
+    const s3key = `${args.storageTopLevel}/${args.path}`
+    const s3params: S3.Types.GetObjectRequest = {
+      Bucket: this.bucket,
+      Key: s3key
+    }
+    try {
+      const headResult = await this.s3.headObject(s3params).promise()
+      const dataStream = this.s3.getObject(s3params).createReadStream()
+      let lastModified: number | undefined
+      if (headResult.LastModified) {
+        lastModified = Math.round(headResult.LastModified.getTime() / 1000)
+      }
+      const result: ReadResult = {
+        exists: true,
+        lastModifiedDate: lastModified,
+        contentLength: headResult.ContentLength,
+        contentType: headResult.ContentType,
+        data: dataStream
+      }
+      return result
+
+    } catch (error) {
+      if (error.statusCode === 404) {
+        throw new DoesNotExist('File does not exist')
+      }
+      /* istanbul ignore next */
+      logger.error(`failed to read ${s3key} in bucket ${this.bucket}`)
+      /* istanbul ignore next */
+      throw new Error('S3 storage failure: failed to read' +
+        ` ${s3key} in bucket ${this.bucket}: ${error}`)
+    }
+  }
+
   async performStat(args: PerformStatArgs): Promise<StatResult> {
     if (!S3Driver.isPathValid(args.path)){
       throw new BadPathError('Invalid Path')
     }
     const s3key = `${args.storageTopLevel}/${args.path}`
-    const s3params: S3.Types.DeleteObjectRequest & S3.Types.HeadObjectRequest = {
+    const s3params: S3.Types.HeadObjectRequest = {
       Bucket: this.bucket,
       Key: s3key
     }

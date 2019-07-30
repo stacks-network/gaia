@@ -3,8 +3,9 @@
 import * as azure from '@azure/storage-blob'
 import { logger } from '../utils'
 import { BadPathError, InvalidInputError, DoesNotExist, ConflictError } from '../errors'
-import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult } from '../driverModel'
+import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult, PerformReadArgs, ReadResult } from '../driverModel'
 import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
+import { Readable } from 'stream'
 
 export interface AZ_CONFIG_TYPE {
   azCredentials: {
@@ -205,6 +206,42 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
       logger.error(`failed to delete ${azBlob} in ${this.bucket}: ${error}`)
       /* istanbul ignore next */
       throw new Error('Azure storage failure: failed to delete' +
+        ` ${azBlob} in container ${this.bucket}: ${error}`)
+    }
+  }
+  
+  async performRead(args: PerformReadArgs): Promise<ReadResult> {
+    if (!AzDriver.isPathValid(args.path)) {
+      throw new BadPathError('Invalid Path')
+    }
+    const azBlob = `${args.storageTopLevel}/${args.path}`
+    const blobURL = azure.BlobURL.fromContainerURL(this.container, azBlob)
+    const blockBlobURL = azure.BlockBlobURL.fromBlobURL(blobURL)
+
+    try {
+      const offset = 0
+      const downloadResult = await blockBlobURL.download(azure.Aborter.none, offset)
+      const dataStream = downloadResult.readableStreamBody as Readable
+      let lastModified: number | undefined
+      if (downloadResult.lastModified) {
+        lastModified = Math.round(downloadResult.lastModified.getTime() / 1000)
+      }
+      const result: ReadResult = {
+        exists: true,
+        contentLength: downloadResult.contentLength,
+        contentType: downloadResult.contentType,
+        lastModifiedDate: lastModified,
+        data: dataStream
+      }
+      return result
+    } catch (error) {
+      if (error.statusCode === 404) {
+        throw new DoesNotExist('File does not exist')
+      }
+      /* istanbul ignore next */
+      logger.error(`failed to read ${azBlob} in ${this.bucket}: ${error}`)
+      /* istanbul ignore next */
+      throw new Error('Azure storage failure: failed to read' +
         ` ${azBlob} in container ${this.bucket}: ${error}`)
     }
   }

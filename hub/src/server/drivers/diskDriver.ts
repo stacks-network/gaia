@@ -1,7 +1,7 @@
 import fs from 'fs-extra'
 import { BadPathError, InvalidInputError, DoesNotExist } from '../errors'
 import Path from 'path'
-import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult } from '../driverModel'
+import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult, PerformReadArgs, ReadResult } from '../driverModel'
 import { DriverStatics, DriverModel } from '../driverModel'
 import { pipeline, logger } from '../utils'
 
@@ -233,6 +233,39 @@ class DiskDriver implements DriverModel {
     }
     await fs.unlink(absoluteFilePath)
     await fs.unlink(contentTypeFilePath)
+  }
+
+  async performRead(args: PerformReadArgs): Promise<ReadResult> {
+    const { absoluteFilePath, contentTypeFilePath } = this.getFullFilePathInfo(args)
+    let stat: fs.Stats
+    try {
+      stat = await fs.stat(absoluteFilePath)
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        throw new DoesNotExist('File does not exist')
+      }
+      /* istanbul ignore next */
+      throw error
+    }
+    if (!stat.isFile()) {
+      // Disk driver is special here in that it mirrors the behavior of cloud storage APIs. 
+      // Directories are not first-class objects in blob storages, and so they will 
+      // simply return 404s for the blob name even if the name happens to be a prefix
+      // (pseudo-directory) of existing blobs.
+      throw new DoesNotExist('File does not exist')
+    }
+    const contentTypeJsonStr = await fs.readFile(contentTypeFilePath, 'utf8')
+    const contentType = JSON.parse(contentTypeJsonStr)['content-type']
+    const dataStream = fs.createReadStream(absoluteFilePath)
+    const lastModified = Math.round(stat.mtime.getTime() / 1000)
+    const result: ReadResult = {
+      exists: true,
+      contentLength: stat.size,
+      contentType: contentType,
+      lastModifiedDate: lastModified,
+      data: dataStream
+    }
+    return result
   }
 
   async performStat(args: PerformStatArgs): Promise<StatResult> {

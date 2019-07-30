@@ -1,7 +1,7 @@
 import { Storage, File } from '@google-cloud/storage'
 
 import { BadPathError, InvalidInputError, DoesNotExist } from '../errors'
-import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, StatResult, PerformStatArgs } from '../driverModel'
+import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, StatResult, PerformStatArgs, PerformReadArgs, ReadResult } from '../driverModel'
 import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
 import { pipeline, logger } from '../utils'
 
@@ -219,6 +219,39 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
       logger.error(`failed to delete ${filename} in bucket ${this.bucket}`)
       /* istanbul ignore next */
       throw new Error('Google cloud storage failure: failed to delete' +
+        ` ${filename} in bucket ${this.bucket}: ${error}`)
+    }
+  }
+
+  async performRead(args: PerformReadArgs): Promise<ReadResult> {
+    if (!GcDriver.isPathValid(args.path)) {
+      throw new BadPathError('Invalid Path')
+    }
+    const filename = `${args.storageTopLevel}/${args.path}`
+    const bucketFile = this.storage
+      .bucket(this.bucket)
+      .file(filename)
+    try {
+      const [getResult] = await bucketFile.get({autoCreate: false})
+      const metadataResult = getResult.metadata
+      const dataStream = getResult.createReadStream()
+      const lastModified = Math.round(new Date(metadataResult.updated).getTime() / 1000)
+      const result: ReadResult = {
+        exists: true,
+        contentType: metadataResult.contentType,
+        contentLength: parseInt(metadataResult.size),
+        lastModifiedDate: lastModified,
+        data: dataStream
+      }
+      return result
+    } catch (error) {
+      if (error.code === 404) {
+        throw new DoesNotExist('File does not exist')
+      }
+      /* istanbul ignore next */
+      logger.error(`failed to read ${filename} in bucket ${this.bucket}`)
+      /* istanbul ignore next */
+      throw new Error('Google cloud storage failure: failed to read' +
         ` ${filename} in bucket ${this.bucket}: ${error}`)
     }
   }
