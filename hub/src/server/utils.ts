@@ -9,11 +9,10 @@ import DiskDriver from './drivers/diskDriver'
 import { promisify } from 'util'
 import winston from 'winston'
 
-//$FlowFixMe - Flow is unaware of the stream.pipeline Node API
-import { pipeline as _pipline } from 'stream'
+import { pipeline } from 'stream'
 import { DriverName } from './config'
 
-export const pipeline = promisify(_pipline)
+export const pipelineAsync = promisify(pipeline)
 
 export const logger = winston.createLogger()
 
@@ -52,7 +51,7 @@ class MemoryStream extends stream.Writable {
 
 export async function readStream(stream: stream.Readable): Promise<Buffer> {
   const memStream = new MemoryStream()
-  await pipeline(stream, memStream)
+  await pipelineAsync(stream, memStream)
   return memStream.getData()
 }
 
@@ -62,4 +61,50 @@ export function timeout(milliseconds: number): Promise<void> {
       resolve()
     }, milliseconds)
   })
+}
+
+
+export class AsyncMutexScope {
+
+  private readonly _opened = new Set<string>()
+
+  public get openedCount() {
+    return this._opened.size
+  }
+
+  /**
+   * If no mutex of the given `id` is already taken, then a mutex is created and the 
+   * given promise is invoked. The mutex is released once the promise resolves -- either by 
+   * success or error. 
+   * @param id A unique mutex name used in a Map.
+   * @param spawnOwner A function that creates a Promise if the mutex is acquired. 
+   * @returns `true` if the mutex was acquired, otherwise returns `false`
+   */
+  public tryAcquire(id: string, spawnOwner: () => Promise<void>): boolean {
+    if (this._opened.has(id)) {
+      return false
+    }
+
+    // Lock before invoking the given func to prevent potential synchronous 
+    // reentrant locking attempts. 
+    this._opened.add(id)
+    
+    try {
+      const owner = spawnOwner()
+      // If spawnOwner does not throw an error then we can safely attach the
+      // unlock to the returned Promise. Once the Promise has evaluated (with or 
+      // without error), we unlock. 
+      owner.finally(() => {
+        this._opened.delete(id)
+      })
+    } catch (error) {
+      // If spawnOwner throws a synchronous error then unlock and re-throw the
+      // error for the caller to handle. This is okay in js because re-throwing
+      // an error preserves the original error call stack. 
+      this._opened.delete(id)
+      throw error
+    }
+    return true
+  }
+
 }
