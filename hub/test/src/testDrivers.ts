@@ -404,8 +404,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           await driver.performRename({
             path: renameTestFile1a,
             storageTopLevel: topLevelStorage,
-            newPath: renameTestFile2b,
-            newStorageTopLevel: topLevelStorage
+            newPath: renameTestFile2b
           })
 
           // test that the renamed file has the properties of the original file
@@ -434,8 +433,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           await driver.performRename({
             path: 'does-not-exist-rename.txt',
             storageTopLevel: topLevelStorage,
-            newPath: 'new-location.txt',
-            newStorageTopLevel: topLevelStorage
+            newPath: 'new-location.txt'
           })
           t.fail('File rename for non-existent file should have thrown')
         } catch(error) {
@@ -451,8 +449,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           await driver.performRename({
             path: '../foo.js', 
             storageTopLevel: topLevelStorage,
-            newPath: 'new-location.txt',
-            newStorageTopLevel: topLevelStorage
+            newPath: 'new-location.txt'
           })
           t.fail('Should have thrown performing file rename with invalid original path')
         }
@@ -468,8 +465,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           await driver.performRename({
             path: 'some-file.txt', 
             storageTopLevel: topLevelStorage,
-            newPath: '../foo.js',
-            newStorageTopLevel: topLevelStorage
+            newPath: '../foo.js'
           })
           t.fail('Should have thrown performing file rename with invalid new path')
         }
@@ -485,8 +481,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           await driver.performRename({
             path: fileSubDir, 
             storageTopLevel: topLevelStorage,
-            newPath: 'some-file-from-dir.txt',
-            newStorageTopLevel: topLevelStorage
+            newPath: 'some-file-from-dir.txt'
           })
           t.fail('Should have thrown performing file rename with sub-directory as original path')
         }

@@ -176,7 +176,7 @@ export class InMemoryDriver implements DriverModel {
         throw new DoesNotExist('File does not exist')
       }
       const entry = this.files.get(`${args.storageTopLevel}/${args.path}`)
-      this.files.set(`${args.newStorageTopLevel}/${args.newPath}`, entry)
+      this.files.set(`${args.storageTopLevel}/${args.newPath}`, entry)
       this.files.delete(`${args.storageTopLevel}/${args.path}`)
     })
   }
