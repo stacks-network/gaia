@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Concurrent requests to modify a resource using the `/store/${address}/...`
   or `/delete/${address}/...` endpoints are now always rejected with a 
   `HTTP 409 Conflict` error. Previously, this was undefined behavior
-  that the back-end storage drivers dealt with in different ways. \
+  that the back-end storage drivers dealt with in different ways. 
 
 
 ## [2.5.3]
