@@ -281,11 +281,10 @@ performDelete (options: { path, storageToplevel })
  * @param { String } options.path - path of the original file
  * @param { String } options.storageTopLevel - the top level directory for the original file
  * @param { String } options.newPath - new path for the file
- * @param { String } options.newStorageTopLevel - new top level directory for the file
  * @returns {Promise}
  */
 performRename (options: { path, storageTopLevel,
-                          newPath, newStorageTopLevel })
+                          newPath })
 
 /**
  * Returns an object with a NodeJS stream.Readable for the file content
