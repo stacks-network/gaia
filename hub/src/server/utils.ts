@@ -30,6 +30,9 @@ export function getDriverClass(driver: DriverName): DriverConstructor & DriverSt
   }
 }
 
+export function dateToUnixTimeSeconds(date: Date) {
+  return Math.round(date.getTime() / 1000)
+}
 
 class MemoryStream extends stream.Writable {
   buffers: Buffer[]

@@ -1,11 +1,12 @@
 
 
 import * as azure from '@azure/storage-blob'
-import { logger } from '../utils'
+import { logger, dateToUnixTimeSeconds } from '../utils'
 import { BadPathError, InvalidInputError, DoesNotExist, ConflictError } from '../errors'
-import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult, PerformReadArgs, ReadResult } from '../driverModel'
+import { PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult, PerformReadArgs, ReadResult, PerformListFilesArgs, ListFilesStatResult, ListFileStatResult } from '../driverModel'
 import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
 import { Readable } from 'stream'
+import { BlobGetPropertiesHeaders } from '@azure/storage-blob/typings/lib/generated/lib/models'
 
 export interface AZ_CONFIG_TYPE {
   azCredentials: {
@@ -86,8 +87,7 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
   }
 
   async deleteEmptyBucket() {
-    const prefix: any = undefined
-    const files = await this.listFiles(prefix)
+    const files = await this.listFiles({pathPrefix: undefined as string})
     if (files.entries.length > 0) {
       /* istanbul ignore next */
       throw new Error('Tried deleting non-empty bucket')
@@ -116,7 +116,7 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
     return `${this.getServiceUrl()}/${this.bucket}/`
   }
 
-  async listBlobs(prefix: string, page?: string): Promise<ListFilesResult> {
+  async listBlobs(prefix: string, page?: string): Promise<ListFilesStatResult> {
     // page is the marker / continuationToken for Azure
     const blobs = await this.container.listBlobFlatSegment(
       azure.Aborter.none,
@@ -126,13 +126,34 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
       }
     )
     const items = blobs.segment.blobItems
-    const entries = items.map(e => e.name.slice(prefix.length + 1))
+    const entries: ListFileStatResult[] = items.map(e => {
+      const fileStat = AzDriver.parseFileStat(e.properties)
+      const result: ListFileStatResult = {
+        ...fileStat,
+        exists: true,
+        name: e.name.slice(prefix.length + 1)
+      }
+      return result
+    })
     return { entries, page: blobs.nextMarker || null }
   }
 
-  async listFiles(prefix: string, page?: string) {
+  async listFiles(args: PerformListFilesArgs) {
     try {
-      return await this.listBlobs(prefix, page)
+      const files = await this.listBlobs(args.pathPrefix, args.page)
+      return { 
+        entries: files.entries.map(f => f.name),
+        page: files.page
+      }
+    } catch (error) {
+      logger.debug(`Failed to list files: ${error}`)
+      throw error
+    }
+  }
+
+  async listFilesStat(args: PerformListFilesArgs): Promise<ListFilesStatResult> {
+    try {
+      return await this.listBlobs(args.pathPrefix, args.page)
     } catch (error) {
       logger.debug(`Failed to list files: ${error}`)
       throw error
@@ -222,15 +243,10 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
       const offset = 0
       const downloadResult = await blockBlobURL.download(azure.Aborter.none, offset)
       const dataStream = downloadResult.readableStreamBody as Readable
-      let lastModified: number | undefined
-      if (downloadResult.lastModified) {
-        lastModified = Math.round(downloadResult.lastModified.getTime() / 1000)
-      }
+      const fileStat = AzDriver.parseFileStat(downloadResult)
       const result: ReadResult = {
+        ...fileStat,
         exists: true,
-        contentLength: downloadResult.contentLength,
-        contentType: downloadResult.contentType,
-        lastModifiedDate: lastModified,
         data: dataStream
       }
       return result
@@ -246,6 +262,20 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
     }
   }
 
+  static parseFileStat(properties: BlobGetPropertiesHeaders) {
+    let lastModified: number | undefined
+    if (properties.lastModified) {
+      lastModified = dateToUnixTimeSeconds(properties.lastModified)
+    }
+    const result: StatResult = {
+      exists: true,
+      contentLength: properties.contentLength,
+      contentType: properties.contentType,
+      lastModifiedDate: lastModified
+    }
+    return result
+  }
+
   async performStat(args: PerformStatArgs): Promise<StatResult> {
     if (!AzDriver.isPathValid(args.path)) {
       throw new BadPathError('Invalid Path')
@@ -255,22 +285,13 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
     const blockBlobURL = azure.BlockBlobURL.fromBlobURL(blobURL)
     try {
       const propertiesResult = await blockBlobURL.getProperties(azure.Aborter.none)
-      let lastModified: number | undefined
-      if (propertiesResult.lastModified) {
-        lastModified = Math.round(propertiesResult.lastModified.getTime() / 1000)
-      }
-      const result: StatResult = {
-        exists: true,
-        contentLength: propertiesResult.contentLength,
-        contentType: propertiesResult.contentType,
-        lastModifiedDate: lastModified
-      }
+      const result = AzDriver.parseFileStat(propertiesResult)
       return result
     } catch (error) {
       if (error.statusCode === 404) {
-        const result: StatResult = {
+        const result = {
           exists: false
-        }
+        } as StatResult
         return result
       }
       /* istanbul ignore next */

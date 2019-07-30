@@ -85,7 +85,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
         t.equal(resp.headers.get('cache-control'), cacheControlOpt, 'cacheControl not respected in response headers')
       }
 
-      let files = await driver.listFiles(topLevelStorage)
+      let files = await driver.listFiles({pathPrefix: topLevelStorage})
       t.equal(files.entries.length, 1, 'Should return one file')
       t.equal(files.entries[0], binFileName, `Should be ${binFileName}!`)
       t.ok(!files.page, 'list files for 1 result should not have returned a page')
@@ -112,14 +112,14 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
         t.equal(resp.headers.get('content-type'), 'text/plain; charset=utf-8', 'Read-end point response should contain correct content-type')
       }
 
-      files = await driver.listFiles(topLevelStorage)
+      files = await driver.listFiles({pathPrefix: topLevelStorage})
       t.equal(files.entries.length, 2, 'Should return two files')
       t.ok(files.entries.includes(txtFileName), `Should include ${txtFileName}`)
 
-      files = await driver.listFiles(`${Date.now()}r${Math.random()*1e6|0}`)
+      files = await driver.listFiles({pathPrefix: `${Date.now()}r${Math.random()*1e6|0}`})
       t.equal(files.entries.length, 0, 'List files for empty directory should return zero entries')
 
-      files = await driver.listFiles(`${topLevelStorage}/${txtFileName}`)
+      files = await driver.listFiles({pathPrefix: `${topLevelStorage}/${txtFileName}`})
       t.equal(files.entries.length, 1, 'List files on a file rather than directory should return a single entry')
       t.equal(files.entries[0], '', 'List files on a file rather than directory should return a single empty entry')
       t.strictEqual(files.page, null, 'List files page result should be null')
@@ -128,7 +128,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
         await driver.performDelete({path: txtFileName, storageTopLevel: topLevelStorage})
         t.pass('Should performDelete on an existing file')
 
-        files = await driver.listFiles(topLevelStorage)
+        files = await driver.listFiles({pathPrefix: topLevelStorage})
         t.equal(files.entries.length, 1, 'Should return single file after one was deleted')
         t.ok(!files.entries.includes(txtFileName), `Should not have listed deleted file ${txtFileName}`)
 
@@ -238,6 +238,32 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
       }
 
       if (!mockTest) {
+
+        // test file stat on listFiles
+        try {
+          const statTestFile = 'list_stat_test.txt'
+          const stream1 = new PassThrough()
+          stream1.end('abc sample content 1', 'utf8')
+          const dateNow1 = Math.round(Date.now() / 1000)
+          await driver.performWrite({
+            path: statTestFile,
+            storageTopLevel: topLevelStorage,
+            stream: stream1,
+            contentType: 'text/plain; charset=utf-8',
+            contentLength: 100
+          })
+          const listStatResult = await driver.listFilesStat({
+            pathPrefix: topLevelStorage
+          })
+          const statResult = listStatResult.entries.find(e => e.name.includes(statTestFile))
+          t.equal(statResult.exists, true, 'File stat should return exists after write')
+          t.equal(statResult.contentLength, 20, 'File stat should have correct content length')
+          const dateDiff = Math.abs(statResult.lastModifiedDate - dateNow1)
+          t.equal(dateDiff < 10, true, `File stat last modified date is not within range, diff: ${dateDiff} -- ${statResult.lastModifiedDate} vs ${dateNow1}`)
+        } catch (error) {
+          t.error(error, 'File stat on list files error')
+        }
+
         // test file stat
         try {
           const statTestFile = 'stat_test.txt'
@@ -343,13 +369,13 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
             contentLength: sampleData.contentLength
           });
         }
-        const pagedFiles = await driver.listFiles(`${topLevelStorage}/${pageTestDir}`)
+        const pagedFiles = await driver.listFiles({pathPrefix: `${topLevelStorage}/${pageTestDir}`})
         t.equal(pagedFiles.entries.length, 3, 'List files with no pagination and maxPage size specified should have returned 3 entries')
-        const remainingFiles = await driver.listFiles(`${topLevelStorage}/${pageTestDir}`, pagedFiles.page)
+        const remainingFiles = await driver.listFiles({pathPrefix: `${topLevelStorage}/${pageTestDir}`, page: pagedFiles.page})
         t.equal(remainingFiles.entries.length, 2, 'List files with pagination should have returned 2 remaining entries')
 
         try {
-          const bogusPageResult = await driver.listFiles(`${topLevelStorage}/${pageTestDir}`, "bogus page data")
+          const bogusPageResult = await driver.listFiles({pathPrefix: `${topLevelStorage}/${pageTestDir}`, page: "bogus page data"})
           if (bogusPageResult.entries.length > 0) {
             t.fail('List files with invalid page data should fail or return no results')
           }
@@ -378,8 +404,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           await driver.performRename({
             path: renameTestFile1a,
             storageTopLevel: topLevelStorage,
-            newPath: renameTestFile2b,
-            newStorageTopLevel: topLevelStorage
+            newPath: renameTestFile2b
           })
 
           // test that the renamed file has the properties of the original file
@@ -408,8 +433,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           await driver.performRename({
             path: 'does-not-exist-rename.txt',
             storageTopLevel: topLevelStorage,
-            newPath: 'new-location.txt',
-            newStorageTopLevel: topLevelStorage
+            newPath: 'new-location.txt'
           })
           t.fail('File rename for non-existent file should have thrown')
         } catch(error) {
@@ -425,8 +449,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           await driver.performRename({
             path: '../foo.js', 
             storageTopLevel: topLevelStorage,
-            newPath: 'new-location.txt',
-            newStorageTopLevel: topLevelStorage
+            newPath: 'new-location.txt'
           })
           t.fail('Should have thrown performing file rename with invalid original path')
         }
@@ -442,8 +465,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           await driver.performRename({
             path: 'some-file.txt', 
             storageTopLevel: topLevelStorage,
-            newPath: '../foo.js',
-            newStorageTopLevel: topLevelStorage
+            newPath: '../foo.js'
           })
           t.fail('Should have thrown performing file rename with invalid new path')
         }
@@ -459,8 +481,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           await driver.performRename({
             path: fileSubDir, 
             storageTopLevel: topLevelStorage,
-            newPath: 'some-file-from-dir.txt',
-            newStorageTopLevel: topLevelStorage
+            newPath: 'some-file-from-dir.txt'
           })
           t.fail('Should have thrown performing file rename with sub-directory as original path')
         }

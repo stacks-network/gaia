@@ -158,8 +158,9 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
       const address = req.params[0]
       const requestBody = req.body
       const page = requestBody.page ? requestBody.page : null
+      const stat = !!requestBody.stat
 
-      server.handleListFiles(address, page, req.headers)
+      server.handleListFiles(address, page, stat, req.headers)
         .then((files) => {
           writeResponse(res, { entries: files.entries, page: files.page }, 202)
         })

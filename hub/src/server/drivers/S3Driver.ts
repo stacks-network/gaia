@@ -1,9 +1,9 @@
 import S3 from 'aws-sdk/clients/s3'
 
 import { BadPathError, InvalidInputError, DoesNotExist } from '../errors'
-import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult, PerformReadArgs, ReadResult } from '../driverModel'
+import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult, PerformReadArgs, ReadResult, PerformListFilesArgs, ListFilesStatResult, ListFileStatResult } from '../driverModel'
 import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
-import { timeout, logger } from '../utils'
+import { timeout, logger, dateToUnixTimeSeconds } from '../utils'
 
 export interface S3_CONFIG_TYPE {
   awsCredentials: {
@@ -117,7 +117,7 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
   }
 
   async deleteEmptyBucket() {
-    const files = await this.listFiles('')
+    const files = await this.listFiles({pathPrefix: ''})
     if (files.entries.length > 0) {
       /* istanbul ignore next */
       throw new Error('Tried deleting non-empty bucket')
@@ -125,7 +125,7 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
     await this.s3.deleteBucket({ Bucket: this.bucket }).promise()
   }
 
-  async listAllKeys(prefix: string, page?: string): Promise<ListFilesResult> {
+  async listAllKeys(prefix: string, page?: string): Promise<ListFilesStatResult> {
     // returns {'entries': [...], 'page': next_page}
     const opts: S3.ListObjectsRequest = {
       Bucket: this.bucket,
@@ -136,8 +136,18 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
       opts.Marker = page
     }
     const data = await this.s3.listObjects(opts).promise()
-    const res: ListFilesResult = {
-      entries: data.Contents.map((e) => e.Key.slice(prefix.length + 1)),
+    const entries: ListFileStatResult[] = data.Contents.map((e) => {
+      const fileStat = S3Driver.parseFileStat(e)
+      const entry: ListFileStatResult = {
+        ...fileStat,
+        exists: true,
+        name: e.Key.slice(prefix.length + 1)
+      }
+      return entry
+    })
+
+    const res: ListFilesStatResult = {
+      entries: entries,
       page: data.IsTruncated ? data.NextMarker : null
     }
     /**
@@ -152,9 +162,18 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
     return res
   }
 
-  listFiles(prefix: string, page?: string) {
+  async listFiles(args: PerformListFilesArgs): Promise<ListFilesResult> {
     // returns {'entries': [...], 'page': next_page}
-    return this.listAllKeys(prefix, page)
+    const listResult = await this.listAllKeys(args.pathPrefix, args.page)
+    return {
+      entries: listResult.entries.map(e => e.name),
+      page: listResult.page
+    }
+  }
+
+  async listFilesStat(args: PerformListFilesArgs): Promise<ListFilesStatResult> {
+    const listResult = await this.listAllKeys(args.pathPrefix, args.page)
+    return listResult
   }
 
   async performWrite(args: PerformWriteArgs): Promise<string> {
@@ -230,15 +249,10 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
     try {
       const headResult = await this.s3.headObject(s3params).promise()
       const dataStream = this.s3.getObject(s3params).createReadStream()
-      let lastModified: number | undefined
-      if (headResult.LastModified) {
-        lastModified = Math.round(headResult.LastModified.getTime() / 1000)
-      }
+      const fileStat = S3Driver.parseFileStat(headResult)
       const result: ReadResult = {
+        ...fileStat,
         exists: true,
-        lastModifiedDate: lastModified,
-        contentLength: headResult.ContentLength,
-        contentType: headResult.ContentType,
         data: dataStream
       }
       return result
@@ -255,6 +269,20 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
     }
   }
 
+  static parseFileStat(obj: S3.HeadObjectOutput | S3.Object): StatResult {
+    let lastModified: number | undefined
+    if (obj.LastModified) {
+      lastModified = dateToUnixTimeSeconds(obj.LastModified)
+    }
+    const result: StatResult = {
+      exists: true,
+      lastModifiedDate: lastModified,
+      contentLength: (obj as S3.HeadObjectOutput).ContentLength || (obj as S3.Object).Size,
+      contentType: (obj as S3.HeadObjectOutput).ContentType
+    }
+    return result
+  }
+
   async performStat(args: PerformStatArgs): Promise<StatResult> {
     if (!S3Driver.isPathValid(args.path)){
       throw new BadPathError('Invalid Path')
@@ -266,22 +294,13 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
     }
     try {
       const headResult = await this.s3.headObject(s3params).promise()
-      let lastModified: number | undefined
-      if (headResult.LastModified) {
-        lastModified = Math.round(headResult.LastModified.getTime() / 1000)
-      }
-      const result: StatResult = {
-        exists: true,
-        lastModifiedDate: lastModified,
-        contentLength: headResult.ContentLength,
-        contentType: headResult.ContentType
-      }
+      const result = S3Driver.parseFileStat(headResult)
       return result
     } catch (error) {
       if (error.statusCode === 404) {
-        const result: StatResult = {
+        const result = {
           exists: false
-        }
+        } as StatResult
         return result
       }
       /* istanbul ignore next */
