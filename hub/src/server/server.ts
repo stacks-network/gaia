@@ -1,6 +1,6 @@
 
 
-import { validateAuthorizationHeader, getAuthenticationScopes } from './authentication'
+import { validateAuthorizationHeader, getAuthenticationScopes, AuthScopeValues } from './authentication'
 import { ValidationError, DoesNotExist } from './errors'
 import { ProofChecker } from './ProofChecker'
 import { AuthTimestampCache } from './revocations'
@@ -101,22 +101,7 @@ export class HubServer {
 
     // can the caller delete? if so, in what paths?
     const scopes = getAuthenticationScopes(requestHeaders.authorization)
-    const isArchivalRestricted = scopes.writeArchivalPaths.length > 0 || scopes.writeArchivalPrefixes.length > 0
-    if (isArchivalRestricted) {
-      // we're limited to a set of prefixes and paths.
-      // does the given path match any prefixes?
-      let match = !!scopes.writeArchivalPrefixes.find((p) => (path.startsWith(p)))
-
-      if (!match) {
-        // check for exact paths
-        match = !!scopes.writeArchivalPaths.find((p) => (path === p))
-      }
-
-      if (!match) {
-        // not authorized to write to this path
-        throw new ValidationError(`Address ${address} not authorized to delete from ${path} by scopes`)
-      }
-    }
+    const isArchivalRestricted = this.checkArchivalRestrictions(address, path, scopes)
 
     if (scopes.deletePrefixes.length > 0 || scopes.deletePaths.length > 0) {
       // we're limited to a set of prefixes and paths.
@@ -174,22 +159,7 @@ export class HubServer {
 
     // can the caller write? if so, in what paths?
     const scopes = getAuthenticationScopes(requestHeaders.authorization)
-    const isArchivalRestricted = scopes.writeArchivalPaths.length > 0 || scopes.writeArchivalPrefixes.length > 0
-    if (isArchivalRestricted) {
-      // we're limited to a set of prefixes and paths.
-      // does the given path match any prefixes?
-      let match = !!scopes.writeArchivalPrefixes.find((p) => (path.startsWith(p)))
-
-      if (!match) {
-        // check for exact paths
-        match = !!scopes.writeArchivalPaths.find((p) => (path === p))
-      }
-
-      if (!match) {
-        // not authorized to write to this path
-        throw new ValidationError(`Address ${address} not authorized to write to ${path} by scopes`)
-      }
-    }
+    const isArchivalRestricted = this.checkArchivalRestrictions(address, path, scopes)
 
     if (scopes.writePrefixes.length > 0 || scopes.writePaths.length > 0) {
       // we're limited to a set of prefixes and paths.
@@ -248,4 +218,25 @@ export class HubServer {
     }
     return readURL
   }
+  
+  checkArchivalRestrictions(address: string, path: string, scopes: AuthScopeValues) {
+    const isArchivalRestricted = scopes.writeArchivalPaths.length > 0 || scopes.writeArchivalPrefixes.length > 0
+    if (isArchivalRestricted) {
+      // we're limited to a set of prefixes and paths.
+      // does the given path match any prefixes?
+      let match = !!scopes.writeArchivalPrefixes.find((p) => (path.startsWith(p)))
+
+      if (!match) {
+        // check for exact paths
+        match = !!scopes.writeArchivalPaths.find((p) => (path === p))
+      }
+
+      if (!match) {
+        // not authorized to write to this path
+        throw new ValidationError(`Address ${address} not authorized to modify ${path} by scopes`)
+      }
+    }
+    return isArchivalRestricted
+  }
+
 }
