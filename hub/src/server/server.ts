@@ -6,7 +6,7 @@ import { ProofChecker } from './ProofChecker'
 import { AuthTimestampCache } from './revocations'
 
 import { Readable } from 'stream'
-import { DriverModel, PerformWriteArgs, PerformRenameArgs, PerformDeleteArgs } from './driverModel'
+import { DriverModel, PerformWriteArgs, PerformRenameArgs, PerformDeleteArgs, PerformListFilesArgs } from './driverModel'
 import { HubConfigInterface } from './config'
 import { logger, generateUniqueID } from './utils'
 
@@ -52,10 +52,19 @@ export class HubServer {
 
   async handleListFiles(address: string,
                         page: string | undefined,
+                        stat: boolean,
                         requestHeaders: { authorization?: string }) {
     const oldestValidTokenTimestamp = await this.authTimestampCache.getAuthTimestamp(address)
     this.validate(address, requestHeaders, oldestValidTokenTimestamp)
-    return await this.driver.listFiles(address, page)
+    const listFilesArgs: PerformListFilesArgs = {
+      pathPrefix: address,
+      page: page
+    }
+    if (stat) {
+      return await this.driver.listFilesStat(listFilesArgs)
+    } else {
+      return await this.driver.listFiles(listFilesArgs)
+    }
   }
 
   getReadURLPrefix() {
