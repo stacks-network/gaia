@@ -75,17 +75,10 @@ export class HubServer {
     }
   }
 
-  getHistoricalFileName(address: string, filePath: string) {
+  getHistoricalFileName(filePath: string) {
     const pathParts = filePath.split('/')
     const fileName = pathParts[pathParts.length - 1]
     const filePathPrefix = filePath.slice(0, filePath.length - fileName.length)
-  
-    // reject writes to historical files
-    if (fileName.startsWith('.history.')) {
-      logger.warn(`Attempt was made to write directly to a historical file ${address}/${filePath}`)
-      throw new ValidationError('putFileArchival scope restricts writes to files that match the historical file naming scheme')
-    }
-  
     const historicalName = `.history.${Date.now()}.${generateUniqueID()}.${fileName}`
     const historicalPath = `${filePathPrefix}${historicalName}`
     return historicalPath
@@ -123,7 +116,7 @@ export class HubServer {
 
     if (isArchivalRestricted){
       // if archival restricted then just rename the canonical file to the historical file
-      const historicalPath = this.getHistoricalFileName(address, path)
+      const historicalPath = this.getHistoricalFileName(path)
       const renameCommand: PerformRenameArgs = {
         path: path,
         storageTopLevel: address,
@@ -186,7 +179,7 @@ export class HubServer {
     await this.proofChecker.checkProofs(address, path, this.getReadURLPrefix())
     
     if (isArchivalRestricted) {
-      const historicalPath = this.getHistoricalFileName(address, path)
+      const historicalPath = this.getHistoricalFileName(path)
       try {
         await this.driver.performRename({
           path: path,
