@@ -55,15 +55,26 @@ export class HubServer {
                         stat: boolean,
                         requestHeaders: { authorization?: string }) {
     const oldestValidTokenTimestamp = await this.authTimestampCache.getAuthTimestamp(address)
+    const scopes = getAuthenticationScopes(requestHeaders.authorization)
+    const isArchivalRestricted = this.isArchivalRestricted(scopes)
+
     this.validate(address, requestHeaders, oldestValidTokenTimestamp)
     const listFilesArgs: PerformListFilesArgs = {
       pathPrefix: address,
       page: page
     }
     if (stat) {
-      return await this.driver.listFilesStat(listFilesArgs)
+      const result = await this.driver.listFilesStat(listFilesArgs)
+      if (isArchivalRestricted) {
+        result.entries = result.entries.filter(entry => !this.isHistoricalFile(entry.name))
+      }
+      return result
     } else {
-      return await this.driver.listFiles(listFilesArgs)
+      const result = await this.driver.listFiles(listFilesArgs)
+      if (isArchivalRestricted) {
+        result.entries = result.entries.filter(entry => !this.isHistoricalFile(entry))
+      }
+      return result
     }
   }
 
@@ -75,15 +86,25 @@ export class HubServer {
     }
   }
 
-  getHistoricalFileName(filePath: string) {
+  getFileName(filePath: string) {
     const pathParts = filePath.split('/')
     const fileName = pathParts[pathParts.length - 1]
+    return fileName
+  }
+
+  getHistoricalFileName(filePath: string) {
+    const fileName = this.getFileName(filePath)
     const filePathPrefix = filePath.slice(0, filePath.length - fileName.length)
     const historicalName = `.history.${Date.now()}.${generateUniqueID()}.${fileName}`
     const historicalPath = `${filePathPrefix}${historicalName}`
     return historicalPath
   }
   
+  isHistoricalFile(filePath: string) {
+    const fileName = this.getFileName(filePath)
+    const isHistoricalFile = fileName.startsWith('.history.')
+    return isHistoricalFile
+  }
 
   async handleDelete(
     address: string, path: string,
@@ -212,8 +233,12 @@ export class HubServer {
     return readURL
   }
   
+  isArchivalRestricted(scopes: AuthScopeValues) {
+    return scopes.writeArchivalPaths.length > 0 || scopes.writeArchivalPrefixes.length > 0
+  }
+
   checkArchivalRestrictions(address: string, path: string, scopes: AuthScopeValues) {
-    const isArchivalRestricted = scopes.writeArchivalPaths.length > 0 || scopes.writeArchivalPrefixes.length > 0
+    const isArchivalRestricted = this.isArchivalRestricted(scopes)
     if (isArchivalRestricted) {
       // we're limited to a set of prefixes and paths.
       // does the given path match any prefixes?

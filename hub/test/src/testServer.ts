@@ -4,8 +4,7 @@ import * as errors from '../../src/server/errors'
 import { HubServer }  from '../../src/server/server'
 import { ProofChecker } from '../../src/server/ProofChecker'
 import { Readable, PassThrough } from 'stream'
-import { DriverModel } from '../../src/server/driverModel'
-import { ListFilesResult } from '../../src/server/driverModel'
+import { DriverModel, ListFilesResult, ListFilesStatResult } from '../../src/server/driverModel'
 import { InMemoryDriver } from './testDrivers/InMemoryDriver'
 import { testPairs, testAddrs, createTestKeys } from './common'
 import { MockAuthTimestampCache } from './MockAuthTimestampCache'
@@ -579,6 +578,14 @@ export function testServer() {
       t.equal(mockDriver.files.has(`${testAddrs[0]}/baz/foo.txt`), true)
       const historyEntries6 = [...mockDriver.files.keys()].filter(k => k.match(RegExp(`${testAddrs[0]}/baz/.history.[0-9]+.[A-Za-z0-9]+.foo.txt`)))
       t.equal(historyEntries6.length === 3, true)
+
+      const listFilesHistorical1 = await server.handleListFiles(testAddrs[0], null as string, false, { authorization }) as ListFilesResult
+      const listFilesHistorical1Ok = !listFilesHistorical1.entries.find(k => k.includes('.history.'))
+      t.equal(listFilesHistorical1Ok, true, 'list files with putFileArchival should not include historical files')
+
+      const listFilesHistorical2 = await server.handleListFiles(testAddrs[0], null as string, true, { authorization }) as ListFilesStatResult
+      const listFilesHistorical2Ok = !listFilesHistorical2.entries.find(k => k.name.includes('.history.'))
+      t.equal(listFilesHistorical2Ok, true, 'list files stat with putFileArchival should not include historical files')
 
       try {
         await server.handleDelete(testAddrs[0], '/nope/foo.txt', { authorization })
