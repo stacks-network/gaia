@@ -1,7 +1,7 @@
 
 
 import { validateAuthorizationHeader, getAuthenticationScopes, AuthScopeValues } from './authentication'
-import { ValidationError, DoesNotExist } from './errors'
+import { ValidationError, DoesNotExist, InternalServerError } from './errors'
 import { ProofChecker } from './ProofChecker'
 import { AuthTimestampCache } from './revocations'
 
@@ -66,7 +66,10 @@ export class HubServer {
     
     const fetchPage = async (pageArg: string): Promise<ListFilesResult | ListFilesStatResult> => {
       if (attemptCount > maxFetchPageAttempts) {
-        throw new Error('Too many empty pages')
+        const errMsg = 'The `fetchPageAttempts` limit reached. Hub server needs to ' +
+          'increase the limit or historical files need pruned from this bucket'
+        logger.error(`${errMsg} - bucket: ${address}, fetchPageAttempts: ${maxFetchPageAttempts}`)
+        throw new InternalServerError(errMsg)
       }
       attemptCount++
 

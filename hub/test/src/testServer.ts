@@ -587,14 +587,40 @@ export function testServer() {
       const listFilesHistorical2Ok = !listFilesHistorical2.entries.find(k => k.name.includes('.history.'))
       t.equal(listFilesHistorical2Ok, true, 'list files stat with putFileArchival should not include historical files')
 
+      // test historical file pagination
+      for (let i = 0; i < 10; i++) {
+        await server.handleRequest(testAddrs[0], `baz/foo_page_test_${i}.txt`, { 
+          'content-length': 400,
+          authorization }, getDataStream())
+        await timeout(1)
+      }
+      const allFiles = await server.handleListFiles(testAddrs[0], null as string, false, { authorization }) as ListFilesResult
+      for (const entry of allFiles.entries) {
+        await server.handleDelete(testAddrs[0], entry, { authorization })
+      }
+      await server.handleRequest(testAddrs[0], `baz/foo_page_test_last.txt`, { 
+        'content-length': 400,
+        authorization }, getDataStream())
+      await timeout(1)
+      try {
+        server.config.fetchPageAttempts = 3
+        mockDriver.pageSize = 2
+        await server.handleListFiles(testAddrs[0], null as string, false, { authorization }) as ListFilesResult
+        t.fail('should have failed to list-files from reaching max page attempts')
+      } catch (e) {
+        t.throws(() => { throw e }, errors.InternalServerError, 'should have failed to list-files from reaching max page attempts')
+      }
+
       try {
         await server.handleDelete(testAddrs[0], '/nope/foo.txt', { authorization })
+        t.fail('invalid path prefix should fail delete')
       } catch (e) {
-        t.throws(() => { throw e }, errors.ValidationError, 'invalid path prefix should fail')
+        t.throws(() => { throw e }, errors.ValidationError, 'invalid path prefix should fail delete')
       }
 
       try {
         await server.handleDelete(testAddrs[0], '/foo/bar/nope.txt', { authorization })
+        t.fail('deleteFile does not allow prefixes')
       } catch (e) {
         t.throws(() => { throw e }, errors.ValidationError, 'deleteFile does not allow prefixes')
       }

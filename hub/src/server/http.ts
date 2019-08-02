@@ -73,7 +73,9 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
         } else if (err instanceof errors.NotEnoughProofError) {
           writeResponse(res, { message: err.message, error: err.name  }, 402)
         } else if (err instanceof errors.ConflictError) {
-          writeResponse(res, { message: err.message, error: err.name  }, 409)
+          writeResponse(res, { message: err.message, error: err.name  }, 409) 
+        } else if (err instanceof errors.InternalServerError) {
+          writeResponse(res, { message: err.message, error: err.name }, 500)
         } else {
           writeResponse(res, { message: 'Server Error' }, 500)
         }
@@ -124,6 +126,8 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
           writeResponse(res, { message: err.message, error: err.name  }, 404)
         } else if (err instanceof errors.NotEnoughProofError) {
           writeResponse(res, { message: err.message, error: err.name  }, 402)
+        } else if (err instanceof errors.InternalServerError) {
+          writeResponse(res, { message: err.message, error: err.name }, 500)
         } else {
           writeResponse(res, { message: 'Server Error' }, 500)
         }
@@ -170,6 +174,8 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
             writeResponse(res, { message: err.message, error: err.name }, 401)
           } else if (err instanceof errors.AuthTokenTimestampValidationError) {
             writeResponse(res, { message: err.message, error: err.name  }, 401)
+          } else if (err instanceof errors.InternalServerError) {
+            writeResponse(res, { message: err.message, error: err.name }, 500)
           } else {
             writeResponse(res, { message: 'Server Error' }, 500)
           }
@@ -209,6 +215,8 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
             writeResponse(res, { message: err.message, error: err.name  }, 401)
           } else if (err instanceof errors.BadPathError) {
             writeResponse(res, { message: err.message, error: err.name  }, 403)
+          } else if (err instanceof errors.InternalServerError) {
+            writeResponse(res, { message: err.message, error: err.name }, 500)
           } else {
             writeResponse(res, { message: 'Server Error' }, 500)
           }
