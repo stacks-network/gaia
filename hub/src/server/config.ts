@@ -60,6 +60,7 @@ export interface HubConfigInterface {
   cacheControl?: string;
   argsTransport?: LoggingConfig;
   proofsConfig?: ProofCheckerConfigInterface;
+  fetchPageAttempts?: number;
   driver?: DriverName;
 
   /**
@@ -134,6 +135,14 @@ class HubConfig implements HubConfigInterface {
    * @TJS-type integer
    */
   authTimestampCacheSize? = 50000;
+
+  /**
+   * Number of times to re-fetch pages for a list-files request in order to avoid
+   * returning a empty list that was filtered of historical file entries. 
+   * @minimum 1
+   * @TJS-type integer
+   */
+  fetchPageAttempts? = 100;
 
   driver = undefined as DriverName;
 
