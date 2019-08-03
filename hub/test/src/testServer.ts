@@ -602,14 +602,15 @@ export function testServer() {
         'content-length': 400,
         authorization }, getDataStream())
       await timeout(1)
-      try {
-        server.config.fetchPageAttempts = 3
-        mockDriver.pageSize = 2
-        await server.handleListFiles(testAddrs[0], null as string, false, { authorization }) as ListFilesResult
-        t.fail('should have failed to list-files from reaching max page attempts')
-      } catch (e) {
-        t.throws(() => { throw e }, errors.InternalServerError, 'should have failed to list-files from reaching max page attempts')
-      }
+
+      mockDriver.pageSize = 2
+      const listFilesEmpty = await server.handleListFiles(testAddrs[0], null as string, false, { authorization })
+      t.equal(listFilesEmpty.entries.length, 1, 'list files with all filtered entries should return a single entry')
+      t.equal(listFilesEmpty.entries[0], null, 'list files with all filtered entries should have null as the single entry')
+
+      const listFilesEmpty2 = await server.handleListFiles(testAddrs[0], null as string, true, { authorization })
+      t.equal(listFilesEmpty2.entries.length, 1, 'list files with all filtered entries should return a single entry')
+      t.equal(listFilesEmpty2.entries[0], null, 'list files with all filtered entries should have null as the single entry')
 
       try {
         await server.handleDelete(testAddrs[0], '/nope/foo.txt', { authorization })

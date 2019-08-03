@@ -98,12 +98,6 @@
             ],
             "type": "string"
         },
-        "fetchPageAttempts": {
-            "default": 100,
-            "description": "Number of times to re-fetch pages for a list-files request in order to avoid\nreturning a empty list that was filtered of historical file entries.",
-            "minimum": 1,
-            "type": "integer"
-        },
         "gcCredentials": {
             "additionalProperties": false,
             "description": "Required if `driver` is `google-cloud`",

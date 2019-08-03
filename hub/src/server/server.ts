@@ -1,7 +1,7 @@
 
 
 import { validateAuthorizationHeader, getAuthenticationScopes, AuthScopeValues } from './authentication'
-import { ValidationError, DoesNotExist, InternalServerError } from './errors'
+import { ValidationError, DoesNotExist } from './errors'
 import { ProofChecker } from './ProofChecker'
 import { AuthTimestampCache } from './revocations'
 
@@ -61,50 +61,38 @@ export class HubServer {
     const isArchivalRestricted = this.isArchivalRestricted(scopes)
 
     this.validate(address, requestHeaders, oldestValidTokenTimestamp)
-    let attemptCount = 0
-    const maxFetchPageAttempts = this.config.fetchPageAttempts || 100
-    
-    const fetchPage = async (pageArg: string): Promise<ListFilesResult | ListFilesStatResult> => {
-      if (attemptCount > maxFetchPageAttempts) {
-        const errMsg = 'The `fetchPageAttempts` limit reached. Hub server needs to ' +
-          'increase the limit or historical files need pruned from this bucket'
-        logger.error(`${errMsg} - bucket: ${address}, fetchPageAttempts: ${maxFetchPageAttempts}`)
-        throw new InternalServerError(errMsg)
-      }
-      attemptCount++
 
-      const listFilesArgs: PerformListFilesArgs = {
-        pathPrefix: address,
-        page: pageArg
-      }
-      let listFileResult: ListFilesResult | ListFilesStatResult
-      if (stat) {
-        listFileResult = await this.driver.listFilesStat(listFilesArgs)
-      } else {
-        listFileResult = await this.driver.listFiles(listFilesArgs)
-      }
-  
-      // Filter historical files from results.
-      if (isArchivalRestricted && listFileResult.entries.length > 0) {
-        if (stat) {
-          listFileResult.entries = (listFileResult as ListFilesStatResult).entries
-            .filter(entry => !this.isHistoricalFile(entry.name))
-        } else {
-          listFileResult.entries = (listFileResult as ListFilesResult).entries
-            .filter(entry => !this.isHistoricalFile(entry))
-        }
-  
-        // Detect empty page due to all files being historical files.
-        if (listFileResult.entries.length === 0 && listFileResult.page) {
-          // Fetch a new page rather than return empty result array.
-          return fetchPage(listFileResult.page)
-        }
-      }
-
-      return listFileResult
+    const listFilesArgs: PerformListFilesArgs = {
+      pathPrefix: address,
+      page: page
     }
 
-    return await fetchPage(page)
+    let listFileResult: ListFilesResult | ListFilesStatResult
+    if (stat) {
+      listFileResult = await this.driver.listFilesStat(listFilesArgs)
+    } else {
+      listFileResult = await this.driver.listFiles(listFilesArgs)
+    }
+
+    // Filter historical files from results.
+    if (isArchivalRestricted && listFileResult.entries.length > 0) {
+      if (stat) {
+        listFileResult.entries = (listFileResult as ListFilesStatResult).entries
+          .filter(entry => !this.isHistoricalFile(entry.name))
+      } else {
+        listFileResult.entries = (listFileResult as ListFilesResult).entries
+          .filter(entry => !this.isHistoricalFile(entry))
+      }
+
+      // Detect empty page due to all files being historical files.
+      if (listFileResult.entries.length === 0 && listFileResult.page) {
+        // Insert a null marker entry to indicate that there are more results
+        // even though the entry array is empty.
+        listFileResult.entries.push(null)
+      }
+    }
+
+    return listFileResult
   }
 
   getReadURLPrefix() {

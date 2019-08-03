@@ -49,10 +49,3 @@ export class InvalidInputError extends Error {
     this.name = this.constructor.name
   }
 }
-
-export class InternalServerError extends Error {
-  constructor (message: string) {
-    super(message)
-    this.name = this.constructor.name
-  }
-}
