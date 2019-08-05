@@ -12,6 +12,19 @@ import winston from 'winston'
 import { pipeline } from 'stream'
 import { DriverName } from './config'
 
+import nanoid = require('nanoid/generate')
+
+const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
+
+/**
+ * Generates a random 10 char string using uppercase & lowercase alpha numeric alphabet.
+ */
+export function generateUniqueID() {
+  const id = nanoid(alphabet, 10) //=> "mAB6Yps3V3"
+  return id
+}
+
+
 export const pipelineAsync = promisify(pipeline)
 
 export const logger = winston.createLogger()
