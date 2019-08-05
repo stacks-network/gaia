@@ -43,7 +43,8 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
   app.use(expressWinston.logger({
     winstonInstance: logger }))
 
-  app.use(cors())
+  // Set the Access-Control-Max-Age header to 24 hours.
+  app.use(cors({maxAge: 86400}))
 
   // sadly, express doesn't like to capture slashes.
   //  but that's okay! regexes solve that problem
