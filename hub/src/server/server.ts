@@ -236,8 +236,11 @@ export class HubServer {
     // avoids buffering entire streams in memory and hooks up all the correct events for 
     // cleanup and error handling. See https://nodejs.org/api/stream.html#stream_three_states
 
-    // Two PassThrough streams are used, one for streaming through the driver, and another
-    // for monitoring upload size progress. See https://stackoverflow.com/a/51143558/794962
+    // Two stream listeners are required to enforce size limits: the original stream reader 
+    // implemented by drivers for uploading to storage, and another for monitoring upload size. 
+    // Stream listeners are greedy so two PassThrough streams are used, and the pipeline API
+    // is setup *before* reading so that both listeners receive all notifications. 
+    // See https://stackoverflow.com/a/51143558/794962
 
     // Create a PassThrough stream to give to driver for uploading to storage backend. 
     const uploadStream = new PassThrough()
