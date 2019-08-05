@@ -11,7 +11,7 @@
     "@google-cloud/storage": "^2.5.0",
     "ajv": "^6.10.0",
     "aws-sdk": "^2.482.0",
-    "bitcoinjs-lib": "^5.0.5",
+    "bitcoinjs-lib": "^5.1.2",
     "blockstack": "^19.2.2",
     "body-parser": "^1.19.0",
     "cors": "^2.8.5",
