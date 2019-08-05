@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   or `/delete/${address}/...` endpoints are now always rejected with a 
   `HTTP 409 Conflict` error. Previously, this was undefined behavior
   that the back-end storage drivers dealt with in different ways. 
+- The `Access-Control-Max-Age` header for preflight CORs OPTION responses
+  set to 24 hours. 
 
 
 ## [2.5.3]

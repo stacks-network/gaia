@@ -135,6 +135,13 @@ export function testHttpWithInMemoryDriver() {
       const path = `/store/${address}/helloWorld`
       const listPath = `/list-files/${address}`
 
+      // test CORs response
+      let corsReq = await request(app).options(path)
+        .set('Access-Control-Request-Method', 'POST')
+        .set('Access-Control-Request-Headers', 'authorization,content-type')
+        .expect(204)
+        .expect('Access-Control-Max-Age', '86400')
+
       let response = await request(app)
         .get('/hub_info/')
         .expect(200)
