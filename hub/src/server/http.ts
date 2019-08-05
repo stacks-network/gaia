@@ -67,13 +67,17 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
         if (err instanceof errors.ValidationError) {
           writeResponse(res, { message: err.message, error: err.name }, 401)
         } else if (err instanceof errors.AuthTokenTimestampValidationError) {
-          writeResponse(res, { message: err.message, error: err.name  }, 401)
+          writeResponse(res, { message: err.message, error: err.name }, 401)
         } else if (err instanceof errors.BadPathError) {
-          writeResponse(res, { message: err.message, error: err.name  }, 403)
+          writeResponse(res, { message: err.message, error: err.name }, 403)
         } else if (err instanceof errors.NotEnoughProofError) {
-          writeResponse(res, { message: err.message, error: err.name  }, 402)
+          writeResponse(res, { message: err.message, error: err.name }, 402)
         } else if (err instanceof errors.ConflictError) {
-          writeResponse(res, { message: err.message, error: err.name  }, 409) 
+          writeResponse(res, { message: err.message, error: err.name }, 409) 
+        } else if (err instanceof errors.ContentLengthHeaderRequiredError) {
+          writeResponse(res, { message: err.message, error: err.name }, 411)
+        } else if (err instanceof errors.PayloadTooLargeError) {
+          writeResponse(res, { message: err.message, error: err.name }, 413)
         } else {
           writeResponse(res, { message: 'Server Error' }, 500)
         }

@@ -1,14 +1,14 @@
 
 
 import { validateAuthorizationHeader, getAuthenticationScopes, AuthScopeValues } from './authentication'
-import { ValidationError, DoesNotExist } from './errors'
+import { ValidationError, DoesNotExist, ContentLengthHeaderRequiredError, PayloadTooLargeError } from './errors'
 import { ProofChecker } from './ProofChecker'
 import { AuthTimestampCache } from './revocations'
 
-import { Readable } from 'stream'
+import { Readable, PassThrough } from 'stream'
 import { DriverModel, PerformWriteArgs, PerformRenameArgs, PerformDeleteArgs, PerformListFilesArgs, ListFilesStatResult, ListFilesResult } from './driverModel'
 import { HubConfigInterface } from './config'
-import { logger, generateUniqueID } from './utils'
+import { logger, generateUniqueID, bytesToMegabytes, megabytesToBytes, pipelineAsync } from './utils'
 
 export class HubServer {
   driver: DriverModel
@@ -20,6 +20,8 @@ export class HubServer {
   validHubUrls?: Array<string>
   authTimestampCache: AuthTimestampCache
   config: HubConfigInterface
+  maxFileUploadSizeMB: number
+  maxFileUploadSizeBytes: number
 
   constructor(driver: DriverModel, proofChecker: ProofChecker, config: HubConfigInterface) {
     this.driver = driver
@@ -31,6 +33,9 @@ export class HubServer {
     this.readURL = config.readURL
     this.requireCorrectHubUrl = config.requireCorrectHubUrl || false
     this.authTimestampCache = new AuthTimestampCache(this.getReadURLPrefix(), driver, config.authTimestampCacheSize)
+    this.maxFileUploadSizeMB = (config.maxFileUploadSize || 20)
+    // megabytes to bytes
+    this.maxFileUploadSizeBytes = megabytesToBytes(this.maxFileUploadSizeMB)
   }
 
   async handleAuthBump(address: string, oldestValidTimestamp: number, requestHeaders: { authorization?: string }) {
@@ -208,14 +213,57 @@ export class HubServer {
       }
     }
 
-    const writeCommand: PerformWriteArgs = {
-      storageTopLevel: address,
-      path, stream, contentType,
-      contentLength: parseInt(requestHeaders['content-length'] as string)
+    await this.proofChecker.checkProofs(address, path, this.getReadURLPrefix())
+
+    const contentLengthHeader = requestHeaders['content-length'] as string
+    const contentLengthBytes = parseInt(contentLengthHeader)
+    const isLengthFinite = Number.isFinite(contentLengthBytes)
+
+    if (!isLengthFinite) {
+      const errMsg = `A valid 'Content-Length' header must be passed. Received header "${contentLengthHeader}"`
+      logger.warn(`${errMsg}, address: ${address}`)
+      throw new ContentLengthHeaderRequiredError(errMsg)
     }
 
-    await this.proofChecker.checkProofs(address, path, this.getReadURLPrefix())
-    
+    if (contentLengthBytes > this.maxFileUploadSizeBytes) {
+      const errMsg = `Max file upload size is ${this.maxFileUploadSizeMB} megabytes. ` + 
+        `Rejected Content-Length of ${bytesToMegabytes(contentLengthBytes, 4)} megabytes`
+      logger.warn(`${errMsg}, address: ${address}`)
+      throw new PayloadTooLargeError(errMsg)
+    }
+
+    // Use the stream pipe API to monitor a stream with correct backpressure handling. This 
+    // avoids buffering entire streams in memory and hooks up all the correct events for 
+    // cleanup and error handling. See https://nodejs.org/api/stream.html#stream_three_states
+
+    // Two PassThrough streams are used, one for streaming through the driver, and another
+    // for monitoring upload size progress. See https://stackoverflow.com/a/51143558/794962
+
+    // Create a PassThrough stream to give to driver for uploading to storage backend. 
+    const uploadStream = new PassThrough()
+    const uploadPipeline = pipelineAsync(stream, uploadStream)
+
+    // Create a PassThrough stream to monitor streaming size. 
+    const monitorStream = new PassThrough()
+    const monitorPipeline = pipelineAsync(stream, monitorStream)
+    let monitoredContentSize = 0
+    monitorStream.on('data', (chunk: Buffer) => {
+      monitoredContentSize += chunk.length
+      if (monitoredContentSize > this.maxFileUploadSizeBytes) {
+        const errMsg = `Max file upload size is ${this.maxFileUploadSizeMB} megabytes. ` + 
+          `Rejected POST body stream of ${bytesToMegabytes(monitoredContentSize, 4)} megabytes`
+        logger.warn(`${errMsg}, address: ${address}`)
+        const error = new PayloadTooLargeError(errMsg)
+        stream.destroy(error)
+      }
+    })
+
+    const writeCommand: PerformWriteArgs = {
+      storageTopLevel: address,
+      path, stream: uploadStream, contentType,
+      contentLength: contentLengthBytes
+    }
+
     if (isArchivalRestricted) {
       const historicalPath = this.getHistoricalFileName(path)
       try {
@@ -240,7 +288,7 @@ export class HubServer {
       }
     }
 
-    const readURL = await this.driver.performWrite(writeCommand)
+    const [,,readURL] = await Promise.all([monitorPipeline, uploadPipeline, this.driver.performWrite(writeCommand)])
     const driverPrefix = this.driver.getReadURLPrefix()
     const readURLPrefix = this.getReadURLPrefix()
     if (readURLPrefix !== driverPrefix && readURL.startsWith(driverPrefix)) {

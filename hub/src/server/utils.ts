@@ -43,6 +43,14 @@ export function getDriverClass(driver: DriverName): DriverConstructor & DriverSt
   }
 }
 
+export function megabytesToBytes(megabytes: number) {
+  return megabytes * 1024 * 1024
+}
+
+export function bytesToMegabytes(bytes: number, decimals = 2) {
+  return Number.parseFloat((bytes / 1024 / 1024).toFixed(decimals))
+}
+
 export function dateToUnixTimeSeconds(date: Date) {
   return Math.round(date.getTime() / 1000)
 }

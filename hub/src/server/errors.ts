@@ -49,3 +49,17 @@ export class InvalidInputError extends Error {
     this.name = this.constructor.name
   }
 }
+
+export class ContentLengthHeaderRequiredError extends Error {
+  constructor (message: string) {
+    super(message)
+    this.name = this.constructor.name
+  }
+}
+
+export class PayloadTooLargeError extends Error {
+  constructor (message: string) {
+    super(message)
+    this.name = this.constructor.name
+  }
+}
