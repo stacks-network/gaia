@@ -151,7 +151,7 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
   })
 
   app.post(
-    /^\/list-files\/([a-zA-Z0-9]+)\/?/, express.json(),
+    /^\/list-files\/([a-zA-Z0-9]+)\/?/, express.json({ limit: 4096 }),
     (req: express.Request, res: express.Response) => {
       // sanity check...
       if (parseInt(req.headers['content-length']) > 4096) {
@@ -182,7 +182,7 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
 
   app.post(
     /^\/revoke-all\/([a-zA-Z0-9]+)\/?/, 
-    express.json(),
+    express.json({ limit: 4096 }),
     (req: express.Request, res: express.Response) => {
       // sanity check...
       if (parseInt(req.headers['content-length']) > 4096) {
