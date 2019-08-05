@@ -228,6 +228,7 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
     const readURLPrefix = server.getReadURLPrefix()
     writeResponse(res, { 'challenge_text': challengeText,
                          'latest_auth_version': LATEST_AUTH_VERSION,
+                         'max_file_upload_size_megabytes': server.maxFileUploadSizeMB,
                          'read_url_prefix': readURLPrefix }, 200)
   })
 
