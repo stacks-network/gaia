@@ -266,13 +266,13 @@ export class HubServer {
     // is setup *before* reading so that both listeners receive all notifications. 
     // See https://stackoverflow.com/a/51143558/794962
 
-    // Create a PassThrough stream to give to driver for uploading to storage backend. 
-    const uploadStream = new PassThrough()
-    const uploadPipeline = pipelineAsync(stream, uploadStream)
-
     // Create a PassThrough stream to monitor streaming size. 
     const monitorStream = new PassThrough()
     const monitorPipeline = pipelineAsync(stream, monitorStream)
+
+    // Create a PassThrough stream to give to driver for uploading to storage backend. 
+    const uploadStream = new PassThrough()
+    const uploadPipeline = pipelineAsync(stream, uploadStream)
 
     // Now that the PassThrough streams and pipes are setup, the data event listener
     // for the size monitor can be setup without either stream listeners missing any chunks. 
@@ -285,6 +285,7 @@ export class HubServer {
         logger.warn(`${errMsg}, address: ${address}`)
         const error = new PayloadTooLargeError(errMsg)
         stream.destroy(error)
+        uploadStream.destroy(error)
       }
     })
 
@@ -293,8 +294,7 @@ export class HubServer {
       path, stream: uploadStream, contentType,
       contentLength: contentLengthBytes
     }
-
-    const [,,readURL] = await Promise.all([monitorPipeline, uploadPipeline, this.driver.performWrite(writeCommand)])
+    const [readURL] = await Promise.all([this.driver.performWrite(writeCommand), uploadPipeline, monitorPipeline])
     const driverPrefix = this.driver.getReadURLPrefix()
     const readURLPrefix = this.getReadURLPrefix()
     if (readURLPrefix !== driverPrefix && readURL.startsWith(driverPrefix)) {
