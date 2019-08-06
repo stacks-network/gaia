@@ -232,41 +232,6 @@ export class HubServer {
       throw new PayloadTooLargeError(errMsg)
     }
 
-    // Use the stream pipe API to monitor a stream with correct backpressure handling. This 
-    // avoids buffering entire streams in memory and hooks up all the correct events for 
-    // cleanup and error handling. See https://nodejs.org/api/stream.html#stream_three_states
-
-    // Two stream listeners are required to enforce size limits: the original stream reader 
-    // implemented by drivers for uploading to storage, and another for monitoring upload size. 
-    // Stream listeners are greedy so two PassThrough streams are used, and the pipeline API
-    // is setup *before* reading so that both listeners receive all notifications. 
-    // See https://stackoverflow.com/a/51143558/794962
-
-    // Create a PassThrough stream to give to driver for uploading to storage backend. 
-    const uploadStream = new PassThrough()
-    const uploadPipeline = pipelineAsync(stream, uploadStream)
-
-    // Create a PassThrough stream to monitor streaming size. 
-    const monitorStream = new PassThrough()
-    const monitorPipeline = pipelineAsync(stream, monitorStream)
-    let monitoredContentSize = 0
-    monitorStream.on('data', (chunk: Buffer) => {
-      monitoredContentSize += chunk.length
-      if (monitoredContentSize > this.maxFileUploadSizeBytes) {
-        const errMsg = `Max file upload size is ${this.maxFileUploadSizeMB} megabytes. ` + 
-          `Rejected POST body stream of ${bytesToMegabytes(monitoredContentSize, 4)} megabytes`
-        logger.warn(`${errMsg}, address: ${address}`)
-        const error = new PayloadTooLargeError(errMsg)
-        stream.destroy(error)
-      }
-    })
-
-    const writeCommand: PerformWriteArgs = {
-      storageTopLevel: address,
-      path, stream: uploadStream, contentType,
-      contentLength: contentLengthBytes
-    }
-
     if (isArchivalRestricted) {
       const historicalPath = this.getHistoricalFileName(path)
       try {
@@ -289,6 +254,44 @@ export class HubServer {
           throw error
         }
       }
+    }
+
+    // Use the stream pipe API to monitor a stream with correct backpressure handling. This 
+    // avoids buffering entire streams in memory and hooks up all the correct events for 
+    // cleanup and error handling. See https://nodejs.org/api/stream.html#stream_three_states
+
+    // Two stream listeners are required to enforce size limits: the original stream reader 
+    // implemented by drivers for uploading to storage, and another for monitoring upload size. 
+    // Stream listeners are greedy so two PassThrough streams are used, and the pipeline API
+    // is setup *before* reading so that both listeners receive all notifications. 
+    // See https://stackoverflow.com/a/51143558/794962
+
+    // Create a PassThrough stream to give to driver for uploading to storage backend. 
+    const uploadStream = new PassThrough()
+    const uploadPipeline = pipelineAsync(stream, uploadStream)
+
+    // Create a PassThrough stream to monitor streaming size. 
+    const monitorStream = new PassThrough()
+    const monitorPipeline = pipelineAsync(stream, monitorStream)
+
+    // Now that the PassThrough streams and pipes are setup, the data event listener
+    // for the size monitor can be setup without either stream listeners missing any chunks. 
+    let monitoredContentSize = 0
+    monitorStream.on('data', (chunk: Buffer) => {
+      monitoredContentSize += chunk.length
+      if (monitoredContentSize > this.maxFileUploadSizeBytes) {
+        const errMsg = `Max file upload size is ${this.maxFileUploadSizeMB} megabytes. ` + 
+          `Rejected POST body stream of ${bytesToMegabytes(monitoredContentSize, 4)} megabytes`
+        logger.warn(`${errMsg}, address: ${address}`)
+        const error = new PayloadTooLargeError(errMsg)
+        stream.destroy(error)
+      }
+    })
+
+    const writeCommand: PerformWriteArgs = {
+      storageTopLevel: address,
+      path, stream: uploadStream, contentType,
+      contentLength: contentLengthBytes
     }
 
     const [,,readURL] = await Promise.all([monitorPipeline, uploadPipeline, this.driver.performWrite(writeCommand)])

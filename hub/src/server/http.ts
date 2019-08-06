@@ -154,7 +154,7 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
   app.post(
     /^\/list-files\/([a-zA-Z0-9]+)\/?/, express.json({ limit: 4096 }),
     (req: express.Request, res: express.Response) => {
-      // sanity check...
+      // sanity check... should never be reached if the express json parser is working correctly
       if (parseInt(req.headers['content-length']) > 4096) {
         writeResponse(res, { message: 'Invalid JSON: too long'}, 400)
         return
@@ -185,7 +185,7 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
     /^\/revoke-all\/([a-zA-Z0-9]+)\/?/, 
     express.json({ limit: 4096 }),
     (req: express.Request, res: express.Response) => {
-      // sanity check...
+      // sanity check... should never be reached if the express json parser is working correctly
       if (parseInt(req.headers['content-length']) > 4096) {
         writeResponse(res, { message: 'Invalid JSON: too long'}, 400)
         return
