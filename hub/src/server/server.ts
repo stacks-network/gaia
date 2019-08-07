@@ -5,10 +5,10 @@ import { ValidationError, DoesNotExist, ContentLengthHeaderRequiredError, Payloa
 import { ProofChecker } from './ProofChecker'
 import { AuthTimestampCache } from './revocations'
 
-import { Readable, PassThrough } from 'stream'
+import { Readable } from 'stream'
 import { DriverModel, PerformWriteArgs, PerformRenameArgs, PerformDeleteArgs, PerformListFilesArgs, ListFilesStatResult, ListFilesResult } from './driverModel'
 import { HubConfigInterface } from './config'
-import { logger, generateUniqueID, bytesToMegabytes, megabytesToBytes, pipelineAsync } from './utils'
+import { logger, generateUniqueID, bytesToMegabytes, megabytesToBytes, monitorStreamProgress } from './utils'
 
 export class HubServer {
   driver: DriverModel
@@ -257,19 +257,10 @@ export class HubServer {
     }
 
     // Create a PassThrough stream to monitor streaming chunk sizes. 
-    let monitoredContentSize = 0
-    const monitorStream = new PassThrough({
-      transform: (chunk: Buffer, _encoding, callback) => {
-        monitoredContentSize += chunk.length
-        if (monitoredContentSize <= this.maxFileUploadSizeBytes) {
-          // Pass the chunk Buffer through, untouched. This takes the fast 
-          // path through the stream pipe lib. 
-          callback(null, chunk)
-          return
-        }
-
+    const { monitoredStream, pipelinePromise } = monitorStreamProgress(stream, totalBytes => {
+      if (totalBytes > this.maxFileUploadSizeBytes) {
         const errMsg = `Max file upload size is ${this.maxFileUploadSizeMB} megabytes. ` + 
-          `Rejected POST body stream of ${bytesToMegabytes(monitoredContentSize, 4)} megabytes`
+          `Rejected POST body stream of ${bytesToMegabytes(totalBytes, 4)} megabytes`
         // Log error -- this situation is indicative of a malformed client request
         // where the reported Content-Size is less than the upload size. 
         logger.warn(`${errMsg}, address: ${address}`)
@@ -278,25 +269,16 @@ export class HubServer {
         // and cancels uploading to the storage driver.
         const error = new PayloadTooLargeError(errMsg)
         stream.destroy(error)
-        callback(error)
+        throw error
       }
     })
 
-    // The client upload stream and the driver storage upload stream are 
-    // unlikely to have the same bandwidth, so we want to ensure this server handles 
-    // pressure from either direction. Use the stream pipe API to monitor a stream with 
-    // correct back pressure handling. This avoids buffering entire streams in memory and 
-    // hooks up all the correct events for cleanup and error handling. 
-    // See https://nodejs.org/api/stream.html#stream_three_states
-    //     https://nodejs.org/ja/docs/guides/backpressuring-in-streams/
-    const monitorPipeline = pipelineAsync(stream, monitorStream)
-
     const writeCommand: PerformWriteArgs = {
       storageTopLevel: address,
-      path, stream: monitorStream, contentType,
+      path, stream: monitoredStream, contentType,
       contentLength: contentLengthBytes
     }
-    const [readURL] = await Promise.all([this.driver.performWrite(writeCommand), monitorPipeline])
+    const [readURL] = await Promise.all([this.driver.performWrite(writeCommand), pipelinePromise])
     const driverPrefix = this.driver.getReadURLPrefix()
     const readURLPrefix = this.getReadURLPrefix()
     if (readURLPrefix !== driverPrefix && readURL.startsWith(driverPrefix)) {
