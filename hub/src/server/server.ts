@@ -258,7 +258,7 @@ export class HubServer {
 
     // Create a PassThrough stream to monitor streaming chunk sizes. 
     const { monitoredStream, pipelinePromise } = monitorStreamProgress(stream, totalBytes => {
-      if (totalBytes > this.maxFileUploadSizeBytes) {
+      if (totalBytes > contentLengthBytes) {
         const errMsg = `Max file upload size is ${this.maxFileUploadSizeMB} megabytes. ` + 
           `Rejected POST body stream of ${bytesToMegabytes(totalBytes, 4)} megabytes`
         // Log error -- this situation is indicative of a malformed client request
