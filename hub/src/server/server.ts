@@ -256,45 +256,47 @@ export class HubServer {
       }
     }
 
-    // Use the stream pipe API to monitor a stream with correct backpressure handling. This 
-    // avoids buffering entire streams in memory and hooks up all the correct events for 
-    // cleanup and error handling. See https://nodejs.org/api/stream.html#stream_three_states
-
-    // Two stream listeners are required to enforce size limits: the original stream reader 
-    // implemented by drivers for uploading to storage, and another for monitoring upload size. 
-    // Stream listeners are greedy so two PassThrough streams are used, and the pipeline API
-    // is setup *before* reading so that both listeners receive all notifications. 
-    // See https://stackoverflow.com/a/51143558/794962
-
-    // Create a PassThrough stream to monitor streaming size. 
-    const monitorStream = new PassThrough()
-    const monitorPipeline = pipelineAsync(stream, monitorStream)
-
-    // Create a PassThrough stream to give to driver for uploading to storage backend. 
-    const uploadStream = new PassThrough()
-    const uploadPipeline = pipelineAsync(stream, uploadStream)
-
-    // Now that the PassThrough streams and pipes are setup, the data event listener
-    // for the size monitor can be setup without either stream listeners missing any chunks. 
+    // Create a PassThrough stream to monitor streaming chunk sizes. 
     let monitoredContentSize = 0
-    monitorStream.on('data', (chunk: Buffer) => {
-      monitoredContentSize += chunk.length
-      if (monitoredContentSize > this.maxFileUploadSizeBytes) {
+    const monitorStream = new PassThrough({
+      transform: (chunk: Buffer, _encoding, callback) => {
+        monitoredContentSize += chunk.length
+        if (monitoredContentSize <= this.maxFileUploadSizeBytes) {
+          // Pass the chunk Buffer through, untouched. This takes the fast 
+          // path through the stream pipe lib. 
+          callback(null, chunk)
+          return
+        }
+
         const errMsg = `Max file upload size is ${this.maxFileUploadSizeMB} megabytes. ` + 
           `Rejected POST body stream of ${bytesToMegabytes(monitoredContentSize, 4)} megabytes`
+        // Log error -- this situation is indicative of a malformed client request
+        // where the reported Content-Size is less than the upload size. 
         logger.warn(`${errMsg}, address: ${address}`)
+
+        // Destroy the request stream -- cancels reading from the client
+        // and cancels uploading to the storage driver.
         const error = new PayloadTooLargeError(errMsg)
         stream.destroy(error)
-        uploadStream.destroy(error)
+        callback(error)
       }
     })
 
+    // The client upload stream and the driver storage upload stream are 
+    // unlikely to have the same bandwidth, so we want to ensure this server handles 
+    // pressure from either direction. Use the stream pipe API to monitor a stream with 
+    // correct back pressure handling. This avoids buffering entire streams in memory and 
+    // hooks up all the correct events for cleanup and error handling. 
+    // See https://nodejs.org/api/stream.html#stream_three_states
+    //     https://nodejs.org/ja/docs/guides/backpressuring-in-streams/
+    const monitorPipeline = pipelineAsync(stream, monitorStream)
+
     const writeCommand: PerformWriteArgs = {
       storageTopLevel: address,
-      path, stream: uploadStream, contentType,
+      path, stream: monitorStream, contentType,
       contentLength: contentLengthBytes
     }
-    const [readURL] = await Promise.all([this.driver.performWrite(writeCommand), uploadPipeline, monitorPipeline])
+    const [readURL] = await Promise.all([this.driver.performWrite(writeCommand), monitorPipeline])
     const driverPrefix = this.driver.getReadURLPrefix()
     const readURLPrefix = this.getReadURLPrefix()
     if (readURLPrefix !== driverPrefix && readURL.startsWith(driverPrefix)) {

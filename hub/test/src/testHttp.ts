@@ -206,10 +206,10 @@ export function testHttpWithInMemoryDriver() {
       try {
         const largePayload = new PassThrough()
         largePayload.end('x'.repeat(1000))
-        await server.handleRequest(address, 'helloWorld', { 'content-type': 'application/octet-stream', 'content-length': '10', authorization: authorization}, largePayload);
+        await server.handleRequest(address, 'helloWorld2', { 'content-type': 'application/octet-stream', 'content-length': '10', authorization: authorization}, largePayload);
         t.fail('payload should have been detected as too large')
       } catch (err) {
-        t.throws(() => { throw err }, Error, 'payload should have been detected as too large')
+        t.throws(() => { throw err }, errors.PayloadTooLargeError, 'payload should have been detected as too large')
       }
 
     } finally {
