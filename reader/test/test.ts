@@ -1,6 +1,6 @@
-import test from 'tape'
-import fs from 'fs'
-import Path from 'path'
+import * as test from 'tape'
+import * as fs from 'fs'
+import * as path from 'path'
 
 import { GaiaDiskReader } from '../src/server'
 
@@ -12,15 +12,15 @@ function testServer() {
 
     // store /12345/foo/bar.txt
     fs.mkdirSync(storageDir)
-    fs.mkdirSync(Path.join(storageDir, '/12345'))
-    fs.mkdirSync(Path.join(storageDir, '/12345/foo'))
-    fs.writeFileSync(Path.join(storageDir, '/12345/foo/bar.txt'), 'hello world')
+    fs.mkdirSync(path.join(storageDir, '/12345'))
+    fs.mkdirSync(path.join(storageDir, '/12345/foo'))
+    fs.writeFileSync(path.join(storageDir, '/12345/foo/bar.txt'), 'hello world')
 
     // store /.gaia-metadata/12345/foo/bar.txt
-    fs.mkdirSync(Path.join(storageDir, '.gaia-metadata'))
-    fs.mkdirSync(Path.join(storageDir, '.gaia-metadata/12345'))
-    fs.mkdirSync(Path.join(storageDir, '.gaia-metadata/12345/foo'))
-    fs.writeFileSync(Path.join(storageDir, '.gaia-metadata/12345/foo/bar.txt'), 
+    fs.mkdirSync(path.join(storageDir, '.gaia-metadata'))
+    fs.mkdirSync(path.join(storageDir, '.gaia-metadata/12345'))
+    fs.mkdirSync(path.join(storageDir, '.gaia-metadata/12345/foo'))
+    fs.writeFileSync(path.join(storageDir, '.gaia-metadata/12345/foo/bar.txt'), 
       JSON.stringify({'content-type': 'application/potatoes'}))    // bogus mime type for testing
     
     const config = {
@@ -36,7 +36,7 @@ function testServer() {
         t.equal(result.contentType, 'application/potatoes', 'file has correct content type')
 
         // try with missing content-type
-        fs.unlinkSync(Path.join(storageDir, '.gaia-metadata/12345/foo/bar.txt'))
+        fs.unlinkSync(path.join(storageDir, '.gaia-metadata/12345/foo/bar.txt'))
         return server.handleGet('12345', 'foo/bar.txt')
       })
       .then((result) => {
@@ -44,9 +44,9 @@ function testServer() {
         t.equal(result.contentType, 'application/octet-stream', 'file has fall-back content type')
 
         // try without the gaia metadata directory
-        fs.rmdirSync(Path.join(storageDir, '.gaia-metadata/12345/foo'))
-        fs.rmdirSync(Path.join(storageDir, '.gaia-metadata/12345'))
-        fs.rmdirSync(Path.join(storageDir, '.gaia-metadata'))
+        fs.rmdirSync(path.join(storageDir, '.gaia-metadata/12345/foo'))
+        fs.rmdirSync(path.join(storageDir, '.gaia-metadata/12345'))
+        fs.rmdirSync(path.join(storageDir, '.gaia-metadata'))
         return server.handleGet('12345', 'foo/bar.txt')
       })
       .then((result) => {
@@ -54,9 +54,9 @@ function testServer() {
         t.equal(result.contentType, 'application/octet-stream', 'file has fall-back content type')
 
         // blow away the file 
-        fs.unlinkSync(Path.join(storageDir, '12345/foo/bar.txt'))
-        fs.rmdirSync(Path.join(storageDir, '12345/foo'))
-        fs.rmdirSync(Path.join(storageDir, '12345'))
+        fs.unlinkSync(path.join(storageDir, '12345/foo/bar.txt'))
+        fs.rmdirSync(path.join(storageDir, '12345/foo'))
+        fs.rmdirSync(path.join(storageDir, '12345'))
 
         return server.handleGet('12345', 'foo/bar.txt')
       })

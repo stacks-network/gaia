@@ -1,7 +1,7 @@
-import fs from 'fs-extra'
+import * as fs from 'fs-extra'
 import { readdir } from 'fs'
 import { BadPathError, InvalidInputError, DoesNotExist } from '../errors'
-import Path from 'path'
+import * as path from 'path'
 import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult, PerformReadArgs, ReadResult, PerformListFilesArgs, ListFilesStatResult, ListFileStatResult } from '../driverModel'
 import { DriverStatics, DriverModel } from '../driverModel'
 import { pipelineAsync, logger, dateToUnixTimeSeconds } from '../utils'
@@ -45,7 +45,7 @@ class DiskDriver implements DriverModel {
       logger.warn(`The disk driver does not use the "config.bucket" variable. It is set to ${config.bucket}`)
     }
 
-    this.storageRootDirectory = Path.resolve(Path.normalize(config.diskSettings.storageRootDirectory))
+    this.storageRootDirectory = path.resolve(path.normalize(config.diskSettings.storageRootDirectory))
     this.readURL = config.readURL
     if (this.readURL.slice(-1) !== '/') {
       // must end in /
@@ -78,8 +78,8 @@ class DiskDriver implements DriverModel {
     return this.readURL
   }
 
-  async mkdirs(path: string) {
-    const normalizedPath = Path.normalize(path)
+  async mkdirs(dirPath: string) {
+    const normalizedPath = path.normalize(dirPath)
     try {
       // Ensures that the directory exists. If the directory structure does not exist, it is created. Like mkdir -p.
       const wasCreated: any = await fs.ensureDir(normalizedPath)
@@ -106,12 +106,12 @@ class DiskDriver implements DriverModel {
 
     const fileNames: string[] = []
     for (const dirEntry of dirEntries) {
-      const fileOrDir = `${listPath}${Path.sep}${dirEntry.name}`
+      const fileOrDir = `${listPath}${path.sep}${dirEntry.name}`
       if (dirEntry.isDirectory()) {
         const childEntries = await this.findAllFiles(fileOrDir)
         fileNames.push(...childEntries)
       } else {
-        fileNames.push(Path.posix.normalize(fileOrDir))
+        fileNames.push(path.posix.normalize(fileOrDir))
       }
     }
     return fileNames
@@ -131,7 +131,7 @@ class DiskDriver implements DriverModel {
   async listFilesInternal(args: PerformListFilesArgs): Promise<ListFilesResult> {
     // returns {'entries': [...], 'page': next_page}
     let pageNum
-    const listPath = Path.normalize(`${this.storageRootDirectory}/${args.pathPrefix}`)
+    const listPath = path.normalize(`${this.storageRootDirectory}/${args.pathPrefix}`)
 
     if (!await fs.pathExists(listPath)) {
       // nope 
@@ -194,14 +194,14 @@ class DiskDriver implements DriverModel {
       throw new BadPathError('Invalid Path')
     }
 
-    const abspath = Path.join(this.storageRootDirectory, args.storageTopLevel, args.path)
+    const abspath = path.join(this.storageRootDirectory, args.storageTopLevel, args.path)
 
     // too long?
     if (abspath.length > 4096) {
       throw new BadPathError('Path is too long')
     }
 
-    const dirparts = abspath.split(Path.sep).filter((p) => p.length > 0)
+    const dirparts = abspath.split(path.sep).filter((p) => p.length > 0)
 
     // can't be too deep
     if (dirparts.length > 100) {
@@ -210,7 +210,7 @@ class DiskDriver implements DriverModel {
 
     // remember content type in $storageRootDir/.gaia-metadata/$address/$path
     // (i.e. these files are outside the address bucket, and are thus hidden)
-    const contentTypePath = Path.join(
+    const contentTypePath = path.join(
       this.storageRootDirectory, METADATA_DIRNAME, args.storageTopLevel, args.path)
 
     return { absoluteFilePath: abspath, contentTypeFilePath: contentTypePath }
@@ -227,14 +227,14 @@ class DiskDriver implements DriverModel {
 
     const { absoluteFilePath, contentTypeFilePath } = this.getFullFilePathInfo(args)
 
-    const absdirname = Path.dirname(absoluteFilePath)
+    const absdirname = path.dirname(absoluteFilePath)
     await this.mkdirs(absdirname)
 
     const writePipe = fs.createWriteStream(absoluteFilePath, { mode: 0o600, flags: 'w' })
     await pipelineAsync(args.stream, writePipe)
 
 
-    const contentTypeDirPath = Path.dirname(contentTypeFilePath)
+    const contentTypeDirPath = path.dirname(contentTypeFilePath)
     await this.mkdirs(contentTypeDirPath)
     await fs.writeFile(
       contentTypeFilePath, 

@@ -1,5 +1,5 @@
-import Path from 'path'
-import fs from 'fs-extra'
+import * as path from 'path'
+import * as fs from 'fs-extra'
 import { DiskReaderConfig } from './config'
 
 const METADATA_DIRNAME = '.gaia-metadata'
@@ -31,7 +31,7 @@ export class GaiaDiskReader {
       throw new Error('Invalid file name')
     }
 
-    const filePath = Path.join(storageRoot, topLevelDir, filename)
+    const filePath = path.join(storageRoot, topLevelDir, filename)
     try {
       fs.statSync(filePath)
     } catch (e) {
@@ -39,7 +39,7 @@ export class GaiaDiskReader {
       return Promise.resolve().then(() => ret)
     }
 
-    const metadataPath = Path.join(storageRoot, METADATA_DIRNAME, topLevelDir, filename)
+    const metadataPath = path.join(storageRoot, METADATA_DIRNAME, topLevelDir, filename)
     try {
       const metadataJSON = fs.readFileSync(metadataPath).toString()
       const metadata = JSON.parse(metadataJSON)

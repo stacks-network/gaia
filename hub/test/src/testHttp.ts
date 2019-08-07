@@ -1,11 +1,11 @@
-import test from 'tape-promise/tape'
+import * as test from 'tape-promise/tape'
 import * as auth from '../../src/server/authentication'
-import os from 'os'
-import fs from 'fs'
-import request from 'supertest'
+import * as os from 'os'
+import * as fs from 'fs'
+import * as request from 'supertest'
 import { ecPairToAddress } from 'blockstack'
 
-import FetchMock from 'fetch-mock'
+import * as FetchMock from 'fetch-mock'
 import NodeFetch from 'node-fetch'
 
 import { makeHttpServer } from '../../src/server/http'

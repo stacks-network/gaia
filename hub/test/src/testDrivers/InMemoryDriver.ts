@@ -2,7 +2,7 @@
 
 import { readStream, dateToUnixTimeSeconds } from '../../../src/server/utils'
 import { Server } from 'http'
-import express from 'express'
+import * as express from 'express'
 import { DriverModel, DriverStatics, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult, PerformReadArgs, ReadResult, PerformListFilesArgs, ListFilesStatResult, ListFileStatResult } from '../../../src/server/driverModel'
 import { ListFilesResult, PerformWriteArgs } from '../../../src/server/driverModel'
 import { BadPathError, InvalidInputError, DoesNotExist, ConflictError } from '../../../src/server/errors'
@@ -19,7 +19,7 @@ export class InMemoryDriver implements DriverModel {
   lastWrite: PerformWriteArgs
   initPromise: Promise<void>
 
-  onWriteMiddleware: Set<((PerformWriteArgs) => Promise<void>)> = new Set()
+  onWriteMiddleware: Set<((args: PerformWriteArgs) => Promise<void>)> = new Set()
 
   constructor(config: any) {
     this.pageSize = (config && config.pageSize) ? config.pageSize : 100

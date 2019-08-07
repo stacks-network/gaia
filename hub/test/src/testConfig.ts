@@ -1,7 +1,7 @@
 
-import test from 'tape-promise/tape'
+import * as test from 'tape-promise/tape'
 import * as config from '../../src/server/config'
-import path from 'path'
+import * as path from 'path'
 
 
 export function testConfig() {

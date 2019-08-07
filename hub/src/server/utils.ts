@@ -1,13 +1,13 @@
 
 
-import stream, { Readable, PassThrough } from 'stream'
+import * as stream from 'stream'
 import { DriverConstructor, DriverStatics } from './driverModel'
 import S3Driver from './drivers/S3Driver'
 import AzDriver from './drivers/AzDriver'
 import GcDriver from './drivers/GcDriver'
 import DiskDriver from './drivers/diskDriver'
 import { promisify } from 'util'
-import winston from 'winston'
+import * as winston from 'winston'
 
 import { pipeline } from 'stream'
 import { DriverName } from './config'
@@ -100,18 +100,18 @@ export interface StreamProgressCallback {
 }
 
 export interface MonitorStreamResult {
-  monitoredStream: Readable;
+  monitoredStream: stream.Readable;
   pipelinePromise: Promise<void>;
 }
 
 export function monitorStreamProgress(
-  inputStream: Readable, 
+  inputStream: stream.Readable, 
   progressCallback: StreamProgressCallback
 ): MonitorStreamResult {
 
   // Create a PassThrough stream to monitor streaming chunk sizes. 
   let monitoredContentSize = 0
-  const monitorStream = new PassThrough({
+  const monitorStream = new stream.PassThrough({
     transform: (chunk: Buffer, _encoding, callback) => {
       monitoredContentSize += chunk.length
       try {

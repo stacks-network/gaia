@@ -1,6 +1,6 @@
-import express from 'express'
-import expressWinston from 'express-winston'
-import cors from 'cors'
+import * as express from 'express'
+import * as expressWinston from 'express-winston'
+import * as cors from 'cors'
 
 import { ProofChecker } from './ProofChecker'
 import { getChallengeText, LATEST_AUTH_VERSION } from './authentication'

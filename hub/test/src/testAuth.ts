@@ -1,6 +1,6 @@
 
 
-import test from 'tape-promise/tape'
+import * as test from 'tape-promise/tape'
 import { TokenSigner } from 'jsontokens'
 
 import * as auth from '../../src/server/authentication'
@@ -182,7 +182,7 @@ export function testAuth() {
     const wrongBearerAddressAssociationToken = new TokenSigner('ES256K', ownerKeyHex).sign(
       { childToAssociate: testPairs[0].publicKey.toString('hex'), iss: testPairs[0].publicKey.toString('hex'), exp: (Date.now()/1000) * 2 })
 
-    function makeAssocAuthToken(keypair, ct, assocJWT) {
+    function makeAssocAuthToken(keypair: any, ct: any, assocJWT: any) {
       return new auth.V1Authentication(auth.V1Authentication.fromAuthPart(auth.V1Authentication.makeAuthPart(keypair, ct, assocJWT)).token)
     }
 

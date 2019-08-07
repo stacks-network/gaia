@@ -1,12 +1,12 @@
 
-import test from 'tape-promise/tape'
-import proxyquire from 'proxyquire'
-import FetchMock from 'fetch-mock'
+import * as test from 'tape-promise/tape'
+import * as proxyquire from 'proxyquire'
+import * as FetchMock from 'fetch-mock'
 import * as NodeFetch from 'node-fetch'
 
-import fs from 'fs'
-import path from 'path'
-import os from 'os'
+import * as fs from 'fs'
+import * as path from 'path'
+import * as os from 'os'
 
 import { Readable, Writable, PassThrough } from 'stream'
 import InMemoryDriver from './testDrivers/InMemoryDriver'

@@ -1,7 +1,7 @@
-import express  from 'express'
-import expressWinston from 'express-winston'
-import cors from 'cors'
-import Path from 'path'
+import * as express  from 'express'
+import * as expressWinston from 'express-winston'
+import * as cors from 'cors'
+import * as path from 'path'
 import { Config, logger } from './config'
 import { GaiaDiskReader } from './server'
 
@@ -41,9 +41,9 @@ export function makeHttpServer(config: Config) {
             'content-type': contentType
           }
         }
-        const path = Path.join(address, filename)
+        const filePath = path.join(address, filename)
 
-        return res.sendFile(path, opts)
+        return res.sendFile(filePath, opts)
       })
       .catch((err) => {
         logger.error(err)

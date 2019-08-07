@@ -212,6 +212,8 @@ declare module 'tape-promise/tape' {
              * (Useful when using e.g. tap-colorize where output is buffered & console.log will print in incorrect order vis-a-vis tap output.)
              */
             comment(msg: string): void;
+
+            rejects(fn: PromiseLike, exceptionExpected: RegExp | Function, msg?: string): Promise<void>
         }
     }
     

@@ -1,10 +1,10 @@
 
 
 import { Readable, Writable } from 'stream'
-import os from 'os'
-import path from 'path'
-import fs from 'fs'
-import proxyquire from 'proxyquire'
+import * as os from 'os'
+import * as path from 'path'
+import * as fs from 'fs'
+import * as proxyquire from 'proxyquire'
 
 import { readStream } from '../../../src/server/utils'
 import { DriverModel, DriverConstructor, PerformDeleteArgs } from '../../../src/server/driverModel'
@@ -35,12 +35,12 @@ export function makeMockedAzureDriver() {
   }
 
   const dataMap: DataMap = []
-  const uploadStreamToBlockBlob = async (aborter, stream, blockBlobURL, bufferSize, maxBuffers, options) => {
+  const uploadStreamToBlockBlob = async (aborter: any, stream: any, blockBlobURL: any, bufferSize: any, maxBuffers: any, options: any) => {
     const buffer = await readStream(stream)
     dataMap.push({data: buffer.toString(), key: blockBlobURL.blobName })
   }
 
-  const listBlobFlatSegment = (_, __, { prefix }) => {
+  const listBlobFlatSegment = (_: any, __: any, { prefix }: any) => {
     const items = dataMap
       .filter(x => x.key.startsWith(prefix))
       .map(x => { return {
@@ -57,7 +57,7 @@ export function makeMockedAzureDriver() {
   const ContainerURL = {
     fromServiceURL: () => {
       return {
-        create: () => null,
+        create: () => null as any,
         listBlobFlatSegment: listBlobFlatSegment,
       }
     }
@@ -85,9 +85,9 @@ export function makeMockedAzureDriver() {
     '@azure/storage-blob': {
       SharedKeyCredential: class { },
       ContainerURL: ContainerURL,
-      StorageURL: { newPipeline: () => null },
+      StorageURL: { newPipeline: () => null as any },
       ServiceURL: class { },
-      BlobURL: { fromContainerURL: (_, blobName) => blobName },
+      BlobURL: { fromContainerURL: (_: any, blobName: any) => blobName },
       BlockBlobURL: { fromBlobURL: fromBlobURL },
       Aborter: { none: null },
       uploadStreamToBlockBlob: uploadStreamToBlockBlob
@@ -105,11 +105,11 @@ export function makeMockedS3Driver() {
   let bucketName = ''
 
   const S3Class = class {
-    headBucket(options) {
+    headBucket(options: any) {
       bucketName = options.Bucket
       return { promise: () => Promise.resolve() }
     }
-    upload(options) {
+    upload(options: any) {
       return {
         promise: async () => {
           if (options.Bucket != bucketName) {
@@ -120,7 +120,7 @@ export function makeMockedS3Driver() {
         }
       }
     }
-    headObject(options) {
+    headObject(options: any) {
       return {
         promise: () => {
           return Promise.resolve().then(() => {
@@ -133,7 +133,7 @@ export function makeMockedS3Driver() {
         }
       }
     }
-    deleteObject(options) {
+    deleteObject(options: any) {
       return {
         promise: () => {
           return Promise.resolve().then(() => {
@@ -144,7 +144,7 @@ export function makeMockedS3Driver() {
         }
       }
     }
-    listObjectsV2(options) {
+    listObjectsV2(options: any) {
       return {
         promise: async () => {
           const contents = dataMap
@@ -158,7 +158,7 @@ export function makeMockedS3Driver() {
         }
       }
     }
-    listObjects(options) {
+    listObjects(options: any) {
       return {
         promise: async () => {
           const contents = dataMap
@@ -188,7 +188,7 @@ export function makeMockedGcDriver() {
   const dataMap: DataMap = []
   let myName = ''
 
-  const file = function (filename) {
+  const file = function (filename: any) {
     const createWriteStream = function() {
       return new MockWriteStream(dataMap, filename)
     }
@@ -212,7 +212,7 @@ export function makeMockedGcDriver() {
     return Promise.resolve([true])
   }
   const StorageClass = class {
-    bucket(bucketName) {
+    bucket(bucketName: any) {
       if (myName === '') {
         myName = bucketName
       } else {
@@ -223,7 +223,7 @@ export function makeMockedGcDriver() {
       return { file, exists, getFiles: this.getFiles }
     }
 
-    getFiles(options, cb) {
+    getFiles(options: any, cb: any) {
       const files = dataMap
         .filter(entry => entry.key.startsWith(options.prefix))
         .map(entry => { return { name: entry.key } })
@@ -275,18 +275,18 @@ class MockWriteStream extends Writable {
   dataMap: any
   filename: any
   data: any
-  constructor(dataMap, filename) {
+  constructor(dataMap: any, filename: any) {
     super({})
     this.dataMap = dataMap
     this.filename = filename
     this.data = ''
   }
-  _write(chunk, encoding, callback) {
+  _write(chunk: any, encoding: any, callback: any) {
     this.data += chunk
     callback()
     return true
   }
-  _final(callback) {
+  _final(callback: any) {
     this.dataMap.push({ data: this.data, key: this.filename })
     callback()
   }

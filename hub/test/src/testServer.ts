@@ -1,4 +1,4 @@
-import test from 'tape-promise/tape'
+import * as test from 'tape-promise/tape'
 import * as auth from '../../src/server/authentication'
 import * as errors from '../../src/server/errors'
 import { HubServer }  from '../../src/server/server'
@@ -9,7 +9,6 @@ import { InMemoryDriver } from './testDrivers/InMemoryDriver'
 import { testPairs, testAddrs, createTestKeys } from './common'
 import { MockAuthTimestampCache } from './MockAuthTimestampCache'
 import * as integrationTestDrivers from './testDrivers/integrationTestDrivers'
-import { utils } from 'mocha';
 import { timeout } from '../../src/server/utils';
 
 const TEST_SERVER_NAME = 'test-server'

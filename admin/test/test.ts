@@ -1,5 +1,5 @@
-const test = require('tape')
-const fs = require('fs')
+import test = require('tape')
+import fs = require('fs')
 
 const { AdminAPI, patchConfigFile, readConfigFileSections } = require('../src/server')
 

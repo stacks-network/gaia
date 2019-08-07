@@ -1,10 +1,10 @@
 
 
-import fs from 'fs'
-import os from 'os'
-import path from 'path'
-import http from 'http'
-import express from 'express'
+import * as fs from 'fs'
+import * as os from 'os'
+import * as path from 'path'
+import * as http from 'http'
+import * as express from 'express'
 
 import { DriverModel, DriverConstructor } from '../../../src/server/driverModel'
 import AzDriver from '../../../src/server/drivers/AzDriver'
@@ -30,10 +30,10 @@ const envConfigPaths = {
 };
 
 export const driverConfigs = {
-  az: undefined,
-  aws: undefined,
-  gc: undefined,
-  disk: undefined
+  az: undefined as any,
+  aws: undefined as any,
+  gc: undefined as any,
+  disk: undefined as any
 };
 
 if (driverConfigTestData) {
@@ -53,7 +53,7 @@ if (driverConfigTestData) {
 
 Object.entries(envConfigPaths)
   .filter(([key, val]) => val)
-  .forEach(([key, val]) => driverConfigs[key] = JSON.parse(fs.readFileSync(val, {encoding: 'utf8'})));
+  .forEach(([key, val]) => (driverConfigs as any)[key] = JSON.parse(fs.readFileSync(val, {encoding: 'utf8'})));
 
 
 export const availableDrivers: { [name: string]: { class: DriverConstructor, create: (config?: Object) => DriverModel } } = { 
@@ -78,7 +78,7 @@ export const availableDrivers: { [name: string]: { class: DriverConstructor, cre
 
 // Delete from available drivers where there is no provided config
 for (const key of Object.keys(availableDrivers)) {
-  if (!driverConfigs[key]) {
+  if (!(driverConfigs as any)[key]) {
     delete availableDrivers[key];
   }
 }
@@ -100,7 +100,7 @@ availableDrivers.diskSelfHosted = {
 
     const app = gaiaReader.makeHttpServer(<any>selfHostedConfig);
     const serverPromise = new Promise<http.Server>((res, rej) => {
-      const server = app.listen(0, 'localhost', err => err ? rej(err) : res(server));
+      const server = app.listen(0, 'localhost', (err: any) => err ? rej(err) : res(server));
     });
 
     return new class SelfHostedDiskDriver extends DiskDriver { 
