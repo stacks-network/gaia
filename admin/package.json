@@ -11,12 +11,12 @@
     "start": "npm run build && node lib/index.js",
     "start-dev": "ts-node src/index.ts",
     "clean": "tsc -b --clean tsconfig.build.json",
-    "build": "npm run clean && tsc -b tsconfig.build.json && chmod +x lib/index.js",
+    "build": "npm run clean && tsc -b tsconfig.build.json",
     "lint": "eslint --ext .ts ./src",
     "test": "npm run lint && NODE_ENV=test nyc node ./test/test.ts"
   },
   "bin": {
-    "blockstack-gaia-admin": "lib/index.js"
+    "blockstack-gaia-admin": "./bin/index.js"
   },
   "repository": {
     "type": "git",

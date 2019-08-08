@@ -2,7 +2,7 @@
   "name": "gaia-reader",
   "version": "2.2.2",
   "description": "",
-  "main": "index.js",
+  "main": "lib/index.js",
   "engines": {
     "node": ">=10"
   },
@@ -35,13 +35,13 @@
     "typescript": "^3.5.3"
   },
   "bin": {
-    "blockstack-gaia-reader": "./lib/index.js"
+    "blockstack-gaia-reader": "./bin/index.js"
   },
   "scripts": {
     "start": "npm run build && node lib/index.js",
     "start-dev": "ts-node src/index.ts",
     "clean": "tsc -b --clean tsconfig.build.json",
-    "build": "npm run clean && tsc -b tsconfig.build.json && chmod +x lib/index.js",
+    "build": "npm run clean && tsc -b tsconfig.build.json",
     "lint": "eslint --ext .ts ./src",
     "test": "npm run lint && NODE_ENV=test nyc node ./test/test.ts"
   },
