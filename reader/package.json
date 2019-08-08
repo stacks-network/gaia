@@ -40,7 +40,8 @@
   "scripts": {
     "start": "npm run build && node lib/index.js",
     "start-dev": "ts-node src/index.ts",
-    "build": "tsc -b tsconfig.build.json && chmod +x lib/index.js",
+    "clean": "tsc -b --clean tsconfig.build.json",
+    "build": "npm run clean && tsc -b tsconfig.build.json && chmod +x lib/index.js",
     "lint": "eslint --ext .ts ./src",
     "test": "npm run lint && NODE_ENV=test nyc node ./test/test.ts"
   },

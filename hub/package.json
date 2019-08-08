@@ -58,7 +58,8 @@
   "scripts": {
     "start": "npm run build && node lib/index.js",
     "dev": "ts-node src/index.ts",
-    "build": "tsc -b tsconfig.build.json && chmod +x lib/index.js && npm run build-schema",
+    "clean": "tsc -b --clean tsconfig.build.json",
+    "build": "npm run clean && tsc -b tsconfig.build.json && chmod +x lib/index.js && npm run build-schema",
     "build-schema": "typescript-json-schema tsconfig.build.json HubConfig --required --noExtraProps --refs=false -o config-schema.json",
     "lint": "eslint --ext .ts ./src -f unix",
     "test": "npm run build && npm run lint && NODE_ENV=test nyc node ./test/src/index.ts"

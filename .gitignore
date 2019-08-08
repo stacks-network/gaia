@@ -72,3 +72,4 @@ tmp/gaia-disk
 /docker/packer/vars.json
 node_modules
 hub/configs
+tsconfig.build.tsbuildinfo
