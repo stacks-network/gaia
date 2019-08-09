@@ -50,6 +50,13 @@
             },
             "cwd": "${workspaceFolder}/hub",
             "outputCapture": "std"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "gaia-desec-test",
+            "program": "${workspaceFolder}/desec/node_modules/mocha/bin/_mocha",
+            "cwd": "${workspaceFolder}/desec"
         }
     ],
     "compounds": [

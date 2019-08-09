@@ -1,0 +1,66 @@
+{
+  "name": "gaia-desec",
+  "version": "0.0.1",
+  "description": "",
+  "main": "lib/index.js",
+  "engines": {
+    "node": ">=10"
+  },
+  "dependencies": {
+    "cross-fetch": "^3.0.4",
+    "node-fetch": "^2.6.0",
+    "winston": "^3.2.1"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.2.0",
+    "@types/chai-as-promised": "^7.1.2",
+    "@types/mocha": "^5.2.7",
+    "@types/node": "^10.14.10",
+    "@types/node-fetch": "^2.5.0",
+    "@typescript-eslint/eslint-plugin": "^1.13.0",
+    "@typescript-eslint/parser": "^1.13.0",
+    "chai": "^4.2.0",
+    "chai-as-promised": "^7.1.1",
+    "cross-env": "^5.2.0",
+    "eslint": "^6.1.0",
+    "mocha": "^6.2.0",
+    "nyc": "^14.1.1",
+    "source-map-support": "^0.5.13",
+    "ts-node": "^8.3.0",
+    "typescript": "^3.5.3"
+  },
+  "scripts": {
+    "clean": "tsc -b --clean tsconfig.build.json",
+    "build": "npm run clean && tsc -b tsconfig.build.json",
+    "lint": "eslint --ext .ts ./src -f unix",
+    "test": "npm run lint && cross-env TS_NODE_FILES=true nyc mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/blockstack/gaia.git"
+  },
+  "authors": [
+    "Matthew Little (matthew@blockstack.com)"
+  ],
+  "nyc": {
+    "cache": false,
+    "all": true,
+    "extension": [
+      ".ts"
+    ],
+    "include": [
+      "src/**/*.ts"
+    ],
+    "exclude": [
+      "**/*.d.ts"
+    ],
+    "require": [
+      "ts-node/register/transpile-only",
+      "source-map-support/register"
+    ],
+    "reporter": [
+      "text",
+      "lcov"
+    ]
+  }
+}
