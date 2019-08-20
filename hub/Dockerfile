@@ -1,13 +1,13 @@
-FROM node:lts-alpine
+FROM node:10-alpine
 
-WORKDIR /src/hub
+WORKDIR /hub
 
-RUN apk add python py-pip make g++
+COPY package*.json ./
+COPY tsconfig*.json ./
+COPY src ./src
 
-COPY . .
+RUN npm install && \
+    npm run build && \
+    npm prune --production
 
-RUN npm install
-RUN npm run build && \
-    npm install -g
-
-CMD ["npm", "run", "start"]
+CMD ["node", "lib/index.js"]
