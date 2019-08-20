@@ -1,11 +1,13 @@
-FROM node:10.15-alpine
+FROM node:10-alpine
 
-WORKDIR /src/reader
+WORKDIR /reader
 
-COPY . .
+COPY package*.json ./
+COPY tsconfig*.json ./
+COPY src ./src
 
 RUN npm install && \
     npm run build && \
-    npm install -g
+    npm prune --production
 
-CMD ["npm", "run", "start"]
+CMD ["node", "lib/index.js"]
