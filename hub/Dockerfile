@@ -6,8 +6,10 @@ COPY package*.json ./
 COPY tsconfig*.json ./
 COPY src ./src
 
-RUN npm install && \
+RUN apk add --no-cache --virtual .build-deps alpine-sdk python && \
+    npm install && \
     npm run build && \
-    npm prune --production
+    npm prune --production && \
+    apk del .build-deps
 
 CMD ["node", "lib/index.js"]
