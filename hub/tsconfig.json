@@ -3,6 +3,9 @@
     "target": "es2018",
     "module": "commonjs",
     "moduleResolution": "node",
+    "lib": [
+      "es2018"
+    ],
     "declaration": true,
     "noImplicitAny": true,
     "outDir": "./lib",
