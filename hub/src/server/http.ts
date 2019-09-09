@@ -44,7 +44,11 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
     winstonInstance: logger }))
 
   // Set the Access-Control-Max-Age header to 24 hours.
-  app.use(cors({maxAge: 86400}))
+  const corsCacheAge = process.env.NODE_ENV === 'development' ? 0 : 86400
+
+  app.use(cors({maxAge: corsCacheAge, allowedHeaders: [
+    'Authorization', 'Content-Type', 'Content-Length'
+  ]}))
 
   // sadly, express doesn't like to capture slashes.
   //  but that's okay! regexes solve that problem
