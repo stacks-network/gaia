@@ -392,7 +392,6 @@ export class LegacyAuthentication implements AuthenticationInterface {
   }
 
   parseAuthScopes(): AuthScopeValues {
-    // TODO: can legacy auth tokens be maliciously created to get around restrictive auth scopes?
     return new AuthScopeValues()
   }
 
