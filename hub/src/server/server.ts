@@ -1,7 +1,7 @@
 
 
 import { validateAuthorizationHeader, getAuthenticationScopes, AuthScopeValues } from './authentication'
-import { ValidationError, DoesNotExist, ContentLengthHeaderRequiredError, PayloadTooLargeError } from './errors'
+import { ValidationError, DoesNotExist, PayloadTooLargeError } from './errors'
 import { ProofChecker } from './ProofChecker'
 import { AuthTimestampCache } from './revocations'
 
@@ -217,15 +217,10 @@ export class HubServer {
 
     const contentLengthHeader = requestHeaders['content-length'] as string
     const contentLengthBytes = parseInt(contentLengthHeader)
-    const isLengthFinite = Number.isFinite(contentLengthBytes)
+    const isLengthFinite = Number.isFinite(contentLengthBytes) && contentLengthBytes > 0
 
-    if (!isLengthFinite) {
-      const errMsg = `A valid 'Content-Length' header must be passed. Received header "${contentLengthHeader}"`
-      logger.warn(`${errMsg}, address: ${address}`)
-      throw new ContentLengthHeaderRequiredError(errMsg)
-    }
-
-    if (contentLengthBytes > this.maxFileUploadSizeBytes) {
+    // If a valid content-length is specified check to immediately return error
+    if (isLengthFinite && contentLengthBytes > this.maxFileUploadSizeBytes) {
       const errMsg = `Max file upload size is ${this.maxFileUploadSizeMB} megabytes. ` + 
         `Rejected Content-Length of ${bytesToMegabytes(contentLengthBytes, 4)} megabytes`
       logger.warn(`${errMsg}, address: ${address}`)
@@ -256,9 +251,14 @@ export class HubServer {
       }
     }
 
+    // Use the client reported content-length if available, otheriwse fallback to the
+    // max configured length.
+    const maxContentLength = Number.isFinite(contentLengthBytes) && contentLengthBytes > 0 
+      ? contentLengthBytes : this.maxFileUploadSizeBytes
+    
     // Create a PassThrough stream to monitor streaming chunk sizes. 
     const { monitoredStream, pipelinePromise } = monitorStreamProgress(stream, totalBytes => {
-      if (totalBytes > contentLengthBytes) {
+      if (totalBytes > maxContentLength) {
         const errMsg = `Max file upload size is ${this.maxFileUploadSizeMB} megabytes. ` + 
           `Rejected POST body stream of ${bytesToMegabytes(totalBytes, 4)} megabytes`
         // Log error -- this situation is indicative of a malformed client request

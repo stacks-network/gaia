@@ -197,15 +197,6 @@ export function testHttpWithInMemoryDriver() {
       try {
         const largePayload = new PassThrough()
         largePayload.end('x'.repeat(1000))
-        await server.handleRequest(address, 'helloWorld1', { 'content-type': 'application/octet-stream', 'content-length': 'nope', authorization: authorization}, largePayload);
-        t.fail('should have thrown content length header required')
-      } catch (err) {
-        t.throws(() => { throw err }, errors.ContentLengthHeaderRequiredError, 'should have thrown content length header required')
-      }
-  
-      try {
-        const largePayload = new PassThrough()
-        largePayload.end('x'.repeat(1000))
         await server.handleRequest(address, 'helloWorld2', { 'content-type': 'application/octet-stream', 'content-length': '10', authorization: authorization}, largePayload);
         t.fail('payload should have been detected as too large')
       } catch (err) {

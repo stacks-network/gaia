@@ -75,8 +75,6 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
           writeResponse(res, { message: err.message, error: err.name }, 402)
         } else if (err instanceof errors.ConflictError) {
           writeResponse(res, { message: err.message, error: err.name }, 409) 
-        } else if (err instanceof errors.ContentLengthHeaderRequiredError) {
-          writeResponse(res, { message: err.message, error: err.name }, 411)
         } else if (err instanceof errors.PayloadTooLargeError) {
           writeResponse(res, { message: err.message, error: err.name }, 413)
         } else {
