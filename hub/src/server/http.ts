@@ -48,6 +48,8 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
 
   app.use(cors({maxAge: corsCacheAge, allowedHeaders: [
     'Authorization', 'Content-Type', 'Content-Length'
+  ], exposedHeaders: [
+    '*', 'Authorization'
   ]}))
 
   // sadly, express doesn't like to capture slashes.

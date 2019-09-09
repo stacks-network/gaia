@@ -6,6 +6,7 @@
   "scripts": {
     "postinstall": "NODE_ENV=development npm install --prefix reader && npm run build --prefix reader && NODE_ENV=development npm install --prefix admin && NODE_ENV=development npm install --prefix hub",
     "test": "npm test --prefix reader && npm test --prefix admin && npm test --prefix hub",
+    "lint": "npm run lint --prefix reader && npm run lint --prefix admin && npm run lint --prefix hub",
     "codecovUpload": "codecov"
   },
   "devDependencies": {

@@ -15,6 +15,13 @@ export function makeHttpServer(config: Config) {
 
   app.use(cors())
 
+  // Set the Access-Control-Max-Age header to 24 hours.
+  const corsCacheAge = process.env.NODE_ENV === 'development' ? 0 : 86400
+  
+  app.use(cors({maxAge: corsCacheAge, allowedHeaders: [
+    'Content-Type', 'Content-Length'
+  ], exposedHeaders: [ '*', 'Authorization' ]}))
+
   app.get(/\/([a-zA-Z0-9-_]+)\/(.+)/, (req, res) => {
     let filename = req.params[1]
     if (filename.endsWith('/')) {
