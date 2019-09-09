@@ -13,8 +13,6 @@ export function makeHttpServer(config: Config) {
     winstonInstance: logger
   }))
 
-  app.use(cors())
-
   // Set the Access-Control-Max-Age header to 24 hours.
   const corsCacheAge = process.env.NODE_ENV === 'development' ? 0 : 86400
   
