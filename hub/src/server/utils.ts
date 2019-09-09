@@ -48,7 +48,7 @@ export function megabytesToBytes(megabytes: number) {
 }
 
 export function bytesToMegabytes(bytes: number, decimals = 2) {
-  return Number.parseFloat((bytes / 1024 / 1024).toFixed(decimals))
+  return Number.parseFloat((bytes / (1024 / 1024)).toFixed(decimals))
 }
 
 export function dateToUnixTimeSeconds(date: Date) {
