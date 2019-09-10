@@ -75,15 +75,13 @@ export function getTokenPayload(token: import('jsontokens/lib/decode').TokenInte
 
 export function decodeTokenForPayload(opts: { 
   encodedToken: string; 
-  caller: string; 
-  validationErrorMsg: string; 
-  errorLogger: (msg: string) => void 
+  validationErrorMsg: string;
 }) {
   try {
     return getTokenPayload(decodeToken(opts.encodedToken))
   } catch (e) {
-    opts.errorLogger(`${opts.caller}: ${opts.validationErrorMsg}, ${e}`)
-    opts.errorLogger(opts.encodedToken)
+    logger.error(`${opts.validationErrorMsg}, ${e}`)
+    logger.error(opts.encodedToken)
     throw new ValidationError(opts.validationErrorMsg)
   }
 }
@@ -116,10 +114,8 @@ export class V1Authentication implements AuthenticationInterface {
     }
     const token = authPart.slice('v1:'.length)
     const payload = decodeTokenForPayload({
-      encodedToken: token, 
-      caller: 'fromAuthPart', 
-      validationErrorMsg: 'Failed to decode authentication JWT',
-      errorLogger: logger.error
+      encodedToken: token,
+      validationErrorMsg: 'fromAuthPart: Failed to decode authentication JWT'
     })
 
     const publicKey = payload.iss
@@ -187,9 +183,7 @@ export class V1Authentication implements AuthenticationInterface {
 
     const payload = decodeTokenForPayload({
       encodedToken: token, 
-      caller: 'checkAssociationToken', 
-      validationErrorMsg: 'Failed to decode association token in JWT',
-      errorLogger: logger.error
+      validationErrorMsg: 'checkAssociationToken: Failed to decode association token in JWT'
     })
 
     // publicKey (the issuer of the association token)
@@ -249,9 +243,7 @@ export class V1Authentication implements AuthenticationInterface {
 
     const payload = decodeTokenForPayload({
       encodedToken: this.token, 
-      caller: 'getAuthenticationScopes', 
-      validationErrorMsg: 'Failed to decode authentication JWT',
-      errorLogger: logger.error
+      validationErrorMsg: 'getAuthenticationScopes: Failed to decode authentication JWT'
     })
 
     if (!payload.hasOwnProperty('scopes')) {
@@ -291,10 +283,8 @@ export class V1Authentication implements AuthenticationInterface {
                                     validHubUrls?: Array<string>,
                                     oldestValidTokenTimestamp?: number }): string {
     const payload = decodeTokenForPayload({
-      encodedToken: this.token, 
-      caller: 'isAuthenticationValid', 
-      validationErrorMsg: 'Failed to decode authentication JWT',
-      errorLogger: logger.error
+      encodedToken: this.token,
+      validationErrorMsg: 'isAuthenticationValid: Failed to decode authentication JWT'
     })
 
     const publicKey = payload.iss
