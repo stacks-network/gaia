@@ -39,9 +39,11 @@
     "@types/tape": "^4.2.33",
     "@typescript-eslint/eslint-plugin": "^1.11.0",
     "@typescript-eslint/parser": "^1.11.0",
+    "cross-env": "^5.2.1",
     "eslint": "^5.0.0",
     "fetch-mock": "^7.3.3",
     "istanbul": "^0.4.5",
+    "npm-run-all": "^4.1.5",
     "nyc": "^14.1.1",
     "proxyquire": "^2.1.0",
     "source-map-support": "^0.5.12",
@@ -53,15 +55,16 @@
     "typescript-json-schema": "^0.37.0"
   },
   "bin": {
-    "blockstack-gaia-hub": "./lib/index.js"
+    "blockstack-gaia-hub": "./cmd/index.js"
   },
   "scripts": {
-    "start": "npm run build && node lib/index.js",
     "dev": "ts-node src/index.ts",
-    "build": "tsc && chmod +x lib/index.js && npm run build-schema",
-    "build-schema": "typescript-json-schema tsconfig.json HubConfig --required --noExtraProps --refs=false -o config-schema.json",
+    "build": "run-p build:*",
+    "build:tsc": "tsc",
+    "build:schema": "typescript-json-schema tsconfig.json HubConfig --required --noExtraProps --refs=false -o config-schema.json",
     "lint": "eslint --ext .ts ./src -f unix",
-    "test": "npm run build && npm run lint && NODE_ENV=test nyc node ./test/src/index.ts"
+    "test:coverage": "cross-env NODE_ENV=test nyc node ./test/src/index.ts",
+    "test": "npm-run-all build --parallel lint test:coverage"
   },
   "repository": {
     "type": "git",

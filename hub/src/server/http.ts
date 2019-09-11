@@ -35,7 +35,7 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
   } else {
     throw new Error('Driver option not configured')
   }
-  
+
   const proofChecker = new ProofChecker(config.proofsConfig)
   const server = new HubServer(driver, proofChecker, config)
 
