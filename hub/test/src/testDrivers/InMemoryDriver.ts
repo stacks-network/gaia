@@ -19,7 +19,7 @@ export class InMemoryDriver implements DriverModel {
   lastWrite: PerformWriteArgs
   initPromise: Promise<void>
 
-  onWriteMiddleware: Set<((PerformWriteArgs) => Promise<void>)> = new Set()
+  onWriteMiddleware: Set<((arg: PerformWriteArgs) => Promise<void>)> = new Set()
 
   constructor(config: any) {
     this.pageSize = (config && config.pageSize) ? config.pageSize : 100

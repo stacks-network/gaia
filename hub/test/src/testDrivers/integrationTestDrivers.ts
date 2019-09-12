@@ -29,7 +29,7 @@ const envConfigPaths = {
   disk: process.env.DISK_CONFIG_PATH 
 };
 
-export const driverConfigs = {
+export const driverConfigs: Record<string, any> = {
   az: undefined,
   aws: undefined,
   gc: undefined,

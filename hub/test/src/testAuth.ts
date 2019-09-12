@@ -1,6 +1,4 @@
-
-
-import test from 'tape-promise/tape'
+import test = require('tape-promise/tape')
 import { TokenSigner } from 'jsontokens'
 
 import * as auth from '../../src/server/authentication'
@@ -8,6 +6,7 @@ import * as errors from '../../src/server/errors'
 
 
 import { testPairs, testAddrs} from './common'
+import { ECPairInterface } from 'bitcoinjs-lib'
 
 export function testAuth() {
   test('authentication legacy/regression', (t) => {
@@ -182,7 +181,7 @@ export function testAuth() {
     const wrongBearerAddressAssociationToken = new TokenSigner('ES256K', ownerKeyHex).sign(
       { childToAssociate: testPairs[0].publicKey.toString('hex'), iss: testPairs[0].publicKey.toString('hex'), exp: (Date.now()/1000) * 2 })
 
-    function makeAssocAuthToken(keypair, ct, assocJWT) {
+    function makeAssocAuthToken(keypair: ECPairInterface, ct: string, assocJWT: string) {
       return new auth.V1Authentication(auth.V1Authentication.fromAuthPart(auth.V1Authentication.makeAuthPart(keypair, ct, assocJWT)).token)
     }
 

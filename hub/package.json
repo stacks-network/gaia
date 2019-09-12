@@ -63,6 +63,7 @@
     "build:tsc": "tsc",
     "build:schema": "typescript-json-schema tsconfig.json HubConfig --required --noExtraProps --refs=false -o config-schema.json",
     "lint": "eslint --ext .ts ./src -f unix",
+    "test:build": "tsc -p ./test/tsconfig.json",
     "test:coverage": "cross-env NODE_ENV=test nyc node ./test/src/index.ts",
     "test": "npm-run-all build --parallel lint test:coverage"
   },
