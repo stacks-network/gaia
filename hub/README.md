@@ -155,6 +155,10 @@ a minute and try the `npm run test` command again.
 To configure the logging set the `argsTransport` fields in the config file. Here is a list of [logging configuration options](https://github.com/winstonjs/winston/blob/master/docs/transports.md).
 
 
-### CDN Stuff
+
+### CDN & Replicated Hubs
 
 - https://docs.microsoft.com/en-us/azure/storage/blobs/storage-https-custom-domain-cdn
+
+
+- The hub implementation is design to be ran from a single Node.js instance. If the hub instance is sharded (e.g. replicated hubs via load balancing), then any given `bucket` (identified by URI segment) must be served by the same instance, At least a couple elements of the Gaia Hub depend on this: token invalidation in-memory caching, and resource endpoint 409 contention behavior. 

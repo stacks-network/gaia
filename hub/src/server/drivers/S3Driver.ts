@@ -1,9 +1,9 @@
 import S3 from 'aws-sdk/clients/s3'
 
 import { BadPathError, InvalidInputError, DoesNotExist } from '../errors'
-import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs } from '../driverModel'
+import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult, PerformReadArgs, ReadResult, PerformListFilesArgs, ListFilesStatResult, ListFileStatResult } from '../driverModel'
 import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
-import { timeout, logger } from '../utils'
+import { timeout, logger, dateToUnixTimeSeconds } from '../utils'
 
 export interface S3_CONFIG_TYPE {
   awsCredentials: {
@@ -117,7 +117,7 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
   }
 
   async deleteEmptyBucket() {
-    const files = await this.listFiles('')
+    const files = await this.listFiles({pathPrefix: ''})
     if (files.entries.length > 0) {
       /* istanbul ignore next */
       throw new Error('Tried deleting non-empty bucket')
@@ -125,7 +125,7 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
     await this.s3.deleteBucket({ Bucket: this.bucket }).promise()
   }
 
-  async listAllKeys(prefix: string, page?: string): Promise<ListFilesResult> {
+  async listAllKeys(prefix: string, page?: string): Promise<ListFilesStatResult> {
     // returns {'entries': [...], 'page': next_page}
     const opts: S3.ListObjectsRequest = {
       Bucket: this.bucket,
@@ -136,8 +136,18 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
       opts.Marker = page
     }
     const data = await this.s3.listObjects(opts).promise()
-    const res: ListFilesResult = {
-      entries: data.Contents.map((e) => e.Key.slice(prefix.length + 1)),
+    const entries: ListFileStatResult[] = data.Contents.map((e) => {
+      const fileStat = S3Driver.parseFileStat(e)
+      const entry: ListFileStatResult = {
+        ...fileStat,
+        exists: true,
+        name: e.Key.slice(prefix.length + 1)
+      }
+      return entry
+    })
+
+    const res: ListFilesStatResult = {
+      entries: entries,
       page: data.IsTruncated ? data.NextMarker : null
     }
     /**
@@ -152,9 +162,18 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
     return res
   }
 
-  listFiles(prefix: string, page?: string) {
+  async listFiles(args: PerformListFilesArgs): Promise<ListFilesResult> {
     // returns {'entries': [...], 'page': next_page}
-    return this.listAllKeys(prefix, page)
+    const listResult = await this.listAllKeys(args.pathPrefix, args.page)
+    return {
+      entries: listResult.entries.map(e => e.name),
+      page: listResult.page
+    }
+  }
+
+  async listFilesStat(args: PerformListFilesArgs): Promise<ListFilesStatResult> {
+    const listResult = await this.listAllKeys(args.pathPrefix, args.page)
+    return listResult
   }
 
   async performWrite(args: PerformWriteArgs): Promise<string> {
@@ -170,8 +189,7 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
       Bucket: this.bucket,
       Key: s3key,
       Body: args.stream,
-      ContentType: args.contentType,
-      ACL: 'public-read'
+      ContentType: args.contentType
     }
     if (this.cacheControl) {
       s3params.CacheControl = this.cacheControl
@@ -216,6 +234,116 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
       /* istanbul ignore next */
       throw new Error('S3 storage failure: failed to delete' +
         ` ${s3key} in bucket ${this.bucket}: ${error}`)
+    }
+  }
+
+  async performRead(args: PerformReadArgs): Promise<ReadResult> {
+    if (!S3Driver.isPathValid(args.path)){
+      throw new BadPathError('Invalid Path')
+    }
+    const s3key = `${args.storageTopLevel}/${args.path}`
+    const s3params: S3.Types.GetObjectRequest = {
+      Bucket: this.bucket,
+      Key: s3key
+    }
+    try {
+      const headResult = await this.s3.headObject(s3params).promise()
+      const dataStream = this.s3.getObject(s3params).createReadStream()
+      const fileStat = S3Driver.parseFileStat(headResult)
+      const result: ReadResult = {
+        ...fileStat,
+        exists: true,
+        data: dataStream
+      }
+      return result
+
+    } catch (error) {
+      if (error.statusCode === 404) {
+        throw new DoesNotExist('File does not exist')
+      }
+      /* istanbul ignore next */
+      logger.error(`failed to read ${s3key} in bucket ${this.bucket}`)
+      /* istanbul ignore next */
+      throw new Error('S3 storage failure: failed to read' +
+        ` ${s3key} in bucket ${this.bucket}: ${error}`)
+    }
+  }
+
+  static parseFileStat(obj: S3.HeadObjectOutput | S3.Object): StatResult {
+    let lastModified: number | undefined
+    if (obj.LastModified) {
+      lastModified = dateToUnixTimeSeconds(obj.LastModified)
+    }
+    const result: StatResult = {
+      exists: true,
+      lastModifiedDate: lastModified,
+      contentLength: (obj as S3.HeadObjectOutput).ContentLength || (obj as S3.Object).Size,
+      contentType: (obj as S3.HeadObjectOutput).ContentType
+    }
+    return result
+  }
+
+  async performStat(args: PerformStatArgs): Promise<StatResult> {
+    if (!S3Driver.isPathValid(args.path)){
+      throw new BadPathError('Invalid Path')
+    }
+    const s3key = `${args.storageTopLevel}/${args.path}`
+    const s3params: S3.Types.HeadObjectRequest = {
+      Bucket: this.bucket,
+      Key: s3key
+    }
+    try {
+      const headResult = await this.s3.headObject(s3params).promise()
+      const result = S3Driver.parseFileStat(headResult)
+      return result
+    } catch (error) {
+      if (error.statusCode === 404) {
+        const result = {
+          exists: false
+        } as StatResult
+        return result
+      }
+      /* istanbul ignore next */
+      logger.error(`failed to stat ${s3key} in bucket ${this.bucket}`)
+      /* istanbul ignore next */
+      throw new Error('S3 storage failure: failed to stat' +
+        ` ${s3key} in bucket ${this.bucket}: ${error}`)
+    }
+  }
+
+  async performRename(args: PerformRenameArgs): Promise<void> {
+    if (!S3Driver.isPathValid(args.path)){
+      throw new BadPathError('Invalid original path')
+    }
+    if (!S3Driver.isPathValid(args.newPath)){
+      throw new BadPathError('Invalid new path')
+    }
+
+    const s3KeyOrig = `${args.storageTopLevel}/${args.path}`
+    const s3keyNew = `${args.storageTopLevel}/${args.newPath}`
+
+    const s3RenameParams: S3.Types.CopyObjectRequest = {
+      Bucket: this.bucket,
+      Key: s3keyNew,
+      CopySource: `${this.bucket}/${s3KeyOrig}`
+    }
+    const s3DeleteParams: S3.Types.DeleteObjectRequest = {
+      Bucket: this.bucket,
+      Key: s3KeyOrig
+    }
+
+    try {
+      await this.s3.copyObject(s3RenameParams).promise()
+      await this.s3.deleteObject(s3DeleteParams).promise()
+    } catch (error) {
+      if (error.statusCode === 404) {
+        throw new DoesNotExist('File does not exist')
+      }
+      /* istanbul ignore next */
+      logger.error(`failed to rename ${s3KeyOrig} to ${s3keyNew} in bucket ${this.bucket}`)
+      /* istanbul ignore next */
+      throw new Error('S3 storage failure: failed to rename' +
+        ` ${s3KeyOrig} to ${s3keyNew} in bucket ${this.bucket}: ${error}`)
     }
   }
 

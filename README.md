@@ -248,49 +248,133 @@ can be configured via the [config.json](#configuration-files).
 # Driver model
 
 Gaia hub drivers are fairly simple. The biggest requirement is the ability
-to fulfill the _write-to/read-from_ URL guarantee. As currently implemented
-a gaia hub driver must implement the following two functions:
+to fulfill the _write-to/read-from_ URL guarantee. 
 
-```javascript
-/**
- * Performs the actual write of a file to `path`
- *   the file must be readable at `${getReadURLPrefix()}/${storageToplevel}/${path}`
- *
- * @param { String } options.path - path of the file.
- * @param { String } options.storageToplevel - the top level directory to store the file in
- * @param { String } options.contentType - the HTTP content-type of the file
- * @param { stream.Readable } options.stream - the data to be stored at `path`
- * @param { Integer } options.contentLength - the bytes of content in the stream
- * @returns { Promise } that resolves to the public-readable URL of the stored content.
- */
-performWrite (options: { path, storageToplevel, contentType,
-                         stream, contentLength: Number })
+A driver can expect that two modification operations to the same path will be mutually exclusive. 
+No writes, renames, or deletes to the same path will be concurrent.
 
-/**
- * Deletes a file. Throws a `DoesNotExist` if the file does not exist. 
- * @param { String } options.path - path of the file
- * @param { String } options.storageToplevel - the top level directory
- * @param { String } options.contentType - the HTTP content-type of the file
- * @returns {Promise}
- */
-performDelete (options: { path, storageToplevel })
+As currently implemented
+a gaia hub driver must implement the following functions:
 
-/**
- * Return the prefix for reading files from.
- *  a write to the path `foo` should be readable from
- *  `${getReadURLPrefix()}foo`
- * @returns {String} the read url prefix.
- */
-getReadURLPrefix ()
 
-/**
- * Return a list of files beginning with the given prefix,
- * as well as a driver-specific page identifier for requesting
- * the next page of entries.  The return structure should
- * take the form { "entries": [string], "page": string }
- * @returns {Promise} the list of files and a page identifier.
- */
-listFiles(prefix: string, page: string)
+```ts
+interface DriverModel {
+
+  /**
+   * Return the prefix for reading files from.
+   *  a write to the path `foo` should be readable from
+   *  `${getReadURLPrefix()}foo`
+   * @returns the read url prefix.
+   */
+  getReadURLPrefix(): string;
+
+  /**
+   * Performs the actual write of a file to `path`
+   *   the file must be readable at `${getReadURLPrefix()}/${storageToplevel}/${path}`
+   *
+   * @param options.path - path of the file.
+   * @param options.storageToplevel - the top level directory to store the file in
+   * @param options.contentType - the HTTP content-type of the file
+   * @param options.stream - the data to be stored at `path`
+   * @param options.contentLength - the bytes of content in the stream
+   * @returns Promise that resolves to the public-readable URL of the stored content.
+   */
+  performWrite(options: { 
+    path: string;
+    storageTopLevel: string;
+    stream: Readable;
+    contentLength: number;
+    contentType: string;
+  }): Promise<string>;
+
+  /**
+   * Deletes a file. Throws a `DoesNotExist` if the file does not exist. 
+   * @param options.path - path of the file
+   * @param options.storageTopLevel - the top level directory
+   * @param  options.contentType - the HTTP content-type of the file
+   */
+  performDelete(options: {
+    path: string;
+    storageTopLevel: string;
+  }): Promise<void>;
+
+  /**
+   * Renames a file given a path. Some implementations do not support
+   * a first class move operation and this can be implemented as a copy and delete. 
+   * @param options.path - path of the original file
+   * @param options.storageTopLevel - the top level directory for the original file
+   * @param options.newPath - new path for the file
+   */
+  performRename(options: {
+    path: string;
+    storageTopLevel: string;
+    newPath: string;
+  }): Promise<void>;
+
+  /**
+   * Retrieves metadata for a given file. 
+   * @param options.path - path of the file
+   * @param options.storageTopLevel - the top level directory
+   */
+  performStat(options: {
+    path: string;
+    storageTopLevel: string;
+  }): Promise<{
+    exists: boolean;
+    lastModifiedDate: number;
+    contentLength: number;
+    contentType: string;
+  }>;
+
+  /**
+   * Returns an object with a NodeJS stream.Readable for the file content
+   * and metadata about the file. 
+   * @param options.path - path of the file
+   * @param options.storageTopLevel - the top level directory
+   */
+  performRead(options: {
+    path: string;
+    storageTopLevel: string;
+  }): Promise<{
+    data: Readable;
+    lastModifiedDate: number;
+    contentLength: number;
+    contentType: string;
+  }>;
+
+  /**
+   * Return a list of files beginning with the given prefix,
+   * as well as a driver-specific page identifier for requesting
+   * the next page of entries.  The return structure should
+   * take the form { "entries": [string], "page"?: string }
+   * @returns {Promise} the list of files and a possible page identifier.
+   */
+  listFiles(options: {
+    pathPrefix: string;
+    page?: string;
+  }): Promise<{ 
+    entries: string[];
+    page?: string;
+  }>;
+
+  /**
+   * Return a list of files beginning with the given prefix,
+   * as well as file metadata, and a driver-specific page identifier 
+   * for requesting the next page of entries. 
+   */
+  listFilesStat(options: {
+    pathPrefix: string;
+    page?: string;
+  }): Promise<{
+    entries: {
+        name: string;
+        lastModifiedDate: number;
+        contentLength: number;
+    }[];
+    page?: string;
+  }>;
+  
+}
 ```
 
 # HTTP API
@@ -299,9 +383,7 @@ The Gaia storage API defines the following endpoints:
 
 ---
 
-```
-GET ${read-url-prefix}/${address}/${path}
-```
+##### `GET ${read-url-prefix}/${address}/${path}`
 
 This returns the data stored by the gaia hub at `${path}`. In order
 for this to be usable from web applications, this read path _must_
@@ -310,9 +392,7 @@ should match the Content-Type of the corresponding write.
 
 ---
 
-```
-POST ${hubUrl}/store/${address}/${path}
-```
+##### `POST ${hubUrl}/store/${address}/${path}`
 
 This performs a write to the gaia hub at `${path}`. 
 
@@ -336,9 +416,7 @@ resolution and will not throw an error.
 
 ---
 
-```
-DELETE ${hubUrl}/delete/${address}/${path}
-```
+##### `DELETE ${hubUrl}/delete/${address}/${path}`
 
 This performs a deletion of a file in the gaia hub at `${path}`. 
 
@@ -352,9 +430,7 @@ document.
 
 ---
 
-```
-GET ${hubUrl}/hub_info/
-```
+##### `GET ${hubUrl}/hub_info/`
 
 Returns a JSON object:
 
@@ -371,9 +447,8 @@ gaia hub supports.
 
 ---
 
-```
-POST ${hubUrl}/revoke-all/${address}
-```
+##### `POST ${hubUrl}/revoke-all/${address}`
+
 The post body must be a JSON object with the following field:
 ```json
 { "oldestValidTimestamp": "${timestamp}" }
@@ -392,6 +467,46 @@ The `POST` must contain an authentication header with a bearer token.
 The bearer token's content and generation is described in
 the [access control](#address-based-access-control) section of this
 document.
+
+---
+
+##### `POST ${hubUrl}/list-files/${address}`
+
+The post body can contain a `page` field with the pagination identifier from a previous request:
+```json
+{ "page": "${lastListFilesResult.page}" }
+```
+If the post body contains a `stat: true` field then the returned JSON includes file metadata:
+```jsonc
+{
+  "entries": [
+    { "name": "string", "lastModifiedDate": "number", "contentLength": "number" },
+    { "name": "string", "lastModifiedDate": "number", "contentLength": "number" },
+    // ...
+  ],
+  "page": "string" // possible pagination marker
+}
+```
+
+If the post body does not contain a `stat: true` field then the returned JSON entries will only be
+file name strings:
+```jsonc
+{
+  "entries": [
+    "fileNameExample1",
+    "fileNameExample2",
+    // ...
+  ],
+  "page": "string" // possible pagination marker
+}
+```
+
+The `POST` must contain an authentication header with a bearer token.
+The bearer token's content and generation is described in
+the [access control](#address-based-access-control) section of this
+document.
+
+-----
 
 # Future Design Goals
 

@@ -1,13 +1,14 @@
 
 
-import { validateAuthorizationHeader, getAuthenticationScopes } from './authentication'
-import { ValidationError } from './errors'
+import { validateAuthorizationHeader, getAuthenticationScopes, AuthScopeValues } from './authentication'
+import { ValidationError, DoesNotExist } from './errors'
 import { ProofChecker } from './ProofChecker'
 import { AuthTimestampCache } from './revocations'
 
 import { Readable } from 'stream'
-import { DriverModel } from './driverModel'
+import { DriverModel, PerformWriteArgs, PerformRenameArgs, PerformDeleteArgs, PerformListFilesArgs, ListFilesStatResult, ListFilesResult } from './driverModel'
 import { HubConfigInterface } from './config'
+import { logger, generateUniqueID } from './utils'
 
 export class HubServer {
   driver: DriverModel
@@ -18,10 +19,12 @@ export class HubServer {
   requireCorrectHubUrl: boolean
   validHubUrls?: Array<string>
   authTimestampCache: AuthTimestampCache
+  config: HubConfigInterface
 
   constructor(driver: DriverModel, proofChecker: ProofChecker, config: HubConfigInterface) {
     this.driver = driver
     this.proofChecker = proofChecker
+    this.config = config
     this.whitelist = config.whitelist
     this.serverName = config.serverName
     this.validHubUrls = config.validHubUrls
@@ -51,10 +54,45 @@ export class HubServer {
 
   async handleListFiles(address: string,
                         page: string | undefined,
+                        stat: boolean,
                         requestHeaders: { authorization?: string }) {
     const oldestValidTokenTimestamp = await this.authTimestampCache.getAuthTimestamp(address)
+    const scopes = getAuthenticationScopes(requestHeaders.authorization)
+    const isArchivalRestricted = this.isArchivalRestricted(scopes)
+
     this.validate(address, requestHeaders, oldestValidTokenTimestamp)
-    return await this.driver.listFiles(address, page)
+
+    const listFilesArgs: PerformListFilesArgs = {
+      pathPrefix: address,
+      page: page
+    }
+
+    let listFileResult: ListFilesResult | ListFilesStatResult
+    if (stat) {
+      listFileResult = await this.driver.listFilesStat(listFilesArgs)
+    } else {
+      listFileResult = await this.driver.listFiles(listFilesArgs)
+    }
+
+    // Filter historical files from results.
+    if (isArchivalRestricted && listFileResult.entries.length > 0) {
+      if (stat) {
+        listFileResult.entries = (listFileResult as ListFilesStatResult).entries
+          .filter(entry => !this.isHistoricalFile(entry.name))
+      } else {
+        listFileResult.entries = (listFileResult as ListFilesResult).entries
+          .filter(entry => !this.isHistoricalFile(entry))
+      }
+
+      // Detect empty page due to all files being historical files.
+      if (listFileResult.entries.length === 0 && listFileResult.page) {
+        // Insert a null marker entry to indicate that there are more results
+        // even though the entry array is empty.
+        listFileResult.entries.push(null)
+      }
+    }
+
+    return listFileResult
   }
 
   getReadURLPrefix() {
@@ -63,6 +101,26 @@ export class HubServer {
     } else {
       return this.driver.getReadURLPrefix()
     }
+  }
+
+  getFileName(filePath: string) {
+    const pathParts = filePath.split('/')
+    const fileName = pathParts[pathParts.length - 1]
+    return fileName
+  }
+
+  getHistoricalFileName(filePath: string) {
+    const fileName = this.getFileName(filePath)
+    const filePathPrefix = filePath.slice(0, filePath.length - fileName.length)
+    const historicalName = `.history.${Date.now()}.${generateUniqueID()}.${fileName}`
+    const historicalPath = `${filePathPrefix}${historicalName}`
+    return historicalPath
+  }
+  
+  isHistoricalFile(filePath: string) {
+    const fileName = this.getFileName(filePath)
+    const isHistoricalFile = fileName.startsWith('.history.')
+    return isHistoricalFile
   }
 
   async handleDelete(
@@ -74,24 +132,16 @@ export class HubServer {
 
     // can the caller delete? if so, in what paths?
     const scopes = getAuthenticationScopes(requestHeaders.authorization)
-    const deletePrefixes = []
-    const deletePaths = []
-    for (let i = 0; i < scopes.length; i++) {
-      if (scopes[i].scope == 'deleteFilePrefix') {
-        deletePrefixes.push(scopes[i].domain)
-      } else if (scopes[i].scope == 'deleteFile') {
-        deletePaths.push(scopes[i].domain)
-      }
-    }
+    const isArchivalRestricted = this.checkArchivalRestrictions(address, path, scopes)
 
-    if (deletePrefixes.length > 0 || deletePaths.length > 0) {
+    if (scopes.deletePrefixes.length > 0 || scopes.deletePaths.length > 0) {
       // we're limited to a set of prefixes and paths.
       // does the given path match any prefixes?
-      let match = !!deletePrefixes.find((p) => (path.startsWith(p)))
+      let match = !!scopes.deletePrefixes.find((p) => (path.startsWith(p)))
 
       if (!match) {
         // check for exact paths
-        match = !!deletePaths.find((p) => (path === p))
+        match = !!scopes.deletePaths.find((p) => (path === p))
       }
 
       if (!match) {
@@ -102,12 +152,22 @@ export class HubServer {
 
     await this.proofChecker.checkProofs(address, path, this.getReadURLPrefix())
 
-    const deleteCommand = {
-      storageTopLevel: address,
-      path
+    if (isArchivalRestricted){
+      // if archival restricted then just rename the canonical file to the historical file
+      const historicalPath = this.getHistoricalFileName(path)
+      const renameCommand: PerformRenameArgs = {
+        path: path,
+        storageTopLevel: address,
+        newPath: historicalPath
+      }
+      await this.driver.performRename(renameCommand)
+    } else {
+      const deleteCommand: PerformDeleteArgs = {
+        storageTopLevel: address,
+        path
+      }
+      await this.driver.performDelete(deleteCommand)
     }
-
-    await this.driver.performDelete(deleteCommand)
   }
 
   async handleRequest(
@@ -130,24 +190,16 @@ export class HubServer {
 
     // can the caller write? if so, in what paths?
     const scopes = getAuthenticationScopes(requestHeaders.authorization)
-    const writePrefixes = []
-    const writePaths = []
-    for (let i = 0; i < scopes.length; i++) {
-      if (scopes[i].scope == 'putFilePrefix') {
-        writePrefixes.push(scopes[i].domain)
-      } else if (scopes[i].scope == 'putFile') {
-        writePaths.push(scopes[i].domain)
-      }
-    }
+    const isArchivalRestricted = this.checkArchivalRestrictions(address, path, scopes)
 
-    if (writePrefixes.length > 0 || writePaths.length > 0) {
+    if (scopes.writePrefixes.length > 0 || scopes.writePaths.length > 0) {
       // we're limited to a set of prefixes and paths.
       // does the given path match any prefixes?
-      let match = !!writePrefixes.find((p) => (path.startsWith(p)))
+      let match = !!scopes.writePrefixes.find((p) => (path.startsWith(p)))
 
       if (!match) {
         // check for exact paths
-        match = !!writePaths.find((p) => (path === p))
+        match = !!scopes.writePaths.find((p) => (path === p))
       }
 
       if (!match) {
@@ -156,14 +208,38 @@ export class HubServer {
       }
     }
 
-    const writeCommand = {
+    const writeCommand: PerformWriteArgs = {
       storageTopLevel: address,
       path, stream, contentType,
-      contentLength: parseInt(<string>requestHeaders['content-length'])
+      contentLength: parseInt(requestHeaders['content-length'] as string)
     }
 
     await this.proofChecker.checkProofs(address, path, this.getReadURLPrefix())
     
+    if (isArchivalRestricted) {
+      const historicalPath = this.getHistoricalFileName(path)
+      try {
+        await this.driver.performRename({
+          path: path,
+          storageTopLevel: address,
+          newPath: historicalPath
+        })
+      } catch (error) {
+        if (error instanceof DoesNotExist) {
+          // ignore
+          logger.debug(
+            '404 on putFileArchival rename attempt -- usually this is okay and ' + 
+            'only indicates that this is the first time the file was written: ' +
+            `${address}/${path}`
+          )
+        } else {
+          logger.error(`Error performing historical file rename: ${address}/${path}`)
+          logger.error(error)
+          throw error
+        }
+      }
+    }
+
     const readURL = await this.driver.performWrite(writeCommand)
     const driverPrefix = this.driver.getReadURLPrefix()
     const readURLPrefix = this.getReadURLPrefix()
@@ -173,4 +249,29 @@ export class HubServer {
     }
     return readURL
   }
+  
+  isArchivalRestricted(scopes: AuthScopeValues) {
+    return scopes.writeArchivalPaths.length > 0 || scopes.writeArchivalPrefixes.length > 0
+  }
+
+  checkArchivalRestrictions(address: string, path: string, scopes: AuthScopeValues) {
+    const isArchivalRestricted = this.isArchivalRestricted(scopes)
+    if (isArchivalRestricted) {
+      // we're limited to a set of prefixes and paths.
+      // does the given path match any prefixes?
+      let match = !!scopes.writeArchivalPrefixes.find((p) => (path.startsWith(p)))
+
+      if (!match) {
+        // check for exact paths
+        match = !!scopes.writeArchivalPaths.find((p) => (path === p))
+      }
+
+      if (!match) {
+        // not authorized to write to this path
+        throw new ValidationError(`Address ${address} not authorized to modify ${path} by scopes`)
+      }
+    }
+    return isArchivalRestricted
+  }
+
 }

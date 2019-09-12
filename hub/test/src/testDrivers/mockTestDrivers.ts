@@ -42,10 +42,14 @@ export function makeMockedAzureDriver() {
 
   const listBlobFlatSegment = (_, __, { prefix }) => {
     const items = dataMap
-      .map(x => x.key)
-      .filter(key => key.startsWith(prefix))
-      .map(key => { return {
-        name: key
+      .filter(x => x.key.startsWith(prefix))
+      .map(x => { return {
+        name: x.key,
+        properties: {
+          lastModified: new Date(),
+          contentLength: x.data.length,
+          contentType: "?"
+        }
       }})
     return { segment: { blobItems: items } }
   }

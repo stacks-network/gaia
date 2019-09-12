@@ -1,9 +1,10 @@
 import fs from 'fs-extra'
+import { readdir } from 'fs'
 import { BadPathError, InvalidInputError, DoesNotExist } from '../errors'
 import Path from 'path'
-import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs } from '../driverModel'
+import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult, PerformReadArgs, ReadResult, PerformListFilesArgs, ListFilesStatResult, ListFileStatResult } from '../driverModel'
 import { DriverStatics, DriverModel } from '../driverModel'
-import { pipeline, logger } from '../utils'
+import { pipelineAsync, logger, dateToUnixTimeSeconds } from '../utils'
 
 export interface DISK_CONFIG_TYPE { 
   diskSettings: { storageRootDirectory?: string },
@@ -93,13 +94,22 @@ class DiskDriver implements DriverModel {
 
   async findAllFiles(listPath: string): Promise<string[]> {
     // returns a list of files prefixed by listPath
-    const dirEntries: fs.Dirent[] = await (<any>fs.readdir)(listPath, { withFileTypes: true })
-    const fileNames = []
+    const dirEntries: fs.Dirent[] = await new Promise((resolve, reject) => {
+      readdir(listPath, {withFileTypes: true}, (err, files) => {
+        if (err) {
+          reject(err)
+        } else {
+          resolve(files)
+        }
+      })
+    })
+
+    const fileNames: string[] = []
     for (const dirEntry of dirEntries) {
       const fileOrDir = `${listPath}${Path.sep}${dirEntry.name}`
       if (dirEntry.isDirectory()) {
-        const childNames = await this.findAllFiles(fileOrDir)
-        fileNames.push(...childNames)
+        const childEntries = await this.findAllFiles(fileOrDir)
+        fileNames.push(...childEntries)
       } else {
         fileNames.push(Path.posix.normalize(fileOrDir))
       }
@@ -109,35 +119,35 @@ class DiskDriver implements DriverModel {
 
   async listFilesInDirectory(listPath: string, pageNum: number): Promise<ListFilesResult> {
     const files = await this.findAllFiles(listPath)
-    const names = files.map(fileName => fileName.slice(listPath.length + 1))
-    const entries = names.slice(pageNum * this.pageSize, (pageNum + 1) * this.pageSize)
-    const page = entries.length === names.length ? null : `${pageNum + 1}`
+    const entries = files.map(file => file.slice(listPath.length + 1))
+    const sliced = entries.slice(pageNum * this.pageSize, (pageNum + 1) * this.pageSize)
+    const page = sliced.length === entries.length ? null : `${pageNum + 1}`
     return {
-      entries,
-      page
+      entries: sliced,
+      page: page
     }
   }
 
-  async listFiles(prefix: string, page?: string) {
+  async listFilesInternal(args: PerformListFilesArgs): Promise<ListFilesResult> {
     // returns {'entries': [...], 'page': next_page}
     let pageNum
-    const listPath = Path.normalize(`${this.storageRootDirectory}/${prefix}`)
-    const emptyResponse: ListFilesResult = {
-      entries: [],
-      page: null
-    }
+    const listPath = Path.normalize(`${this.storageRootDirectory}/${args.pathPrefix}`)
 
-    if (!(await (<any>fs.exists)(listPath))) {
+    if (!await fs.pathExists(listPath)) {
       // nope 
+      const emptyResponse: ListFilesResult = {
+        entries: [],
+        page: null
+      }
       return emptyResponse
     }
       
     try {
-      if (page) {
-        if (!page.match(/^[0-9]+$/)) {
+      if (args.page) {
+        if (!args.page.match(/^[0-9]+$/)) {
           throw new Error('Invalid page number')
         }
-        pageNum = parseInt(page)
+        pageNum = parseInt(args.page)
       } else {
         pageNum = 0
       }
@@ -150,7 +160,29 @@ class DiskDriver implements DriverModel {
       throw new Error('Invalid arguments: invalid page or not a directory')
     }
 
-    return await this.listFilesInDirectory(listPath, pageNum)
+    const listResult = await this.listFilesInDirectory(listPath, pageNum)
+    return listResult
+  }
+
+  async listFiles(args: PerformListFilesArgs): Promise<ListFilesResult> {
+    return await this.listFilesInternal(args)
+  }
+
+  async listFilesStat(args: PerformListFilesArgs): Promise<ListFilesStatResult> {
+    const filePathResult = await this.listFilesInternal(args)
+    const fileStats: ListFileStatResult[] = []
+    for (const file of filePathResult.entries) {
+      const fileStat = await this.performStat({storageTopLevel: args.pathPrefix, path: file})
+      fileStats.push({
+        ...fileStat,
+        name: file,
+        exists: true
+      })
+    }
+    return {
+      page: filePathResult.page,
+      entries: fileStats
+    }
   }
 
   getFullFilePathInfo(args: {storageTopLevel: string, path: string} ) {
@@ -199,7 +231,7 @@ class DiskDriver implements DriverModel {
     await this.mkdirs(absdirname)
 
     const writePipe = fs.createWriteStream(absoluteFilePath, { mode: 0o600, flags: 'w' })
-    await pipeline(args.stream, writePipe)
+    await pipelineAsync(args.stream, writePipe)
 
 
     const contentTypeDirPath = Path.dirname(contentTypeFilePath)
@@ -234,6 +266,115 @@ class DiskDriver implements DriverModel {
     await fs.unlink(absoluteFilePath)
     await fs.unlink(contentTypeFilePath)
   }
+
+  static async parseFileStat(stat: fs.Stats, contentTypeFilePath: string): Promise<StatResult> {
+    const contentTypeJsonStr = await fs.readFile(contentTypeFilePath, 'utf8')
+    const contentType = JSON.parse(contentTypeJsonStr)['content-type']
+    const lastModified = dateToUnixTimeSeconds(stat.mtime)
+    const result: StatResult = {
+      exists: true,
+      contentLength: stat.size,
+      contentType: contentType,
+      lastModifiedDate: lastModified
+    }
+    return result
+  }
+
+  async performRead(args: PerformReadArgs): Promise<ReadResult> {
+    const { absoluteFilePath, contentTypeFilePath } = this.getFullFilePathInfo(args)
+    let stat: fs.Stats
+    try {
+      stat = await fs.stat(absoluteFilePath)
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        throw new DoesNotExist('File does not exist')
+      }
+      /* istanbul ignore next */
+      throw error
+    }
+    if (!stat.isFile()) {
+      // Disk driver is special here in that it mirrors the behavior of cloud storage APIs. 
+      // Directories are not first-class objects in blob storages, and so they will 
+      // simply return 404s for the blob name even if the name happens to be a prefix
+      // (pseudo-directory) of existing blobs.
+      throw new DoesNotExist('File does not exist')
+    }
+    const fileStat = await DiskDriver.parseFileStat(stat, contentTypeFilePath)
+    const dataStream = fs.createReadStream(absoluteFilePath)
+    const result: ReadResult = {
+      ...fileStat,
+      exists: true,
+      data: dataStream
+    }
+    return result
+  }
+
+  async performStat(args: PerformStatArgs): Promise<StatResult> {
+    const { absoluteFilePath, contentTypeFilePath } = this.getFullFilePathInfo(args)
+    let stat: fs.Stats
+    try {
+      stat = await fs.stat(absoluteFilePath)
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        const result = {
+          exists: false
+        } as StatResult
+        return result
+      }
+      /* istanbul ignore next */
+      throw error
+    }
+    if (!stat.isFile()) {
+      // Disk driver is special here in that it mirrors the behavior of cloud storage APIs. 
+      // Directories are not first-class objects in blob storages, and so they will 
+      // simply return 404s for the blob name even if the name happens to be a prefix
+      // (pseudo-directory) of existing blobs.
+      const result = {
+        exists: false
+      } as StatResult
+      return result
+    }
+    const result = await DiskDriver.parseFileStat(stat, contentTypeFilePath)
+    return result
+  }
+
+  async performRename(args: PerformRenameArgs): Promise<void> {
+    const pathsOrig = this.getFullFilePathInfo(args)
+    const pathsNew = this.getFullFilePathInfo({
+      storageTopLevel: args.storageTopLevel, 
+      path: args.newPath
+    })
+
+    let statOrig: fs.Stats
+    try {
+      statOrig = await fs.stat(pathsOrig.absoluteFilePath)
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        throw new DoesNotExist('File does not exist')
+      }
+      /* istanbul ignore next */
+      throw error
+    }
+    if (!statOrig.isFile()) {
+      throw new DoesNotExist('Path is not a file')
+    }
+
+    let statNew: fs.Stats
+    try {
+      statNew = await fs.stat(pathsNew.absoluteFilePath)
+      if (!statNew.isFile()) {
+        throw new DoesNotExist('New path exists and is not a file')
+      }
+    } catch (error) {
+      if (error.code !== 'ENOENT') {
+        throw new Error(`Unexpected new file location stat error: ${error}`)
+      }
+    }
+
+    await fs.move(pathsOrig.absoluteFilePath, pathsNew.absoluteFilePath, {overwrite: true})
+    await fs.move(pathsOrig.contentTypeFilePath, pathsNew.contentTypeFilePath, {overwrite: true})
+  }
+
 }
 
 const driver: typeof DiskDriver & DriverStatics = DiskDriver

@@ -5,7 +5,7 @@ import cors from 'cors'
 import { ProofChecker } from './ProofChecker'
 import { getChallengeText, LATEST_AUTH_VERSION } from './authentication'
 import { HubServer } from './server'
-import { getDriverClass, logger } from './utils'
+import { getDriverClass, logger, AsyncMutexScope } from './utils'
 import { DriverModel } from './driverModel'
 import * as errors from './errors'
 import { HubConfigInterface } from './config'
@@ -16,9 +16,11 @@ function writeResponse(res: express.Response, data: any, statusCode: number) {
   res.end()
 }
 
-export function makeHttpServer(config: HubConfigInterface): { app: express.Application, server: HubServer, driver: DriverModel } {
+export function makeHttpServer(config: HubConfigInterface): { app: express.Application, server: HubServer, driver: DriverModel, asyncMutex: AsyncMutexScope } {
 
   const app: express.Application = express()
+
+  const asyncMutex = new AsyncMutexScope()
 
   // Handle driver configuration
   let driver: DriverModel
@@ -41,7 +43,8 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
   app.use(expressWinston.logger({
     winstonInstance: logger }))
 
-  app.use(cors())
+  // Set the Access-Control-Max-Age header to 24 hours.
+  app.use(cors({maxAge: 86400}))
 
   // sadly, express doesn't like to capture slashes.
   //  but that's okay! regexes solve that problem
@@ -54,12 +57,13 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
       filename = filename.substring(0, filename.length - 1)
     }
     const address = req.params[0]
+    const endpoint = `${address}/${filename}`
 
-    server.handleRequest(address, filename, req.headers, req)
-      .then((publicURL) => {
+    const handleRequest = async () => {
+      try {
+        const publicURL = await server.handleRequest(address, filename, req.headers, req)
         writeResponse(res, { publicURL }, 202)
-      })
-      .catch((err: any) => {
+      } catch (err) {
         logger.error(err)
         if (err instanceof errors.ValidationError) {
           writeResponse(res, { message: err.message, error: err.name }, 401)
@@ -70,11 +74,27 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
         } else if (err instanceof errors.NotEnoughProofError) {
           writeResponse(res, { message: err.message, error: err.name  }, 402)
         } else if (err instanceof errors.ConflictError) {
-          writeResponse(res, { message: err.message, error: err.name  }, 409)
+          writeResponse(res, { message: err.message, error: err.name  }, 409) 
         } else {
           writeResponse(res, { message: 'Server Error' }, 500)
         }
-      })
+      }
+    }
+
+    try {
+      if (!asyncMutex.tryAcquire(endpoint, handleRequest)) {
+        const errMsg = `Concurrent operation (store) attempted on ${endpoint}`
+        logger.error(errMsg)
+        writeResponse(res, { 
+          message: errMsg, 
+          error: errors.ConflictError.name 
+        }, 409)
+      }
+    } catch (err) {
+      logger.error(err)
+      writeResponse(res, { message: 'Server Error' }, 500)
+    }
+
   })
 
   app.delete(/^\/delete\/([a-zA-Z0-9]+)\/(.+)/, (
@@ -86,13 +106,14 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
       filename = filename.substring(0, filename.length - 1)
     }
     const address = req.params[0]
+    const endpoint = `${address}/${filename}`
 
-    server.handleDelete(address, filename, req.headers)
-      .then(() => {
+    const handleRequest = async () => {
+      try {
+        await server.handleDelete(address, filename, req.headers)
         res.writeHead(202)
         res.end()
-      })
-      .catch((err: any) => {
+      } catch (err) {
         logger.error(err)
         if (err instanceof errors.ValidationError) {
           writeResponse(res, { message: err.message, error: err.name }, 401)
@@ -107,7 +128,23 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
         } else {
           writeResponse(res, { message: 'Server Error' }, 500)
         }
-      })
+      }
+    }
+
+    try {
+      if (!asyncMutex.tryAcquire(endpoint, handleRequest)) {
+        const errMsg = `Concurrent operation (delete) attempted on ${endpoint}`
+        logger.error(errMsg)
+        writeResponse(res, { 
+          message: errMsg, 
+          error: errors.ConflictError.name 
+        }, 409)
+      }
+    } catch (err) {
+      logger.error(err)
+      writeResponse(res, { message: 'Server Error' }, 500)
+    }
+
   })
 
   app.post(
@@ -122,8 +159,9 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
       const address = req.params[0]
       const requestBody = req.body
       const page = requestBody.page ? requestBody.page : null
+      const stat = !!requestBody.stat
 
-      server.handleListFiles(address, page, req.headers)
+      server.handleListFiles(address, page, stat, req.headers)
         .then((files) => {
           writeResponse(res, { entries: files.entries, page: files.page }, 202)
         })
@@ -191,5 +229,5 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
   })
 
   // Instantiate express application
-  return { app, server, driver }
+  return { app, server, driver, asyncMutex }
 }

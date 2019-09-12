@@ -1,6 +1,7 @@
 import winston from 'winston'
 import fs from 'fs'
 import process from 'process'
+import Ajv from 'ajv'
 
 import { getDriverClass, logger } from './utils'
 import { DriverModel, DriverConstructor } from './driverModel'
@@ -110,6 +111,10 @@ class HubConfig implements HubConfigInterface {
   argsTransport? = new LoggingConfig();
   proofsConfig? = new ProofCheckerConfig();
   requireCorrectHubUrl? = false;
+  /**
+   * Domain name used for auth/signing challenges. 
+   * If `requireCorrectHubUrl` is true then this must match the hub url in an auth payload. 
+   */
   serverName? = 'gaia-0';
   bucket? = 'hub';
   /**
@@ -132,11 +137,18 @@ class HubConfig implements HubConfigInterface {
 
   driver = undefined as DriverName;
 
-  // --- Optional values that default to undefined & unused
+  /**
+   * List of ID addresses allowed to use this hub. Specifying this makes the hub private 
+   * and only accessible to the specified addresses. Leaving this unspecified makes the hub 
+   * publicly usable by any ID. 
+   */
   whitelist?: string[]
   readURL?: string;
+  /**
+   * If `requireCorrectHubUrl` is true then the hub specified in an auth payload can also be
+   * contained within in array.  
+   */
   validHubUrls?: string[];
-  // ---
 
 }
 
@@ -222,6 +234,41 @@ export function getConfigDefaults(): HubConfigInterface {
 
   return configDefaults
 } 
+
+export function validateConfigSchema(
+  schemaFilePath: string, 
+  configObj: any, 
+  warnCallback: (msg: string) => void = console.error
+) {
+  try {
+    const ajv = new Ajv({
+      allErrors: true,
+      strictDefaults: true,
+      verbose: true,
+      errorDataPath: 'property'
+    })
+    if (!fs.existsSync(schemaFilePath)) {
+      warnCallback(`Could not find config schema file at ${schemaFilePath}`)
+      return
+    }
+    let schemaJson: any
+    try {
+      schemaJson = JSON.parse(fs.readFileSync(schemaFilePath, { encoding: 'utf8' }))
+    } catch (error) {
+      warnCallback(`Error reading config schema JSON file: ${error}`)
+      return
+    }
+    const valid = ajv.validate(schemaJson, configObj)
+    if (!valid) {
+      const errorText = ajv.errorsText(ajv.errors, {
+        dataVar: 'config'
+      })
+      warnCallback(`Config schema validation warning: ${errorText}`)
+    }
+  } catch (error) {
+    warnCallback(`Error validating config schema JSON file: ${error}`)
+  }
+}
 
 export function getConfig() {
   const configPath = process.env.CONFIG_PATH || process.argv[2] || './config.json'

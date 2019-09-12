@@ -85,7 +85,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
         t.equal(resp.headers.get('cache-control'), cacheControlOpt, 'cacheControl not respected in response headers')
       }
 
-      let files = await driver.listFiles(topLevelStorage)
+      let files = await driver.listFiles({pathPrefix: topLevelStorage})
       t.equal(files.entries.length, 1, 'Should return one file')
       t.equal(files.entries[0], binFileName, `Should be ${binFileName}!`)
       t.ok(!files.page, 'list files for 1 result should not have returned a page')
@@ -112,14 +112,14 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
         t.equal(resp.headers.get('content-type'), 'text/plain; charset=utf-8', 'Read-end point response should contain correct content-type')
       }
 
-      files = await driver.listFiles(topLevelStorage)
+      files = await driver.listFiles({pathPrefix: topLevelStorage})
       t.equal(files.entries.length, 2, 'Should return two files')
       t.ok(files.entries.includes(txtFileName), `Should include ${txtFileName}`)
 
-      files = await driver.listFiles(`${Date.now()}r${Math.random()*1e6|0}`)
+      files = await driver.listFiles({pathPrefix: `${Date.now()}r${Math.random()*1e6|0}`})
       t.equal(files.entries.length, 0, 'List files for empty directory should return zero entries')
 
-      files = await driver.listFiles(`${topLevelStorage}/${txtFileName}`)
+      files = await driver.listFiles({pathPrefix: `${topLevelStorage}/${txtFileName}`})
       t.equal(files.entries.length, 1, 'List files on a file rather than directory should return a single entry')
       t.equal(files.entries[0], '', 'List files on a file rather than directory should return a single empty entry')
       t.strictEqual(files.page, null, 'List files page result should be null')
@@ -128,7 +128,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
         await driver.performDelete({path: txtFileName, storageTopLevel: topLevelStorage})
         t.pass('Should performDelete on an existing file')
 
-        files = await driver.listFiles(topLevelStorage)
+        files = await driver.listFiles({pathPrefix: topLevelStorage})
         t.equal(files.entries.length, 1, 'Should return single file after one was deleted')
         t.ok(!files.entries.includes(txtFileName), `Should not have listed deleted file ${txtFileName}`)
 
@@ -165,6 +165,164 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
         if (!(error instanceof BadPathError)) {
           t.equal(error.constructor.name, 'BadPathError', 'Should throw BadPathError trying to performDelete on directory')
         }
+      }
+
+      if (!mockTest) {
+        // test file read
+        try {
+          const readTestFile = 'read_test_file.txt'
+          const stream = new PassThrough()
+          stream.end('Hello read test!')
+          const dateNow1 = Math.round(Date.now() / 1000)
+          await driver.performWrite({
+            path: readTestFile,
+            storageTopLevel: topLevelStorage,
+            stream: stream,
+            contentType: 'text/plain; charset=utf-8',
+            contentLength: 100
+          })
+          const readResult = await driver.performRead({
+            path: readTestFile,
+            storageTopLevel: topLevelStorage
+          })
+          const dataBuffer = await utils.readStream(readResult.data)
+          const dataStr = dataBuffer.toString('utf8')
+          t.equal(dataStr, 'Hello read test!')
+          t.equal(readResult.exists, true, 'File stat should return exists after write')
+          t.equal(readResult.contentLength, 16, 'File stat should have correct content length')
+          t.equal(readResult.contentType, "text/plain; charset=utf-8", 'File stat should have correct content type')
+          const dateDiff = Math.abs(readResult.lastModifiedDate - dateNow1)
+          t.equal(dateDiff < 10, true, `File stat last modified date is not within range, diff: ${dateDiff} -- ${readResult.lastModifiedDate} vs ${dateNow1}`)
+
+        } catch (error) {
+          t.error(error, 'Error performing file read test')
+        }
+
+        // test file read on non-existent file
+        try {
+          const nonExistentFile = 'read_none.txt'
+          const statResult = await driver.performRead({
+            path: nonExistentFile,
+            storageTopLevel: topLevelStorage
+          })
+          t.equal(statResult.exists, false, 'File read should throw not exist')
+        } catch (error) {
+          t.pass('Should fail to performRead on non-existent file')
+          if (!(error instanceof DoesNotExist)) {
+            t.equal(error.constructor.name, 'DoesNotExist', 'Should throw DoesNotExist trying to performRead on non-existent file')
+          }
+        }
+
+        // test file read on invalid path
+        try {
+          await driver.performRead({path: '../foo.js', storageTopLevel: topLevelStorage})
+          t.fail('Should have thrown performing file read with invalid path')
+        }
+        catch (error) {
+          t.pass('Should fail to performStat on invalid path')
+          if (!(error instanceof BadPathError)) {
+            t.equal(error.constructor.name, 'BadPathError', 'Should throw BadPathError trying to performRead on directory')
+          }
+        }
+
+        // test file read on subdirectory
+        try {
+          const result = await driver.performRead({path: fileSubDir, storageTopLevel: topLevelStorage})
+          t.equal(result.exists, false, 'performRead on a directory should return not exists')
+        } catch (error) {
+          t.pass('Should fail to performRead on directory')
+          if (!(error instanceof DoesNotExist)) {
+            t.equal(error.constructor.name, 'DoesNotExist', 'Should throw DoesNotExist trying to performRead on directory')
+          }
+        }
+      }
+
+      if (!mockTest) {
+
+        // test file stat on listFiles
+        try {
+          const statTestFile = 'list_stat_test.txt'
+          const stream1 = new PassThrough()
+          stream1.end('abc sample content 1', 'utf8')
+          const dateNow1 = Math.round(Date.now() / 1000)
+          await driver.performWrite({
+            path: statTestFile,
+            storageTopLevel: topLevelStorage,
+            stream: stream1,
+            contentType: 'text/plain; charset=utf-8',
+            contentLength: 100
+          })
+          const listStatResult = await driver.listFilesStat({
+            pathPrefix: topLevelStorage
+          })
+          const statResult = listStatResult.entries.find(e => e.name.includes(statTestFile))
+          t.equal(statResult.exists, true, 'File stat should return exists after write')
+          t.equal(statResult.contentLength, 20, 'File stat should have correct content length')
+          const dateDiff = Math.abs(statResult.lastModifiedDate - dateNow1)
+          t.equal(dateDiff < 10, true, `File stat last modified date is not within range, diff: ${dateDiff} -- ${statResult.lastModifiedDate} vs ${dateNow1}`)
+        } catch (error) {
+          t.error(error, 'File stat on list files error')
+        }
+
+        // test file stat
+        try {
+          const statTestFile = 'stat_test.txt'
+          const stream1 = new PassThrough()
+          stream1.end('abc sample content 1', 'utf8')
+          const dateNow1 = Math.round(Date.now() / 1000)
+          await driver.performWrite({
+            path: statTestFile,
+            storageTopLevel: topLevelStorage,
+            stream: stream1,
+            contentType: 'text/plain; charset=utf-8',
+            contentLength: 100
+          })
+          const statResult = await driver.performStat({
+            path: statTestFile, 
+            storageTopLevel: topLevelStorage
+          })
+
+          t.equal(statResult.exists, true, 'File stat should return exists after write')
+          t.equal(statResult.contentLength, 20, 'File stat should have correct content length')
+          t.equal(statResult.contentType, "text/plain; charset=utf-8", 'File stat should have correct content type')
+          const dateDiff = Math.abs(statResult.lastModifiedDate - dateNow1)
+          t.equal(dateDiff < 10, true, `File stat last modified date is not within range, diff: ${dateDiff} -- ${statResult.lastModifiedDate} vs ${dateNow1}`)
+        } catch (error) {
+          t.error(error, 'File stat error')
+        }
+
+        // test file stat on non-existent file
+        try {
+          const nonExistentFile = 'stat_none.txt'
+          const statResult = await driver.performStat({
+            path: nonExistentFile,
+            storageTopLevel: topLevelStorage
+          })
+          t.equal(statResult.exists, false, 'File stat should return not exist')
+        } catch (error) {
+          t.error(error, 'File stat non-exists error')
+        }
+
+        // test file stat on invalid path
+        try {
+          await driver.performStat({path: '../foo.js', storageTopLevel: topLevelStorage})
+          t.fail('Should have thrown performing file stat with invalid path')
+        }
+        catch (error) {
+          t.pass('Should fail to performStat on invalid path')
+          if (!(error instanceof BadPathError)) {
+            t.equal(error.constructor.name, 'BadPathError', 'Should throw BadPathError trying to performStat on directory')
+          }
+        }
+
+        // test file stat on subdirectory
+        try {
+          const result = await driver.performStat({path: fileSubDir, storageTopLevel: topLevelStorage})
+          t.equal(result.exists, false, 'performStat on a directory should return not exists')
+        } catch (error) {
+          t.error(error, 'File stat directory error')
+        }
+
       }
 
       if (!mockTest) {
@@ -211,19 +369,127 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
             contentLength: sampleData.contentLength
           });
         }
-        const pagedFiles = await driver.listFiles(`${topLevelStorage}/${pageTestDir}`)
+        const pagedFiles = await driver.listFiles({pathPrefix: `${topLevelStorage}/${pageTestDir}`})
         t.equal(pagedFiles.entries.length, 3, 'List files with no pagination and maxPage size specified should have returned 3 entries')
-        const remainingFiles = await driver.listFiles(`${topLevelStorage}/${pageTestDir}`, pagedFiles.page)
+        const remainingFiles = await driver.listFiles({pathPrefix: `${topLevelStorage}/${pageTestDir}`, page: pagedFiles.page})
         t.equal(remainingFiles.entries.length, 2, 'List files with pagination should have returned 2 remaining entries')
 
         try {
-          const bogusPageResult = await driver.listFiles(`${topLevelStorage}/${pageTestDir}`, "bogus page data")
+          const bogusPageResult = await driver.listFiles({pathPrefix: `${topLevelStorage}/${pageTestDir}`, page: "bogus page data"})
           if (bogusPageResult.entries.length > 0) {
             t.fail('List files with invalid page data should fail or return no results')
           }
           t.pass('List files with invalid page data should fail or return no results')
         } catch (error) {
           t.pass('List files with invalid page data should have failed')
+        }
+
+        // test file renames
+        try {
+          const renameTestFile1a = 'renamable1a.txt'
+
+          const stream1 = new PassThrough()
+          stream1.end('abc sample content 1', 'utf8')
+
+          await driver.performWrite({
+            path: renameTestFile1a,
+            storageTopLevel: topLevelStorage,
+            stream: stream1,
+            contentType: 'text/plain; charset=utf-8',
+            contentLength: 100
+          });
+
+          const dateNow1 = Math.round(Date.now() / 1000)
+          const renameTestFile2b = 'renamable2b.txt'
+          await driver.performRename({
+            path: renameTestFile1a,
+            storageTopLevel: topLevelStorage,
+            newPath: renameTestFile2b
+          })
+
+          // test that the renamed file has the properties of the original file
+          const renamedFileRead = await driver.performRead({
+            path: renameTestFile2b,
+            storageTopLevel: topLevelStorage
+          })
+          const renamedFileContent = (await utils.readStream(renamedFileRead.data)).toString('utf8')
+          t.equal(renamedFileContent, 'abc sample content 1')
+          t.equal(renamedFileRead.exists, true, 'File stat should return exists after write')
+          t.equal(renamedFileRead.contentLength, 20, 'File stat should have correct content length')
+          t.equal(renamedFileRead.contentType, "text/plain; charset=utf-8", 'File stat should have correct content type')
+          const dateDiff = Math.abs(renamedFileRead.lastModifiedDate - dateNow1)
+          t.equal(dateDiff < 10, true, `File stat last modified date is not within range, diff: ${dateDiff} -- ${renamedFileRead.lastModifiedDate} vs ${dateNow1}`)
+
+          // test that the original file is reported as deleted
+          const movedFileStat = await driver.performStat({path: renameTestFile1a, storageTopLevel: topLevelStorage})
+          t.equal(movedFileStat.exists, false, 'Renamed file original path should report as non-existent')
+
+        } catch (error) {
+          t.error(error, `File rename error`)
+        }
+
+        // test invalid file rename
+        try {
+          await driver.performRename({
+            path: 'does-not-exist-rename.txt',
+            storageTopLevel: topLevelStorage,
+            newPath: 'new-location.txt'
+          })
+          t.fail('File rename for non-existent file should have thrown')
+        } catch(error) {
+          if (error instanceof DoesNotExist) {
+            t.pass('Rename of non-existent file resulted in DoesNotExist')
+          } else {
+            t.error(error, 'Unexpected error during rename of non-existent file')
+          }
+        }
+
+        // test file renames with invalid original path
+        try {
+          await driver.performRename({
+            path: '../foo.js', 
+            storageTopLevel: topLevelStorage,
+            newPath: 'new-location.txt'
+          })
+          t.fail('Should have thrown performing file rename with invalid original path')
+        }
+        catch (error) {
+          t.pass('Should fail to performRename on invalid original path')
+          if (!(error instanceof BadPathError)) {
+            t.equal(error.constructor.name, 'BadPathError', 'Should throw BadPathError trying to performRename on invalid original path')
+          }
+        }
+        
+        // test file renames with invalid target path
+        try {
+          await driver.performRename({
+            path: 'some-file.txt', 
+            storageTopLevel: topLevelStorage,
+            newPath: '../foo.js'
+          })
+          t.fail('Should have thrown performing file rename with invalid new path')
+        }
+        catch (error) {
+          t.pass('Should fail to performRename on invalid new path')
+          if (!(error instanceof BadPathError)) {
+            t.equal(error.constructor.name, 'BadPathError', 'Should throw BadPathError trying to performRename on invalid new path')
+          }
+        }
+
+        // test file renames with subdirectories
+        try {
+          await driver.performRename({
+            path: fileSubDir, 
+            storageTopLevel: topLevelStorage,
+            newPath: 'some-file-from-dir.txt'
+          })
+          t.fail('Should have thrown performing file rename with sub-directory as original path')
+        }
+        catch (error) {
+          t.pass('Should fail to performRename on sub-directory as original path')
+          if (!(error instanceof DoesNotExist)) {
+            t.equal(error.constructor.name, 'DoesNotExist', 'Should throw DoesNotExist trying to performRename on sub-directory as new path')
+          }
         }
 
         // test concurrent writes to same file

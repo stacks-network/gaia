@@ -1,11 +1,12 @@
 
 
-import { readStream } from '../../../src/server/utils'
+import { readStream, dateToUnixTimeSeconds } from '../../../src/server/utils'
 import { Server } from 'http'
 import express from 'express'
-import { DriverModel, DriverStatics, PerformDeleteArgs } from '../../../src/server/driverModel'
+import { DriverModel, DriverStatics, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult, PerformReadArgs, ReadResult, PerformListFilesArgs, ListFilesStatResult, ListFileStatResult } from '../../../src/server/driverModel'
 import { ListFilesResult, PerformWriteArgs } from '../../../src/server/driverModel'
 import { BadPathError, InvalidInputError, DoesNotExist, ConflictError } from '../../../src/server/errors'
+import { PassThrough } from 'stream';
 
 export class InMemoryDriver implements DriverModel {
 
@@ -13,14 +14,16 @@ export class InMemoryDriver implements DriverModel {
   server: Server;
   pageSize: number
   readUrl: string
-  files: Map<string, { content: Buffer, contentType: string }>
+  files: Map<string, { content: Buffer, contentType: string, lastModified: Date }>
   filesInProgress: Map<string, object> = new Map<string, object>()
   lastWrite: PerformWriteArgs
   initPromise: Promise<void>
 
+  onWriteMiddleware: Set<((PerformWriteArgs) => Promise<void>)> = new Set()
+
   constructor(config: any) {
     this.pageSize = (config && config.pageSize) ? config.pageSize : 100
-    this.files = new Map<string, { content: Buffer, contentType: string }>()
+    this.files = new Map<string, { content: Buffer, contentType: string, lastModified: Date }>()
     this.app = express()
     this.app.use((req, res, next) => {
       const requestPath = req.path.slice(1)
@@ -55,6 +58,7 @@ export class InMemoryDriver implements DriverModel {
     await driver.start()
     return driver
   }
+
   start() {
     return new Promise<void>((resolve) => {
       this.server = this.app.listen(0, 'localhost', () => {
@@ -64,10 +68,17 @@ export class InMemoryDriver implements DriverModel {
       })
     })
   }
+
   getReadURLPrefix() {
     return this.readUrl
   }
+
   async performWrite(args: PerformWriteArgs) {
+
+    for (const middleware of this.onWriteMiddleware) {
+      await middleware(args)
+    }
+
     // cancel write and return 402 if path is invalid
     if (!InMemoryDriver.isPathValid(args.path)) {
       throw new BadPathError('Invalid Path')
@@ -85,7 +96,8 @@ export class InMemoryDriver implements DriverModel {
     this.filesInProgress.delete(filePath)
     this.files.set(filePath, {
       content: contentBuffer,
-      contentType: args.contentType
+      contentType: args.contentType,
+      lastModified: new Date()
     })
     const resultUrl = `${this.readUrl}${args.storageTopLevel}/${args.path}`
     return resultUrl
@@ -103,14 +115,97 @@ export class InMemoryDriver implements DriverModel {
     })
   }
 
-  listFiles(storageTopLevel: string, page?: string): Promise<ListFilesResult> {
-    if (page && !page.match(/^[0-9]+$/)) {
+  performRead(args: PerformReadArgs): Promise<ReadResult> {
+    return Promise.resolve().then(() => {
+      if (!InMemoryDriver.isPathValid(args.path)) {
+        throw new BadPathError('Invalid Path')
+      }
+      if (!this.files.has(`${args.storageTopLevel}/${args.path}`)) {
+        throw new DoesNotExist('File does not exist')
+      }
+      const file = this.files.get(`${args.storageTopLevel}/${args.path}`)
+      const lastModified = dateToUnixTimeSeconds(file.lastModified)
+
+      const dataStream = new PassThrough()
+      dataStream.end(file.content)
+
+      const result: ReadResult = {
+        exists: true,
+        contentLength: file.content.byteLength,
+        contentType: file.contentType,
+        lastModifiedDate: lastModified,
+        data: dataStream
+      }
+      return result;
+    })
+  }
+
+  performStat(args: PerformStatArgs): Promise<StatResult> {
+    return Promise.resolve().then(() => {
+      if (!InMemoryDriver.isPathValid(args.path)) {
+        throw new BadPathError('Invalid Path')
+      }
+      if (!this.files.has(`${args.storageTopLevel}/${args.path}`)) {
+        const result = {
+          exists: false
+        } as StatResult
+        return result
+      } else {
+        const file = this.files.get(`${args.storageTopLevel}/${args.path}`)
+        const lastModified = dateToUnixTimeSeconds(file.lastModified)
+        const result: StatResult = {
+          exists: true,
+          contentLength: file.content.byteLength,
+          contentType: file.contentType,
+          lastModifiedDate: lastModified
+        }
+        return result;
+      }
+    })
+  }
+
+  performRename(args: PerformRenameArgs): Promise<void> {
+    return Promise.resolve().then(() => {
+      if (!InMemoryDriver.isPathValid(args.path)) {
+        throw new BadPathError('Invalid original path')
+      }
+      if (!InMemoryDriver.isPathValid(args.newPath)) {
+        throw new BadPathError('Invalid new path')
+      }
+      if (!this.files.has(`${args.storageTopLevel}/${args.path}`)) {
+        throw new DoesNotExist('File does not exist')
+      }
+      const entry = this.files.get(`${args.storageTopLevel}/${args.path}`)
+      this.files.set(`${args.storageTopLevel}/${args.newPath}`, entry)
+      this.files.delete(`${args.storageTopLevel}/${args.path}`)
+    })
+  }
+
+  async listFiles(args: PerformListFilesArgs): Promise<ListFilesResult> {
+    const listResult = await this.listFilesStat(args)
+    return {
+      entries: listResult.entries.map(e => e.name),
+      page: listResult.page
+    }
+  }
+
+  listFilesStat(args: PerformListFilesArgs): Promise<ListFilesStatResult> {
+    if (args.page && !args.page.match(/^[0-9]+$/)) {
       throw new Error('Invalid page number')
     }
-    const pageNum = page ? parseInt(page) : 0
-    const names = Array.from(this.files.keys())
-      .filter(path => path.startsWith(storageTopLevel))
-      .map(path => path.slice(storageTopLevel.length + 1))
+    const pageNum = args.page ? parseInt(args.page) : 0
+    const names = Array.from(this.files.entries())
+      .filter(([path]) => path.startsWith(args.pathPrefix))
+      .map(([path, val]) => {
+        const entry: ListFileStatResult = {
+          name: path.slice(args.pathPrefix.length + 1),
+          exists: true,
+          contentLength: val.content.byteLength,
+          contentType: val.contentType,
+          lastModifiedDate: dateToUnixTimeSeconds(val.lastModified)
+        }
+        return entry
+      })
     const entries = names.slice(pageNum * this.pageSize, (pageNum + 1) * this.pageSize)
     const pageResult = entries.length === names.length ? null : `${pageNum + 1}`
     return Promise.resolve({

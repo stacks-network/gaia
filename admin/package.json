@@ -47,18 +47,18 @@
     "@types/cors": "^2.8.4",
     "@types/express": "^4.16.1",
     "@types/express-winston": "^3.0.1",
-    "@types/node": "^10.12.30",
+    "@types/node": "^10.14.10",
     "@types/tape": "^4.2.33",
-    "@typescript-eslint/eslint-plugin": "^1.4.2",
-    "@typescript-eslint/parser": "^1.4.2",
-    "babel-eslint": "^10.0.1",
-    "babel-plugin-istanbul": "^5.1.1",
-    "eslint": "^5.15.1",
-    "nyc": "^13.3.0",
-    "source-map-support": "^0.5.10",
-    "tape": "^4.10.1",
-    "ts-node": "^8.0.3",
-    "typescript": "^3.3.3333"
+    "@typescript-eslint/eslint-plugin": "^1.11.0",
+    "@typescript-eslint/parser": "^1.11.0",
+    "babel-eslint": "^10.0.2",
+    "babel-plugin-istanbul": "^5.1.4",
+    "eslint": "^6.0.1",
+    "nyc": "^14.1.1",
+    "source-map-support": "^0.5.12",
+    "tape": "^4.10.2",
+    "ts-node": "^8.3.0",
+    "typescript": "^3.5.2"
   },
   "homepage": "https://github.com/blockstack/gaia",
   "nyc": {
@@ -79,7 +79,6 @@
     ],
     "reporter": [
       "text",
-      "html",
       "lcov"
     ]
   }

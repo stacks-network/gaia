@@ -3,7 +3,22 @@
 import { Readable } from 'stream'
 
 export interface ListFilesResult { 
-  entries: Array<string>;
+  entries: string[];
+  page?: string;
+}
+
+export interface ListFilesStatResult {
+  entries: ListFileStatResult[];
+  page?: string;
+}
+
+export interface ListFileStatResult extends Required<StatResult> {
+  name: string;
+  exists: true;
+}
+
+export interface PerformListFilesArgs {
+  pathPrefix: string;
   page?: string;
 }
 
@@ -20,11 +35,43 @@ export interface PerformDeleteArgs {
   storageTopLevel: string;
 }
 
+export interface PerformReadArgs {
+  path: string;
+  storageTopLevel: string;
+}
+
+export interface ReadResult extends StatResult {
+  data: Readable;
+  exists: true
+}
+
+export interface PerformStatArgs {
+  path: string;
+  storageTopLevel: string;
+}
+
+export interface StatResult {
+  exists: boolean;
+  lastModifiedDate: number;
+  contentLength: number;
+  contentType: string;
+}
+
+export interface PerformRenameArgs {
+  path: string;
+  storageTopLevel: string;
+  newPath: string;
+}
+
 export interface DriverModel {
   getReadURLPrefix(): string;
   performWrite(args: PerformWriteArgs): Promise<string>;
   performDelete(args: PerformDeleteArgs): Promise<void>;
-  listFiles(storageTopLevel: string, page?: string): Promise<ListFilesResult>;
+  performRename(args: PerformRenameArgs): Promise<void>;
+  performStat(args: PerformStatArgs): Promise<StatResult>;
+  performRead(args: PerformReadArgs): Promise<ReadResult>;
+  listFiles(args: PerformListFilesArgs): Promise<ListFilesResult>;
+  listFilesStat(args: PerformListFilesArgs): Promise<ListFilesStatResult>;
   ensureInitialized(): Promise<void>;
   dispose(): Promise<void>;
 }

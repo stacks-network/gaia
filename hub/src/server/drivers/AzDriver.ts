@@ -1,10 +1,12 @@
 
 
 import * as azure from '@azure/storage-blob'
-import { logger } from '../utils'
+import { logger, dateToUnixTimeSeconds } from '../utils'
 import { BadPathError, InvalidInputError, DoesNotExist, ConflictError } from '../errors'
-import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs } from '../driverModel'
+import { PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult, PerformReadArgs, ReadResult, PerformListFilesArgs, ListFilesStatResult, ListFileStatResult } from '../driverModel'
 import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
+import { Readable } from 'stream'
+import { BlobGetPropertiesHeaders } from '@azure/storage-blob/typings/lib/generated/lib/models'
 
 export interface AZ_CONFIG_TYPE {
   azCredentials: {
@@ -85,8 +87,7 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
   }
 
   async deleteEmptyBucket() {
-    const prefix: any = undefined
-    const files = await this.listFiles(prefix)
+    const files = await this.listFiles({pathPrefix: undefined as string})
     if (files.entries.length > 0) {
       /* istanbul ignore next */
       throw new Error('Tried deleting non-empty bucket')
@@ -115,7 +116,7 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
     return `${this.getServiceUrl()}/${this.bucket}/`
   }
 
-  async listBlobs(prefix: string, page?: string): Promise<ListFilesResult> {
+  async listBlobs(prefix: string, page?: string): Promise<ListFilesStatResult> {
     // page is the marker / continuationToken for Azure
     const blobs = await this.container.listBlobFlatSegment(
       azure.Aborter.none,
@@ -125,13 +126,34 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
       }
     )
     const items = blobs.segment.blobItems
-    const entries = items.map(e => e.name.slice(prefix.length + 1))
+    const entries: ListFileStatResult[] = items.map(e => {
+      const fileStat = AzDriver.parseFileStat(e.properties)
+      const result: ListFileStatResult = {
+        ...fileStat,
+        exists: true,
+        name: e.name.slice(prefix.length + 1)
+      }
+      return result
+    })
     return { entries, page: blobs.nextMarker || null }
   }
 
-  async listFiles(prefix: string, page?: string) {
+  async listFiles(args: PerformListFilesArgs) {
     try {
-      return await this.listBlobs(prefix, page)
+      const files = await this.listBlobs(args.pathPrefix, args.page)
+      return { 
+        entries: files.entries.map(f => f.name),
+        page: files.page
+      }
+    } catch (error) {
+      logger.debug(`Failed to list files: ${error}`)
+      throw error
+    }
+  }
+
+  async listFilesStat(args: PerformListFilesArgs): Promise<ListFilesStatResult> {
+    try {
+      return await this.listBlobs(args.pathPrefix, args.page)
     } catch (error) {
       logger.debug(`Failed to list files: ${error}`)
       throw error
@@ -206,6 +228,111 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
       /* istanbul ignore next */
       throw new Error('Azure storage failure: failed to delete' +
         ` ${azBlob} in container ${this.bucket}: ${error}`)
+    }
+  }
+  
+  async performRead(args: PerformReadArgs): Promise<ReadResult> {
+    if (!AzDriver.isPathValid(args.path)) {
+      throw new BadPathError('Invalid Path')
+    }
+    const azBlob = `${args.storageTopLevel}/${args.path}`
+    const blobURL = azure.BlobURL.fromContainerURL(this.container, azBlob)
+    const blockBlobURL = azure.BlockBlobURL.fromBlobURL(blobURL)
+
+    try {
+      const offset = 0
+      const downloadResult = await blockBlobURL.download(azure.Aborter.none, offset)
+      const dataStream = downloadResult.readableStreamBody as Readable
+      const fileStat = AzDriver.parseFileStat(downloadResult)
+      const result: ReadResult = {
+        ...fileStat,
+        exists: true,
+        data: dataStream
+      }
+      return result
+    } catch (error) {
+      if (error.statusCode === 404) {
+        throw new DoesNotExist('File does not exist')
+      }
+      /* istanbul ignore next */
+      logger.error(`failed to read ${azBlob} in ${this.bucket}: ${error}`)
+      /* istanbul ignore next */
+      throw new Error('Azure storage failure: failed to read' +
+        ` ${azBlob} in container ${this.bucket}: ${error}`)
+    }
+  }
+
+  static parseFileStat(properties: BlobGetPropertiesHeaders) {
+    let lastModified: number | undefined
+    if (properties.lastModified) {
+      lastModified = dateToUnixTimeSeconds(properties.lastModified)
+    }
+    const result: StatResult = {
+      exists: true,
+      contentLength: properties.contentLength,
+      contentType: properties.contentType,
+      lastModifiedDate: lastModified
+    }
+    return result
+  }
+
+  async performStat(args: PerformStatArgs): Promise<StatResult> {
+    if (!AzDriver.isPathValid(args.path)) {
+      throw new BadPathError('Invalid Path')
+    }
+    const azBlob = `${args.storageTopLevel}/${args.path}`
+    const blobURL = azure.BlobURL.fromContainerURL(this.container, azBlob)
+    const blockBlobURL = azure.BlockBlobURL.fromBlobURL(blobURL)
+    try {
+      const propertiesResult = await blockBlobURL.getProperties(azure.Aborter.none)
+      const result = AzDriver.parseFileStat(propertiesResult)
+      return result
+    } catch (error) {
+      if (error.statusCode === 404) {
+        const result = {
+          exists: false
+        } as StatResult
+        return result
+      }
+      /* istanbul ignore next */
+      logger.error(`failed to stat ${azBlob} in ${this.bucket}: ${error}`)
+      /* istanbul ignore next */
+      throw new Error('Azure storage failure: failed to stat' +
+        ` ${azBlob} in container ${this.bucket}: ${error}`)
+    }
+  }
+
+  async performRename(args: PerformRenameArgs): Promise<void> {
+    if (!AzDriver.isPathValid(args.path)) {
+      throw new BadPathError('Invalid original path')
+    }
+    if (!AzDriver.isPathValid(args.newPath)) {
+      throw new BadPathError('Invalid new path')
+    }
+
+    const origAzBlob = `${args.storageTopLevel}/${args.path}`
+    const origBlobUrl = azure.BlobURL.fromContainerURL(this.container, origAzBlob)
+    const origBlockBlobURL = azure.BlockBlobURL.fromBlobURL(origBlobUrl)
+
+    const newAzBlob = `${args.storageTopLevel}/${args.newPath}`
+    const newBlobURL = azure.BlobURL.fromContainerURL(this.container, newAzBlob)
+    const newBlockBlobURL = azure.BlockBlobURL.fromBlobURL(newBlobURL)
+
+    try {
+      const copyResult = await newBlockBlobURL.startCopyFromURL(azure.Aborter.none, origBlockBlobURL.url)
+      if (copyResult.copyStatus !== 'success') {
+        throw new Error(`Expected copy status to be success, got ${copyResult.copyStatus}`)
+      }
+      await origBlockBlobURL.delete(azure.Aborter.none)
+    } catch (error) {
+      if (error.statusCode === 404) {
+        throw new DoesNotExist('File does not exist')
+      }
+      /* istanbul ignore next */
+      logger.error(`failed to rename ${origAzBlob} to ${newAzBlob} in ${this.bucket}: ${error}`)
+      /* istanbul ignore next */
+      throw new Error('Azure storage failure: failed to rename' +
+        ` ${origAzBlob} to ${newAzBlob} in container ${this.bucket}: ${error}`)
     }
   }
 }
