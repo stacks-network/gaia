@@ -1,20 +1,10 @@
-
-import test from 'tape-promise/tape'
-import proxyquire from 'proxyquire'
+import test = require('tape-promise/tape')
 import FetchMock from 'fetch-mock'
-import * as NodeFetch from 'node-fetch'
+import NodeFetch from 'node-fetch'
 
-import fs from 'fs'
-import path from 'path'
-import os from 'os'
-
-import { Readable, Writable, PassThrough } from 'stream'
-import InMemoryDriver from './testDrivers/InMemoryDriver'
+import { Readable, PassThrough } from 'stream'
 import { DriverModel, DriverModelTestMethods } from '../../src/server/driverModel'
-import { ListFilesResult } from '../../src/server/driverModel'
 import * as utils from '../../src/server/utils'
-
-import DiskDriver from '../../src/server/drivers/diskDriver'
 
 import * as mockTestDrivers from './testDrivers/mockTestDrivers'
 import * as integrationTestDrivers from './testDrivers/integrationTestDrivers'

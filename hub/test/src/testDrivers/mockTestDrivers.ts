@@ -272,21 +272,21 @@ export function makeMockedDiskDriver() {
 }
 
 class MockWriteStream extends Writable {
-  dataMap: any
-  filename: any
-  data: any
-  constructor(dataMap, filename) {
+  dataMap: DataMap
+  filename: string
+  data: string
+  constructor(dataMap: DataMap, filename: string) {
     super({})
     this.dataMap = dataMap
     this.filename = filename
     this.data = ''
   }
-  _write(chunk, encoding, callback) {
+  _write(chunk: any, encoding: any, callback: any) {
     this.data += chunk
     callback()
     return true
   }
-  _final(callback) {
+  _final(callback: any) {
     this.dataMap.push({ data: this.data, key: this.filename })
     callback()
   }

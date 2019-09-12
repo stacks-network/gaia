@@ -1,15 +1,15 @@
-import test from 'tape-promise/tape'
+import test = require('tape-promise/tape')
 import * as auth from '../../src/server/authentication'
-import os from 'os'
-import fs from 'fs'
-import request from 'supertest'
+import * as os from 'os'
+import * as fs from 'fs'
+import request = require('supertest')
 import { ecPairToAddress } from 'blockstack'
 
 import FetchMock from 'fetch-mock'
 import NodeFetch from 'node-fetch'
 
 import { makeHttpServer } from '../../src/server/http'
-import DiskDriver, { DISK_CONFIG_TYPE } from '../../src/server/drivers/diskDriver'
+import DiskDriver from '../../src/server/drivers/diskDriver'
 import { AZ_CONFIG_TYPE } from '../../src/server/drivers/AzDriver'
 import { addMockFetches } from './testDrivers'
 import { makeMockedAzureDriver } from './testDrivers/mockTestDrivers'
@@ -29,7 +29,7 @@ export function testHttpWithInMemoryDriver() {
   test('reject concurrent requests to same resource (InMemory driver)', async (t) => {
     const inMemoryDriver = await InMemoryDriver.spawn()
     try {
-      const makeResult = makeHttpServer({ driverInstance: inMemoryDriver, serverName: TEST_SERVER_NAME, authTimestampCacheSize: TEST_AUTH_CACHE_SIZE })
+      const makeResult = makeHttpServer({ driverInstance: inMemoryDriver, serverName: TEST_SERVER_NAME, authTimestampCacheSize: TEST_AUTH_CACHE_SIZE, port: 0, driver: null })
       const app = makeResult.app
       const server = makeResult.server
       const asyncMutexScope = makeResult.asyncMutex
@@ -126,7 +126,7 @@ export function testHttpWithInMemoryDriver() {
     const fetch = NodeFetch
     const inMemoryDriver = await InMemoryDriver.spawn()
     try {
-      const { app } = makeHttpServer({ driverInstance: inMemoryDriver, serverName: TEST_SERVER_NAME, authTimestampCacheSize: TEST_AUTH_CACHE_SIZE })
+      const { app } = makeHttpServer({ driverInstance: inMemoryDriver, serverName: TEST_SERVER_NAME, authTimestampCacheSize: TEST_AUTH_CACHE_SIZE, port: 0, driver: null })
       const sk = testPairs[1]
       const fileContents = sk.toWIF()
       const blob = Buffer.from(fileContents)
@@ -190,7 +190,7 @@ export function testHttpWithInMemoryDriver() {
   test('handle revocation via POST', async (t) => {
     const inMemoryDriver = await InMemoryDriver.spawn()
     try {
-      const { app } = makeHttpServer({ driverInstance: inMemoryDriver, serverName: TEST_SERVER_NAME, authTimestampCacheSize: TEST_AUTH_CACHE_SIZE })
+      const { app } = makeHttpServer({ driverInstance: inMemoryDriver, serverName: TEST_SERVER_NAME, authTimestampCacheSize: TEST_AUTH_CACHE_SIZE, port: 0, driver: null })
       const sk = testPairs[1]
       const fileContents = sk.toWIF()
       const blob = Buffer.from(fileContents)
@@ -301,8 +301,9 @@ function testHttpDriverOption() {
       authTimestampCacheSize: TEST_AUTH_CACHE_SIZE,
       diskSettings: {
         storageRootDirectory: os.tmpdir()
-      }
-    } as HubConfigInterface & DISK_CONFIG_TYPE)
+      },
+      port: 0
+    })
     t.end()
   })
 
@@ -316,7 +317,9 @@ function testHttpDriverOption() {
     makeHttpServer({
       driverInstance: driver,
       serverName: TEST_SERVER_NAME,
-      authTimestampCacheSize: TEST_AUTH_CACHE_SIZE
+      authTimestampCacheSize: TEST_AUTH_CACHE_SIZE,
+      port: 0,
+      driver: null
     })
     t.end()
   })
@@ -324,7 +327,10 @@ function testHttpDriverOption() {
   test('makeHttpServer missing driver config', (t) => {
     t.throws(() => makeHttpServer({
       serverName: TEST_SERVER_NAME, 
-      authTimestampCacheSize: TEST_AUTH_CACHE_SIZE}), 
+      authTimestampCacheSize: TEST_AUTH_CACHE_SIZE,
+      port: 0,
+      driver: null
+    }), 
       Error, 'Should fail to create http server when no driver config is specified')
     t.end()
   })
@@ -340,7 +346,9 @@ function testHttpWithAzure() {
     },
     'bucket': 'spokes',
     serverName: TEST_SERVER_NAME,
-    authTimestampCacheSize: TEST_AUTH_CACHE_SIZE
+    authTimestampCacheSize: TEST_AUTH_CACHE_SIZE,
+    port: 0,
+    driver: null
   }
   let mockTest = true
 
