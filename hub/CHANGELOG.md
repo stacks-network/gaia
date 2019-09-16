@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a `stat: true` option. 
 - Implemented `readFile` and `fileStat` methods on all drivers, however, 
   these are not yet in use or publicly exposed via any endpoints. 
+- The max file upload size is configurable and reported in `GET /hub_info`. 
 ### Changed
 - Concurrent requests to modify a resource using the `/store/${address}/...`
   or `/delete/${address}/...` endpoints are now always rejected with a 
