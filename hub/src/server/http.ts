@@ -122,7 +122,7 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
         } else if (err instanceof errors.AuthTokenTimestampValidationError) {
           writeResponse(res, { message: err.message, error: err.name  }, 401)
         } else if (err instanceof errors.BadPathError) {
-          writeResponse(res, { message: err.message, error: err.name  }, 400)
+          writeResponse(res, { message: err.message, error: err.name  }, 403)
         } else if (err instanceof errors.DoesNotExist) {
           writeResponse(res, { message: err.message, error: err.name  }, 404)
         } else if (err instanceof errors.NotEnoughProofError) {
