@@ -15,6 +15,8 @@ export type DriverName = 'aws' | 'azure' | 'disk' | 'google-cloud'
 
 export type LogLevel = 'error' | 'warn' | 'info' | 'verbose' | 'debug'
 
+export type HttpsOption = 'cert_files' | 'acme' | undefined
+
 export interface LoggingConfigInterface {
   timestamp?: boolean;
   colorize?: boolean;
@@ -47,37 +49,67 @@ class ProofCheckerConfig implements ProofCheckerConfigInterface {
   proofsRequired? = 0;
 }
 
-export interface HubConfigInterface {
-  whitelist?: string[];
-  serverName?: string;
-  authTimestampCacheSize?: number;
-  readURL?: string;
-  requireCorrectHubUrl?: boolean;
-  validHubUrls?: string[];
-  port?: number;
-  bucket?: string;
-  pageSize?: number;
-  cacheControl?: string;
-  argsTransport?: LoggingConfig;
-  proofsConfig?: ProofCheckerConfigInterface;
-  driver?: DriverName;
-
+export interface AcmeConfigInterface {
   /**
-   * Only used in tests
-   * @private
-   * @ignore
+   * The email address of the ACME user / hosting provider. 
    */
-  driverInstance?: DriverModel;
-
+  email: string;
   /**
-   * Only used in tests
-   * @private
-   * @ignore
+   * Accept Let's Encrypt v2 Agreement. You must accept the ToS as the host which handles the certs. 
    */
-  driverClass?: DriverConstructor;
+  agreeTos: boolean;
+  /**
+   * Writable directory where certs will be saved.
+   * @default "~/.config/acme/"
+   */
+  configDir?: string;
+  /**
+   * Join the Greenlock community to get notified of important updates. 
+   * @default false
+   */
+  communityMember?: boolean;
+  /**
+   * Important and mandatory notices from Greenlock, related to security or breaking API changes.
+   * @default true
+   */
+  securityUpdates: boolean;
+  /**
+   * Contribute telemetry data to the project.
+   * @default false
+   */
+  telemetry?: boolean;
+  /**
+   * The default servername to use when the client doesn't specify.
+   * Example: "example.com"
+   */
+  servername?: string;
+  /**
+   * Array of allowed domains such as `[ "example.com", "www.example.com" ]`
+   */
+  approveDomains?: string[];
+  /**
+   * @default "https://acme-v02.api.letsencrypt.org/directory"
+   */
+  server?: string;
 }
 
+export interface TlsPemCert {
+  keyFile: string;
+  certFile: string;
+}
+
+export interface TlsPfxCert {
+  pfxFile?: string;
+  pfxPassphrase: string;
+}
+
+export type TlsCertConfigInterface = TlsPemCert | TlsPfxCert | undefined;
+
 type SubType<T, K extends keyof T> = K extends keyof T ? T[K] : never;
+
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+export interface HubConfigInterface extends HubConfig { }
+
 
 // This class is responsible for:
 //  A) Specifying default config values.
@@ -86,7 +118,7 @@ type SubType<T, K extends keyof T> = K extends keyof T ? T[K] : never;
 // will pick them up. 
 // Having the config params and their default values specified here is useful 
 // for providing a single-source-of-truth for both the schema and the actual code. 
-class HubConfig implements HubConfigInterface {
+export class HubConfig {
 
   /**
    * Required if `driver` is `azure`
@@ -138,6 +170,30 @@ class HubConfig implements HubConfigInterface {
   driver = undefined as DriverName;
 
   /**
+   * Disabled by default. 
+   * If set to `cert_files` then `tlsCertConfig` must be set. 
+   * If set to `acme` then `acmeConfig` must be set. 
+   */
+  enableHttps? = undefined as HttpsOption;
+
+  /**
+   * Options for Automatic Certificate Management Environment client. 
+   * Requires `enableHttps` to be set to `acme`. 
+   * See https://www.npmjs.com/package/greenlock-express 
+   * See https://tools.ietf.org/html/rfc8555 
+   * See https://github.com/ietf-wg-acme/acme 
+   */
+  acmeConfig?: AcmeConfigInterface;
+
+  /**
+   * Options for configuring the Node.js `https` server. 
+   * Requires `enableHttps` to be set to `tlsCertConfig`. 
+   * See https://nodejs.org/docs/latest-v10.x/api/https.html#https_https_createserver_options_requestlistener 
+   * See https://nodejs.org/docs/latest-v10.x/api/tls.html#tls_tls_createsecurecontext_options 
+   */
+  tlsCertConfig?: TlsCertConfigInterface;
+
+  /**
    * List of ID addresses allowed to use this hub. Specifying this makes the hub private 
    * and only accessible to the specified addresses. Leaving this unspecified makes the hub 
    * publicly usable by any ID. 
@@ -149,6 +205,21 @@ class HubConfig implements HubConfigInterface {
    * contained within in array.  
    */
   validHubUrls?: string[];
+
+
+  /**
+   * Only used in tests
+   * @private
+   * @ignore
+   */
+  driverInstance?: DriverModel;
+
+  /**
+   * Only used in tests
+   * @private
+   * @ignore
+   */
+  driverClass?: DriverConstructor;
 
 }
 
