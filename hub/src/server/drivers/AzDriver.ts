@@ -6,7 +6,7 @@ import { BadPathError, InvalidInputError, DoesNotExist, ConflictError } from '..
 import { PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult, PerformReadArgs, ReadResult, PerformListFilesArgs, ListFilesStatResult, ListFileStatResult } from '../driverModel'
 import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
 import { Readable } from 'stream'
-import { BlobGetPropertiesHeaders } from '@azure/storage-blob/typings/lib/generated/lib/models'
+import { BlobGetPropertiesHeaders } from '@azure/storage-blob/typings/src/generated/src/models'
 
 export interface AZ_CONFIG_TYPE {
   azCredentials: {
@@ -43,8 +43,8 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
     return {
       defaults: {
         azCredentials: {
-          accountName: <any>undefined,
-          accountKey: <any>undefined
+          accountName: undefined as any,
+          accountKey: undefined as any
         }
       },
       envVars

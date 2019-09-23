@@ -1,5 +1,5 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
-import crypto from 'crypto'
+import * as crypto from 'crypto'
 import { decodeToken, TokenSigner, TokenVerifier } from 'jsontokens'
 import { ecPairToHexString, ecPairToAddress } from 'blockstack'
 import { ValidationError, AuthTokenTimestampValidationError } from './errors'

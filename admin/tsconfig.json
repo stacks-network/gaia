@@ -2,7 +2,7 @@
   "compilerOptions": {
       "target": "es2018",
       "module": "commonjs",
-      "esModuleInterop": true,
+      "esModuleInterop": false,
       "moduleResolution": "node",
       "declaration": true,
       "noImplicitAny": true,

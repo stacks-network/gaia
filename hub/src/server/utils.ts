@@ -1,13 +1,13 @@
 
 
-import stream from 'stream'
+import * as stream from 'stream'
 import { DriverConstructor, DriverStatics } from './driverModel'
 import S3Driver from './drivers/S3Driver'
 import AzDriver from './drivers/AzDriver'
 import GcDriver from './drivers/GcDriver'
 import DiskDriver from './drivers/diskDriver'
 import { promisify } from 'util'
-import winston from 'winston'
+import * as winston from 'winston'
 
 import { pipeline } from 'stream'
 import { DriverName } from './config'
@@ -41,6 +41,14 @@ export function getDriverClass(driver: DriverName): DriverConstructor & DriverSt
   } else {
     throw new Error(`Failed to load driver: driver was set to ${driver}`)
   }
+}
+
+export function megabytesToBytes(megabytes: number) {
+  return megabytes * 1024 * 1024
+}
+
+export function bytesToMegabytes(bytes: number, decimals = 2) {
+  return Number.parseFloat((bytes / (1024 / 1024)).toFixed(decimals))
 }
 
 export function dateToUnixTimeSeconds(date: Date) {
@@ -77,6 +85,59 @@ export function timeout(milliseconds: number): Promise<void> {
       resolve()
     }, milliseconds)
   })
+}
+
+export interface StreamProgressCallback {
+  /**
+   * A callback that is invoked each time a chunk passes through the stream. 
+   * This callback can throw an Error and it will be propagated 
+   * If this callback throws an error, it will be propagated through the stream
+   * pipeline. 
+   * @param totalBytes Total bytes read (includes the current chunk bytes). 
+   * @param chunkBytes Bytes read in the current chunk. 
+   */
+  (totalBytes: number, chunkBytes: number): void;
+}
+
+export interface MonitorStreamResult {
+  monitoredStream: stream.Readable;
+  pipelinePromise: Promise<void>;
+}
+
+export function monitorStreamProgress(
+  inputStream: stream.Readable, 
+  progressCallback: StreamProgressCallback
+): MonitorStreamResult {
+
+  // Create a PassThrough stream to monitor streaming chunk sizes. 
+  let monitoredContentSize = 0
+  const monitorStream = new stream.PassThrough({
+    transform: (chunk: Buffer, _encoding, callback) => {
+      monitoredContentSize += chunk.length
+      try {
+        progressCallback(monitoredContentSize, chunk.length)
+        // Pass the chunk Buffer through, untouched. This takes the fast 
+        // path through the stream pipe lib. 
+        callback(null, chunk)
+      } catch (error) {
+        callback(error)
+      }
+    }
+  })
+
+  // Use the stream pipe API to monitor a stream with correct back pressure
+  // handling. This avoids buffering entire streams in memory and hooks up 
+  // all the correct events for cleanup and error handling. 
+  // See https://nodejs.org/api/stream.html#stream_three_states
+  //     https://nodejs.org/ja/docs/guides/backpressuring-in-streams/
+  const monitorPipeline = pipelineAsync(inputStream, monitorStream)
+
+  const result: MonitorStreamResult = {
+    monitoredStream: monitorStream,
+    pipelinePromise: monitorPipeline
+  }
+
+  return result
 }
 
 

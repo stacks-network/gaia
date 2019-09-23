@@ -1,7 +1,7 @@
-import winston from 'winston'
-import fs from 'fs'
-import process from 'process'
-import Ajv from 'ajv'
+import * as winston from 'winston'
+import * as fs from 'fs'
+import * as process from 'process'
+import * as Ajv from 'ajv'
 
 import { getDriverClass, logger } from './utils'
 import { DriverModel, DriverConstructor } from './driverModel'
@@ -157,6 +157,14 @@ export class HubConfig {
   pageSize? = 100;
   cacheControl? = 'public, max-age=1';
   /**
+   * The maximum allowed POST body size in megabytes. 
+   * The content-size header is checked, and the POST body stream 
+   * is monitoring while streaming from the client. 
+   * [Recommended] Minimum 100KB (or approximately 0.1MB)
+   * @minimum 0.1
+   */
+  maxFileUploadSize? = 20;
+  /**
    * @minimum 0
    * @maximum 65535
    * @TJS-type integer
@@ -251,7 +259,7 @@ function getConfigEnv(envVars: {[key: string]: string}) {
           throw new Error(`Passed a non-number input to: ${envVar}`)
         }
       } else if (parseLists.indexOf(name) >= 0) {
-        configEnv[name] = (<string>configEnv[name]).split(',').map(x => x.trim())
+        configEnv[name] = (configEnv[name] as string).split(',').map(x => x.trim())
       }
     }
   }

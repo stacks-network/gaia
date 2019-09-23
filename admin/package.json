@@ -12,7 +12,8 @@
     "build": "tsc",
     "lint": "eslint --ext .ts ./src",
     "test:coverage": "cross-env NODE_ENV=test nyc node ./test/test.ts",
-    "test": "run-p build lint test:coverage"
+    "test": "run-p build lint test:coverage",
+    "test:build": "tsc -p ./test/tsconfig.json"
   },
   "bin": {
     "blockstack-gaia-admin": "./cmd/index.js"
@@ -31,36 +32,30 @@
     "url": "https://github.com/blockstack/gaia"
   },
   "dependencies": {
-    "ajv": "^6.9.2",
-    "body-parser": "^1.18.3",
+    "ajv": "^6.10.2",
+    "body-parser": "^1.19.0",
     "cors": "^2.8.5",
-    "cross-fetch": "^3.0.1",
-    "express": "^4.16.4",
-    "express-winston": "^3.1.0",
+    "cross-fetch": "^3.0.4",
+    "express": "^4.17.1",
+    "express-winston": "^3.3.0",
     "winston": "^3.2.1"
   },
   "devDependencies": {
-    "@babel/cli": "^7.2.3",
-    "@babel/core": "^7.3.4",
-    "@babel/plugin-transform-modules-commonjs": "^7.2.0",
-    "@babel/register": "^7.0.0",
-    "@types/cors": "^2.8.4",
-    "@types/express": "^4.16.1",
-    "@types/express-winston": "^3.0.1",
+    "@types/cors": "^2.8.6",
+    "@types/express": "^4.17.1",
+    "@types/express-winston": "^3.0.4",
     "@types/node": "^10.14.10",
     "@types/tape": "^4.2.33",
-    "@typescript-eslint/eslint-plugin": "^1.11.0",
-    "@typescript-eslint/parser": "^1.11.0",
-    "babel-eslint": "^10.0.2",
-    "babel-plugin-istanbul": "^5.1.4",
-    "cross-env": "^5.2.1",
-    "eslint": "^6.0.1",
+    "@typescript-eslint/eslint-plugin": "^2.3.1",
+    "@typescript-eslint/parser": "^2.3.1",
+    "cross-env": "^6.0.0",
+    "eslint": "^6.4.0",
     "npm-run-all": "^4.1.5",
     "nyc": "^14.1.1",
-    "source-map-support": "^0.5.12",
-    "tape": "^4.10.2",
-    "ts-node": "^8.3.0",
-    "typescript": "^3.5.2"
+    "source-map-support": "^0.5.13",
+    "tape": "^4.11.0",
+    "ts-node": "^8.4.1",
+    "typescript": "^3.6.3"
   },
   "homepage": "https://github.com/blockstack/gaia",
   "nyc": {

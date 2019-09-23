@@ -1,5 +1,4 @@
-#!/usr/bin/env node
-import path from 'path'
+import * as path from 'path'
 import { makeHttpServer } from './server/http'
 import { getConfig, validateConfigSchema } from './server/config'
 import { logger } from './server/utils'

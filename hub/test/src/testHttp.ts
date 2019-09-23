@@ -5,7 +5,7 @@ import * as fs from 'fs'
 import request = require('supertest')
 import { ecPairToAddress } from 'blockstack'
 
-import FetchMock from 'fetch-mock'
+import { FetchMockSandbox, sandbox, restore } from 'fetch-mock'
 import NodeFetch from 'node-fetch'
 
 import { makeHttpServer } from '../../src/server/http'
@@ -19,6 +19,7 @@ import InMemoryDriver from './testDrivers/InMemoryDriver'
 import { MockAuthTimestampCache } from './MockAuthTimestampCache'
 import { HubConfigInterface } from '../../src/server/config'
 import { PassThrough } from 'stream';
+import * as errors from '../../src/server/errors'
 
 const TEST_SERVER_NAME = 'test-server'
 const TEST_AUTH_CACHE_SIZE = 10
@@ -126,7 +127,15 @@ export function testHttpWithInMemoryDriver() {
     const fetch = NodeFetch
     const inMemoryDriver = await InMemoryDriver.spawn()
     try {
-      const { app } = makeHttpServer({ driverInstance: inMemoryDriver, serverName: TEST_SERVER_NAME, authTimestampCacheSize: TEST_AUTH_CACHE_SIZE, port: 0, driver: null })
+      const { app, server } = makeHttpServer({ 
+        driverInstance: inMemoryDriver, 
+        serverName: TEST_SERVER_NAME, 
+        authTimestampCacheSize: TEST_AUTH_CACHE_SIZE, 
+        port: 0, 
+        driver: null,
+        // ~52 byte max limit
+        maxFileUploadSize: 0.00005 
+      })
       const sk = testPairs[1]
       const fileContents = sk.toWIF()
       const blob = Buffer.from(fileContents)
@@ -180,7 +189,20 @@ export function testHttpWithInMemoryDriver() {
         .send(blob)
         .expect(409)
 
-      t.end()
+      await request(app).post(path)
+        .set('Content-Type', 'application/octet-stream')
+        .set('Authorization', authorization)
+        .set('Content-Length', '9999999')
+        .expect(413)
+
+      try {
+        const largePayload = new PassThrough()
+        largePayload.end('x'.repeat(1000))
+        await server.handleRequest(address, 'helloWorld2', { 'content-type': 'application/octet-stream', 'content-length': '10', authorization: authorization}, largePayload);
+        t.fail('payload should have been detected as too large')
+      } catch (err) {
+        t.throws(() => { throw err }, errors.PayloadTooLargeError, 'payload should have been detected as too large')
+      }
 
     } finally {
       inMemoryDriver.dispose()
@@ -190,7 +212,12 @@ export function testHttpWithInMemoryDriver() {
   test('handle revocation via POST', async (t) => {
     const inMemoryDriver = await InMemoryDriver.spawn()
     try {
-      const { app } = makeHttpServer({ driverInstance: inMemoryDriver, serverName: TEST_SERVER_NAME, authTimestampCacheSize: TEST_AUTH_CACHE_SIZE, port: 0, driver: null })
+      const { app } = makeHttpServer({ 
+        driverInstance: inMemoryDriver, 
+        serverName: TEST_SERVER_NAME, 
+        authTimestampCacheSize: TEST_AUTH_CACHE_SIZE,
+        port: 0, driver: null
+      })
       const sk = testPairs[1]
       const fileContents = sk.toWIF()
       const blob = Buffer.from(fileContents)
@@ -207,7 +234,7 @@ export function testHttpWithInMemoryDriver() {
       const authPart = auth.V1Authentication.makeAuthPart(sk, challenge)
       const authorization = `bearer ${authPart}`
 
-      const storeResponse = await request(app).post(path)
+      await request(app).post(path)
         .set('Content-Type', 'application/octet-stream')
         .set('Authorization', authorization)
         .send(blob)
@@ -303,7 +330,7 @@ function testHttpDriverOption() {
         storageRootDirectory: os.tmpdir()
       },
       port: 0
-    })
+    } as HubConfigInterface)
     t.end()
   })
 
@@ -404,11 +431,11 @@ function testHttpWithAzure() {
         console.log(json)
       })
       .catch((err) => t.false(true, `Unexpected err: ${err}`))
-      .then(() => { FetchMock.restore(); t.end() })
+      .then(() => { restore(); t.end() })
   })
 
   test('handle request', (t) => {
-    let fetch = FetchMock.sandbox()
+    let fetch = sandbox()
     let { app, server } = makeHttpServer(config)
     server.authTimestampCache = new MockAuthTimestampCache()
     let sk = testPairs[1]

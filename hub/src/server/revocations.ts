@@ -1,6 +1,6 @@
 
 
-import LRUCache from 'lru-cache'
+import * as LRUCache from 'lru-cache'
 import { DriverModel } from './driverModel'
 import fetch, { Response } from 'node-fetch'
 import { logger } from './utils'

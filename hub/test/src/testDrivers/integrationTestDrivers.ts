@@ -1,10 +1,9 @@
 
 
-import fs from 'fs'
-import os from 'os'
-import path from 'path'
-import http from 'http'
-import express from 'express'
+import * as fs from 'fs'
+import * as os from 'os'
+import * as path from 'path'
+import * as http from 'http'
 
 import { DriverModel, DriverConstructor } from '../../../src/server/driverModel'
 import AzDriver from '../../../src/server/drivers/AzDriver'

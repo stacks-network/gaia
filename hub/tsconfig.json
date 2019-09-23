@@ -2,13 +2,14 @@
   "compilerOptions": {
       "target": "es2018",
       "module": "commonjs",
-      "esModuleInterop": true,
+      "esModuleInterop": false,
       "moduleResolution": "node",
       "declaration": true,
       "noImplicitAny": true,
       "outDir": "lib",
       "sourceMap": true,
-      "sourceRoot": "."
+      "sourceRoot": ".",
+      "skipLibCheck": true
   },
   "include": [
     "src/**/*"

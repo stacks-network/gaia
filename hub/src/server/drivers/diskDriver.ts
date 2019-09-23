@@ -1,7 +1,7 @@
-import fs from 'fs-extra'
+import * as fs from 'fs-extra'
 import { readdir } from 'fs'
 import { BadPathError, InvalidInputError, DoesNotExist } from '../errors'
-import Path from 'path'
+import * as Path from 'path'
 import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult, PerformReadArgs, ReadResult, PerformListFilesArgs, ListFilesStatResult, ListFileStatResult } from '../driverModel'
 import { DriverStatics, DriverModel } from '../driverModel'
 import { pipelineAsync, logger, dateToUnixTimeSeconds } from '../utils'
@@ -29,7 +29,7 @@ class DiskDriver implements DriverModel {
     }
 
     return {
-      defaults: { diskSettings: { storageRootDirectory: <any>undefined } },
+      defaults: { diskSettings: { storageRootDirectory: undefined as any } },
       envVars
     }
   }

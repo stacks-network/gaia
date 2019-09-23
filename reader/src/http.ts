@@ -1,7 +1,7 @@
-import express  from 'express'
-import expressWinston from 'express-winston'
-import cors from 'cors'
-import Path from 'path'
+import * as express from 'express'
+import * as expressWinston from 'express-winston'
+import * as cors from 'cors'
+import * as Path from 'path'
 import { Config, logger } from './config'
 import { GaiaDiskReader } from './server'
 

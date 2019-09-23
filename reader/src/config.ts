@@ -1,6 +1,6 @@
-import winston from 'winston'
-import fs from 'fs'
-import process from 'process'
+import { createLogger, transports, Logger, format } from 'winston'
+import * as fs from 'fs'
+import * as process from 'process'
 import { ConsoleTransportOptions } from 'winston/lib/winston/transports'
 
 
@@ -43,7 +43,7 @@ const configDefaults: Config = {
   }
 }
 
-export const logger = winston.createLogger()
+export const logger: Logger = createLogger()
 
 export function getConfig() {
   const configPath = process.env.CONFIG_PATH || process.argv[2] || './config.json'
@@ -60,16 +60,16 @@ export function getConfig() {
   }
 
   const formats = [
-    config.argsTransport.colorize ? winston.format.colorize() : null,
+    config.argsTransport.colorize ? format.colorize() : null,
     config.argsTransport.timestamp ?
-      winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }) : null,
-    config.argsTransport.json ? winston.format.json() : winston.format.simple()
+      format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }) : null,
+    config.argsTransport.json ? format.json() : format.simple()
   ].filter(f => f !== null)
-  const format = formats.length ? winston.format.combine(...formats) : null
+  const formatResult = formats.length ? format.combine(...formats) : null
 
   logger.configure({
-    format: format,
-    transports: [new winston.transports.Console(config.argsTransport)]
+    format: formatResult,
+    transports: [new transports.Console(config.argsTransport)]
   })
 
   return config
