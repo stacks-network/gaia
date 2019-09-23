@@ -1,5 +1,6 @@
 {
   "name": "App",
+  "license": "MIT",
   "engines": {
     "node": ">=10"
   },

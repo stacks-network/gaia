@@ -3,6 +3,7 @@
   "version": "2.2.2",
   "description": "",
   "main": "index.js",
+  "license": "MIT",
   "engines": {
     "node": ">=10"
   },
@@ -22,8 +23,8 @@
     "@types/fs-extra": "^8.0.0",
     "@types/node": "^10.14.10",
     "@types/tape": "^4.2.33",
-    "@typescript-eslint/eslint-plugin": "^2.3.0",
-    "@typescript-eslint/parser": "^2.3.0",
+    "@typescript-eslint/eslint-plugin": "^2.3.1",
+    "@typescript-eslint/parser": "^2.3.1",
     "cross-env": "^6.0.0",
     "eslint": "^6.4.0",
     "fetch-mock": "^7.3.9",
