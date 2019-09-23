@@ -1,7 +1,7 @@
-import winston from 'winston'
-import fs from 'fs'
-import process from 'process'
-import Ajv from 'ajv'
+import * as winston from 'winston'
+import * as fs from 'fs'
+import * as process from 'process'
+import * as Ajv from 'ajv'
 
 import { getDriverClass, logger } from './utils'
 import { DriverModel, DriverConstructor } from './driverModel'
@@ -189,7 +189,7 @@ function getConfigEnv(envVars: {[key: string]: string}) {
           throw new Error(`Passed a non-number input to: ${envVar}`)
         }
       } else if (parseLists.indexOf(name) >= 0) {
-        configEnv[name] = (<string>configEnv[name]).split(',').map(x => x.trim())
+        configEnv[name] = (configEnv[name] as string).split(',').map(x => x.trim())
       }
     }
   }

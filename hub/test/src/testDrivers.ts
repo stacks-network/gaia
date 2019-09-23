@@ -1,5 +1,5 @@
 import test = require('tape-promise/tape')
-import FetchMock from 'fetch-mock'
+import { sandbox, FetchMockSandbox } from 'fetch-mock'
 import NodeFetch from 'node-fetch'
 
 import { Readable, PassThrough } from 'stream'
@@ -10,7 +10,7 @@ import * as mockTestDrivers from './testDrivers/mockTestDrivers'
 import * as integrationTestDrivers from './testDrivers/integrationTestDrivers'
 import { BadPathError, DoesNotExist, ConflictError } from '../../src/server/errors'
 
-export function addMockFetches(fetchLib: FetchMock.FetchMockSandbox, prefix: any, dataMap: {key: string, data: string}[]) {
+export function addMockFetches(fetchLib: FetchMockSandbox, prefix: any, dataMap: {key: string, data: string}[]) {
   dataMap.forEach(item => {
     fetchLib.get(`${prefix}${item.key}`, item.data, { overwriteRoutes: true })
   })
@@ -38,7 +38,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
         return { stream: s, contentLength: contentBuff.length }
       }
 
-      const fetch = <FetchMock.FetchMockSandbox>(mockTest ? FetchMock.sandbox() : NodeFetch)
+      const fetch = (mockTest ? sandbox() : NodeFetch) as FetchMockSandbox
 
       try {
         const writeArgs : any = { path: '../foo.js'}

@@ -12,7 +12,8 @@
     "build": "tsc",
     "lint": "eslint --ext .ts ./src",
     "test:coverage": "cross-env NODE_ENV=test nyc node ./test/test.ts",
-    "test": "run-p build lint test:coverage"
+    "test": "run-p build lint test:coverage",
+    "test:build": "tsc -p ./test/tsconfig.json"
   },
   "bin": {
     "blockstack-gaia-admin": "./cmd/index.js"

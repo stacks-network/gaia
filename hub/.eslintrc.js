@@ -56,6 +56,8 @@ module.exports = {
     "@typescript-eslint/no-use-before-define": "off",
     "no-unused-vars": "off",
     "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+    "@typescript-eslint/no-inferrable-types": "off",
+    
     // TODO: enable this when reasonable
     "@typescript-eslint/no-explicit-any": "off"
   }

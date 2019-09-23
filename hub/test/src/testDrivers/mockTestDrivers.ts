@@ -1,10 +1,10 @@
 
 
 import { Readable, Writable } from 'stream'
-import os from 'os'
-import path from 'path'
-import fs from 'fs'
-import proxyquire from 'proxyquire'
+import * as os from 'os'
+import * as path from 'path'
+import * as fs from 'fs'
+import { load as proxyquire } from 'proxyquire'
 
 import { readStream } from '../../../src/server/utils'
 import { DriverModel, DriverConstructor, PerformDeleteArgs } from '../../../src/server/driverModel'

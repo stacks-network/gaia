@@ -1,6 +1,6 @@
-import fs from 'fs'
-import childProcess from 'child_process'
-import Ajv from 'ajv'
+import * as fs from 'fs'
+import * as childProcess from 'child_process'
+import * as Ajv from 'ajv'
 import { Config, logger } from './config'
 
 function runSubprocess(
