@@ -8,8 +8,6 @@ import GcDriver from './drivers/GcDriver'
 import DiskDriver from './drivers/diskDriver'
 import { promisify } from 'util'
 import * as winston from 'winston'
-
-import { pipeline } from 'stream'
 import { DriverName } from './config'
 
 import nanoid = require('nanoid/generate')
@@ -25,7 +23,7 @@ export function generateUniqueID() {
 }
 
 
-export const pipelineAsync = promisify(pipeline)
+export const pipelineAsync = promisify(stream.pipeline)
 
 export const logger = winston.createLogger()
 

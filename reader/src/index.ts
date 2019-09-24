@@ -1,7 +1,5 @@
-#!/usr/bin/env node
-
-import { makeHttpServer } from './http.js'
-import { getConfig, logger } from './config.js'
+import { makeHttpServer } from './http'
+import { getConfig, logger } from './config'
 
 const conf = getConfig()
 const app = makeHttpServer(conf)

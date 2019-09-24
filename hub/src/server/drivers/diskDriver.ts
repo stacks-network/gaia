@@ -2,8 +2,11 @@ import * as fs from 'fs-extra'
 import { readdir } from 'fs'
 import { BadPathError, InvalidInputError, DoesNotExist } from '../errors'
 import * as Path from 'path'
-import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult, PerformReadArgs, ReadResult, PerformListFilesArgs, ListFilesStatResult, ListFileStatResult } from '../driverModel'
-import { DriverStatics, DriverModel } from '../driverModel'
+import { 
+  ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, 
+  StatResult, PerformReadArgs, ReadResult, PerformListFilesArgs, ListFilesStatResult, 
+  ListFileStatResult, DriverStatics, DriverModel 
+} from '../driverModel'
 import { pipelineAsync, logger, dateToUnixTimeSeconds } from '../utils'
 
 export interface DISK_CONFIG_TYPE { 

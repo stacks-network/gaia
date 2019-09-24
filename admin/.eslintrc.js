@@ -1,6 +1,9 @@
 module.exports = {
   "extends": [
     "eslint:recommended",
+    "plugin:import/errors",
+    "plugin:import/warnings",
+    "plugin:import/typescript",
     "plugin:@typescript-eslint/eslint-recommended",
     "plugin:@typescript-eslint/recommended",
     "plugin:@typescript-eslint/recommended-requiring-type-checking"
@@ -56,6 +59,10 @@ module.exports = {
     "@typescript-eslint/no-angle-bracket-type-assertion": "off",
     "@typescript-eslint/prefer-interface": "off",
     "@typescript-eslint/no-use-before-define": "off",
+
+    "import/no-unresolved": "error",
+    "import/no-unused-modules": "error",
+    "import/no-duplicates": "error",
 
     // TODO: enable this when reasonable
     "@typescript-eslint/no-explicit-any": "off",

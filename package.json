@@ -13,6 +13,7 @@
     "test:hub": "npm test --prefix hub",
     "test:reader": "npm test --prefix reader",
     "test:admin": "npm test --prefix admin",
+    "audit:all": "npm audit && npm audit --prefix hub && npm audit --prefix reader && npm audit --prefix admin",
     "codecovUpload": "codecov"
   },
   "devDependencies": {
