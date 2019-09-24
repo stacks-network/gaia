@@ -18,7 +18,7 @@ export class GaiaDiskReader {
 
   isPathValid(path: string){
     // for now, only disallow double dots.
-    return (path.indexOf('..') === -1)
+    return !path.includes('..')
   }
 
   handleGet(topLevelDir: string, filename: string): Promise<{ exists: boolean, contentType?: string }> {

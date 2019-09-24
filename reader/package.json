@@ -44,7 +44,8 @@
   "scripts": {
     "dev": "ts-node src/index.ts",
     "build": "tsc",
-    "lint": "eslint --ext .ts ./src",
+    "lint": "eslint --ext .ts ./src -f unix",
+    "lint:fix": "eslint --ext .ts ./src --fix",
     "test:coverage": "cross-env NODE_ENV=test nyc node ./test/test.ts",
     "test": "run-p lint build test:coverage",
     "test:build": "tsc -p ./test/tsconfig.json"

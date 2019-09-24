@@ -79,7 +79,7 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
 
   static isPathValid(path: string){
     // for now, only disallow double dots.
-    return (path.indexOf('..') === -1)
+    return !path.includes('..')
   }
 
   getReadURLPrefix () {
