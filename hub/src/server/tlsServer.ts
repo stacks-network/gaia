@@ -54,7 +54,9 @@ function loadPfxCert(tlsConfig: TlsPfxCert, opts: https.ServerOptions): https.Se
   let fileExists = false
   try {
     fileExists = fs.statSync(tlsConfig.pfxFile).isFile()
-  } catch (error) { }
+  } catch (error) {
+    // ignore
+  }
 
   if (fileExists) {
     try {
