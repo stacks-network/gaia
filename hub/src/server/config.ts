@@ -15,7 +15,10 @@ export type DriverName = 'aws' | 'azure' | 'disk' | 'google-cloud'
 
 export type LogLevel = 'error' | 'warn' | 'info' | 'verbose' | 'debug'
 
-export type HttpsOption = 'cert_files' | 'acme' | undefined
+export const enum HttpsOption {
+  cert_files = 'cert_files',
+  acme = 'acme' 
+}
 
 export interface LoggingConfigInterface {
   timestamp?: boolean;
@@ -94,13 +97,39 @@ export interface AcmeConfigInterface {
 }
 
 export interface TlsPemCert {
+  /**
+   * Either the path to the PEM formatted private key file, or the string content of the file. 
+   * The file usually has the extension `.key` or `.pem`. 
+   * If the content string is specified, it should include the escaped EOL characters, e.g. 
+   * `"-----BEGIN RSA PRIVATE KEY-----\n{lines of base64 data}\n-----END RSA PRIVATE KEY-----"`. 
+   */
   keyFile: string;
+  /**
+   * Either the path to the PEM formatted certification chain file, or the string content of the file. 
+   * The file usually has the extension `.cert`, `.cer`, `.crt`, or `.pem`. 
+   * If the content string is specified, it should include the escaped EOL characters, e.g. 
+   * `"-----BEGIN CERTIFICATE-----\n{lines of base64 data}\n-----END CERTIFICATE-----"`. 
+   */
   certFile: string;
+  /**
+   * The string passphrase for the key file. If provided, the passphrase is used to decrypt the file. 
+   * If not provided, the key is assumed to be unencrypted. 
+   */
+  keyPassphrase?: string;
 }
 
 export interface TlsPfxCert {
-  pfxFile?: string;
-  pfxPassphrase: string;
+  /**
+   * Either the path to the PFX or PKCS12 encoded private key and certificate chain file, 
+   * or the base64 encoded content of the file. 
+   * The file usually has the extension `.pfx` or `.p12`. 
+   */
+  pfxFile: string;
+  /**
+   * The string passphrase for the key file. If provided, the passphrase is used to decrypt the file. 
+   * If not provided, the key is assumed to be unencrypted. 
+   */
+  pfxPassphrase?: string;
 }
 
 export type TlsCertConfigInterface = TlsPemCert | TlsPfxCert | undefined;
@@ -165,17 +194,27 @@ export class HubConfig {
    */
   maxFileUploadSize? = 20;
   /**
-   * @minimum 0
-   * @maximum 65535
-   * @TJS-type integer
-   */
-  port = 3000;
-  /**
    * @TJS-type integer
    */
   authTimestampCacheSize? = 50000;
 
   driver = undefined as DriverName;
+
+  /**
+   * @minimum 0
+   * @maximum 65535
+   * @TJS-type integer
+   */
+  port = 3000;
+
+  /**
+   * Requires `enableHttps` to be set. 
+   * @default 443
+   * @minimum 0
+   * @maximum 65535
+   * @TJS-type integer
+   */
+  httpsPort? = 443;
 
   /**
    * Disabled by default. 

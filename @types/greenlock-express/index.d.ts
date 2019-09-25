@@ -1,10 +1,9 @@
 declare module 'greenlock-express' {
-  import { Application } from 'express'
+  import { Application } from 'express';
+  import * as http from 'http';
+  import * as https from 'https';
 
-  /**
-   * 
-   */
-  export function create(opts: {
+  export interface GreenlockOptions {
     /** The email address of the ACME user / hosting provider */
     email: string;
     /** You must accept the ToS as the host which handles the certs */
@@ -47,11 +46,27 @@ declare module 'greenlock-express' {
      * Array of allowed domains such as `[ "example.com", "www.example.com" ]`
      */
     approveDomains?: string[];
+  }
 
+  export interface GreenlockExpressOptions extends GreenlockOptions {
     /** An express app instance */
     app: Application;
+  }
 
-  }): Application
+  export type ListenResult = https.Server & { unencrypted: http.Server };
+
+  export interface GreenlockExpressInstance {
+    listen(plainAddr: number | string, tlsAddr: number | string): Promise<ListenResult>
+    listen(plainAddr: number | string, tlsAddr: number | string, onListenSecure: () => void): Promise<ListenResult>;
+    listen(plainAddr: number | string, tlsAddr: number | string, onListenPlain: () => void, onListenSecure: () => void): Promise<ListenResult>;
+
+    readonly app: Application;
+  }
+
+  /**
+   * 
+   */
+  export function create(opts: GreenlockExpressOptions): GreenlockExpressInstance
 
 }
 

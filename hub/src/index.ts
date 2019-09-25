@@ -1,21 +1,10 @@
 import * as path from 'path'
 import { makeHttpServer } from './server/http'
-import { getConfig, validateConfigSchema } from './server/config'
+import { getConfig, validateConfigSchema, HttpsOption } from './server/config'
 import { logger } from './server/utils'
-// import * as greenlockExpress from 'greenlock-express'
-
-/*
-greenlockExpress.create({
-  email: 'john.doe@example.com',
-  agreeTos: true,
-  configDir: '~/.config/acme/', // Writable directory where certs will be saved
-  communityMember: false,
-  telemetry: false,
-  securityUpdates: true,
-  debug: true,
-  app: require("./app.js")
-}).listen(80, 443);
-*/
+import * as http from 'http'
+import * as tlsServer from './server/tlsServer'
+import * as acme from './server/acmeClient'
 
 const appRootDir = path.dirname(path.resolve(__dirname))
 const schemaFilePath = path.join(appRootDir, 'config-schema.json')
@@ -25,8 +14,25 @@ validateConfigSchema(schemaFilePath, conf)
 
 const { app, driver } = makeHttpServer(conf)
 
-app.listen(conf.port,
-           () => logger.warn(`Listening on port ${conf.port} in ${app.settings.env} mode`))
+if (conf.enableHttps === HttpsOption.acme) {
+  const server = acme.createGlx(app, conf.acmeConfig)
+  server.listen(conf.port, conf.httpsPort, () => {
+    logger.warn(`Http server listening on port ${conf.port} in ${app.settings.env} mode`)
+  }, () => {
+    logger.warn(`Https server listening on port ${conf.httpsPort} in ${app.settings.env} mode`)
+  })
+} else if (conf.enableHttps === HttpsOption.cert_files) {
+  tlsServer.createHttpsServer(app, conf.tlsCertConfig).listen(conf.httpsPort, () => {
+    logger.warn(`Https server listening on port ${conf.httpsPort} in ${app.settings.env} mode`)
+  })
+  http.createServer(app).listen(conf.port, () => {
+    logger.warn(`Http server listening on port ${conf.port} in ${app.settings.env} mode`)
+  })
+} else {
+  http.createServer(app).listen(conf.port, () => {
+    logger.warn(`Http server listening on port ${conf.port} in ${app.settings.env} mode`)
+  })
+}
 
 driver.ensureInitialized().catch(error => {
   logger.error(`Failed to initialize driver ${error})`)
