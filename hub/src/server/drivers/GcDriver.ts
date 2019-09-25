@@ -1,8 +1,11 @@
 import { Storage, File } from '@google-cloud/storage'
 
 import { BadPathError, InvalidInputError, DoesNotExist } from '../errors'
-import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, StatResult, PerformStatArgs, PerformReadArgs, ReadResult, PerformListFilesArgs, ListFilesStatResult, ListFileStatResult } from '../driverModel'
-import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
+import { 
+  ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, StatResult, 
+  PerformStatArgs, PerformReadArgs, ReadResult, PerformListFilesArgs, ListFilesStatResult, 
+  ListFileStatResult, DriverStatics, DriverModel, DriverModelTestMethods 
+} from '../driverModel'
 import { pipelineAsync, logger, dateToUnixTimeSeconds } from '../utils'
 
 export interface GC_CONFIG_TYPE {
@@ -79,7 +82,7 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
 
   static isPathValid(path: string){
     // for now, only disallow double dots.
-    return (path.indexOf('..') === -1)
+    return !path.includes('..')
   }
 
   getReadURLPrefix () {

@@ -2,8 +2,11 @@ import * as fs from 'fs-extra'
 import { readdir } from 'fs'
 import { BadPathError, InvalidInputError, DoesNotExist } from '../errors'
 import * as Path from 'path'
-import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult, PerformReadArgs, ReadResult, PerformListFilesArgs, ListFilesStatResult, ListFileStatResult } from '../driverModel'
-import { DriverStatics, DriverModel } from '../driverModel'
+import { 
+  ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, 
+  StatResult, PerformReadArgs, ReadResult, PerformListFilesArgs, ListFilesStatResult, 
+  ListFileStatResult, DriverStatics, DriverModel 
+} from '../driverModel'
 import { pipelineAsync, logger, dateToUnixTimeSeconds } from '../utils'
 
 export interface DISK_CONFIG_TYPE { 
@@ -47,7 +50,7 @@ class DiskDriver implements DriverModel {
 
     this.storageRootDirectory = Path.resolve(Path.normalize(config.diskSettings.storageRootDirectory))
     this.readURL = config.readURL
-    if (this.readURL.slice(-1) !== '/') {
+    if (!this.readURL.endsWith('/')) {
       // must end in /
       this.readURL = `${this.readURL}/`
     }
@@ -65,10 +68,10 @@ class DiskDriver implements DriverModel {
   }
 
   static isPathValid(path: string){
-    if (path.indexOf('..') !== -1) {
+    if (path.includes('..')) {
       return false
     }
-    if (path.slice(-1) === '/') {
+    if (path.endsWith('/')) {
       return false
     }
     return true
@@ -141,10 +144,10 @@ class DiskDriver implements DriverModel {
       }
       return emptyResponse
     }
-      
+    
     try {
       if (args.page) {
-        if (!args.page.match(/^[0-9]+$/)) {
+        if (!(/^[0-9]+$/.exec(args.page))) {
           throw new Error('Invalid page number')
         }
         pageNum = parseInt(args.page)

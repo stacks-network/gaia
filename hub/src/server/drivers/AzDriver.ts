@@ -3,8 +3,11 @@
 import * as azure from '@azure/storage-blob'
 import { logger, dateToUnixTimeSeconds } from '../utils'
 import { BadPathError, InvalidInputError, DoesNotExist, ConflictError } from '../errors'
-import { PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult, PerformReadArgs, ReadResult, PerformListFilesArgs, ListFilesStatResult, ListFileStatResult } from '../driverModel'
-import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
+import { 
+  PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult, 
+  PerformReadArgs, ReadResult, PerformListFilesArgs, ListFilesStatResult, ListFileStatResult,
+  DriverStatics, DriverModel, DriverModelTestMethods
+} from '../driverModel'
 import { Readable } from 'stream'
 import { BlobGetPropertiesHeaders } from '@azure/storage-blob/typings/src/generated/src/models'
 
@@ -105,7 +108,7 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
 
   static isPathValid(path: string) {
     // for now, only disallow double dots.
-    return (path.indexOf('..') === -1)
+    return !path.includes('..')
   }
 
   getServiceUrl() {

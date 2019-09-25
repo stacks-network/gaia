@@ -20,6 +20,7 @@ import { MockAuthTimestampCache } from './MockAuthTimestampCache'
 import { HubConfigInterface } from '../../src/server/config'
 import { PassThrough } from 'stream';
 import * as errors from '../../src/server/errors'
+import { timeout } from '../../src/server/utils'
 
 const TEST_SERVER_NAME = 'test-server'
 const TEST_AUTH_CACHE_SIZE = 10
@@ -78,23 +79,24 @@ export function testHttpWithInMemoryDriver() {
         .send(blob)
         .expect(409)
 
-      const releaseRequests = new Promise(resolve => {
-        setTimeout(() => {
-          for (const release of resolves) {
-            release()
-          }
-          resolve()
-        }, 50)
-      })
+      const releaseRequests = (async () => {
+        while (resolves.size === 0) {
+          await timeout(10)
+        }
+        for (const release of resolves) {
+          release()
+        }
+      })()
 
       await Promise.all([reqPromise2, reqPromise1, reqPromise3, releaseRequests])
+      t.pass('Released middleware request resolves')
 
       await reqPromise1
-      t.ok('First request (store) passes with no concurrent conflict')
+      t.pass('First request (store) passes with no concurrent conflict')
       await reqPromise2
-      t.ok('Second request (store) fails with concurrent conflict')
+      t.pass('Second request (store) fails with concurrent conflict')
       await reqPromise3
-      t.ok('Third request (delete) fails with concurrent conflict')
+      t.pass('Third request (delete) fails with concurrent conflict')
 
       inMemoryDriver.onWriteMiddleware.clear()
 
@@ -104,7 +106,7 @@ export function testHttpWithInMemoryDriver() {
         .send(blob)
         .expect(202)
 
-      t.ok('Fourth request (store) passes with no concurrent conflict')
+      t.pass('Fourth request (store) passes with no concurrent conflict')
 
       await request(app).delete(`/delete/${address}/helloWorld`)
         .set('Content-Type', 'application/octet-stream')
@@ -112,7 +114,7 @@ export function testHttpWithInMemoryDriver() {
         .send(blob)
         .expect(202)
 
-      t.ok('Fifth request (delete) passes with no concurrent conflict')
+      t.pass('Fifth request (delete) passes with no concurrent conflict')
 
       t.equals(asyncMutexScope.openedCount, 0, 'Should have no open mutexes when no requests are open')
 

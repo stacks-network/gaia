@@ -112,7 +112,7 @@ function testServer() {
         t.equal(result.statusCode, 200, 'reload command is launched')
         try {
           const statBuf = fs.statSync('/tmp/gaia-admin-test.txt')
-          t.ok('admin test file exists')
+          t.pass('admin test file exists')
 
           const data = fs.readFileSync('/tmp/gaia-admin-test.txt').toString()
           t.equal(data, 'hello world\n', 'admin test file contents equal environ')
