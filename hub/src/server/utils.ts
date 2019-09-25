@@ -77,7 +77,7 @@ export async function readStream(stream: stream.Readable): Promise<Buffer> {
   return memStream.getData()
 }
 
-export function timeout(milliseconds: number): Promise<void> {
+export async function timeout(milliseconds: number): Promise<void> {
   return new Promise(resolve => {
     setTimeout(() => {
       resolve()
@@ -169,6 +169,7 @@ export class AsyncMutexScope {
       // If spawnOwner does not throw an error then we can safely attach the
       // unlock to the returned Promise. Once the Promise has evaluated (with or 
       // without error), we unlock. 
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       owner.finally(() => {
         this._opened.delete(id)
       })

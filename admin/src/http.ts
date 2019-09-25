@@ -21,9 +21,9 @@ export function makeHttpServer(config: Config) {
 
   app.use(cors())
   
-  app.post(/\/v1\/admin\/reload/, (req: express.Request, res: express.Response) => {
+  app.post(/\/v1\/admin\/reload/, async (req: express.Request, res: express.Response) => {
     return server.checkAuthorization(req.headers['authorization'])
-      .then((authResult) => {
+      .then(async (authResult) => {
         if (!authResult) {
           return { statusCode: 403, status: { error: 'forbidden' } }
         }
@@ -33,9 +33,9 @@ export function makeHttpServer(config: Config) {
       .then(reloadStatus => writeResponse(res, reloadStatus.status, reloadStatus.statusCode))
   })
 
-  app.get(/\/v1\/admin\/config/, (req: express.Request, res: express.Response) => {
+  app.get(/\/v1\/admin\/config/, async (req: express.Request, res: express.Response) => {
     return server.checkAuthorization(req.headers['authorization'])
-      .then((authResult) => {
+      .then(async (authResult) => {
         if (!authResult) {
           return { statusCode: 403, status: { error: 'forbidden' } }
         }
@@ -47,9 +47,9 @@ export function makeHttpServer(config: Config) {
 
   app.post(
     /\/v1\/admin\/config/, express.json(),
-    (req: express.Request, res: express.Response) => {
+    async (req: express.Request, res: express.Response) => {
       return server.checkAuthorization(req.headers['authorization'])
-        .then((authResult) => {
+        .then(async (authResult) => {
           if (!authResult) {
             return { statusCode: 403, status: { error: 'forbidden' } }
           }

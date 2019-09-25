@@ -15,7 +15,7 @@ export function makeHttpServer(config: Config) {
 
   app.use(cors())
 
-  app.get(/\/([a-zA-Z0-9-_]+)\/(.+)/, (req, res) => {
+  app.get(/\/([a-zA-Z0-9-_]+)\/(.+)/, async (req, res) => {
     let filename = req.params[1]
     if (filename.endsWith('/')) {
       filename = filename.substring(0, filename.length - 1)
@@ -26,7 +26,7 @@ export function makeHttpServer(config: Config) {
       res.set('Cache-Control', config.cacheControl)
     }
 
-    return server.handleGet(address, filename)
+    await server.handleGet(address, filename)
       .then((fileInfo) => {
         const exists = fileInfo.exists
         const contentType = fileInfo.contentType

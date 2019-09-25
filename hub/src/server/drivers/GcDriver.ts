@@ -72,11 +72,11 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
     this.resumable = config.resumable || false
   }
 
-  ensureInitialized() {
+  async ensureInitialized() {
     return this.initPromise
   }
 
-  dispose() {
+  async dispose() {
     return Promise.resolve()
   }
 

@@ -60,6 +60,11 @@ module.exports = {
     "@typescript-eslint/prefer-interface": "off",
     "@typescript-eslint/no-use-before-define": "off",
 
+    "@typescript-eslint/no-floating-promises": "error",
+    "@typescript-eslint/no-misused-promises": "error",
+    "@typescript-eslint/promise-function-async": "error",
+    "@typescript-eslint/require-await": "error",
+
     "import/no-unresolved": "error",
     "import/no-unused-modules": "error",
     "import/no-duplicates": "error",

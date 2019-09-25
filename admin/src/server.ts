@@ -3,7 +3,7 @@ import * as childProcess from 'child_process'
 import * as Ajv from 'ajv'
 import { Config, logger } from './config'
 
-function runSubprocess(
+async function runSubprocess(
   cmd: string, 
   argv: Array<string>, 
   env: NodeJS.ProcessEnv, 
@@ -232,37 +232,36 @@ export class AdminAPI {
     this.config = config
   }
 
-  checkAuthorization(authHeader: string): Promise<boolean> {
-    return Promise.resolve().then(() => {
-      if (!authHeader) {
-        logger.error('No authorization header given')
-        return false
-      }
-      if (!authHeader.toLowerCase().startsWith('bearer')) {
-        logger.error('Malformed authorization header')
-        return false
-      }
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async checkAuthorization(authHeader: string): Promise<boolean> {
+    if (!authHeader) {
+      logger.error('No authorization header given')
+      return false
+    }
+    if (!authHeader.toLowerCase().startsWith('bearer')) {
+      logger.error('Malformed authorization header')
+      return false
+    }
 
-      const bearer = authHeader.toLowerCase().slice('bearer '.length)
-      if (!!this.config.apiKeys) {
-        for (let i = 0; i < this.config.apiKeys.length; i++) {
-          if (bearer === this.config.apiKeys[i]) {
-            return true
-          }
+    const bearer = authHeader.toLowerCase().slice('bearer '.length)
+    if (!!this.config.apiKeys) {
+      for (let i = 0; i < this.config.apiKeys.length; i++) {
+        if (bearer === this.config.apiKeys[i]) {
+          return true
         }
       }
+    }
 
-      logger.error('Invalid authorization header')
-      return false
-    })
+    logger.error('Invalid authorization header')
+    return false
   }
   
   // Reloads the Gaia hub by launching the reload subprocess
-  handleReload(): Promise<{ status: any, statusCode: number }> {
+  async handleReload(): Promise<{ status: any, statusCode: number }> {
     if (!this.config.reloadSettings.command) {
       // reload is not defined 
       const ret = { statusCode: 404, status: { error: 'No reload command defined' } }
-      return Promise.resolve().then(() => ret)
+      return ret
     }
 
     const cmd = this.config.reloadSettings.command
@@ -275,21 +274,20 @@ export class AdminAPI {
   }
 
   // don't call this from outside this class
-  handleGetFields(fieldList: Array<string>): Promise<{ status: any, statusCode: number }> {
-    return Promise.resolve().then(() => {
+  // eslint-disable-next-line @typescript-eslint/require-await
+  private async handleGetFields(fieldList: Array<string>): Promise<{ status: any, statusCode: number }> {
+    try {
       const configPath = this.config.gaiaSettings.configPath
-      return readConfigFileSections(configPath, fieldList)
-    })
-      .then((fields) => {
-        return { statusCode: 200, status: { config: fields } }
-      })
-      .catch((e) => {
-        return { statusCode: 500, status: { error: e.message } }
-      })
+      const fields = readConfigFileSections(configPath, fieldList)
+      return { statusCode: 200, status: { config: fields } }
+    } catch (e) {
+      return { statusCode: 500, status: { error: e.message } }
+    }
   }
 
   // don't call this from outside this class
-  handleSetFields(newFields: any, allowedFields: Array<string>): Promise<{ status: any, statusCode: number }> {
+  // eslint-disable-next-line @typescript-eslint/require-await
+  private async handleSetFields(newFields: any, allowedFields: Array<string>): Promise<{ status: any, statusCode: number }> {
     // only allow fields in allowedFields to be written
     const fieldsToWrite: {[key: string]: any} = {}
     for (let i = 0; i < allowedFields.length; i++) {
@@ -300,38 +298,35 @@ export class AdminAPI {
 
     if (Object.keys(fieldsToWrite).length == 0) {
       const ret = { statusCode: 400, status: { error: 'No valid fields given' } }
-      return Promise.resolve().then(() => ret)
+      return ret
     }
 
-    return Promise.resolve().then(() => {
+    try {
       const configPath = this.config.gaiaSettings.configPath
-      return patchConfigFile(configPath, newFields)
-    })
-      .then(() => {
-        const ret = { 
-          statusCode: 200, 
-          status: { 
-            message: 'Config updated -- you should reload your Gaia hub now.'
-          }
+      patchConfigFile(configPath, newFields)
+      const ret = { 
+        statusCode: 200, 
+        status: { 
+          message: 'Config updated -- you should reload your Gaia hub now.'
         }
-        return ret
-      })
-      .catch((e) => {
-        const ret = {
-          statusCode: 500,
-          status: {
-            error: e.message
-          }
+      }
+      return ret
+    } catch (e) {
+      const ret = {
+        statusCode: 500,
+        status: {
+          error: e.message
         }
-        return ret
-      })
+      }
+      return ret
+    }
   }
 
-  handleGetConfig(): Promise<{ status: any, statusCode: number }> {
+  async handleGetConfig(): Promise<{ status: any, statusCode: number }> {
     return this.handleGetFields(Object.keys(GAIA_CONFIG_SCHEMA.properties))
   }
 
-  handleSetConfig(newConfig: any): Promise<{ status: any, statusCode: number }> {
+  async handleSetConfig(newConfig: any): Promise<{ status: any, statusCode: number }> {
     const ajv = new Ajv()
     const valid = ajv.validate(GAIA_CONFIG_SCHEMA, newConfig)
     if (!valid) {
@@ -343,7 +338,7 @@ export class AdminAPI {
           more: JSON.parse(JSON.stringify(ajv.errors))
         }
       }
-      return Promise.resolve().then(() => ret)
+      return ret
     }
     return this.handleSetFields(newConfig, Object.keys(GAIA_CONFIG_SCHEMA.properties))
   }

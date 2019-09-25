@@ -63,11 +63,11 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
     this.initPromise = this.createIfNeeded()
   }
 
-  ensureInitialized() {
+  async ensureInitialized() {
     return this.initPromise
   }
 
-  dispose() {
+  async dispose() {
     return Promise.resolve()
   }
 

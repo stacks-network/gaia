@@ -59,11 +59,11 @@ class DiskDriver implements DriverModel {
     this.initPromise = fs.ensureDir(this.storageRootDirectory)
   }
 
-  ensureInitialized() {
+  async ensureInitialized() {
     return this.initPromise
   }
 
-  dispose() {
+  async dispose() {
     return Promise.resolve()
   }
 

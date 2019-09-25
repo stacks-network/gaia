@@ -98,11 +98,11 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
     await this.container.delete(azure.Aborter.none)
   }
 
-  ensureInitialized() {
+  async ensureInitialized() {
     return this.initPromise
   }
 
-  dispose() {
+  async dispose() {
     return Promise.resolve()
   }
 
@@ -156,7 +156,7 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
 
   async listFilesStat(args: PerformListFilesArgs): Promise<ListFilesStatResult> {
     try {
-      return await this.listBlobs(args.pathPrefix, args.page)
+      return this.listBlobs(args.pathPrefix, args.page)
     } catch (error) {
       logger.debug(`Failed to list files: ${error}`)
       throw error

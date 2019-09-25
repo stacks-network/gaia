@@ -21,7 +21,8 @@ export class GaiaDiskReader {
     return !path.includes('..')
   }
 
-  handleGet(topLevelDir: string, filename: string): Promise<{ exists: boolean, contentType?: string }> {
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async handleGet(topLevelDir: string, filename: string): Promise<{ exists: boolean, contentType?: string }> {
     const storageRoot = this.config.diskSettings.storageRootDirectory
     if (!storageRoot) {
       throw new Error('Misconfiguration: no storage root set')
@@ -36,18 +37,19 @@ export class GaiaDiskReader {
       fs.statSync(filePath)
     } catch (e) {
       const ret = { exists: false, contentType: undefined as string }
-      return Promise.resolve().then(() => ret)
+      return ret
     }
 
     const metadataPath = Path.join(storageRoot, METADATA_DIRNAME, topLevelDir, filename)
     try {
-      const metadataJSON = fs.readFileSync(metadataPath).toString()
+      // TODO: Make this async -- DDoS and performance issues. Especially for disk drivers pointed at a mounted network drive 
+      const metadataJSON = fs.readFileSync(metadataPath, {encoding: 'utf8'})
       const metadata = JSON.parse(metadataJSON)
       const ret = { exists: true, contentType: metadata['content-type'] }
-      return Promise.resolve().then(() => ret)
+      return ret
     } catch (e) {
       const ret = { exists: true, contentType: 'application/octet-stream' }
-      return Promise.resolve().then(() => ret)
+      return ret
     }
   }
 }
