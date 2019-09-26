@@ -26,7 +26,7 @@ function isTlsPemCert(tlsConfig: TlsCertConfigInterface): tlsConfig is TlsPemCer
   return !!(tlsConfig as TlsPemCert).keyFile
 }
 
-function loadPemCert(tlsConfig: TlsPemCert, opts: https.ServerOptions): https.ServerOptions {
+export function loadPemCert(tlsConfig: TlsPemCert, opts: https.ServerOptions) {
   if (tlsConfig.keyFile.startsWith(PEM_PREFIX)) {
     opts.key = tlsConfig.keyFile
   } else {
@@ -47,10 +47,12 @@ function loadPemCert(tlsConfig: TlsPemCert, opts: https.ServerOptions): https.Se
       throw error
     }
   }
-  return opts
+  if (tlsConfig.keyPassphrase !== undefined) {
+    opts.passphrase = tlsConfig.keyPassphrase
+  }
 }
 
-function loadPfxCert(tlsConfig: TlsPfxCert, opts: https.ServerOptions): https.ServerOptions {
+export function loadPfxCert(tlsConfig: TlsPfxCert, opts: https.ServerOptions) {
   let fileExists = false
   try {
     fileExists = fs.statSync(tlsConfig.pfxFile).isFile()
@@ -76,7 +78,6 @@ function loadPfxCert(tlsConfig: TlsPfxCert, opts: https.ServerOptions): https.Se
   if (tlsConfig.pfxPassphrase !== undefined) {
     opts.passphrase = tlsConfig.pfxPassphrase
   }
-  return opts
 }
 
 export function createHttpsServer(app: ExpressApp, tlsConfig: TlsCertConfigInterface): https.Server {
@@ -91,5 +92,6 @@ export function createHttpsServer(app: ExpressApp, tlsConfig: TlsCertConfigInter
   } else {
     throw new Error('The `tlsCertConfig` must specify either a `keyFile` or a `pfxFile` property')
   }
+  
   return https.createServer(opts, app)
 }
