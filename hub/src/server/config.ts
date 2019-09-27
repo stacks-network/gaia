@@ -94,6 +94,15 @@ export interface AcmeConfigInterface {
    * @default "https://acme-v02.api.letsencrypt.org/directory"
    */
   server?: string;
+  /**
+   * The ACME version to use. `v02`/`draft-12` is for Let's Encrypt v2 otherwise known as ACME draft 12.
+   * @default "v02"
+   */
+  version?: string;
+  /**
+   * @default false
+   */
+  debug?: boolean;
 }
 
 export interface TlsPemCert {

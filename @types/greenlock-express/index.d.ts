@@ -46,6 +46,12 @@ declare module 'greenlock-express' {
      * Array of allowed domains such as `[ "example.com", "www.example.com" ]`
      */
     approveDomains?: string[];
+
+    /**
+     * Specify a account and domain key storage plugin. 
+     * Defaults to using `le-store-certbot` which will be deprecated in favor of `greenlock-store-fs`. 
+     */
+    store?: any;
   }
 
   export interface GreenlockExpressOptions extends GreenlockOptions {

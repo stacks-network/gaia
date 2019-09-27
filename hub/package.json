@@ -20,6 +20,7 @@
     "express-winston": "^3.3.0",
     "fs-extra": "^8.1.0",
     "greenlock-express": "^2.7.17",
+    "greenlock-store-fs": "^3.0.2",
     "jsontokens": "^2.0.2",
     "lru-cache": "^5.1.1",
     "nanoid": "^2.1.1",

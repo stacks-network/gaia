@@ -27,6 +27,10 @@
                     "description": "Writable directory where certs will be saved.",
                     "type": "string"
                 },
+                "debug": {
+                    "default": false,
+                    "type": "boolean"
+                },
                 "email": {
                     "description": "The email address of the ACME user / hosting provider.",
                     "type": "string"
@@ -48,6 +52,11 @@
                     "default": false,
                     "description": "Contribute telemetry data to the project.",
                     "type": "boolean"
+                },
+                "version": {
+                    "default": "v02",
+                    "description": "The ACME version to use. `v02`/`draft-12` is for Let's Encrypt v2 otherwise known as ACME draft 12.",
+                    "type": "string"
                 }
             },
             "required": [
