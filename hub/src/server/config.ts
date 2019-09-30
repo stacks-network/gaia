@@ -279,37 +279,97 @@ export class HubConfig {
 
 }
 
+type EnvVarTypeInfo = [string, 'list' | 'int' | 'boolean' ]
+type EnvVarType = string | EnvVarTypeInfo
+type EnvVarProp = EnvVarType | EnvVarObj
+interface EnvVarObj {
+  [key: string]: EnvVarProp
+}
 
-const globalEnvVars = { whitelist: 'GAIA_WHITELIST',
-                        readURL: 'GAIA_READ_URL',
-                        driver: 'GAIA_DRIVER',
-                        validHubUrls: 'GAIA_VALID_HUB_URLS',
-                        requireCorrectHubUrl: 'GAIA_REQUIRE_CORRECT_HUB_URL',
-                        serverName: 'GAIA_SERVER_NAME',
-                        bucket: 'GAIA_BUCKET_NAME',
-                        pageSize: 'GAIA_PAGE_SIZE',
-                        cacheControl: 'GAIA_CACHE_CONTROL',
-                        port: 'GAIA_PORT' }
+const globalEnvVars: EnvVarObj = { 
+  whitelist: ['GAIA_WHITELIST', 'list'],
+  readURL: 'GAIA_READ_URL',
+  driver: 'GAIA_DRIVER',
+  validHubUrls: ['GAIA_VALID_HUB_URLS', 'list'],
+  requireCorrectHubUrl: ['GAIA_REQUIRE_CORRECT_HUB_URL', 'int'],
+  serverName: 'GAIA_SERVER_NAME',
+  bucket: 'GAIA_BUCKET_NAME',
+  pageSize: ['GAIA_PAGE_SIZE', 'int'],
+  cacheControl: 'GAIA_CACHE_CONTROL',
+  port: ['GAIA_PORT', 'int'],
+  httpsPort: ['GAIA_HTTPS_PORT', 'int'],
+  enableHttps: 'GAIA_ENABLE_HTTPS',
+  acmeConfig: {
+    email: 'GAIA_ACME_CONFIG_EMAIL',
+    agreeTos: ['GAIA_ACME_CONFIG_AGREE_TOS', 'boolean'],
+    configDir: 'GAIA_ACME_CONFIG_CONFIG_DIR',
+    securityUpdates: ['GAIA_ACME_CONFIG_SECURITY_UPDATES', 'boolean'],
+    servername: 'GAIA_ACME_CONFIG_SERVERNAME',
+    approveDomains: ['GAIA_ACME_CONFIG_APPROVE_DOMAINS', 'list']
+  },
+  tlsCertConfig: {
+    keyFile: 'GAIA_TLS_CERT_CONFIG_KEY_FILE',
+    certFile: 'GAIA_TLS_CERT_CONFIG_CERT_FILE',
+    keyPassphrase: 'GAIA_TLS_CERT_CONFIG_KEY_PASSPHRASE',
+    pfxFile: 'GAIA_TLS_CERT_CONFIG_PFX_FILE',
+    pfxPassphrase: 'GAIA_TLS_CERT_CONFIG_PFX_PASSPHRASE'
+  }
+}
 
-const parseInts = [ 'port', 'pageSize', 'requireCorrectHubUrl' ]
-const parseLists = [ 'validHubUrls', 'whitelist' ]
+function getConfigEnv(envVars: EnvVarObj) {
+  const configEnv: Record<string, any> = {}
 
-function getConfigEnv(envVars: {[key: string]: string}) {
-  const configEnv: {[key: string]: any} = {}
-  for (const name in envVars) {
-    const envVar = envVars[name]
-    if (process.env[envVar]) {
-      console.log(process.env[envVar])
-      configEnv[name] = process.env[envVar]
-      if (parseInts.includes(name)) {
-        configEnv[name] = parseInt(configEnv[name])
-        if (isNaN(configEnv[name])) {
-          throw new Error(`Passed a non-number input to: ${envVar}`)
+  function hasTypeInfo(value: EnvVarObj | EnvVarTypeInfo): value is EnvVarTypeInfo {
+    return Array.isArray(value)
+  }
+
+  const detectedEnvVars: string[] = []
+
+  function populateObj(getTarget: () => Record<string, any>, envVarProp: EnvVarObj){
+    for (const [name, value] of Object.entries(envVarProp)) {
+      if (typeof value === 'string') {
+        if (process.env[value]) {
+          detectedEnvVars.push(value)
+          getTarget()[name] = process.env[value]
         }
-      } else if (parseLists.includes(name)) {
-        configEnv[name] = (configEnv[name] as string).split(',').map(x => x.trim())
+      } else if (hasTypeInfo(value)) {
+        if (process.env[value[0]]) {
+          detectedEnvVars.push(value[0])
+          if (value[1] === 'int') {
+            const intVar = parseInt(process.env[value[0]])
+            if (isNaN(intVar)) {
+              throw new Error(`Passed a non-number input to: ${value[0]}`)
+            }
+            getTarget()[name] = intVar
+          } else if (value[1] === 'list') {
+            getTarget()[name] = process.env[value[0]].split(',').map(x => x.trim())
+          } else if (value[1] === 'boolean') {
+            let boolVal: boolean
+            const envVar = process.env[value[0]].toLowerCase().trim()
+            if (envVar === 'true') {
+              boolVal = true
+            } else if (envVar === 'false') {
+              boolVal = false
+            } else {
+              throw new Error(`Passed a invalid boolean input to: ${value[0]}, must be "true" or "false"`)
+            }
+            getTarget()[name] = boolVal
+          }
+        }
+      } else {
+        populateObj(() => {
+          const innerTarget = getTarget()
+          if (!innerTarget[name]) {
+            innerTarget[name] = {}
+          }
+          return innerTarget[name]
+        }, value)
       }
     }
+  }
+  populateObj(() => configEnv, envVars)
+  if (detectedEnvVars.length > 0) {
+    console.log(`Using env vars: ${detectedEnvVars.join(',')}`)
   }
   return configEnv
 }
