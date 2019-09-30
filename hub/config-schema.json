@@ -7,7 +7,7 @@
             "description": "Options for Automatic Certificate Management Environment client. \nRequires `enableHttps` to be set to `acme`. \nSee https://www.npmjs.com/package/greenlock-express \nSee https://tools.ietf.org/html/rfc8555 \nSee https://github.com/ietf-wg-acme/acme",
             "properties": {
                 "agreeTos": {
-                    "description": "Accept Let's Encrypt v2 Agreement. You must accept the ToS as the host which handles the certs.",
+                    "description": "Accept Let's Encrypt™ v2 Agreement. You must accept the ToS as the host which handles the certs. \nSee the subscriber agreement at https://letsencrypt.org/repository/",
                     "type": "boolean"
                 },
                 "approveDomains": {
