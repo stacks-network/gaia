@@ -58,6 +58,7 @@ export interface HubConfigInterface {
   bucket?: string;
   pageSize?: number;
   cacheControl?: string;
+  maxFileUploadSize?: number;
   argsTransport?: LoggingConfig;
   proofsConfig?: ProofCheckerConfigInterface;
   driver?: DriverName;
@@ -124,6 +125,14 @@ class HubConfig implements HubConfigInterface {
    */
   pageSize? = 100;
   cacheControl? = 'public, max-age=1';
+  /**
+   * The maximum allowed POST body size in megabytes. 
+   * The content-size header is checked, and the POST body stream 
+   * is monitoring while streaming from the client. 
+   * [Recommended] Minimum 100KB (or approximately 0.1MB)
+   * @minimum 0.1
+   */
+  maxFileUploadSize? = 20;
   /**
    * @minimum 0
    * @maximum 65535
