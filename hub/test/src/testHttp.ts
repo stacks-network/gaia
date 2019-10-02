@@ -255,7 +255,7 @@ export function testHttpWithInMemoryDriver() {
       await request(app).delete(`/delete/${address}/../traversal`)
         .set('Authorization', authorization)
         .send()
-        .expect(400)
+        .expect(403)
 
       await request(app).delete(`/delete/${testAddrs[4]}/anyfile`)
         .set('Authorization', authorization)
