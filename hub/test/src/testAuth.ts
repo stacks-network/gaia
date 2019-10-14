@@ -41,38 +41,38 @@ export function testAuth() {
     t.end()
   })
 
-  test('storage validation', (t) => {
+  test('storage validation', async (t) => {
     const challengeText = auth.getChallengeText()
     const authPart = auth.LegacyAuthentication.makeAuthPart(testPairs[0], challengeText)
     const authorization = `bearer ${authPart}`
     const authenticator = auth.parseAuthHeader(authorization)
-    t.throws(() => authenticator.isAuthenticationValid(testAddrs[1], [challengeText]),
+    await t.rejects(() => authenticator.isAuthenticationValid(testAddrs[1], [challengeText]),
              errors.ValidationError, 'Wrong address must throw')
-    t.throws(() => authenticator.isAuthenticationValid(testAddrs[0], ['potatos']),
+             await t.rejects(() => authenticator.isAuthenticationValid(testAddrs[0], ['potatos']),
              errors.ValidationError, 'Wrong challenge text must throw')
-    t.ok(authenticator.isAuthenticationValid(testAddrs[0], [challengeText]),
+    await t.doesNotReject(() => authenticator.isAuthenticationValid(testAddrs[0], [challengeText]),
          'Good signature must pass')
 
-    t.throws(() => authenticator.isAuthenticationValid(testAddrs[1], [challengeText]),
+    await t.rejects(() => authenticator.isAuthenticationValid(testAddrs[1], [challengeText]),
              'Bad signature must throw')
     t.end()
   })
 
-  test('v1 storage validation', (t) => {
+  test('v1 storage validation', async (t) => {
     const challengeText = 'bananas are tasty'
     const authPart = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText)
     console.log(`V1 storage validation: ${authPart}`)
     const authorization = `bearer ${authPart}`
     const authenticator = auth.parseAuthHeader(authorization)
-    t.throws(() => authenticator.isAuthenticationValid(testAddrs[1], [challengeText]),
+    await t.rejects(() => authenticator.isAuthenticationValid(testAddrs[1], [challengeText]),
              errors.ValidationError, 'Wrong address must throw')
-    t.throws(() => authenticator.isAuthenticationValid(testAddrs[0], ['potatos are tasty']),
+             await t.rejects(() => authenticator.isAuthenticationValid(testAddrs[0], ['potatos are tasty']),
              errors.ValidationError, 'Wrong challenge text must throw')
-    t.ok(authenticator.isAuthenticationValid(testAddrs[0], [challengeText]),
+    await t.doesNotReject(() => authenticator.isAuthenticationValid(testAddrs[0], [challengeText]),
          'Good signature must pass')
 
     // signer address was from the v1 token
-    t.equal(authenticator.isAuthenticationValid(testAddrs[0], [challengeText]), testAddrs[0])
+    t.equal(await authenticator.isAuthenticationValid(testAddrs[0], [challengeText]), testAddrs[0])
 
     const signerKeyHex = testPairs[0].privateKey.toString('hex')
     const tokenWithoutIssuer = new TokenSigner('ES256K', signerKeyHex).sign(
@@ -83,33 +83,33 @@ export function testAuth() {
       { gaiaChallenge: challengeText, iss: testPairs[0].publicKey.toString('hex'), exp: 1 })
     const wrongIssuerToken = new TokenSigner('ES256K', signerKeyHex).sign(
       { gaiaChallenge: challengeText, iss: testPairs[1].publicKey.toString('hex'), exp: 1 })
-    t.throws(() => new auth.V1Authentication(tokenWithoutIssuer).isAuthenticationValid(testAddrs[0], [challengeText]),
+    await t.rejects(() => new auth.V1Authentication(tokenWithoutIssuer).isAuthenticationValid(testAddrs[0], [challengeText]),
              errors.ValidationError, 'No `iss`, should fail')
-    t.throws(() => new auth.V1Authentication(expiredToken).isAuthenticationValid(testAddrs[0], [challengeText]),
+    await t.rejects(() => new auth.V1Authentication(expiredToken).isAuthenticationValid(testAddrs[0], [challengeText]),
              errors.ValidationError, 'Expired token should fail')
-    t.throws(() => new auth.V1Authentication(wrongIssuerToken).isAuthenticationValid(testAddrs[1], [challengeText]),
+    await t.rejects(() => new auth.V1Authentication(wrongIssuerToken).isAuthenticationValid(testAddrs[1], [challengeText]),
              errors.ValidationError, 'Invalid signature')
-    t.ok(new auth.V1Authentication(goodTokenWithoutExp).isAuthenticationValid(testAddrs[0], [challengeText]),
+    t.ok(await new auth.V1Authentication(goodTokenWithoutExp).isAuthenticationValid(testAddrs[0], [challengeText]),
          'Valid token without expiration should pass')
 
     t.end()
   })
 
-  test('v1 storage validation with hubUrls required', (t) => {
+  test('v1 storage validation with hubUrls required', async (t) => {
     const challengeText = 'bananas are tasty'
     const authPart = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText)
     console.log(`V1 storage validation: ${authPart}`)
     const authorization = `bearer ${authPart}`
     const authenticator = auth.parseAuthHeader(authorization)
-    t.throws(() => authenticator.isAuthenticationValid(testAddrs[1], [challengeText]),
+    await t.rejects(() => authenticator.isAuthenticationValid(testAddrs[1], [challengeText]),
              errors.ValidationError, 'Wrong address must throw')
-    t.throws(() => authenticator.isAuthenticationValid(testAddrs[0], ['potatos are tasty']),
+    await t.rejects(() => authenticator.isAuthenticationValid(testAddrs[0], ['potatos are tasty']),
              errors.ValidationError, 'Wrong challenge text must throw')
-    t.ok(authenticator.isAuthenticationValid(testAddrs[0], [challengeText]),
+    await t.doesNotReject(() => authenticator.isAuthenticationValid(testAddrs[0], [challengeText]),
          'Good signature must pass')
 
     // signer address was from the v1 token
-    t.equal(authenticator.isAuthenticationValid(testAddrs[0], [challengeText]), testAddrs[0])
+    t.equal(await authenticator.isAuthenticationValid(testAddrs[0], [challengeText]), testAddrs[0])
 
     const signerKeyHex = testPairs[0].privateKey.toString('hex')
     const tokenWithoutIssuer = new TokenSigner('ES256K', signerKeyHex).sign(
@@ -120,34 +120,34 @@ export function testAuth() {
       { gaiaChallenge: challengeText, iss: testPairs[0].publicKey.toString('hex'), exp: 1 })
     const wrongIssuerToken = new TokenSigner('ES256K', signerKeyHex).sign(
       { gaiaChallenge: challengeText, iss: testPairs[1].publicKey.toString('hex'), exp: 1 })
-    t.throws(() => new auth.V1Authentication(tokenWithoutIssuer).isAuthenticationValid(testAddrs[0], [challengeText]),
+    await t.rejects(() => new auth.V1Authentication(tokenWithoutIssuer).isAuthenticationValid(testAddrs[0], [challengeText]),
              errors.ValidationError, 'No `iss`, should fail')
-    t.throws(() => new auth.V1Authentication(expiredToken).isAuthenticationValid(testAddrs[0], [challengeText]),
+    await t.rejects(() => new auth.V1Authentication(expiredToken).isAuthenticationValid(testAddrs[0], [challengeText]),
              errors.ValidationError, 'Expired token should fail')
-    t.throws(() => new auth.V1Authentication(wrongIssuerToken).isAuthenticationValid(testAddrs[1], [challengeText]),
+    await t.rejects(() => new auth.V1Authentication(wrongIssuerToken).isAuthenticationValid(testAddrs[1], [challengeText]),
              errors.ValidationError, 'Invalid signature')
-    t.ok(new auth.V1Authentication(goodTokenWithoutExp).isAuthenticationValid(testAddrs[0], [challengeText]),
+    await t.doesNotReject(new auth.V1Authentication(goodTokenWithoutExp).isAuthenticationValid(testAddrs[0], [challengeText]),
          'Valid token without expiration should pass')
 
     t.end()
   })
 
-  test('v1 storage validation with association token', (t) => {
+  test('v1 storage validation with association token', async (t) => {
     const challengeText = 'bananas are tasty'
     const associationToken = auth.V1Authentication.makeAssociationToken(testPairs[1], testPairs[0].publicKey.toString('hex'))
     const authPart = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText, associationToken)
     console.log(`V1 storage validation: ${authPart}`)
     const authorization = `bearer ${authPart}`
     const authenticator = auth.parseAuthHeader(authorization)
-    t.throws(() => authenticator.isAuthenticationValid(testAddrs[1], [challengeText]),
+    await t.rejects(() => authenticator.isAuthenticationValid(testAddrs[1], [challengeText]),
              errors.ValidationError, 'Wrong address must throw')
-    t.throws(() => authenticator.isAuthenticationValid(testAddrs[0], ['potatos are tasty']),
+             await t.rejects(() => authenticator.isAuthenticationValid(testAddrs[0], ['potatos are tasty']),
              errors.ValidationError, 'Wrong challenge text must throw')
-    t.ok(authenticator.isAuthenticationValid(testAddrs[0], [challengeText]),
+    await t.doesNotReject(() => authenticator.isAuthenticationValid(testAddrs[0], [challengeText]),
          'Good signature must pass')
 
     // signer address was from the association token
-    t.equal(authenticator.isAuthenticationValid(testAddrs[0], [challengeText]), testAddrs[1])
+    t.equal(await authenticator.isAuthenticationValid(testAddrs[0], [challengeText]), testAddrs[1])
 
     // failures should work the same if the outer JWT is invalid
     const signerKeyHex = testPairs[0].privateKey.toString('hex')
@@ -159,13 +159,13 @@ export function testAuth() {
       { gaiaChallenge: challengeText, iss: testPairs[0].publicKey.toString('hex'), exp: 1 })
     const wrongIssuerToken = new TokenSigner('ES256K', signerKeyHex).sign(
       { gaiaChallenge: challengeText, iss: testPairs[1].publicKey.toString('hex'), exp: 1 })
-    t.throws(() => new auth.V1Authentication(tokenWithoutIssuer).isAuthenticationValid(testAddrs[0], [challengeText]),
+    await t.rejects(() => new auth.V1Authentication(tokenWithoutIssuer).isAuthenticationValid(testAddrs[0], [challengeText]),
              errors.ValidationError, 'No `iss`, should fail')
-    t.throws(() => new auth.V1Authentication(expiredToken).isAuthenticationValid(testAddrs[0], [challengeText]),
+    await t.rejects(() => new auth.V1Authentication(expiredToken).isAuthenticationValid(testAddrs[0], [challengeText]),
              errors.ValidationError, 'Expired token should fail')
-    t.throws(() => new auth.V1Authentication(wrongIssuerToken).isAuthenticationValid(testAddrs[1], [challengeText]),
+    await t.rejects(() => new auth.V1Authentication(wrongIssuerToken).isAuthenticationValid(testAddrs[1], [challengeText]),
              errors.ValidationError, 'Invalid signature')
-    t.ok(new auth.V1Authentication(goodTokenWithoutExp).isAuthenticationValid(testAddrs[0], [challengeText]),
+    await t.doesNotReject(() => new auth.V1Authentication(goodTokenWithoutExp).isAuthenticationValid(testAddrs[0], [challengeText]),
          'Valid token without expiration should pass')
 
     // invalid associationTokens should cause a well-formed outer JWT to fail authentication
@@ -185,21 +185,21 @@ export function testAuth() {
       return new auth.V1Authentication(auth.V1Authentication.fromAuthPart(auth.V1Authentication.makeAuthPart(keypair, ct, assocJWT)).token)
     }
 
-    t.throws(() => makeAssocAuthToken(testPairs[1], challengeText, associationTokenWithoutIssuer).isAuthenticationValid(testAddrs[1], [challengeText]),
+    await t.rejects(() => makeAssocAuthToken(testPairs[1], challengeText, associationTokenWithoutIssuer).isAuthenticationValid(testAddrs[1], [challengeText]),
              errors.ValidationError, 'No `iss` in association token, should fail')
-    t.throws(() => makeAssocAuthToken(testPairs[1], challengeText, associationTokenWithoutExp).isAuthenticationValid(testAddrs[1], [challengeText]),
+    await t.rejects(() => makeAssocAuthToken(testPairs[1], challengeText, associationTokenWithoutExp).isAuthenticationValid(testAddrs[1], [challengeText]),
              errors.ValidationError, 'Association token without exp should fail')
-    t.throws(() => makeAssocAuthToken(testPairs[1], challengeText, expiredAssociationToken).isAuthenticationValid(testAddrs[1], [challengeText]),
+    await t.rejects(() => makeAssocAuthToken(testPairs[1], challengeText, expiredAssociationToken).isAuthenticationValid(testAddrs[1], [challengeText]),
              errors.ValidationError, 'Expired association token should fail')
-    t.throws(() => makeAssocAuthToken(testPairs[1], challengeText, wrongIssuerAssociationToken).isAuthenticationValid(testAddrs[1], [challengeText]),
+    await t.rejects(() => makeAssocAuthToken(testPairs[1], challengeText, wrongIssuerAssociationToken).isAuthenticationValid(testAddrs[1], [challengeText]),
              errors.ValidationError, 'Wrong association token issuer, should fail')
-    t.throws(() => makeAssocAuthToken(testPairs[1], challengeText, wrongBearerAddressAssociationToken).isAuthenticationValid(testAddrs[1], [challengeText]),
+    await t.rejects(() => makeAssocAuthToken(testPairs[1], challengeText, wrongBearerAddressAssociationToken).isAuthenticationValid(testAddrs[1], [challengeText]),
              errors.ValidationError, 'Wrong bearer address for association token, should fail')
 
     t.end()
   })
 
-  test('v1 storage validation with scoped authentication token', (t) => {
+  test('v1 storage validation with scoped authentication token', async (t) => {
     const challengeText = 'bananas are tasty'
     const writeScopes = [
       {
@@ -263,11 +263,11 @@ export function testAuth() {
 
     const authorization = `bearer ${authPart}`
     const authenticator = auth.parseAuthHeader(authorization)
-    t.throws(() => authenticator.isAuthenticationValid(testAddrs[1], [challengeText]),
+    await t.rejects(() => authenticator.isAuthenticationValid(testAddrs[1], [challengeText]),
              errors.ValidationError, 'Wrong address must throw')
-    t.throws(() => authenticator.isAuthenticationValid(testAddrs[0], ['potatos are tasty']),
+    await t.rejects(() => authenticator.isAuthenticationValid(testAddrs[0], ['potatos are tasty']),
              errors.ValidationError, 'Wrong challenge text must throw')
-    t.ok(authenticator.isAuthenticationValid(testAddrs[0], [challengeText]),
+    await t.doesNotReject(() => authenticator.isAuthenticationValid(testAddrs[0], [challengeText]),
          'Good signature must pass')
 
     // scopes must be present

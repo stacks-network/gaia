@@ -214,7 +214,10 @@ declare module 'tape-promise/tape' {
             comment(msg: string): void;
 
             rejects(fn: Promise<any> | (() => Promise<any>), exceptionExpected: RegExp | Function, msg?: string): Promise<void>;
+            rejects(fn: Promise<any> | (() => Promise<any>), msg?: string): Promise<void>;
 
+            doesNotReject(fn: Promise<any> | (() => Promise<any>), exceptionExpected?: RegExp | Function, msg?: string): Promise<void>;
+            doesNotReject(fn: Promise<any> | (() => Promise<any>), msg?: string): Promise<void>;
         }
     }
     

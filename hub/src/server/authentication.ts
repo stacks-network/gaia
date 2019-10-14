@@ -87,7 +87,7 @@ export function decodeTokenForPayload(opts: {
 }
 
 export interface AuthenticationInterface {
-  checkAssociationToken(token: string, bearerAddress: string): void
+  checkAssociationToken(token: string, bearerAddress: string): Promise<string>
   getAuthenticationScopes(): AuthScopeEntry[]
   isAuthenticationValid(
     address: string, 
@@ -97,7 +97,7 @@ export interface AuthenticationInterface {
       validHubUrls?: string[],
       oldestValidTokenTimestamp?: number 
     }
-  ): string
+  ): Promise<string>
   parseAuthScopes(): AuthScopeValues
 }
 
@@ -175,7 +175,7 @@ export class V1Authentication implements AuthenticationInterface {
     return token
   }
 
-  checkAssociationToken(token: string, bearerAddress: string) {
+  async checkAssociationToken(token: string, bearerAddress: string): Promise<string> {
     // a JWT can have an `associationToken` that was signed by one of the
     // whitelisted addresses on this server.  This method checks a given
     // associationToken and verifies that it authorizes the "outer"
@@ -215,13 +215,13 @@ export class V1Authentication implements AuthenticationInterface {
     }
 
     // the bearer of the association token must have authorized the bearer
-    const childAddress = ecPairToAddress(pubkeyHexToECPair(childPublicKey))
+    const childAddress = await ecPairToAddress(pubkeyHexToECPair(childPublicKey))
     if (childAddress !== bearerAddress) {
       throw new ValidationError(
         `Association token child key ${childPublicKey} does not match ${bearerAddress}`)
     }
 
-    const signerAddress = ecPairToAddress(pubkeyHexToECPair(publicKey))
+    const signerAddress = await ecPairToAddress(pubkeyHexToECPair(publicKey))
     return signerAddress
 
   }
@@ -278,10 +278,11 @@ export class V1Authentication implements AuthenticationInterface {
    *
    * this throws a ValidationError if the authentication is invalid
    */
-  isAuthenticationValid(address: string, challengeTexts: Array<string>,
-                        options?: { requireCorrectHubUrl?: boolean,
-                                    validHubUrls?: Array<string>,
-                                    oldestValidTokenTimestamp?: number }): string {
+  async isAuthenticationValid(
+    address: string, challengeTexts: Array<string>,
+    options?: { requireCorrectHubUrl?: boolean,
+                validHubUrls?: Array<string>,
+                oldestValidTokenTimestamp?: number }): Promise<string> {
     const payload = decodeTokenForPayload({
       encodedToken: this.token,
       validationErrorMsg: 'isAuthenticationValid: Failed to decode authentication JWT'
@@ -312,7 +313,7 @@ export class V1Authentication implements AuthenticationInterface {
       }
     }
 
-    const issuerAddress = ecPairToAddress(pubkeyHexToECPair(publicKey))
+    const issuerAddress = await ecPairToAddress(pubkeyHexToECPair(publicKey))
 
     if (issuerAddress !== address) {
       throw new ValidationError('Address not allowed to write on this path')
@@ -377,7 +378,7 @@ export class V1Authentication implements AuthenticationInterface {
 
 export class LegacyAuthentication implements AuthenticationInterface {
 
-  checkAssociationToken(_token: string, _bearerAddress: string): void {
+  checkAssociationToken(_token: string, _bearerAddress: string): Promise<string> {
     throw new Error('Method not implemented.')
   }
 
@@ -421,9 +422,10 @@ export class LegacyAuthentication implements AuthenticationInterface {
     return []
   }
 
-  isAuthenticationValid(address: string, challengeTexts: Array<string>,
-                        options? : {}) { //  eslint-disable-line @typescript-eslint/no-unused-vars
-    if (ecPairToAddress(this.publickey) !== address) {
+  async isAuthenticationValid(
+    address: string, challengeTexts: Array<string>,
+    _options? : {}): Promise<string> {
+    if (await ecPairToAddress(this.publickey) !== address) {
       throw new ValidationError('Address not allowed to write on this path')
     }
 
@@ -478,7 +480,7 @@ export function parseAuthHeader(authHeader: string): AuthenticationInterface {
 export function validateAuthorizationHeader(authHeader: string, serverName: string,
                                             address: string, requireCorrectHubUrl: boolean = false,
                                             validHubUrls: Array<string> = null,
-                                            oldestValidTokenTimestamp?: number): string {
+                                            oldestValidTokenTimestamp?: number): Promise<string> {
   const serverNameHubUrl = `https://${serverName}`
   if (!validHubUrls) {
     validHubUrls = [ serverNameHubUrl ]

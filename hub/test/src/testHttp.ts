@@ -41,7 +41,7 @@ export function testHttpWithInMemoryDriver() {
       const fileContents = sk.toWIF()
       const blob = Buffer.from(fileContents)
 
-      const address = ecPairToAddress(sk)
+      const address = await ecPairToAddress(sk)
 
       let response = await request(app)
         .get('/hub_info/')
@@ -142,7 +142,7 @@ export function testHttpWithInMemoryDriver() {
       const fileContents = sk.toWIF()
       const blob = Buffer.from(fileContents)
 
-      const address = ecPairToAddress(sk)
+      const address = await ecPairToAddress(sk)
       const path = `/store/${address}/helloWorld`
       const listPath = `/list-files/${address}`
 
@@ -224,7 +224,7 @@ export function testHttpWithInMemoryDriver() {
       const fileContents = sk.toWIF()
       const blob = Buffer.from(fileContents)
 
-      const address = ecPairToAddress(sk)
+      const address = await ecPairToAddress(sk)
       const path = `/store/${address}/helloWorld`
       const deletePath = `/delete/${address}/helloWorld`
 
@@ -399,14 +399,14 @@ function testHttpWithAzure() {
   }
 
   // TODO: run this test with all configured drivers
-  test('auth failure', (t) => {
+  test('auth failure', async (t) => {
     let { app, server } = makeHttpServer(config)
     server.authTimestampCache = new MockAuthTimestampCache()
     let sk = testPairs[1]
     let fileContents = sk.toWIF()
     let blob = Buffer.from(fileContents)
 
-    let address = ecPairToAddress(sk)
+    let address = await ecPairToAddress(sk)
     let path = `/store/${address}/helloWorld`
     let prefix = ''
     let authorizationHeader = ''
@@ -436,7 +436,7 @@ function testHttpWithAzure() {
       .then(() => { restore(); t.end() })
   })
 
-  test('handle request', (t) => {
+  test('handle request', async (t) => {
     let fetch = sandbox()
     let { app, server } = makeHttpServer(config)
     server.authTimestampCache = new MockAuthTimestampCache()
@@ -444,7 +444,7 @@ function testHttpWithAzure() {
     let fileContents = sk.toWIF()
     let blob = Buffer.from(fileContents)
 
-    let address = ecPairToAddress(sk)
+    let address = await ecPairToAddress(sk)
     let path = `/store/${address}/helloWorld`
     let listPath = `/list-files/${address}`
     let prefix = ''

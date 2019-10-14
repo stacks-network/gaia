@@ -39,18 +39,19 @@ export class HubServer {
   }
 
   async handleAuthBump(address: string, oldestValidTimestamp: number, requestHeaders: { authorization?: string }) {
-    this.validate(address, requestHeaders)
+    await this.validate(address, requestHeaders)
     await this.authTimestampCache.setAuthTimestamp(address, oldestValidTimestamp)
   }
 
   // throws exception on validation error
   //   otherwise returns void.
-  validate(address: string, requestHeaders: { authorization?: string }, oldestValidTokenTimestamp?: number) {
-    const signingAddress = validateAuthorizationHeader(requestHeaders.authorization,
-                                                       this.serverName, address,
-                                                       this.requireCorrectHubUrl,
-                                                       this.validHubUrls, 
-                                                       oldestValidTokenTimestamp)
+  async validate(address: string, requestHeaders: { authorization?: string }, oldestValidTokenTimestamp?: number) {
+    const signingAddress = await validateAuthorizationHeader(
+      requestHeaders.authorization,
+      this.serverName, address,
+      this.requireCorrectHubUrl,
+      this.validHubUrls, 
+      oldestValidTokenTimestamp)
 
     if (this.whitelist && !(this.whitelist.includes(signingAddress))) {
       throw new ValidationError(`Address ${signingAddress} not authorized for writes`)
@@ -65,7 +66,7 @@ export class HubServer {
     const scopes = getAuthenticationScopes(requestHeaders.authorization)
     const isArchivalRestricted = this.isArchivalRestricted(scopes)
 
-    this.validate(address, requestHeaders, oldestValidTokenTimestamp)
+    await this.validate(address, requestHeaders, oldestValidTokenTimestamp)
 
     const listFilesArgs: PerformListFilesArgs = {
       pathPrefix: address,
@@ -133,7 +134,7 @@ export class HubServer {
     requestHeaders: { authorization?: string }
   ) {
     const oldestValidTokenTimestamp = await this.authTimestampCache.getAuthTimestamp(address)
-    this.validate(address, requestHeaders, oldestValidTokenTimestamp)
+    await this.validate(address, requestHeaders, oldestValidTokenTimestamp)
 
     // can the caller delete? if so, in what paths?
     const scopes = getAuthenticationScopes(requestHeaders.authorization)
@@ -186,7 +187,7 @@ export class HubServer {
   ) {
 
     const oldestValidTokenTimestamp = await this.authTimestampCache.getAuthTimestamp(address)
-    this.validate(address, requestHeaders, oldestValidTokenTimestamp)
+    await this.validate(address, requestHeaders, oldestValidTokenTimestamp)
     let contentType = requestHeaders['content-type']
 
     if (contentType === null || contentType === undefined) {
