@@ -1,7 +1,7 @@
-import winston from 'winston'
-import fs from 'fs'
-import process from 'process'
-import Ajv from 'ajv'
+import * as winston from 'winston'
+import * as fs from 'fs'
+import * as process from 'process'
+import * as Ajv from 'ajv'
 
 import { getDriverClass, logger } from './utils'
 import { DriverModel, DriverConstructor } from './driverModel'
@@ -183,13 +183,13 @@ function getConfigEnv(envVars: {[key: string]: string}) {
     if (process.env[envVar]) {
       console.log(process.env[envVar])
       configEnv[name] = process.env[envVar]
-      if (parseInts.indexOf(name) >= 0) {
+      if (parseInts.includes(name)) {
         configEnv[name] = parseInt(configEnv[name])
         if (isNaN(configEnv[name])) {
           throw new Error(`Passed a non-number input to: ${envVar}`)
         }
-      } else if (parseLists.indexOf(name) >= 0) {
-        configEnv[name] = (<string>configEnv[name]).split(',').map(x => x.trim())
+      } else if (parseLists.includes(name)) {
+        configEnv[name] = (configEnv[name] as string).split(',').map(x => x.trim())
       }
     }
   }
@@ -247,7 +247,7 @@ export function getConfigDefaults(): HubConfigInterface {
 export function validateConfigSchema(
   schemaFilePath: string, 
   configObj: any, 
-  warnCallback: (msg: string) => void = console.error
+  warnCallback: (msg: string) => void = (msg => console.error(msg))
 ) {
   try {
     const ajv = new Ajv({

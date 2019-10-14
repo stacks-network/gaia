@@ -1,10 +1,10 @@
 
 
 import { Readable, Writable } from 'stream'
-import os from 'os'
-import path from 'path'
-import fs from 'fs'
-import proxyquire from 'proxyquire'
+import * as os from 'os'
+import * as path from 'path'
+import * as fs from 'fs'
+import { load as proxyquire } from 'proxyquire'
 
 import { readStream } from '../../../src/server/utils'
 import { DriverModel, DriverConstructor, PerformDeleteArgs } from '../../../src/server/driverModel'
@@ -272,21 +272,21 @@ export function makeMockedDiskDriver() {
 }
 
 class MockWriteStream extends Writable {
-  dataMap: any
-  filename: any
-  data: any
-  constructor(dataMap, filename) {
+  dataMap: DataMap
+  filename: string
+  data: string
+  constructor(dataMap: DataMap, filename: string) {
     super({})
     this.dataMap = dataMap
     this.filename = filename
     this.data = ''
   }
-  _write(chunk, encoding, callback) {
+  _write(chunk: any, encoding: any, callback: any) {
     this.data += chunk
     callback()
     return true
   }
-  _final(callback) {
+  _final(callback: any) {
     this.dataMap.push({ data: this.data, key: this.filename })
     callback()
   }

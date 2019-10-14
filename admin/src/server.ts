@@ -1,6 +1,6 @@
-import fs from 'fs'
-import childProcess from 'child_process'
-import Ajv from 'ajv'
+import * as fs from 'fs'
+import * as childProcess from 'child_process'
+import * as Ajv from 'ajv'
 import { Config, logger } from './config'
 
 function runSubprocess(
@@ -293,7 +293,7 @@ export class AdminAPI {
     // only allow fields in allowedFields to be written
     const fieldsToWrite: {[key: string]: any} = {}
     for (let i = 0; i < allowedFields.length; i++) {
-      if (newFields.hasOwnProperty(allowedFields[i])) {
+      if (allowedFields[i] in newFields) {
         fieldsToWrite[allowedFields[i]] = newFields[allowedFields[i]]
       }
     }

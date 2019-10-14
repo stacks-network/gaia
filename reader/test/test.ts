@@ -1,6 +1,6 @@
-import test from 'tape'
-import fs from 'fs'
-import Path from 'path'
+import test = require('tape')
+import * as fs from 'fs'
+import * as Path from 'path'
 
 import { GaiaDiskReader } from '../src/server'
 

@@ -1,5 +1,5 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
-import crypto from 'crypto'
+import * as crypto from 'crypto'
 import { decodeToken, TokenSigner, TokenVerifier } from 'jsontokens'
 import { ecPairToHexString, ecPairToAddress } from 'blockstack'
 import { ValidationError, AuthTokenTimestampValidationError } from './errors'
@@ -246,7 +246,7 @@ export class V1Authentication implements AuthenticationInterface {
       validationErrorMsg: 'getAuthenticationScopes: Failed to decode authentication JWT'
     })
 
-    if (!payload.hasOwnProperty('scopes')) {
+    if (!payload['scopes']) {
       // not given
       return []
     }
@@ -332,7 +332,7 @@ export class V1Authentication implements AuthenticationInterface {
         throw new ValidationError(
           'Configuration error on the gaia hub. validHubUrls must be supplied.')
       }
-      if (validHubUrls.indexOf(claimedHub) < 0) {
+      if (!validHubUrls.includes(claimedHub)) {
         throw new ValidationError(
           `Auth token's claimed hub url '${claimedHub}' not found` +
             ` in this hubs set: ${JSON.stringify(validHubUrls)}`)
@@ -365,7 +365,7 @@ export class V1Authentication implements AuthenticationInterface {
         `Expired authentication token: expire time of ${expiresAt} (secs since epoch)`)
     }
 
-    if (payload.hasOwnProperty('associationToken') &&
+    if ('associationToken' in payload &&
         payload.associationToken) {
       return this.checkAssociationToken(
         payload.associationToken, address)
@@ -482,7 +482,7 @@ export function validateAuthorizationHeader(authHeader: string, serverName: stri
   const serverNameHubUrl = `https://${serverName}`
   if (!validHubUrls) {
     validHubUrls = [ serverNameHubUrl ]
-  } else if (validHubUrls.indexOf(serverNameHubUrl) < 0) {
+  } else if (!validHubUrls.includes(serverNameHubUrl)) {
     validHubUrls.push(serverNameHubUrl)
   }
 

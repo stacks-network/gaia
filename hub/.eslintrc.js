@@ -1,6 +1,12 @@
 module.exports = {
   "extends": [
-    "plugin:@typescript-eslint/recommended"
+    "eslint:recommended",
+    "plugin:import/errors",
+    "plugin:import/warnings",
+    "plugin:import/typescript",
+    "plugin:@typescript-eslint/eslint-recommended",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:@typescript-eslint/recommended-requiring-type-checking"
   ],
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
@@ -56,6 +62,12 @@ module.exports = {
     "@typescript-eslint/no-use-before-define": "off",
     "no-unused-vars": "off",
     "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+    "@typescript-eslint/no-inferrable-types": "off",
+    
+    "import/no-unresolved": "error",
+    "import/no-unused-modules": "error",
+    "import/no-duplicates": "error",
+
     // TODO: enable this when reasonable
     "@typescript-eslint/no-explicit-any": "off"
   }

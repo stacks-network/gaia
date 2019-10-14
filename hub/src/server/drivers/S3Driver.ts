@@ -1,8 +1,11 @@
-import S3 from 'aws-sdk/clients/s3'
+import * as S3 from 'aws-sdk/clients/s3'
 
 import { BadPathError, InvalidInputError, DoesNotExist } from '../errors'
-import { ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult, PerformReadArgs, ReadResult, PerformListFilesArgs, ListFilesStatResult, ListFileStatResult } from '../driverModel'
-import { DriverStatics, DriverModel, DriverModelTestMethods } from '../driverModel'
+import { 
+  ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, 
+  StatResult, PerformReadArgs, ReadResult, PerformListFilesArgs, ListFilesStatResult, 
+  ListFileStatResult, DriverStatics, DriverModel, DriverModelTestMethods 
+} from '../driverModel'
 import { timeout, logger, dateToUnixTimeSeconds } from '../utils'
 
 export interface S3_CONFIG_TYPE {
@@ -42,7 +45,7 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
     }
 
     return {
-      defaults: { awsCredentials: <any>undefined },
+      defaults: { awsCredentials: undefined as any },
       envVars
     }
   }
@@ -70,7 +73,7 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
 
   static isPathValid(path: string){
     // for now, only disallow double dots.
-    return (path.indexOf('..') === -1)
+    return !path.includes('..')
   }
 
   getReadURLPrefix(): string {

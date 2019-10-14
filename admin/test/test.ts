@@ -1,7 +1,7 @@
-const test = require('tape')
-const fs = require('fs')
+import test = require('tape')
+import fs = require('fs')
 
-const { AdminAPI, patchConfigFile, readConfigFileSections } = require('../src/server')
+import { AdminAPI, patchConfigFile, readConfigFileSections } from '../src/server'
 
 function testServer() {
   test('patch config file only sets top-level fields', (t) => {
@@ -59,7 +59,7 @@ function testServer() {
 
     const config = {
       apiKeys: ['potatoes'],
-    }
+    } as any
 
     let server = new AdminAPI(config)
     
@@ -75,7 +75,7 @@ function testServer() {
       .then((result) => {
         t.equal(result, false, 'non-bearer authorization headers fail authorization')
 
-        const configWithoutApiKey = {}
+        const configWithoutApiKey = {} as any
         server = new AdminAPI(configWithoutApiKey)
 
         return server.checkAuthorization('bearer potatoes')
@@ -97,7 +97,7 @@ function testServer() {
           "HELLO": "hello world"
         }
       }
-    }
+    } as any
 
     let server = new AdminAPI(config)
 
@@ -112,7 +112,7 @@ function testServer() {
         t.equal(result.statusCode, 200, 'reload command is launched')
         try {
           const statBuf = fs.statSync('/tmp/gaia-admin-test.txt')
-          t.ok('admin test file exists')
+          t.pass('admin test file exists')
 
           const data = fs.readFileSync('/tmp/gaia-admin-test.txt').toString()
           t.equal(data, 'hello world\n', 'admin test file contents equal environ')
@@ -128,7 +128,7 @@ function testServer() {
               "HELLO": "hello world"
             }
           }
-        }
+        } as any
         let server = new AdminAPI(configNoCommand)
         return server.handleReload()
       })
@@ -139,7 +139,7 @@ function testServer() {
           reloadSettings: {
             command: '/bin/false',
           }
-        }
+        } as any
         let server = new AdminAPI(configFailCommand)
         return server.handleReload()
       })
@@ -150,7 +150,7 @@ function testServer() {
           reloadSettings: {
             command: '/bin/nonexistant'
           }
-        }
+        } as any
         let server = new AdminAPI(configBadCommand)
         return server.handleReload()
       })
@@ -165,7 +165,7 @@ function testServer() {
     t.plan(8)
 
     const gaiaConfig = {
-      whitelist: []
+      whitelist: [] as string[]
     }
 
     const gaiaConfigPathWhitelist = `/tmp/gaia-config-whitelist-${Math.random()}`
@@ -175,7 +175,7 @@ function testServer() {
       gaiaSettings: {
         configPath: gaiaConfigPathWhitelist
       }
-    }
+    } as any
 
     let server = new AdminAPI(config)
     server.handleGetConfig()
@@ -219,7 +219,7 @@ function testServer() {
     t.plan(9)
 
     const gaiaConfig = {
-      validHubUrls: [],
+      validHubUrls: [] as string[],
       requireCorrectHubUrl: false,
       serverName: 'gaia-0',
       port: 3000,
@@ -250,7 +250,7 @@ function testServer() {
       gaiaSettings: {
         configPath: gaiaConfigPath
       }
-    }
+    } as any
 
     let server = new AdminAPI(config)
     server.handleGetConfig()
@@ -379,7 +379,7 @@ function testServer() {
         gaiaSettings: {
           configPath: gaiaConfigPath
         }
-      }
+      } as any
 
       let server = new AdminAPI(config)
       server.handleGetConfig()

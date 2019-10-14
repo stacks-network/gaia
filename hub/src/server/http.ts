@@ -1,6 +1,6 @@
-import express from 'express'
-import expressWinston from 'express-winston'
-import cors from 'cors'
+import * as express from 'express'
+import * as expressWinston from 'express-winston'
+import * as cors from 'cors'
 
 import { ProofChecker } from './ProofChecker'
 import { getChallengeText, LATEST_AUTH_VERSION } from './authentication'
@@ -35,7 +35,7 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
   } else {
     throw new Error('Driver option not configured')
   }
-  
+
   const proofChecker = new ProofChecker(config.proofsConfig)
   const server = new HubServer(driver, proofChecker, config)
 

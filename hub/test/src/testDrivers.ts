@@ -1,26 +1,16 @@
+import test = require('tape-promise/tape')
+import { sandbox, FetchMockSandbox } from 'fetch-mock'
+import NodeFetch from 'node-fetch'
 
-import test from 'tape-promise/tape'
-import proxyquire from 'proxyquire'
-import FetchMock from 'fetch-mock'
-import * as NodeFetch from 'node-fetch'
-
-import fs from 'fs'
-import path from 'path'
-import os from 'os'
-
-import { Readable, Writable, PassThrough } from 'stream'
-import InMemoryDriver from './testDrivers/InMemoryDriver'
+import { Readable, PassThrough } from 'stream'
 import { DriverModel, DriverModelTestMethods } from '../../src/server/driverModel'
-import { ListFilesResult } from '../../src/server/driverModel'
 import * as utils from '../../src/server/utils'
-
-import DiskDriver from '../../src/server/drivers/diskDriver'
 
 import * as mockTestDrivers from './testDrivers/mockTestDrivers'
 import * as integrationTestDrivers from './testDrivers/integrationTestDrivers'
 import { BadPathError, DoesNotExist, ConflictError } from '../../src/server/errors'
 
-export function addMockFetches(fetchLib: FetchMock.FetchMockSandbox, prefix: any, dataMap: {key: string, data: string}[]) {
+export function addMockFetches(fetchLib: FetchMockSandbox, prefix: any, dataMap: {key: string, data: string}[]) {
   dataMap.forEach(item => {
     fetchLib.get(`${prefix}${item.key}`, item.data, { overwriteRoutes: true })
   })
@@ -48,7 +38,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
         return { stream: s, contentLength: contentBuff.length }
       }
 
-      const fetch = <FetchMock.FetchMockSandbox>(mockTest ? FetchMock.sandbox() : NodeFetch)
+      const fetch = (mockTest ? sandbox() : NodeFetch) as FetchMockSandbox
 
       try {
         const writeArgs : any = { path: '../foo.js'}
