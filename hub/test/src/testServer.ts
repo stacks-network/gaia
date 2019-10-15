@@ -45,10 +45,10 @@ async function usingMemoryDriver(func: (driver: InMemoryDriver) => Promise<any> 
 
 export function testServer() {
   test('validation tests', async (t) => {
-    await usingIntegrationDrivers((mockDriver, name) => {
+    await usingIntegrationDrivers(async (mockDriver, name) => {
       t.comment(`testing driver: ${name}`);
 
-      const { testPairs, testAddrs } = createTestKeys(2);
+      const { testPairs, testAddrs } = await createTestKeys(2);
       const server = new HubServer(mockDriver, new MockProofs(),
                                   { serverName: TEST_SERVER_NAME, whitelist: [testAddrs[0]],
                                     authTimestampCacheSize: TEST_AUTH_CACHE_SIZE, port: 0, driver: null })
@@ -56,22 +56,22 @@ export function testServer() {
       const authPart0 = auth.LegacyAuthentication.makeAuthPart(testPairs[1], challengeText)
       const auth0 = `bearer ${authPart0}`
 
-      t.throws(() => server.validate(testAddrs[1], { authorization: auth0 }),
+      await t.rejects(() => server.validate(testAddrs[1], { authorization: auth0 }),
               errors.ValidationError, 'Non-whitelisted address should fail validation')
-      t.throws(() => server.validate(testAddrs[0], {}),
+      await t.rejects(() => server.validate(testAddrs[0], {}),
               errors.ValidationError, 'Bad request headers should fail validation')
 
       const authPart = auth.LegacyAuthentication.makeAuthPart(testPairs[0], challengeText)
       const authorization = `bearer ${authPart}`
       try {
-        server.validate(testAddrs[0], { authorization })
+        await server.validate(testAddrs[0], { authorization })
         t.pass('White-listed address with good auth header should pass')
       } catch (err) {
         t.fail('White-listed address with good auth header should pass')
       }
 
       try {
-        server.validate(testAddrs[1], { authorization })
+        await server.validate(testAddrs[1], { authorization })
         t.fail('Non white-listed address with good auth header should fail')
       } catch (err) {
         t.pass('Non white-listed address with good auth header should fail')
@@ -80,10 +80,10 @@ export function testServer() {
   })
 
   test('validation with huburl tests', async (t) => {
-    await usingIntegrationDrivers((mockDriver, name) => {
+    await usingIntegrationDrivers(async (mockDriver, name) => {
       t.comment(`testing driver: ${name}`);
 
-      const { testPairs, testAddrs } = createTestKeys(2);
+      const { testPairs, testAddrs } = await createTestKeys(2);
       const server = new HubServer(mockDriver, new MockProofs(),
                                   { whitelist: [testAddrs[0]], requireCorrectHubUrl: true,
                                     serverName: TEST_SERVER_NAME, validHubUrls: ['https://testserver.com'],
@@ -96,19 +96,19 @@ export function testServer() {
       const authPartBad1 = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText, undefined, undefined)
       const authPartBad2 = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText, undefined, 'testserver.com')
 
-      t.throws(() => server.validate(testAddrs[0], { authorization: `bearer ${authPartBad1}` }),
+      await t.rejects(() => server.validate(testAddrs[0], { authorization: `bearer ${authPartBad1}` }),
               errors.ValidationError, 'Auth must include a hubUrl')
-      t.throws(() => server.validate(testAddrs[0], { authorization: `bearer ${authPartBad2}` }),
+      await t.rejects(() => server.validate(testAddrs[0], { authorization: `bearer ${authPartBad2}` }),
               errors.ValidationError, 'Auth must include correct hubUrl')
 
       try {
-        server.validate(testAddrs[0], { authorization: `bearer ${authPartGood1}` })
+        await server.validate(testAddrs[0], { authorization: `bearer ${authPartGood1}` })
         t.pass('Address with good auth header should pass')
       } catch (err) {
         t.fail('Address with good auth header should pass')
       }
       try {
-        server.validate(testAddrs[0], { authorization: `bearer ${authPartGood2}` })
+        await server.validate(testAddrs[0], { authorization: `bearer ${authPartGood2}` })
         t.pass('Address with good auth header should pass')
       } catch (err) {
         t.fail('Address with good auth header should pass')
@@ -119,7 +119,7 @@ export function testServer() {
 
   test('validation with 2018 challenge texts', async (t) => {
     t.plan(5)
-    await usingMemoryDriver(mockDriver => {
+    await usingMemoryDriver(async mockDriver => {
       const server = new HubServer(mockDriver, new MockProofs(),
                                   { whitelist: [testAddrs[0]], requireCorrectHubUrl: true,
                                     serverName: TEST_SERVER_NAME, validHubUrls: ['https://testserver.com'],
@@ -137,19 +137,19 @@ export function testServer() {
       const authPartBad1 = auth.V1Authentication.makeAuthPart(testPairs[0], challengeTexts[1], undefined, undefined)
       const authPartBad2 = auth.V1Authentication.makeAuthPart(testPairs[0], challengeTexts[1], undefined, 'testserver.com')
 
-      t.throws(() => server.validate(testAddrs[0], { authorization: `bearer ${authPartBad1}` }),
+      await t.rejects(() => server.validate(testAddrs[0], { authorization: `bearer ${authPartBad1}` }),
               errors.ValidationError, 'Auth must include a hubUrl')
-      t.throws(() => server.validate(testAddrs[0], { authorization: `bearer ${authPartBad2}` }),
+      await t.rejects(() => server.validate(testAddrs[0], { authorization: `bearer ${authPartBad2}` }),
               errors.ValidationError, 'Auth must include correct hubUrl')
 
       try {
-        server.validate(testAddrs[0], { authorization: `bearer ${authPartGood1}` })
+        await server.validate(testAddrs[0], { authorization: `bearer ${authPartGood1}` })
         t.pass('Address with good auth header should pass')
       } catch (err) {
         t.fail('Address with good auth header should pass')
       }
       try {
-        server.validate(testAddrs[0], { authorization: `bearer ${authPartGood2}` })
+        await server.validate(testAddrs[0], { authorization: `bearer ${authPartGood2}` })
         t.pass('Address with good auth header should pass')
       } catch (err) {
         t.fail('Address with good auth header should pass')
@@ -276,7 +276,7 @@ export function testServer() {
     await usingMemoryDriver(async (driver) => {
 
       const testPath = `/${Date.now()}/${Math.random()}`;
-      const { testPairs, testAddrs } = createTestKeys(2);
+      const { testPairs, testAddrs } = await createTestKeys(2);
 
       const server = new HubServer(driver, new MockProofs(), {
                                     serverName: TEST_SERVER_NAME,
@@ -311,7 +311,7 @@ export function testServer() {
       t.comment(`testing driver: ${name}`);
 
       const testPath = `/${Date.now()}/${Math.random()}`;
-      const { testPairs, testAddrs } = createTestKeys(2);
+      const { testPairs, testAddrs } = await createTestKeys(2);
 
       const server = new HubServer(mockDriver, new MockProofs(), {
                                     serverName: TEST_SERVER_NAME,
@@ -376,7 +376,7 @@ export function testServer() {
       t.comment(`testing driver: ${name}`);
 
       const testPath = `/${Date.now()}/${Math.random()}`;
-      const { testPairs, testAddrs } = createTestKeys(2);
+      const { testPairs, testAddrs } = await createTestKeys(2);
 
       const server = new HubServer(mockDriver, new MockProofs(), {
                                     serverName: TEST_SERVER_NAME,
@@ -436,7 +436,7 @@ export function testServer() {
       t.comment(`testing driver: ${name}`);
 
       const testPath = `/${Date.now()}/${Math.random()}`;
-      const { testPairs, testAddrs } = createTestKeys(2);
+      const { testPairs, testAddrs } = await createTestKeys(2);
 
       const server = new HubServer(mockDriver, new MockProofs(), {
                                     serverName: TEST_SERVER_NAME,
@@ -495,11 +495,11 @@ export function testServer() {
 
       const authorization = `bearer ${authPart}`
       const authenticator = auth.parseAuthHeader(authorization)
-      t.throws(() => authenticator.isAuthenticationValid(testAddrs[1], [challengeText]),
+      await t.rejects(() => authenticator.isAuthenticationValid(testAddrs[1], [challengeText]),
               errors.ValidationError, 'Wrong address must throw')
-      t.throws(() => authenticator.isAuthenticationValid(testAddrs[0], ['potatos are tasty']),
+      await t.rejects(() => authenticator.isAuthenticationValid(testAddrs[0], ['potatos are tasty']),
               errors.ValidationError, 'Wrong challenge text must throw')
-      t.ok(authenticator.isAuthenticationValid(testAddrs[0], [challengeText]),
+      await t.doesNotReject(authenticator.isAuthenticationValid(testAddrs[0], [challengeText]),
           'Good signature must pass')
 
       // scopes must be present
@@ -629,7 +629,7 @@ export function testServer() {
   })
 
   test('handle scoped deletes', async (t) => {
-    await usingMemoryDriver(mockDriver => {
+    await usingMemoryDriver(async mockDriver => {
       const scopes = [
         {
           scope: 'deleteFile',
@@ -658,11 +658,11 @@ export function testServer() {
 
       const authorization = `bearer ${authPart}`
       const authenticator = auth.parseAuthHeader(authorization)
-      t.throws(() => authenticator.isAuthenticationValid(testAddrs[1], [challengeText]),
+      await t.rejects(() => authenticator.isAuthenticationValid(testAddrs[1], [challengeText]),
               errors.ValidationError, 'Wrong address must throw')
-      t.throws(() => authenticator.isAuthenticationValid(testAddrs[0], ['potatos are tasty']),
+      await t.rejects(() => authenticator.isAuthenticationValid(testAddrs[0], ['potatos are tasty']),
               errors.ValidationError, 'Wrong challenge text must throw')
-      t.ok(authenticator.isAuthenticationValid(testAddrs[0], [challengeText]),
+      await t.doesNotReject(authenticator.isAuthenticationValid(testAddrs[0], [challengeText]),
           'Good signature must pass')
 
       // scopes must be present
@@ -706,7 +706,7 @@ export function testServer() {
   })
   
   test('handle scoped writes', async (t) => {
-    await usingMemoryDriver(mockDriver => {
+    await usingMemoryDriver(async mockDriver => {
       const writeScopes = [
         {
           scope: 'putFile',
@@ -729,11 +729,11 @@ export function testServer() {
 
       const authorization = `bearer ${authPart}`
       const authenticator = auth.parseAuthHeader(authorization)
-      t.throws(() => authenticator.isAuthenticationValid(testAddrs[1], [challengeText]),
+      await t.rejects(() => authenticator.isAuthenticationValid(testAddrs[1], [challengeText]),
               errors.ValidationError, 'Wrong address must throw')
-      t.throws(() => authenticator.isAuthenticationValid(testAddrs[0], ['potatos are tasty']),
+      await t.rejects(() => authenticator.isAuthenticationValid(testAddrs[0], ['potatos are tasty']),
               errors.ValidationError, 'Wrong challenge text must throw')
-      t.ok(authenticator.isAuthenticationValid(testAddrs[0], [challengeText]),
+      await t.doesNotThrow(() => authenticator.isAuthenticationValid(testAddrs[0], [challengeText]),
           'Good signature must pass')
 
       // scopes must be present
@@ -795,7 +795,7 @@ export function testServer() {
 
 
   test('handle scoped deletes with association tokens', async (t) => {
-    await usingMemoryDriver(mockDriver => {
+    await usingMemoryDriver(async mockDriver => {
       const scopes = [
         {
           scope: 'deleteFile',
@@ -825,11 +825,11 @@ export function testServer() {
 
       const authorization = `bearer ${authPart}`
       const authenticator = auth.parseAuthHeader(authorization)
-      t.throws(() => authenticator.isAuthenticationValid(testAddrs[1], [challengeText]),
+      await t.rejects(() => authenticator.isAuthenticationValid(testAddrs[1], [challengeText]),
               errors.ValidationError, 'Wrong address must throw')
-      t.throws(() => authenticator.isAuthenticationValid(testAddrs[0], ['potatos are tasty']),
+      await t.rejects(() => authenticator.isAuthenticationValid(testAddrs[0], ['potatos are tasty']),
               errors.ValidationError, 'Wrong challenge text must throw')
-      t.ok(authenticator.isAuthenticationValid(testAddrs[0], [challengeText]),
+      await t.doesNotReject(() => authenticator.isAuthenticationValid(testAddrs[0], [challengeText]),
           'Good signature must pass')
 
       // write to /foo/bar or baz will succeed
@@ -868,7 +868,7 @@ export function testServer() {
   })
 
   test('handle scoped writes with association tokens', async (t) => {
-    await usingMemoryDriver(mockDriver => {
+    await usingMemoryDriver(async mockDriver => {
       const writeScopes = [
         {
           scope: 'putFile',
@@ -892,11 +892,11 @@ export function testServer() {
 
       const authorization = `bearer ${authPart}`
       const authenticator = auth.parseAuthHeader(authorization)
-      t.throws(() => authenticator.isAuthenticationValid(testAddrs[1], [challengeText]),
+      await t.rejects(() => authenticator.isAuthenticationValid(testAddrs[1], [challengeText]),
               errors.ValidationError, 'Wrong address must throw')
-      t.throws(() => authenticator.isAuthenticationValid(testAddrs[0], ['potatos are tasty']),
+      await t.rejects(() => authenticator.isAuthenticationValid(testAddrs[0], ['potatos are tasty']),
               errors.ValidationError, 'Wrong challenge text must throw')
-      t.ok(authenticator.isAuthenticationValid(testAddrs[0], [challengeText]),
+      await t.doesNotReject(() => authenticator.isAuthenticationValid(testAddrs[0], [challengeText]),
           'Good signature must pass')
 
       // write to /foo/bar or baz will succeed

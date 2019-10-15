@@ -14,10 +14,20 @@ export const testWIFs = [
   'L4axr2vJzeb3JcsF2gRFApmBUscuEujcCCf335bnA4oTtGUKeLAc',
   'L1zYdjKVhU9yrzeptfdqsffGQ1GLp6ypdCCbBdLT2KdMDX5P2aLK']
 export const testPairs: ECPairInterface[] = testWIFs.map(x => ECPair.fromWIF(x))
-export const testAddrs: string[] = testPairs.map(x => ecPairToAddress(x))
+export const testAddrs: string[] = [
+  '16mHK3nMEhVGjSYGbzEGA37vej7HYzJ9Xn',
+  '1FjG1mM47ydAe84j237QZMgcWYnwLo8tm2',
+  '1M7zX421ipgC4c4GGNGZgP2bz5qdqrrtiC',
+  '1FVGapeLRYoRExwVXEGmo8EskBQ6jchAuR',
+  '1B1UcJsKzLWZxMiyB8KzKF9gUfpJoTLahK',
+  '1PTJRDv7LwQNuem52U4G3DXPVCiN8nFJup',
+  '14LB9gXpYiKuMzwMXiqax2RKcGdz6yPM1m',
+  '15RnBpE6ZRYMEY3VjJZ9aJy4qBNiPMYhTo',
+  '1H6ZGu79ZGURNtPuK6moXLktpb2TkvKWws',
+  '1BkyNHDAa8BuLrht155uMjJzDdJovZmcTC']
 
-export const createTestKeys = (count: number) => {
+export const createTestKeys = async (count: number) => {
   const testPairs: ECPairInterface[] = [...Array(count)].map(_ => ECPair.makeRandom());
-  const testAddrs: string[] = testPairs.map(x => ecPairToAddress(x));
+  const testAddrs: string[] = await Promise.all(testPairs.map(x => ecPairToAddress(x)));
   return { testPairs, testAddrs };
 }

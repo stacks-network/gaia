@@ -64,10 +64,14 @@ module.exports = {
     "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
     "@typescript-eslint/no-inferrable-types": "off",
     
+    "@typescript-eslint/no-misused-promises": "error",
+    "@typescript-eslint/no-floating-promises": "error",
+    "@typescript-eslint/require-await": "error",
+
     "import/no-unresolved": "error",
     "import/no-unused-modules": "error",
     "import/no-duplicates": "error",
-
+    
     // TODO: enable this when reasonable
     "@typescript-eslint/no-explicit-any": "off"
   }
