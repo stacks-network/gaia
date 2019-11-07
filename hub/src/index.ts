@@ -33,6 +33,7 @@ if (conf.enableHttps === HttpsOption.acme) {
   tlsServer.createHttpsServer(app, conf.tlsCertConfig).listen(conf.httpsPort, () => logHttpsListen())
   http.createServer(app).listen(conf.port, () => logHttpListen())
 } else {
+  logger.warn('Setting up an http server (https is not configured)')
   // Start Express app server with only `http`.
   http.createServer(app).listen(conf.port, () => logHttpListen())
 }

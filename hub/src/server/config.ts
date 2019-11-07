@@ -58,7 +58,7 @@ export interface AcmeConfigInterface {
    */
   email: string;
   /**
-   * Accept Let's Encrypt™ v2 Agreement. You must accept the ToS as the host which handles the certs. 
+   * Accept Let's Encrypt(TM) v2 Agreement. You must accept the ToS as the host which handles the certs. 
    * See the subscriber agreement at https://letsencrypt.org/repository/
    */
   agreeTos: boolean;

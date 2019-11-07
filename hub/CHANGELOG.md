@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.0]
+### Added
+- Support for running an `https` server by providing the TLS/SSL certs. 
+- Support for running an `https` server with Automatic Certificate Management 
+  Environment (ACME) via `Let's Encrypt (TM)`. 
+
 ## [2.6.0]
 ### Added
 - Implemented the `putFileArchival` restrictive auth scope which causes any 

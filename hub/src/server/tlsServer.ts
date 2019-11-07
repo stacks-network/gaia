@@ -27,7 +27,7 @@ function isTlsPemCert(tlsConfig: TlsCertConfigInterface): tlsConfig is TlsPemCer
 }
 
 export function loadPemCert(tlsConfig: TlsPemCert, opts: https.ServerOptions) {
-  if (tlsConfig.keyFile.startsWith(PEM_PREFIX)) {
+  if (tlsConfig.keyFile.trimLeft().startsWith(PEM_PREFIX)) {
     opts.key = tlsConfig.keyFile
   } else {
     try {
@@ -37,7 +37,7 @@ export function loadPemCert(tlsConfig: TlsPemCert, opts: https.ServerOptions) {
       throw error
     }
   }
-  if (tlsConfig.certFile.startsWith(PEM_PREFIX)) {
+  if (tlsConfig.certFile.trimLeft().startsWith(PEM_PREFIX)) {
     opts.cert = tlsConfig.certFile
   } else {
     try {
