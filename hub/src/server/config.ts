@@ -55,6 +55,8 @@ class ProofCheckerConfig implements ProofCheckerConfigInterface {
 export interface AcmeConfigInterface {
   /**
    * The email address of the ACME user / hosting provider. 
+   * This should be the contact who receives critical bug and security notifications. 
+   * Optionally, you may receive other (very few) updates, such as important new features.
    */
   email: string;
   /**
@@ -64,42 +66,22 @@ export interface AcmeConfigInterface {
   agreeTos: boolean;
   /**
    * Writable directory where certs will be saved.
-   * @default "~/.config/acme/"
+   * @default "~/.config/greenlock/"
    */
   configDir?: string;
-  /**
-   * Join the Greenlock community to get notified of important updates. 
-   * @default false
-   */
-  communityMember?: boolean;
-  /**
-   * Important and mandatory notices from Greenlock, related to security or breaking API changes.
-   * @default true
-   */
-  securityUpdates: boolean;
-  /**
-   * Contribute telemetry data to the project.
-   * @default false
-   */
-  telemetry?: boolean;
   /**
    * The default servername to use when the client doesn't specify.
    * Example: "example.com"
    */
   servername?: string;
   /**
-   * Array of allowed domains such as `[ "example.com", "www.example.com" ]`
-   */
-  approveDomains?: string[];
-  /**
    * @default "https://acme-v02.api.letsencrypt.org/directory"
    */
-  server?: string;
+  directoryUrl?: string;
   /**
-   * The ACME version to use. `v02`/`draft-12` is for Let's Encrypt v2 otherwise known as ACME draft 12.
-   * @default "v02"
+   * Use the Let's Encrypt staging URL instead of the production URL. 
    */
-  version?: string;
+  staging?: boolean;
   /**
    * @default false
    */
@@ -304,7 +286,6 @@ const globalEnvVars: EnvVarObj = {
     email: 'GAIA_ACME_CONFIG_EMAIL',
     agreeTos: ['GAIA_ACME_CONFIG_AGREE_TOS', 'boolean'],
     configDir: 'GAIA_ACME_CONFIG_CONFIG_DIR',
-    securityUpdates: ['GAIA_ACME_CONFIG_SECURITY_UPDATES', 'boolean'],
     servername: 'GAIA_ACME_CONFIG_SERVERNAME',
     approveDomains: ['GAIA_ACME_CONFIG_APPROVE_DOMAINS', 'list']
   },

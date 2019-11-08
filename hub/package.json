@@ -10,6 +10,8 @@
   "dependencies": {
     "@azure/storage-blob": "^10.5.0",
     "@google-cloud/storage": "^3.3.0",
+    "@root/greenlock": "^3.1.5",
+    "@root/greenlock-express": "^3.1.1",
     "ajv": "^6.10.2",
     "aws-sdk": "^2.534.0",
     "bitcoinjs-lib": "^5.1.6",
@@ -19,8 +21,7 @@
     "express": "^4.17.1",
     "express-winston": "^3.3.0",
     "fs-extra": "^8.1.0",
-    "greenlock-express": "^2.7.17",
-    "greenlock-store-fs": "^3.0.2",
+    "greenlock-store-fs": "^3.2.2",
     "jsontokens": "^2.0.2",
     "lru-cache": "^5.1.1",
     "nanoid": "^2.1.1",

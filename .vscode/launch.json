@@ -17,18 +17,23 @@
              }
         },
         {
-            "type": "node",
-            "request": "launch",
-            "name": "gaia-hub",
-            "program": "${workspaceFolder}/hub/src/index.js",
-            "cwd": "${workspaceFolder}/hub",
-            "runtimeArgs": ["-r", "@babel/register"],
-            "outputCapture": "std",
-            "env": { 
-                "GAIA_READ_URL": "http://127.0.0.1:8008/",
-                "GAIA_DRIVER": "disk",
-                "GAIA_DISK_STORAGE_ROOT_DIR": "${workspaceFolder}/tmp/gaia-disk"
-             }
+          "type": "node",
+          "request": "launch",
+          "name": "gaia-hub",
+          "preLaunchTask": "npm: build - hub",
+          "program": "${workspaceFolder}/hub/src/index.ts",
+          "cwd": "${workspaceFolder}/hub",
+          "sourceMaps": true,
+          "outFiles": [
+            "${workspaceFolder}/hub/lib/**/*.js"
+          ],
+          "outputCapture": "std",
+          "env": { 
+              "GAIA_READ_URL": "http://127.0.0.1:8008/",
+              "GAIA_DRIVER": "disk",
+              "GAIA_DISK_STORAGE_ROOT_DIR": "${workspaceFolder}/tmp/gaia-disk",
+              "CONFIG_PATH": "${workspaceFolder}/hub/config.acme.json"
+           }
         },
         {
             "type": "node",

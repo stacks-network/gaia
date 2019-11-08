@@ -25,8 +25,20 @@ function logHttpsListen() {
 if (conf.enableHttps === HttpsOption.acme) {
   // Start Express app server using ACME with greenlock-express middleware.
   logger.warn('Setting up https server with ACME')
-  const server = acme.createGlx(app, conf.acmeConfig)
-  server.listen(conf.port, conf.httpsPort, () => logHttpListen(), () => logHttpsListen())
+  acme.createGlx(conf.acmeConfig, appRootDir)
+    .then(glx => {
+      /*const redirectHttpApp = require('redirect-https')({
+        port: conf.httpsPort
+      })*/
+      glx.httpServer(app).listen(conf.port, () => logHttpListen())
+      glx.httpsServer({}, app).listen(conf.httpsPort, () => logHttpsListen())
+      //glx.serveApp(app)
+    })
+    .catch((error: any) => {
+      logger.error(error)
+      logger.error('Error creating Greenlock Express instance')
+      process.exit(1)
+    })
 } else if (conf.enableHttps === HttpsOption.cert_files) {
   logger.warn('Setting up https server with provided cert files')
   // Start Express app server with Node.js `https` and `http` modules.

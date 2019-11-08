@@ -125,10 +125,6 @@ This uses the [`greenlock-express`](https://www.npmjs.com/package/greenlock-expr
 
 The default ACME standard [challenge type `http-01`](https://letsencrypt.org/docs/challenge-types/#http-01-challenge) is used. This requires specifying the domain name(s) in the config _or_ ensuring that the server hostname is the intended domain name. 
 
-
-However, the lib supports extensible ACME `challenge type` modules which a Gaia hub deployment system can use to easily add support for various DNS/DDNS services. Modules are already available for Google Cloud DNS, AWS (S3, Route53), Azure, CloudFlare, Digital Ocean, Namecheap, Godaddy, and more. 
-
-
 Example of minimum config required to use (requires that server hostname is set to the intended domain name):
 ```json
 {

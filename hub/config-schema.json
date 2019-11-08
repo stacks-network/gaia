@@ -10,20 +10,8 @@
                     "description": "Accept Let's Encrypt(TM) v2 Agreement. You must accept the ToS as the host which handles the certs. \nSee the subscriber agreement at https://letsencrypt.org/repository/",
                     "type": "boolean"
                 },
-                "approveDomains": {
-                    "description": "Array of allowed domains such as `[ \"example.com\", \"www.example.com\" ]`",
-                    "items": {
-                        "type": "string"
-                    },
-                    "type": "array"
-                },
-                "communityMember": {
-                    "default": false,
-                    "description": "Join the Greenlock community to get notified of important updates.",
-                    "type": "boolean"
-                },
                 "configDir": {
-                    "default": "~/.config/acme/",
+                    "default": "~/.config/greenlock/",
                     "description": "Writable directory where certs will be saved.",
                     "type": "string"
                 },
@@ -31,38 +19,26 @@
                     "default": false,
                     "type": "boolean"
                 },
-                "email": {
-                    "description": "The email address of the ACME user / hosting provider.",
+                "directoryUrl": {
+                    "default": "https://acme-v02.api.letsencrypt.org/directory",
                     "type": "string"
                 },
-                "securityUpdates": {
-                    "default": true,
-                    "description": "Important and mandatory notices from Greenlock, related to security or breaking API changes.",
-                    "type": "boolean"
-                },
-                "server": {
-                    "default": "https://acme-v02.api.letsencrypt.org/directory",
+                "email": {
+                    "description": "The email address of the ACME user / hosting provider. \nThis should be the contact who receives critical bug and security notifications. \nOptionally, you may receive other (very few) updates, such as important new features.",
                     "type": "string"
                 },
                 "servername": {
                     "description": "The default servername to use when the client doesn't specify.\nExample: \"example.com\"",
                     "type": "string"
                 },
-                "telemetry": {
-                    "default": false,
-                    "description": "Contribute telemetry data to the project.",
+                "staging": {
+                    "description": "Use the Let's Encrypt staging URL instead of the production URL.",
                     "type": "boolean"
-                },
-                "version": {
-                    "default": "v02",
-                    "description": "The ACME version to use. `v02`/`draft-12` is for Let's Encrypt v2 otherwise known as ACME draft 12.",
-                    "type": "string"
                 }
             },
             "required": [
                 "agreeTos",
-                "email",
-                "securityUpdates"
+                "email"
             ],
             "type": "object"
         },

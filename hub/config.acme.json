@@ -1,0 +1,21 @@
+{
+  "port": 7800,
+  "bucket": "",
+  "readURL": "",
+  "argsTransport": {
+    "level": "debug",
+    "handleExceptions": true,
+    "timestamp": true,
+    "colorize": true,
+    "json": true
+  },
+  "enableHttps": "acme",
+  "httpsPort": 7443,
+  "acmeConfig": {
+    "email": "matt3439ajfjiijafh4u@gmail.com",
+    "agreeTos": true,
+    "servername": "zone117x.com",
+    "directoryUrl": "https://acme-staging-v02.api.letsencrypt.org/directory",
+    "debug": true
+  }
+}

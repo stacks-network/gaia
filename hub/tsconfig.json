@@ -8,7 +8,6 @@
       "noImplicitAny": true,
       "outDir": "lib",
       "sourceMap": true,
-      "sourceRoot": ".",
       "skipLibCheck": true
   },
   "include": [
