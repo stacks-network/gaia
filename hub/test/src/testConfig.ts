@@ -240,4 +240,60 @@ export function testConfig() {
     t.end()
   })
 
+  test('test https env var config', t => {
+    process.env.GAIA_HTTPS_PORT = '455'
+    process.env.GAIA_ENABLE_HTTPS = 'acme'
+    process.env.GAIA_ACME_CONFIG_EMAIL = 'test@example.com'
+    process.env.GAIA_ACME_CONFIG_AGREE_TOS = 'true'
+    process.env.GAIA_ACME_CONFIG_CONFIG_DIR = './test/config/dir'
+    process.env.GAIA_ACME_CONFIG_SECURITY_UPDATES = 'false'
+    process.env.GAIA_ACME_CONFIG_SERVERNAME = 'test.example.com'
+    process.env.GAIA_ACME_CONFIG_APPROVE_DOMAINS = 'other.example.com'
+    process.env.GAIA_TLS_CERT_CONFIG_KEY_FILE = '/test/cert/key.pem'
+    process.env.GAIA_TLS_CERT_CONFIG_CERT_FILE = '/test/cert/cert.pem'
+    process.env.GAIA_TLS_CERT_CONFIG_KEY_PASSPHRASE = 'test-pem-password'
+    process.env.GAIA_TLS_CERT_CONFIG_PFX_FILE = '/test/cert/server.pfx'
+    process.env.GAIA_TLS_CERT_CONFIG_PFX_PASSPHRASE = 'test-pfx-password'
+
+    try {
+      let configResult = config.getConfig()
+      const expected = Object.assign({}, config.getConfigDefaults(), { 
+        httpsPort: 455,
+        enableHttps: 'acme',
+        acmeConfig: {
+          email: 'test@example.com',
+          agreeTos: true,
+          configDir: './test/config/dir',
+          securityUpdates: false,
+          servername: 'test.example.com',
+          approveDomains: ['other.example.com']
+        },
+        tlsCertConfig: {
+          keyFile: '/test/cert/key.pem',
+          certFile: '/test/cert/cert.pem',
+          keyPassphrase: 'test-pem-password',
+          pfxFile: '/test/cert/server.pfx',
+          pfxPassphrase: 'test-pfx-password'
+        }
+      })
+      t.deepEqual(configResult, expected, 'tls config contains envvar values')
+    } finally {
+      delete process.env.GAIA_HTTPS_PORT
+      delete process.env.GAIA_ENABLE_HTTPS
+      delete process.env.GAIA_ACME_CONFIG_EMAIL
+      delete process.env.GAIA_ACME_CONFIG_AGREE_TOS
+      delete process.env.GAIA_ACME_CONFIG_CONFIG_DIR
+      delete process.env.GAIA_ACME_CONFIG_SECURITY_UPDATES
+      delete process.env.GAIA_ACME_CONFIG_SERVERNAME
+      delete process.env.GAIA_ACME_CONFIG_APPROVE_DOMAINS
+      delete process.env.GAIA_TLS_CERT_CONFIG_KEY_FILE
+      delete process.env.GAIA_TLS_CERT_CONFIG_CERT_FILE
+      delete process.env.GAIA_TLS_CERT_CONFIG_KEY_PASSPHRASE
+      delete process.env.GAIA_TLS_CERT_CONFIG_PFX_FILE
+      delete process.env.GAIA_TLS_CERT_CONFIG_PFX_PASSPHRASE
+    }
+
+    t.end()
+  })
+
 }

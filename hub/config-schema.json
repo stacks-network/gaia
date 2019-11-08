@@ -2,6 +2,70 @@
     "$schema": "http://json-schema.org/draft-07/schema#",
     "additionalProperties": false,
     "properties": {
+        "acmeConfig": {
+            "additionalProperties": false,
+            "description": "Options for Automatic Certificate Management Environment client. \nRequires `enableHttps` to be set to `acme`. \nSee https://www.npmjs.com/package/greenlock-express \nSee https://tools.ietf.org/html/rfc8555 \nSee https://github.com/ietf-wg-acme/acme",
+            "properties": {
+                "agreeTos": {
+                    "description": "Accept Let's Encrypt(TM) v2 Agreement. You must accept the ToS as the host which handles the certs. \nSee the subscriber agreement at https://letsencrypt.org/repository/",
+                    "type": "boolean"
+                },
+                "approveDomains": {
+                    "description": "Array of allowed domains such as `[ \"example.com\", \"www.example.com\" ]`",
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": "array"
+                },
+                "communityMember": {
+                    "default": false,
+                    "description": "Join the Greenlock community to get notified of important updates.",
+                    "type": "boolean"
+                },
+                "configDir": {
+                    "default": "~/.config/acme/",
+                    "description": "Writable directory where certs will be saved.",
+                    "type": "string"
+                },
+                "debug": {
+                    "default": false,
+                    "type": "boolean"
+                },
+                "email": {
+                    "description": "The email address of the ACME user / hosting provider.",
+                    "type": "string"
+                },
+                "securityUpdates": {
+                    "default": true,
+                    "description": "Important and mandatory notices from Greenlock, related to security or breaking API changes.",
+                    "type": "boolean"
+                },
+                "server": {
+                    "default": "https://acme-v02.api.letsencrypt.org/directory",
+                    "type": "string"
+                },
+                "servername": {
+                    "description": "The default servername to use when the client doesn't specify.\nExample: \"example.com\"",
+                    "type": "string"
+                },
+                "telemetry": {
+                    "default": false,
+                    "description": "Contribute telemetry data to the project.",
+                    "type": "boolean"
+                },
+                "version": {
+                    "default": "v02",
+                    "description": "The ACME version to use. `v02`/`draft-12` is for Let's Encrypt v2 otherwise known as ACME draft 12.",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "agreeTos",
+                "email",
+                "securityUpdates"
+            ],
+            "type": "object"
+        },
         "argsTransport": {
             "additionalProperties": false,
             "properties": {
@@ -98,6 +162,14 @@
             ],
             "type": "string"
         },
+        "enableHttps": {
+            "description": "Disabled by default. \nIf set to `cert_files` then `tlsCertConfig` must be set. \nIf set to `acme` then `acmeConfig` must be set.",
+            "enum": [
+                "acme",
+                "cert_files"
+            ],
+            "type": "string"
+        },
         "gcCredentials": {
             "additionalProperties": false,
             "description": "Required if `driver` is `google-cloud`",
@@ -125,6 +197,13 @@
                 }
             },
             "type": "object"
+        },
+        "httpsPort": {
+            "default": 443,
+            "description": "Requires `enableHttps` to be set.",
+            "maximum": 65535,
+            "minimum": 0,
+            "type": "integer"
         },
         "maxFileUploadSize": {
             "default": 20,
@@ -165,6 +244,50 @@
             "default": "gaia-0",
             "description": "Domain name used for auth/signing challenges. \nIf `requireCorrectHubUrl` is true then this must match the hub url in an auth payload.",
             "type": "string"
+        },
+        "tlsCertConfig": {
+            "anyOf": [
+                {
+                    "additionalProperties": false,
+                    "properties": {
+                        "certFile": {
+                            "description": "Either the path to the PEM formatted certification chain file, or the string content of the file. \nThe file usually has the extension `.cert`, `.cer`, `.crt`, or `.pem`. \nIf the content string is specified, it should include the escaped EOL characters, e.g. \n`\"-----BEGIN CERTIFICATE-----\\n{lines of base64 data}\\n-----END CERTIFICATE-----\"`.",
+                            "type": "string"
+                        },
+                        "keyFile": {
+                            "description": "Either the path to the PEM formatted private key file, or the string content of the file. \nThe file usually has the extension `.key` or `.pem`. \nIf the content string is specified, it should include the escaped EOL characters, e.g. \n`\"-----BEGIN RSA PRIVATE KEY-----\\n{lines of base64 data}\\n-----END RSA PRIVATE KEY-----\"`.",
+                            "type": "string"
+                        },
+                        "keyPassphrase": {
+                            "description": "The string passphrase for the key file. If provided, the passphrase is used to decrypt the file. \nIf not provided, the key is assumed to be unencrypted.",
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "certFile",
+                        "keyFile"
+                    ],
+                    "type": "object"
+                },
+                {
+                    "additionalProperties": false,
+                    "properties": {
+                        "pfxFile": {
+                            "description": "Either the path to the PFX or PKCS12 encoded private key and certificate chain file, \nor the base64 encoded content of the file. \nThe file usually has the extension `.pfx` or `.p12`.",
+                            "type": "string"
+                        },
+                        "pfxPassphrase": {
+                            "description": "The string passphrase for the key file. If provided, the passphrase is used to decrypt the file. \nIf not provided, the key is assumed to be unencrypted.",
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "pfxFile"
+                    ],
+                    "type": "object"
+                }
+            ],
+            "description": "Options for configuring the Node.js `https` server. \nRequires `enableHttps` to be set to `tlsCertConfig`. \nSee https://nodejs.org/docs/latest-v10.x/api/https.html#https_https_createserver_options_requestlistener \nSee https://nodejs.org/docs/latest-v10.x/api/tls.html#tls_tls_createsecurecontext_options"
         },
         "validHubUrls": {
             "description": "If `requireCorrectHubUrl` is true then the hub specified in an auth payload can also be\ncontained within in array.",
