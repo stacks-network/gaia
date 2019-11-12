@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for running an `https` server by providing the TLS/SSL certs. 
 - Support for running an `https` server with Automatic Certificate Management 
   Environment (ACME) via `Let's Encrypt (TM)`. 
+### Changed
+- Modify the default `cacheControl` setting from `public, max-age=1` to `no-cache`.
 
 ## [2.6.0]
 ### Added
