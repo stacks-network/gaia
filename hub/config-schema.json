@@ -140,7 +140,7 @@
             "type": "string"
         },
         "cacheControl": {
-            "default": "public, max-age=1",
+            "default": "no-cache",
             "type": "string"
         },
         "diskSettings": {

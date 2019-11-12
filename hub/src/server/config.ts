@@ -194,7 +194,7 @@ export class HubConfig {
    * @TJS-type integer
    */
   pageSize? = 100;
-  cacheControl? = 'public, max-age=1';
+  cacheControl? = 'no-cache';
   /**
    * The maximum allowed POST body size in megabytes. 
    * The content-size header is checked, and the POST body stream 
