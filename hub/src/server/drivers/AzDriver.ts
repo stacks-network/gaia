@@ -272,6 +272,7 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
     }
     const result: StatResult = {
       exists: true,
+      etag: "",
       contentLength: properties.contentLength,
       contentType: properties.contentType,
       lastModifiedDate: lastModified

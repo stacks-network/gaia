@@ -253,6 +253,7 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
     const lastModified = dateToUnixTimeSeconds(new Date(metadata.updated))
     const result: StatResult = {
       exists: true,
+      etag: "",
       contentType: metadata.contentType,
       contentLength: parseInt(metadata.size),
       lastModifiedDate: lastModified

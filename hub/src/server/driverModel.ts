@@ -53,6 +53,7 @@ export interface PerformStatArgs {
 export interface StatResult {
   exists: boolean;
   lastModifiedDate: number;
+  etag: string;
   contentLength: number;
   contentType: string;
 }

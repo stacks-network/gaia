@@ -280,6 +280,7 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
     const result: StatResult = {
       exists: true,
       lastModifiedDate: lastModified,
+      etag: JSON.parse(obj.ETag),
       contentLength: (obj as S3.HeadObjectOutput).ContentLength || (obj as S3.Object).Size,
       contentType: (obj as S3.HeadObjectOutput).ContentType
     }

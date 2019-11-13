@@ -276,6 +276,7 @@ class DiskDriver implements DriverModel {
     const lastModified = dateToUnixTimeSeconds(stat.mtime)
     const result: StatResult = {
       exists: true,
+      etag: "",
       contentLength: stat.size,
       contentType: contentType,
       lastModifiedDate: lastModified

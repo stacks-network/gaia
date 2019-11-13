@@ -180,6 +180,7 @@ export class HubServer {
     requestHeaders: {
       'content-type'?: string,
       'content-length'?: string | number,
+      'if-match'?: string,
       authorization?: string
     },
     stream: Readable
@@ -210,6 +211,18 @@ export class HubServer {
       if (!match) {
         // not authorized to write to this path
         throw new ValidationError(`Address ${address} not authorized to write to ${path} by scopes`)
+      }
+    }
+
+    const requestTag = requestHeaders['if-match']
+    if (requestTag) {
+      const responseTag = (await this.driver.performStat({
+        path: path,
+        storageTopLevel: address
+      })).etag
+
+      if (requestTag !== responseTag) {
+        throw new ValidationError(`The entity you are trying to store has been overwritten since your last read`)
       }
     }
 
@@ -278,6 +291,7 @@ export class HubServer {
       path, stream: monitoredStream, contentType,
       contentLength: contentLengthBytes
     }
+
     const [readURL] = await Promise.all([this.driver.performWrite(writeCommand), pipelinePromise])
     const driverPrefix = this.driver.getReadURLPrefix()
     const readURLPrefix = this.getReadURLPrefix()
