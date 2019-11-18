@@ -3,9 +3,9 @@ import { readdir } from 'fs'
 import { BadPathError, InvalidInputError, DoesNotExist } from '../errors'
 import * as Path from 'path'
 import { 
-  ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, 
-  StatResult, PerformReadArgs, ReadResult, PerformListFilesArgs, ListFilesStatResult, 
-  ListFileStatResult, DriverStatics, DriverModel 
+  ListFilesResult, PerformWriteArgs, WriteResult, PerformDeleteArgs, PerformRenameArgs,
+  PerformStatArgs, StatResult, PerformReadArgs, ReadResult, PerformListFilesArgs,
+  ListFilesStatResult, ListFileStatResult, DriverStatics, DriverModel 
 } from '../driverModel'
 import { pipelineAsync, logger, dateToUnixTimeSeconds } from '../utils'
 
@@ -219,7 +219,7 @@ class DiskDriver implements DriverModel {
     return { absoluteFilePath: abspath, contentTypeFilePath: contentTypePath }
   }
 
-  async performWrite(args: PerformWriteArgs): Promise<string> {
+  async performWrite(args: PerformWriteArgs): Promise<WriteResult> {
 
     const contentType = args.contentType
 
@@ -243,7 +243,10 @@ class DiskDriver implements DriverModel {
       contentTypeFilePath, 
       JSON.stringify({ 'content-type': contentType }), { mode: 0o600 })
 
-    return `${this.readURL}${args.storageTopLevel}/${args.path}`
+    return {
+      publicUrl: `${this.readURL}${args.storageTopLevel}/${args.path}`,
+      etag: ""
+    }
     
   }
 

@@ -2,9 +2,9 @@ import { Storage, File } from '@google-cloud/storage'
 
 import { BadPathError, InvalidInputError, DoesNotExist } from '../errors'
 import { 
-  ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, StatResult, 
-  PerformStatArgs, PerformReadArgs, ReadResult, PerformListFilesArgs, ListFilesStatResult, 
-  ListFileStatResult, DriverStatics, DriverModel, DriverModelTestMethods 
+  ListFilesResult, PerformWriteArgs, WriteResult, PerformDeleteArgs, PerformRenameArgs,
+  StatResult, PerformStatArgs, PerformReadArgs, ReadResult, PerformListFilesArgs,
+  ListFilesStatResult, ListFileStatResult, DriverStatics, DriverModel, DriverModelTestMethods 
 } from '../driverModel'
 import { pipelineAsync, logger, dateToUnixTimeSeconds } from '../utils'
 
@@ -176,7 +176,7 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
     return result
   }
 
-  async performWrite(args: PerformWriteArgs): Promise<string> {
+  async performWrite(args: PerformWriteArgs): Promise<WriteResult> {
     if (!GcDriver.isPathValid(args.path)) {
       throw new BadPathError('Invalid Path')
     }
@@ -184,7 +184,7 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
       throw new InvalidInputError('Invalid content-type')
     }
     const filename = `${args.storageTopLevel}/${args.path}`
-    const publicURL = `${this.getReadURLPrefix()}${filename}`
+    const publicUrl = `${this.getReadURLPrefix()}${filename}`
 
     const metadata: any = {}
     metadata.contentType = args.contentType
@@ -223,7 +223,10 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
         ` ${filename} in bucket ${this.bucket}: ${error}`)
     }
 
-    return publicURL
+    return {
+      publicUrl,
+      etag: ""
+    }
   }
 
   async performDelete(args: PerformDeleteArgs): Promise<void> {

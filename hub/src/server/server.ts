@@ -222,6 +222,7 @@ export class HubServer {
       })).etag
 
       if (requestTag !== responseTag) {
+        console.log(requestTag)
         throw new ValidationError(`The entity you are trying to store has been overwritten since your last read`)
       }
     }
@@ -292,14 +293,15 @@ export class HubServer {
       contentLength: contentLengthBytes
     }
 
-    const [readURL] = await Promise.all([this.driver.performWrite(writeCommand), pipelinePromise])
+    const [writeResponse] = await Promise.all([this.driver.performWrite(writeCommand), pipelinePromise])
+    const readURL = writeResponse.publicUrl
     const driverPrefix = this.driver.getReadURLPrefix()
     const readURLPrefix = this.getReadURLPrefix()
     if (readURLPrefix !== driverPrefix && readURL.startsWith(driverPrefix)) {
       const postFix = readURL.slice(driverPrefix.length)
       return `${readURLPrefix}${postFix}`
     }
-    return readURL
+    return writeResponse
   }
   
   isArchivalRestricted(scopes: AuthScopeValues) {

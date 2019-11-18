@@ -4,9 +4,9 @@ import * as azure from '@azure/storage-blob'
 import { logger, dateToUnixTimeSeconds } from '../utils'
 import { BadPathError, InvalidInputError, DoesNotExist, ConflictError } from '../errors'
 import { 
-  PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult, 
-  PerformReadArgs, ReadResult, PerformListFilesArgs, ListFilesStatResult, ListFileStatResult,
-  DriverStatics, DriverModel, DriverModelTestMethods
+  PerformWriteArgs, WriteResult, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs,
+  StatResult, PerformReadArgs, ReadResult, PerformListFilesArgs, ListFilesStatResult,
+  ListFileStatResult, DriverStatics, DriverModel, DriverModelTestMethods
 } from '../driverModel'
 import { Readable } from 'stream'
 import { BlobGetPropertiesHeaders } from '@azure/storage-blob/typings/src/generated/src/models'
@@ -163,7 +163,7 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
     }
   }
 
-  async performWrite(args: PerformWriteArgs): Promise<string> {
+  async performWrite(args: PerformWriteArgs): Promise<WriteResult> {
     // cancel write and return 402 if path is invalid
     if (!AzDriver.isPathValid(args.path)) {
       throw new BadPathError('Invalid Path')
@@ -207,9 +207,12 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
 
     // Return success and url to user
     const readURL = this.getReadURLPrefix()
-    const publicURL = `${readURL}${azBlob}`
-    logger.debug(`Storing ${azBlob} in ${this.bucket}, URL: ${publicURL}`)
-    return publicURL
+    const publicUrl = `${readURL}${azBlob}`
+    logger.debug(`Storing ${azBlob} in ${this.bucket}, URL: ${publicUrl}`)
+    return {
+      publicUrl,
+      etag: ""
+    }
   }
 
   async performDelete(args: PerformDeleteArgs): Promise<void> {
