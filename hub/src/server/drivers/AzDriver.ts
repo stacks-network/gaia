@@ -187,7 +187,7 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
     const maxBuffers = 1
 
     try {
-      await azure.uploadStreamToBlockBlob(
+      const uploadResult = await azure.uploadStreamToBlockBlob(
         azure.Aborter.none, args.stream,
         blockBlobURL, bufferSize, maxBuffers, {
           blobHTTPHeaders: {
@@ -196,6 +196,15 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
           }
         }
       )
+
+      // Return success and url to user
+      const readURL = this.getReadURLPrefix()
+      const publicUrl = `${readURL}${azBlob}`
+      logger.debug(`Storing ${azBlob} in ${this.bucket}, URL: ${publicUrl}`)
+      return {
+        publicUrl,
+        etag: uploadResult.eTag
+      }
     } catch (error) {
       logger.error(`failed to store ${azBlob} in ${this.bucket}: ${error}`)
       if (error.body && error.body.Code === 'InvalidBlockList') {
@@ -203,15 +212,6 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
       }
       throw new Error('Azure storage failure: failed to store' +
         ` ${azBlob} in container ${this.bucket}: ${error}`)
-    }
-
-    // Return success and url to user
-    const readURL = this.getReadURLPrefix()
-    const publicUrl = `${readURL}${azBlob}`
-    logger.debug(`Storing ${azBlob} in ${this.bucket}, URL: ${publicUrl}`)
-    return {
-      publicUrl,
-      etag: ""
     }
   }
 
@@ -275,7 +275,7 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
     }
     const result: StatResult = {
       exists: true,
-      etag: "",
+      etag: (properties.eTag || (properties as any).etag).replace(/^"|"$/g, ''),
       contentLength: properties.contentLength,
       contentType: properties.contentType,
       lastModifiedDate: lastModified

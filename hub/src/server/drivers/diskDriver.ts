@@ -243,6 +243,12 @@ class DiskDriver implements DriverModel {
       contentTypeFilePath, 
       JSON.stringify({ 'content-type': contentType }), { mode: 0o600 })
 
+    // const statArgs: PerformStatArgs = {
+    //   path:
+    //   storageTopLevel:
+    // }
+    // await this.performStat()
+
     return {
       publicUrl: `${this.readURL}${args.storageTopLevel}/${args.path}`,
       etag: ""
@@ -277,9 +283,15 @@ class DiskDriver implements DriverModel {
     const contentTypeJsonStr = await fs.readFile(contentTypeFilePath, 'utf8')
     const contentType = JSON.parse(contentTypeJsonStr)['content-type']
     const lastModified = dateToUnixTimeSeconds(stat.mtime)
+
+    // create "weak" tag from last-modified time and file size
+    const mtime = stat.mtime.getTime().toString(16)
+    const size = stat.size.toString(16)
+    const statTag = '"' + size + '-' + mtime + '"'
+
     const result: StatResult = {
       exists: true,
-      etag: "",
+      etag: statTag,
       contentLength: stat.size,
       contentType: contentType,
       lastModifiedDate: lastModified
