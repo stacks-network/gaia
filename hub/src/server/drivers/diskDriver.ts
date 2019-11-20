@@ -251,7 +251,7 @@ class DiskDriver implements DriverModel {
 
     return {
       publicUrl: `${this.readURL}${args.storageTopLevel}/${args.path}`,
-      etag: ""
+      etag: ''
     }
     
   }

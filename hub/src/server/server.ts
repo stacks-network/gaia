@@ -223,7 +223,7 @@ export class HubServer {
 
       if (requestTag !== responseTag) {
         console.log(requestTag)
-        throw new ValidationError(`The entity you are trying to store has been overwritten since your last read`)
+        throw new ValidationError('The entity you are trying to store has been overwritten since your last read')
       }
     }
 
