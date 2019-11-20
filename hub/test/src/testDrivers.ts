@@ -53,13 +53,14 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
       // Test binary data content-type
       const binFileName = `${fileSubDir}/foo.bin`;
       let sampleData = getSampleData();
-      let readUrl = await driver.performWrite({
+      let writeResponse = await driver.performWrite({
         path: binFileName,
         storageTopLevel: topLevelStorage,
         stream: sampleData.stream,
         contentType: 'application/octet-stream',
         contentLength: sampleData.contentLength
       });
+      let readUrl = writeResponse.publicUrl;
       t.ok(readUrl.startsWith(`${prefix}${topLevelStorage}`), `${readUrl} must start with readUrlPrefix ${prefix}${topLevelStorage}`)
 
       if (mockTest) {
@@ -83,12 +84,13 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
       // Test a text content-type that has implicit charset set
       const txtFileName = `${fileSubDir}/foo_text.txt`;
       sampleData = getSampleData();
-      readUrl = await driver.performWrite(
+      writeResponse = await driver.performWrite(
           { path: txtFileName,
             storageTopLevel: topLevelStorage,
             stream: sampleData.stream,
             contentType: 'text/plain; charset=utf-8',
             contentLength: sampleData.contentLength })
+      readUrl = writeResponse.publicUrl;
       t.ok(readUrl.startsWith(`${prefix}${topLevelStorage}`), `${readUrl} must start with readUrlPrefix ${prefix}${topLevelStorage}`)
       if (mockTest) {
         addMockFetches(fetch, prefix, dataMap)
@@ -512,7 +514,8 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           stream1.end()
           await utils.timeout(10)
           stream2.end()
-          const [ readEndpoint ] = await Promise.all([writeRequest1, writeRequest2])
+          const [ writeResponse ] = await Promise.all([writeRequest1, writeRequest2])
+          const readEndpoint = writeResponse.publicUrl
           resp = await fetch(readEndpoint)
           resptxt = await resp.text()
           if (resptxt === 'xyz sample content 2' || resptxt === 'abc sample content 1') {

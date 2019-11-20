@@ -100,7 +100,11 @@ export class InMemoryDriver implements DriverModel {
       lastModified: new Date()
     })
     const resultUrl = `${this.readUrl}${args.storageTopLevel}/${args.path}`
-    return resultUrl
+
+    return {
+      publicUrl: resultUrl,
+      etag: ""
+    }
   }
 
   performDelete(args: PerformDeleteArgs): Promise<void> {
@@ -131,6 +135,7 @@ export class InMemoryDriver implements DriverModel {
 
       const result: ReadResult = {
         exists: true,
+        etag: "",
         contentLength: file.content.byteLength,
         contentType: file.contentType,
         lastModifiedDate: lastModified,
@@ -155,6 +160,7 @@ export class InMemoryDriver implements DriverModel {
         const lastModified = dateToUnixTimeSeconds(file.lastModified)
         const result: StatResult = {
           exists: true,
+          etag: "",
           contentLength: file.content.byteLength,
           contentType: file.contentType,
           lastModifiedDate: lastModified
@@ -200,6 +206,7 @@ export class InMemoryDriver implements DriverModel {
         const entry: ListFileStatResult = {
           name: path.slice(args.pathPrefix.length + 1),
           exists: true,
+          etag: "",
           contentLength: val.content.byteLength,
           contentType: val.contentType,
           lastModifiedDate: dateToUnixTimeSeconds(val.lastModified)

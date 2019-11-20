@@ -167,7 +167,7 @@ export function testHttpWithInMemoryDriver() {
         .send(blob)
         .expect(202)
 
-      const url = JSON.parse(hubInfo.text).publicURL
+      const url = JSON.parse(hubInfo.text).publicUrl
       t.ok(url, 'Must return URL')
       console.log(url)
       const resp = await fetch(url)
@@ -471,7 +471,7 @@ function testHttpWithAzure() {
           addMockFetches(fetch, prefix, dataMap)
         }
 
-        let url = JSON.parse(response.text).publicURL
+        let url = JSON.parse(response.text).publicUrl
         t.ok(url, 'Must return URL')
         console.log(url)
         fetch(url)
