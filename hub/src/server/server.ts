@@ -6,7 +6,7 @@ import { ProofChecker } from './ProofChecker'
 import { AuthTimestampCache } from './revocations'
 
 import { Readable } from 'stream'
-import { DriverModel, PerformWriteArgs, PerformRenameArgs, PerformDeleteArgs, PerformListFilesArgs, ListFilesStatResult, ListFilesResult } from './driverModel'
+import { DriverModel, PerformWriteArgs, WriteResult, PerformRenameArgs, PerformDeleteArgs, PerformListFilesArgs, ListFilesStatResult, ListFilesResult } from './driverModel'
 import { HubConfigInterface } from './config'
 import { logger, generateUniqueID, bytesToMegabytes, megabytesToBytes, monitorStreamProgress } from './utils'
 
@@ -184,7 +184,7 @@ export class HubServer {
       authorization?: string
     },
     stream: Readable
-  ) {
+  ): Promise<WriteResult> {
 
     const oldestValidTokenTimestamp = await this.authTimestampCache.getAuthTimestamp(address)
     this.validate(address, requestHeaders, oldestValidTokenTimestamp)
@@ -299,7 +299,10 @@ export class HubServer {
     const readURLPrefix = this.getReadURLPrefix()
     if (readURLPrefix !== driverPrefix && readURL.startsWith(driverPrefix)) {
       const postFix = readURL.slice(driverPrefix.length)
-      return `${readURLPrefix}${postFix}`
+      return { 
+        publicUrl: `${readURLPrefix}${postFix}`,
+        etag: writeResponse.etag
+      }
     }
     return writeResponse
   }

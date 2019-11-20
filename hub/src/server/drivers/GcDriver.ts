@@ -218,20 +218,9 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
       await pipelineAsync(args.stream, fileWriteStream)
       logger.debug(`storing ${filename} in bucket ${this.bucket}`)
 
-      try {
-        const bucketFile = this.storage
-          .bucket(this.bucket)
-          .file(filename)
-        const [metadataResult] = await bucketFile.getMetadata()
-
-        return {
-          publicUrl,
-          etag: metadataResult.etag
-        }
-      } catch (error) {
-        logger.error(`failed to retrieve etag for ${filename} in bucket ${this.bucket}`)
-        throw new Error('Google cloud storage failure: failed to retrieve etag for' +
-          ` ${filename} in bucket ${this.bucket}: ${error}`)
+      return {
+        publicUrl,
+        etag: fileDestination.metadata.etag
       }
     } catch (error) {
       logger.error(`failed to store ${filename} in bucket ${this.bucket}`)

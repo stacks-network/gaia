@@ -61,8 +61,8 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
 
     const handleRequest = async () => {
       try {
-        const publicURL = await server.handleRequest(address, filename, req.headers, req)
-        writeResponse(res, { publicURL }, 202)
+        const responseData = await server.handleRequest(address, filename, req.headers, req)
+        writeResponse(res, responseData, 202)
       } catch (err) {
         logger.error(err)
         if (err instanceof errors.ValidationError) {
