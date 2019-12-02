@@ -1,17 +1,17 @@
 {
-    "serverName": "DROPLET_NAME",
+    "serverName": "moxie-gaiahub",
     "port": 4000,
     "driver": "aws",
-    "readURL": "DROPLET_URL",
+    "readURL": "sfo2.digitaloceanspaces.com",
     "proofsConfig": {
-      "proofsRequired": 0
+        "proofsRequired": 0
     },
     "pageSize": 20,
-    "bucket": "SPACE",
+    "bucket": "meeps",
     "awsCredentials": {
-       "endpoint": "SPACE_NAME",
-       "accessKeyId": "YOUR_ACCESS_KEY",
-       "secretAccessKey": ""
+       "endpoint": "sfo2.digitaloceanspaces.com",
+       "accessKeyId": "fb3J7AT/PGMGMPOA86EFLpx8IjGZQib99eXWjVR+QK0",
+       "secretAccessKey": "9ac685342eaa5bc4b44c13f3ecf43b001a3bdb9e2257114d44394d410dd91f66"
     },
     "argsTransport": {
       "level": "debug",
