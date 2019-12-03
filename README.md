@@ -593,15 +593,17 @@ that are common to all storage systems are omitted for brevity.
 | **Features**                | Gaia | [Sia](https://sia.tech/) | [Storj](https://storj.io/) | [IPFS](https://ipfs.io) | [DAT](https://datproject.org) | [SSB](https://www.scuttlebutt.nz/) |
 |-----------------------------|------|--------------------------|----------------------------|-------------------------|-------------------------------|------------------------------------|
 | User controls where data is hosted           | X |   |   |   |   |   |
-| Data can be viewed in a normal Web browser   | X |   |   | X |   |   |
+| Data stored redundantly                      | optional | X | X | optional | optional | optional |
 | Data is read/write                           | X |   |   |   | X | X |
-| Data can be deleted                          | X |   |   |   | X | X |
+| Data can be deleted                          | X | X |   |   | X | X |
 | Data can be listed                           | X | X | X |   | X | X |
 | Deleted data space is reclaimed              | X | X | X | X |   |   | 
-| Data lookups have predictable performance    | X |   | X |   |   |   |
+| Data lookups have predictable performance    | X | X | X |   |   |   |
 | Writes permission can be delegated           | X |   |   |   |   |   |
 | Listing permission can be delegated          | X |   |   |   |   |   |
-| Supports multiple backends natively          | X |   | X |   |   |   |
 | Data is globally addressable                 | X | X | X | X | X |   | 
 | Needs a cryptocurrency to work               |   | X | X |   |   |   |
+| Needs FIAT currency to work                  | X |   |   |   |   |   |
 | Data is content-addressed                    |   | X | X | X | X | X |
+| Data stored geographically distributed       | optional | X | X | X | X | X |
+| Pricing (per TB per month)                   | Various | ~$2 | $10 | free, files can be lost | free, files can be lost |  |
