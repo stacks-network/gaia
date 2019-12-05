@@ -1,0 +1,24 @@
+{
+    "serverName": "DROPLET_NAME",
+    "port": 4000,
+    "driver": "aws",
+    "readURL": "SPACE_URL",
+    "proofsConfig": {
+        "proofsRequired": 0
+    },
+    "pageSize": 20,
+    "bucket": "meeps",
+    "awsCredentials": {
+       "endpoint": "SPACE_LOCATION",
+       "accessKeyId": "YOUR-ACCESS-KEY",
+       "secretAccessKey": "YOUR-ACCESS-KEY-SECRET"
+    },
+    "argsTransport": {
+      "level": "debug",
+      "handleExceptions": true,
+      "stringify": true,
+      "timestamp": true,
+      "colorize": false,
+      "json": true
+    }
+  }
