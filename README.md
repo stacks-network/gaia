@@ -585,25 +585,15 @@ Currently, the service will only allow up to 20 write requests per second and a 
 file size of 5MB. However, these limitations are only for our service, if you deploy
 your own Gaia hub, these limitations are not necessary.
 
-# Project Comparison
+# Features
 
-Here's how Gaia stacks up against other decentralized storage systems.  Features
-that are common to all storage systems are omitted for brevity.
-
-| **Features**                | Gaia | [Sia](https://sia.tech/) | [Storj](https://storj.io/) | [IPFS](https://ipfs.io) | [DAT](https://datproject.org) | [SSB](https://www.scuttlebutt.nz/) |
-|-----------------------------|------|--------------------------|----------------------------|-------------------------|-------------------------------|------------------------------------|
-| User controls where data is hosted           | X |   |   |   |   |   |
-| Data stored redundantly                      | optional | X | X | optional | optional | optional |
-| Data is read/write                           | X |   |   |   | X | X |
-| Data can be deleted                          | X | X |   |   | X | X |
-| Data can be listed                           | X | X | X |   | X | X |
-| Deleted data space is reclaimed              | X | X | X | X |   |   | 
-| Data lookups have predictable performance    | X | X | X |   |   |   |
-| Writes permission can be delegated           | X |   |   |   |   |   |
-| Listing permission can be delegated          | X |   |   |   |   |   |
-| Data is globally addressable                 | X | X | X | X | X |   | 
-| Needs a cryptocurrency to work               |   | X | X |   |   |   |
-| Needs FIAT currency to work                  | X |   |   |   |   |   |
-| Data is content-addressed                    |   | X | X | X | X | X |
-| Data stored geographically distributed       | optional | X | X | X | X | X |
-| Pricing (per TB per month)                   | Various | ~$2 | $10 | free, files can be lost | free, files can be lost |  |
+- User controls where data is hosted
+- Data can be viewed in a normal Web browser
+- Data can be stored redundantly (depends on the storage you choose)
+- Data can be listed and deleted
+- Deleted data space is reclaimed
+- Data lookups have as predictable performance as your storage
+- Writes and listing permission can be delegated
+- Data is globally addressable
+- Useable with free/trial storage packages
+- Noo needs cryptocurrency to work, just storage
