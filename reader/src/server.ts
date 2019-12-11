@@ -21,7 +21,7 @@ export class GaiaDiskReader {
     return !path.includes('..')
   }
 
-  handleGet(topLevelDir: string, filename: string): Promise<{ exists: boolean, contentType?: string }> {
+  handleGet(topLevelDir: string, filename: string): Promise<{ exists: boolean, contentType?: string, etag?: string }> {
     const storageRoot = this.config.diskSettings.storageRootDirectory
     if (!storageRoot) {
       throw new Error('Misconfiguration: no storage root set')
@@ -43,7 +43,7 @@ export class GaiaDiskReader {
     try {
       const metadataJSON = fs.readFileSync(metadataPath).toString()
       const metadata = JSON.parse(metadataJSON)
-      const ret = { exists: true, contentType: metadata['content-type'] }
+      const ret = { exists: true, contentType: metadata['content-type'], etag: metadata['etag'] }
       return Promise.resolve().then(() => ret)
     } catch (e) {
       const ret = { exists: true, contentType: 'application/octet-stream' }

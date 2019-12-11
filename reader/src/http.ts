@@ -30,6 +30,7 @@ export function makeHttpServer(config: Config) {
       .then((fileInfo) => {
         const exists = fileInfo.exists
         const contentType = fileInfo.contentType
+        const etag = fileInfo.etag
 
         if (!exists) {
           return res.status(404).send('File not found')
@@ -38,7 +39,8 @@ export function makeHttpServer(config: Config) {
         const opts = {
           root: config.diskSettings.storageRootDirectory,
           headers: {
-            'content-type': contentType
+            'content-type': contentType,
+            'etag': etag
           }
         }
         const path = Path.join(address, filename)
