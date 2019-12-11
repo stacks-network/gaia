@@ -28,6 +28,8 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
   cacheControl?: string
   initPromise: Promise<void>
 
+  supportsETagMatching = false;
+
   static getConfigInformation() {
     const envVars: any = {}
     const awsCredentials: any = {}

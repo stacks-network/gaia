@@ -32,6 +32,8 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
   initPromise: Promise<void>
   resumable: boolean
 
+  supportsETagMatching = false;
+
   static getConfigInformation() {
     const envVars: any = {}
     const gcCredentials: any = {}

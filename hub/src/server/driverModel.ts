@@ -70,6 +70,8 @@ export interface PerformRenameArgs {
 }
 
 export interface DriverModel {
+  supportsETagMatching: boolean;
+
   getReadURLPrefix(): string;
   performWrite(args: PerformWriteArgs): Promise<WriteResult>;
   performDelete(args: PerformDeleteArgs): Promise<void>;

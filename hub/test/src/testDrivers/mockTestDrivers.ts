@@ -259,6 +259,8 @@ export function makeMockedDiskDriver() {
     }
   }
   class DiskDriverWrapper extends DiskDriver {
+    supportsETagMatching = false;
+
     async performWrite(args: PerformWriteArgs) : Promise<WriteResult> {
       const result = await super.performWrite(args)
       const filePath = path.resolve(tmpStorageDir, args.storageTopLevel, args.path)

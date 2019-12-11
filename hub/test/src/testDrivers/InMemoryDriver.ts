@@ -22,6 +22,8 @@ export class InMemoryDriver implements DriverModel {
 
   onWriteMiddleware: Set<((arg: PerformWriteArgs) => Promise<void>)> = new Set()
 
+  supportsETagMatching = false;
+
   constructor(config: any) {
     this.pageSize = (config && config.pageSize) ? config.pageSize : 100
     this.files = new Map()
