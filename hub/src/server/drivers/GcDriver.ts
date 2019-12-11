@@ -2,9 +2,9 @@ import { Storage, File } from '@google-cloud/storage'
 
 import { BadPathError, InvalidInputError, DoesNotExist } from '../errors'
 import { 
-  ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, StatResult, 
-  PerformStatArgs, PerformReadArgs, ReadResult, PerformListFilesArgs, ListFilesStatResult, 
-  ListFileStatResult, DriverStatics, DriverModel, DriverModelTestMethods 
+  ListFilesResult, PerformWriteArgs, WriteResult, PerformDeleteArgs, PerformRenameArgs,
+  StatResult, PerformStatArgs, PerformReadArgs, ReadResult, PerformListFilesArgs,
+  ListFilesStatResult, ListFileStatResult, DriverStatics, DriverModel, DriverModelTestMethods 
 } from '../driverModel'
 import { pipelineAsync, logger, dateToUnixTimeSeconds } from '../utils'
 
@@ -176,7 +176,7 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
     return result
   }
 
-  async performWrite(args: PerformWriteArgs): Promise<string> {
+  async performWrite(args: PerformWriteArgs): Promise<WriteResult> {
     if (!GcDriver.isPathValid(args.path)) {
       throw new BadPathError('Invalid Path')
     }
@@ -217,13 +217,16 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
     try {
       await pipelineAsync(args.stream, fileWriteStream)
       logger.debug(`storing ${filename} in bucket ${this.bucket}`)
+
+      return {
+        publicURL,
+        etag: fileDestination.metadata.etag
+      }
     } catch (error) {
       logger.error(`failed to store ${filename} in bucket ${this.bucket}`)
       throw new Error('Google cloud storage failure: failed to store' +
         ` ${filename} in bucket ${this.bucket}: ${error}`)
     }
-
-    return publicURL
   }
 
   async performDelete(args: PerformDeleteArgs): Promise<void> {
@@ -253,6 +256,7 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
     const lastModified = dateToUnixTimeSeconds(new Date(metadata.updated))
     const result: StatResult = {
       exists: true,
+      etag: metadata.etag,
       contentType: metadata.contentType,
       contentLength: parseInt(metadata.size),
       lastModifiedDate: lastModified

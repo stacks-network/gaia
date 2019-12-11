@@ -4,9 +4,9 @@ import * as azure from '@azure/storage-blob'
 import { logger, dateToUnixTimeSeconds } from '../utils'
 import { BadPathError, InvalidInputError, DoesNotExist, ConflictError } from '../errors'
 import { 
-  PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult, 
-  PerformReadArgs, ReadResult, PerformListFilesArgs, ListFilesStatResult, ListFileStatResult,
-  DriverStatics, DriverModel, DriverModelTestMethods
+  PerformWriteArgs, WriteResult, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs,
+  StatResult, PerformReadArgs, ReadResult, PerformListFilesArgs, ListFilesStatResult,
+  ListFileStatResult, DriverStatics, DriverModel, DriverModelTestMethods
 } from '../driverModel'
 import { Readable } from 'stream'
 import { BlobGetPropertiesHeaders } from '@azure/storage-blob/typings/src/generated/src/models'
@@ -163,7 +163,7 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
     }
   }
 
-  async performWrite(args: PerformWriteArgs): Promise<string> {
+  async performWrite(args: PerformWriteArgs): Promise<WriteResult> {
     // cancel write and return 402 if path is invalid
     if (!AzDriver.isPathValid(args.path)) {
       throw new BadPathError('Invalid Path')
@@ -187,7 +187,7 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
     const maxBuffers = 1
 
     try {
-      await azure.uploadStreamToBlockBlob(
+      const uploadResult = await azure.uploadStreamToBlockBlob(
         azure.Aborter.none, args.stream,
         blockBlobURL, bufferSize, maxBuffers, {
           blobHTTPHeaders: {
@@ -196,6 +196,15 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
           }
         }
       )
+
+      // Return success and url to user
+      const readURL = this.getReadURLPrefix()
+      const publicURL = `${readURL}${azBlob}`
+      logger.debug(`Storing ${azBlob} in ${this.bucket}, URL: ${publicURL}`)
+      return {
+        publicURL,
+        etag: uploadResult.eTag
+      }
     } catch (error) {
       logger.error(`failed to store ${azBlob} in ${this.bucket}: ${error}`)
       if (error.body && error.body.Code === 'InvalidBlockList') {
@@ -204,12 +213,6 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
       throw new Error('Azure storage failure: failed to store' +
         ` ${azBlob} in container ${this.bucket}: ${error}`)
     }
-
-    // Return success and url to user
-    const readURL = this.getReadURLPrefix()
-    const publicURL = `${readURL}${azBlob}`
-    logger.debug(`Storing ${azBlob} in ${this.bucket}, URL: ${publicURL}`)
-    return publicURL
   }
 
   async performDelete(args: PerformDeleteArgs): Promise<void> {
@@ -272,6 +275,7 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
     }
     const result: StatResult = {
       exists: true,
+      etag: (properties.eTag || (properties as any).etag),
       contentLength: properties.contentLength,
       contentType: properties.contentType,
       lastModifiedDate: lastModified
