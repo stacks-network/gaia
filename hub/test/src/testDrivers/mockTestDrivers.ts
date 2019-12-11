@@ -1,6 +1,7 @@
 
 
 import { Readable, Writable } from 'stream'
+import { createHash } from 'crypto'
 import * as os from 'os'
 import * as path from 'path'
 import * as fs from 'fs'
@@ -37,8 +38,9 @@ export function makeMockedAzureDriver() {
   const dataMap: DataMap = []
   const uploadStreamToBlockBlob = async (aborter, stream, blockBlobURL, bufferSize, maxBuffers, options) => {
     const buffer = await readStream(stream)
-    dataMap.push({data: buffer.toString(), key: blockBlobURL.blobName, etag: "test" })
-    return { eTag: "test" }
+    const etag = createHash('md5').update(buffer).digest('hex')
+    dataMap.push({data: buffer.toString(), key: blockBlobURL.blobName, etag: etag })
+    return { eTag: etag }
   }
 
   const listBlobFlatSegment = (_, __, { prefix }) => {
@@ -118,9 +120,10 @@ export function makeMockedS3Driver() {
             throw new Error(`Unexpected bucket name: ${options.Bucket}. Expected ${bucketName}`)
           }
           const buffer = await readStream(options.Body)
-          dataMap.push({ data: buffer.toString(), key: options.Key, etag: "test" })
+          const etag = createHash('md5').update(buffer).digest('hex')
+          dataMap.push({ data: buffer.toString(), key: options.Key, etag: etag })
           return { 
-            ETag: "test"
+            ETag: etag
           }
         }
       }
@@ -194,8 +197,13 @@ export function makeMockedGcDriver() {
   let myName = ''
 
   const file = function (filename) {
+    const fileMetadata = { md5Hash: undefined as string }
     const createWriteStream = function() {
-      return new MockWriteStream(dataMap, filename)
+      const mockWriteStream = new MockWriteStream(dataMap, filename)
+      mockWriteStream.addListener('finish', () => {
+        fileMetadata.md5Hash = Buffer.from(mockWriteStream.etag, 'hex').toString('base64') 
+      })
+      return mockWriteStream
     }
     return { 
       createWriteStream, 
@@ -211,9 +219,7 @@ export function makeMockedGcDriver() {
           dataMap.push(...newDataMap)
         })
       },
-      metadata: {
-        etag: "test"
-      } 
+      metadata: fileMetadata
     }
   }
   const exists = function () {
@@ -265,7 +271,8 @@ export function makeMockedDiskDriver() {
       const result = await super.performWrite(args)
       const filePath = path.resolve(tmpStorageDir, args.storageTopLevel, args.path)
       const fileContent = fs.readFileSync(filePath, {encoding: 'utf8'})
-      dataMap.push({ key: `${args.storageTopLevel}/${args.path}`, data: fileContent, etag: "test" })
+      const etag = createHash('md5').update(fileContent).digest('hex')
+      dataMap.push({ key: `${args.storageTopLevel}/${args.path}`, data: fileContent, etag: etag })
       return result
     }
     async performDelete(args: PerformDeleteArgs): Promise<void> {
@@ -285,6 +292,7 @@ class MockWriteStream extends Writable {
   dataMap: DataMap
   filename: string
   data: string
+  etag: string
   constructor(dataMap: DataMap, filename: string) {
     super({})
     this.dataMap = dataMap
@@ -297,7 +305,8 @@ class MockWriteStream extends Writable {
     return true
   }
   _final(callback: any) {
-    this.dataMap.push({ data: this.data, key: this.filename, etag: "test" })
+    this.etag = createHash('md5').update(this.data).digest('hex')
+    this.dataMap.push({ data: this.data, key: this.filename, etag: this.etag })
     callback()
   }
 }

@@ -168,7 +168,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           const stream = new PassThrough()
           stream.end('Hello read test!')
           const dateNow1 = Math.round(Date.now() / 1000)
-          await driver.performWrite({
+          const writeResult = await driver.performWrite({
             path: readTestFile,
             storageTopLevel: topLevelStorage,
             stream: stream,
@@ -185,6 +185,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           t.equal(readResult.exists, true, 'File stat should return exists after write')
           t.equal(readResult.contentLength, 16, 'File stat should have correct content length')
           t.equal(readResult.contentType, "text/plain; charset=utf-8", 'File stat should have correct content type')
+          t.equal(readResult.etag, writeResult.etag, 'File read should return same etag as write result')
           const dateDiff = Math.abs(readResult.lastModifiedDate - dateNow1)
           t.equal(dateDiff < 10, true, `File stat last modified date is not within range, diff: ${dateDiff} -- ${readResult.lastModifiedDate} vs ${dateNow1}`)
 
@@ -239,7 +240,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           const stream1 = new PassThrough()
           stream1.end('abc sample content 1', 'utf8')
           const dateNow1 = Math.round(Date.now() / 1000)
-          await driver.performWrite({
+          const writeResult = await driver.performWrite({
             path: statTestFile,
             storageTopLevel: topLevelStorage,
             stream: stream1,
@@ -252,6 +253,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           const statResult = listStatResult.entries.find(e => e.name.includes(statTestFile))
           t.equal(statResult.exists, true, 'File stat should return exists after write')
           t.equal(statResult.contentLength, 20, 'File stat should have correct content length')
+          t.equal(statResult.etag, writeResult.etag, 'File read should return same etag as write file result')
           const dateDiff = Math.abs(statResult.lastModifiedDate - dateNow1)
           t.equal(dateDiff < 10, true, `File stat last modified date is not within range, diff: ${dateDiff} -- ${statResult.lastModifiedDate} vs ${dateNow1}`)
         } catch (error) {
@@ -264,7 +266,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           const stream1 = new PassThrough()
           stream1.end('abc sample content 1', 'utf8')
           const dateNow1 = Math.round(Date.now() / 1000)
-          await driver.performWrite({
+          const writeResult = await driver.performWrite({
             path: statTestFile,
             storageTopLevel: topLevelStorage,
             stream: stream1,
@@ -279,6 +281,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           t.equal(statResult.exists, true, 'File stat should return exists after write')
           t.equal(statResult.contentLength, 20, 'File stat should have correct content length')
           t.equal(statResult.contentType, "text/plain; charset=utf-8", 'File stat should have correct content type')
+          t.equal(statResult.etag, writeResult.etag, 'File stat should return same etag as write file result')
           const dateDiff = Math.abs(statResult.lastModifiedDate - dateNow1)
           t.equal(dateDiff < 10, true, `File stat last modified date is not within range, diff: ${dateDiff} -- ${statResult.lastModifiedDate} vs ${dateNow1}`)
         } catch (error) {
