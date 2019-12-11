@@ -2,6 +2,7 @@ import test = require('tape-promise/tape')
 import * as auth from '../../src/server/authentication'
 import * as os from 'os'
 import * as fs from 'fs'
+import * as crypto from 'crypto'
 import request = require('supertest')
 import { ecPairToAddress } from 'blockstack'
 
@@ -172,7 +173,9 @@ export function testHttpWithInMemoryDriver() {
       console.log(url)
       const resp = await fetch(url)
       const text = await resp.text()
+      const etag = resp.headers.get('etag')
       t.equal(text, fileContents, 'Contents returned must be correct')
+      t.equal(etag, crypto.createHash('md5').update(text).digest('hex'), 'Response headers should contain correct etag')
 
       const filesResponse = await request(app).post(listPath)
         .set('Content-Type', 'application/json')
@@ -196,6 +199,13 @@ export function testHttpWithInMemoryDriver() {
         .set('Authorization', authorization)
         .set('Content-Length', '9999999')
         .expect(413)
+
+      await request(app).post(path)
+        .set('Content-Type', 'application/octet-stream')
+        .set('Authorization', authorization)
+        .set('If-Match', 'bad-etag')
+        .send(blob)
+        .expect(412)
 
       try {
         const largePayload = new PassThrough()

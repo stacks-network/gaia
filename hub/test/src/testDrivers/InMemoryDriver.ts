@@ -2,6 +2,7 @@
 
 import { readStream, dateToUnixTimeSeconds } from '../../../src/server/utils'
 import { Server } from 'http'
+import * as crypto from 'crypto'
 import * as express from 'express'
 import { DriverModel, DriverStatics, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult, PerformReadArgs, ReadResult, PerformListFilesArgs, ListFilesStatResult, ListFileStatResult } from '../../../src/server/driverModel'
 import { ListFilesResult, PerformWriteArgs } from '../../../src/server/driverModel'
@@ -14,7 +15,7 @@ export class InMemoryDriver implements DriverModel {
   server: Server;
   pageSize: number
   readUrl: string
-  files: Map<string, { content: Buffer, contentType: string, lastModified: Date }>
+  files: Map<string, { content: Buffer, contentType: string, lastModified: Date, etag: string }>
   filesInProgress: Map<string, object> = new Map<string, object>()
   lastWrite: PerformWriteArgs
   initPromise: Promise<void>
@@ -23,7 +24,7 @@ export class InMemoryDriver implements DriverModel {
 
   constructor(config: any) {
     this.pageSize = (config && config.pageSize) ? config.pageSize : 100
-    this.files = new Map<string, { content: Buffer, contentType: string, lastModified: Date }>()
+    this.files = new Map()
     this.app = express()
     this.app.use((req, res, next) => {
       const requestPath = req.path.slice(1)
@@ -31,6 +32,7 @@ export class InMemoryDriver implements DriverModel {
       if (matchingFile) {
         res.set({
           'Content-Type': matchingFile.contentType,
+          'ETag': matchingFile.etag,
           'Cache-Control': (config || {}).cacheControl
         }).send(matchingFile.content)
       } else {
@@ -94,13 +96,19 @@ export class InMemoryDriver implements DriverModel {
     this.filesInProgress.set(filePath, null)
     const contentBuffer = await readStream(args.stream)
     this.filesInProgress.delete(filePath)
+    const hash = crypto.createHash('md5').update(contentBuffer).digest('hex');
     this.files.set(filePath, {
       content: contentBuffer,
       contentType: args.contentType,
-      lastModified: new Date()
+      lastModified: new Date(),
+      etag: hash
     })
     const resultUrl = `${this.readUrl}${args.storageTopLevel}/${args.path}`
-    return resultUrl
+
+    return {
+      publicURL: resultUrl,
+      etag: hash
+    }
   }
 
   performDelete(args: PerformDeleteArgs): Promise<void> {
@@ -131,6 +139,7 @@ export class InMemoryDriver implements DriverModel {
 
       const result: ReadResult = {
         exists: true,
+        etag: file.etag,
         contentLength: file.content.byteLength,
         contentType: file.contentType,
         lastModifiedDate: lastModified,
@@ -155,6 +164,7 @@ export class InMemoryDriver implements DriverModel {
         const lastModified = dateToUnixTimeSeconds(file.lastModified)
         const result: StatResult = {
           exists: true,
+          etag: file.etag,
           contentLength: file.content.byteLength,
           contentType: file.contentType,
           lastModifiedDate: lastModified
@@ -200,6 +210,7 @@ export class InMemoryDriver implements DriverModel {
         const entry: ListFileStatResult = {
           name: path.slice(args.pathPrefix.length + 1),
           exists: true,
+          etag: val.etag,
           contentLength: val.content.byteLength,
           contentType: val.contentType,
           lastModifiedDate: dateToUnixTimeSeconds(val.lastModified)

@@ -8,13 +8,13 @@ import { load as proxyquire } from 'proxyquire'
 
 import { readStream } from '../../../src/server/utils'
 import { DriverModel, DriverConstructor, PerformDeleteArgs } from '../../../src/server/driverModel'
-import { ListFilesResult, PerformWriteArgs } from '../../../src/server/driverModel'
+import { ListFilesResult, PerformWriteArgs, WriteResult } from '../../../src/server/driverModel'
 import AzDriver from '../../../src/server/drivers/AzDriver'
 import S3Driver from '../../../src/server/drivers/S3Driver'
 import GcDriver from '../../../src/server/drivers/GcDriver'
 import DiskDriver from '../../../src/server/drivers/diskDriver'
 
-type DataMap = {key: string, data: string}[];
+type DataMap = {key: string, data: string, etag: string}[];
 
 export const availableMockedDrivers: {[name: string]: () => {driverClass: DriverConstructor, dataMap: DataMap, config: any}} = {
   az: () => makeMockedAzureDriver(),
@@ -37,7 +37,8 @@ export function makeMockedAzureDriver() {
   const dataMap: DataMap = []
   const uploadStreamToBlockBlob = async (aborter, stream, blockBlobURL, bufferSize, maxBuffers, options) => {
     const buffer = await readStream(stream)
-    dataMap.push({data: buffer.toString(), key: blockBlobURL.blobName })
+    dataMap.push({data: buffer.toString(), key: blockBlobURL.blobName, etag: "test" })
+    return { eTag: "test" }
   }
 
   const listBlobFlatSegment = (_, __, { prefix }) => {
@@ -47,6 +48,7 @@ export function makeMockedAzureDriver() {
         name: x.key,
         properties: {
           lastModified: new Date(),
+          eTag: x.etag,
           contentLength: x.data.length,
           contentType: "?"
         }
@@ -116,7 +118,10 @@ export function makeMockedS3Driver() {
             throw new Error(`Unexpected bucket name: ${options.Bucket}. Expected ${bucketName}`)
           }
           const buffer = await readStream(options.Body)
-          dataMap.push({ data: buffer.toString(), key: options.Key })
+          dataMap.push({ data: buffer.toString(), key: options.Key, etag: "test" })
+          return { 
+            ETag: "test"
+          }
         }
       }
     }
@@ -166,7 +171,7 @@ export function makeMockedS3Driver() {
               return (entry.key.slice(0, options.Prefix.length) === options.Prefix)
             })
             .map((entry) => {
-              return { Key: entry.key }
+              return { Key: entry.key, ETag: entry.etag }
             })
           return { Contents: contents, IsTruncated: false }
         }
@@ -205,6 +210,9 @@ export function makeMockedGcDriver() {
           dataMap.length = 0
           dataMap.push(...newDataMap)
         })
+      },
+      metadata: {
+        etag: "test"
       } 
     }
   }
@@ -226,7 +234,7 @@ export function makeMockedGcDriver() {
     getFiles(options, cb) {
       const files = dataMap
         .filter(entry => entry.key.startsWith(options.prefix))
-        .map(entry => { return { name: entry.key } })
+        .map(entry => { return { name: entry.key, etag: entry.etag } })
       cb(null, files, null)
     }
   }
@@ -251,11 +259,11 @@ export function makeMockedDiskDriver() {
     }
   }
   class DiskDriverWrapper extends DiskDriver {
-    async performWrite(args: PerformWriteArgs) : Promise<string> {
+    async performWrite(args: PerformWriteArgs) : Promise<WriteResult> {
       const result = await super.performWrite(args)
       const filePath = path.resolve(tmpStorageDir, args.storageTopLevel, args.path)
       const fileContent = fs.readFileSync(filePath, {encoding: 'utf8'})
-      dataMap.push({ key: `${args.storageTopLevel}/${args.path}`, data: fileContent })
+      dataMap.push({ key: `${args.storageTopLevel}/${args.path}`, data: fileContent, etag: "test" })
       return result
     }
     async performDelete(args: PerformDeleteArgs): Promise<void> {
@@ -287,7 +295,7 @@ class MockWriteStream extends Writable {
     return true
   }
   _final(callback: any) {
-    this.dataMap.push({ data: this.data, key: this.filename })
+    this.dataMap.push({ data: this.data, key: this.filename, etag: "test" })
     callback()
   }
 }
