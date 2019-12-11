@@ -1,12 +1,12 @@
 
 
 import { validateAuthorizationHeader, getAuthenticationScopes, AuthScopeValues } from './authentication'
-import { ValidationError, DoesNotExist, PayloadTooLargeError } from './errors'
+import { ValidationError, DoesNotExist, PayloadTooLargeError, PreconditionFailedError } from './errors'
 import { ProofChecker } from './ProofChecker'
 import { AuthTimestampCache } from './revocations'
 
 import { Readable } from 'stream'
-import { DriverModel, PerformWriteArgs, PerformRenameArgs, PerformDeleteArgs, PerformListFilesArgs, ListFilesStatResult, ListFilesResult } from './driverModel'
+import { DriverModel, PerformWriteArgs, WriteResult, PerformRenameArgs, PerformDeleteArgs, PerformListFilesArgs, ListFilesStatResult, ListFilesResult } from './driverModel'
 import { HubConfigInterface } from './config'
 import { logger, generateUniqueID, bytesToMegabytes, megabytesToBytes, monitorStreamProgress } from './utils'
 
@@ -180,10 +180,11 @@ export class HubServer {
     requestHeaders: {
       'content-type'?: string,
       'content-length'?: string | number,
+      'if-match'?: string,
       authorization?: string
     },
     stream: Readable
-  ) {
+  ): Promise<WriteResult> {
 
     const oldestValidTokenTimestamp = await this.authTimestampCache.getAuthTimestamp(address)
     this.validate(address, requestHeaders, oldestValidTokenTimestamp)
@@ -210,6 +211,21 @@ export class HubServer {
       if (!match) {
         // not authorized to write to this path
         throw new ValidationError(`Address ${address} not authorized to write to ${path} by scopes`)
+      }
+    }
+
+    const requestTag = requestHeaders['if-match']
+    if (requestTag) {
+      const freshTag = (await this.driver.performStat({
+        path: path,
+        storageTopLevel: address
+      })).etag
+
+      if (requestTag !== freshTag) {
+        throw new PreconditionFailedError(
+          'The entity you are trying to store has been overwritten since your last read',
+          freshTag
+        )
       }
     }
 
@@ -278,14 +294,19 @@ export class HubServer {
       path, stream: monitoredStream, contentType,
       contentLength: contentLengthBytes
     }
-    const [readURL] = await Promise.all([this.driver.performWrite(writeCommand), pipelinePromise])
+
+    const [writeResponse] = await Promise.all([this.driver.performWrite(writeCommand), pipelinePromise])
+    const readURL = writeResponse.publicURL
     const driverPrefix = this.driver.getReadURLPrefix()
     const readURLPrefix = this.getReadURLPrefix()
     if (readURLPrefix !== driverPrefix && readURL.startsWith(driverPrefix)) {
       const postFix = readURL.slice(driverPrefix.length)
-      return `${readURLPrefix}${postFix}`
+      return { 
+        publicURL: `${readURLPrefix}${postFix}`,
+        etag: writeResponse.etag
+      }
     }
-    return readURL
+    return writeResponse
   }
   
   isArchivalRestricted(scopes: AuthScopeValues) {
