@@ -26,6 +26,8 @@ class DiskDriver implements DriverModel {
   pageSize: number
   initPromise: Promise<void>
 
+  supportsETagMatching = false;
+
   static getConfigInformation() {
     const envVars: any = {}
     if (process.env['GAIA_DISK_STORAGE_ROOT_DIR']) {
