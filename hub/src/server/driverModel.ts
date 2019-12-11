@@ -30,6 +30,11 @@ export interface PerformWriteArgs {
   contentType: string;
 }
 
+export interface WriteResult {
+  publicURL: string;
+  etag: string;
+}
+
 export interface PerformDeleteArgs {
   path: string;
   storageTopLevel: string;
@@ -53,6 +58,7 @@ export interface PerformStatArgs {
 export interface StatResult {
   exists: boolean;
   lastModifiedDate: number;
+  etag: string;
   contentLength: number;
   contentType: string;
 }
@@ -65,7 +71,7 @@ export interface PerformRenameArgs {
 
 export interface DriverModel {
   getReadURLPrefix(): string;
-  performWrite(args: PerformWriteArgs): Promise<string>;
+  performWrite(args: PerformWriteArgs): Promise<WriteResult>;
   performDelete(args: PerformDeleteArgs): Promise<void>;
   performRename(args: PerformRenameArgs): Promise<void>;
   performStat(args: PerformStatArgs): Promise<StatResult>;
