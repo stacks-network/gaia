@@ -220,10 +220,9 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
       await pipelineAsync(args.stream, fileWriteStream)
       logger.debug(`storing ${filename} in bucket ${this.bucket}`)
 
-      return {
-        publicURL,
-        etag: fileDestination.metadata.etag
-      }
+      const etag = Buffer.from(fileDestination.metadata.md5Hash, 'base64').toString('hex')
+
+      return { publicURL, etag }
     } catch (error) {
       logger.error(`failed to store ${filename} in bucket ${this.bucket}`)
       throw new Error('Google cloud storage failure: failed to store' +

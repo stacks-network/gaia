@@ -73,7 +73,8 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
       t.equal(resptxt, sampleDataString, `Must get back ${sampleDataString}: got back: ${resptxt}`)
       if (!mockTest) {
         t.equal(resp.headers.get('content-type'), 'application/octet-stream', 'Read endpoint response should contain correct content-type')
-        t.equal(resp.headers.get('etag').replace(/^"|"$/g, '') === writeResponse.etag.replace(/^"|"$/g, ''), true)
+        t.equal(resp.headers.get('etag').replace(/^"|"$/g, '') === writeResponse.etag.replace(/^"|"$/g, ''), true,
+          'Read endpoint should contain correct etag')
         t.equal(resp.headers.get('cache-control'), cacheControlOpt, 'cacheControl not respected in response headers')
       }
 
