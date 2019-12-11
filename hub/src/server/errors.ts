@@ -7,6 +7,15 @@ export class ValidationError extends Error {
   }
 }
 
+export class PreconditionFailedError extends Error {
+  expectedEtag: string;
+  constructor (message: string, etag: string) {
+    super(message)
+    this.name = this.constructor.name
+    this.expectedEtag = etag
+  }
+}
+
 export class AuthTokenTimestampValidationError extends Error {
   oldestValidTokenTimestamp: number;
   constructor (message: string, oldestValidTokenTimestamp: number) {
