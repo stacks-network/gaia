@@ -9,7 +9,7 @@ import {
   ListFileStatResult, DriverStatics, DriverModel, DriverModelTestMethods
 } from '../driverModel'
 import { Readable } from 'stream'
-import { BlobGetPropertiesHeaders } from '@azure/storage-blob/typings/src/generated/src/models'
+import { BlobGetPropertiesHeaders, BlobProperties } from '@azure/storage-blob/typings/src/generated/src/models'
 
 export interface AZ_CONFIG_TYPE {
   azCredentials: {
@@ -205,7 +205,7 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
       logger.debug(`Storing ${azBlob} in ${this.bucket}, URL: ${publicURL}`)
       return {
         publicURL,
-        etag: uploadResult.eTag
+        etag: uploadResult.eTag.replace(/^"|"$/g, '')
       }
     } catch (error) {
       logger.error(`failed to store ${azBlob} in ${this.bucket}: ${error}`)
@@ -270,14 +270,16 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
     }
   }
 
-  static parseFileStat(properties: BlobGetPropertiesHeaders) {
+  static parseFileStat(properties: BlobGetPropertiesHeaders | BlobProperties) {
     let lastModified: number | undefined
     if (properties.lastModified) {
       lastModified = dateToUnixTimeSeconds(properties.lastModified)
     }
+    let etag = (properties as BlobProperties).etag || (properties as BlobGetPropertiesHeaders).eTag
+    etag = etag.replace(/^"|"$/g, '')
     const result: StatResult = {
       exists: true,
-      etag: (properties.eTag || (properties as any).etag),
+      etag,
       contentLength: properties.contentLength,
       contentType: properties.contentType,
       lastModifiedDate: lastModified
