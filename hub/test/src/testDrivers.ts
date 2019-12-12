@@ -181,7 +181,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           })
           const dataBuffer = await utils.readStream(readResult.data)
           const dataStr = dataBuffer.toString('utf8')
-          t.equal(dataStr, 'Hello read test!')
+          t.equal(dataStr, 'Hello read test!', 'File read should return data matching the write')
           t.equal(readResult.exists, true, 'File stat should return exists after write')
           t.equal(readResult.contentLength, 16, 'File stat should have correct content length')
           t.equal(readResult.contentType, "text/plain; charset=utf-8", 'File stat should have correct content type')
@@ -189,6 +189,16 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           const dateDiff = Math.abs(readResult.lastModifiedDate - dateNow1)
           t.equal(dateDiff < 10, true, `File stat last modified date is not within range, diff: ${dateDiff} -- ${readResult.lastModifiedDate} vs ${dateNow1}`)
 
+          const fetchResult = await fetch(writeResult.publicURL)
+          t.equal(fetchResult.status, 200, 'Read endpoint HEAD fetch should return 200 OK status code')
+          const fetchStr = await fetchResult.text()
+          t.equal(fetchStr, 'Hello read test!', 'Read endpoint GET should return data matching the write')
+          t.equal(fetchResult.headers.get('content-length'), '16', 'Read endpoint GET should have correct content length header')
+          t.equal(fetchResult.headers.get('content-type'), 'text/plain; charset=utf-8', 'Read endpoint GET should have correct content type header')
+          t.equal(fetchResult.headers.get('etag'), readResult.etag, 'Read endpoint GET should return same etag as read result')
+          const lastModifiedHeader = new Date(fetchResult.headers.get('last-modified')).getTime()
+          const fetchDateDiff = Math.abs(lastModifiedHeader - dateNow1)
+          t.equal(dateDiff < 10, true, `Read endpoint HEAD last-modified header is not within range, diff: ${fetchDateDiff} -- ${lastModifiedHeader} vs ${dateNow1}`)
         } catch (error) {
           t.error(error, 'Error performing file read test')
         }
@@ -256,6 +266,14 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           t.equal(statResult.etag, writeResult.etag, 'File read should return same etag as write file result')
           const dateDiff = Math.abs(statResult.lastModifiedDate - dateNow1)
           t.equal(dateDiff < 10, true, `File stat last modified date is not within range, diff: ${dateDiff} -- ${statResult.lastModifiedDate} vs ${dateNow1}`)
+
+          const fetchResult = await fetch(writeResult.publicURL, { method: 'HEAD' })
+          t.equal(fetchResult.status, 200, 'Read endpoint HEAD fetch should return 200 OK status code')
+          t.equal(fetchResult.headers.get('content-length'), '20', 'Read endpoint HEAD should have correct content length')
+          t.equal(fetchResult.headers.get('etag'), statResult.etag, 'Read endpoint HEAD should return same etag as list files stat result')
+          const lastModifiedHeader = new Date(fetchResult.headers.get('last-modified')).getTime()
+          const fetchDateDiff = Math.abs(statResult.lastModifiedDate - dateNow1)
+          t.equal(dateDiff < 10, true, `Read endpoint HEAD last-modified header is not within range, diff: ${fetchDateDiff} -- ${lastModifiedHeader} vs ${dateNow1}`)
         } catch (error) {
           t.error(error, 'File stat on list files error')
         }
@@ -284,6 +302,15 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           t.equal(statResult.etag, writeResult.etag, 'File stat should return same etag as write file result')
           const dateDiff = Math.abs(statResult.lastModifiedDate - dateNow1)
           t.equal(dateDiff < 10, true, `File stat last modified date is not within range, diff: ${dateDiff} -- ${statResult.lastModifiedDate} vs ${dateNow1}`)
+
+          const fetchResult = await fetch(writeResult.publicURL, { method: 'HEAD' })
+          t.equal(fetchResult.status, 200, 'Read endpoint HEAD fetch should return 200 OK status code')
+          t.equal(fetchResult.headers.get('content-length'), '20', 'Read endpoint HEAD should have correct content length')
+          t.equal(fetchResult.headers.get('etag'), statResult.etag, 'Read endpoint HEAD should return same etag as stat file result')
+          const lastModifiedHeader = new Date(fetchResult.headers.get('last-modified')).getTime()
+          const fetchDateDiff = Math.abs(statResult.lastModifiedDate - dateNow1)
+          t.equal(dateDiff < 10, true, `Read endpoint HEAD last-modified header is not within range, diff: ${fetchDateDiff} -- ${lastModifiedHeader} vs ${dateNow1}`)
+
         } catch (error) {
           t.error(error, 'File stat error')
         }

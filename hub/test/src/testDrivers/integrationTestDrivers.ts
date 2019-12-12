@@ -19,7 +19,7 @@ import * as gaiaReader from '../../../../reader/src/http'
  *  - json string
  *  - base64 encoded json string
  */
-const driverConfigTestData = process.env.DRIVER_CONFIG_TEST_DATA
+const driverConfigTestData = process.env.DRIVER_CONFIG_TEST_DATA || process.env.LOCAL_DRIVER_CONFIG_TEST_DATA
 
 const envConfigPaths = { 
   az: process.env.AZ_CONFIG_PATH, 
@@ -39,7 +39,12 @@ if (driverConfigTestData) {
     let jsonStr;
     if (driverConfigTestData.endsWith('.json')) {
         console.log('Using DRIVER_CONFIG_TEST_DATA env var as json file for driver config')
-        jsonStr = fs.readFileSync(driverConfigTestData, {encoding: 'utf8'})
+        if (!fs.existsSync(driverConfigTestData)) {
+          console.error(`File not found: ${path.resolve(driverConfigTestData)}`)
+          console.error(`Cannot load storage driver credentials file, integration tests will not run`)
+        } else {
+          jsonStr = fs.readFileSync(driverConfigTestData, {encoding: 'utf8'})
+        }
     } else if (/^\s*{/.test(driverConfigTestData)) {
         console.log('Using DRIVER_CONFIG_TEST_DATA env var as json blob for driver config')
         jsonStr = driverConfigTestData
@@ -47,7 +52,10 @@ if (driverConfigTestData) {
         console.log('Using DRIVER_CONFIG_TEST_DATA env var as b64 encoded json blob for driver config')
         jsonStr = new Buffer(driverConfigTestData, 'base64').toString('utf8')
     }
-    Object.assign(driverConfigs, JSON.parse(jsonStr))
+
+    if (jsonStr) {
+      Object.assign(driverConfigs, JSON.parse(jsonStr))
+    }
 }
 
 Object.entries(envConfigPaths)
