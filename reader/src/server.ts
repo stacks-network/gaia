@@ -51,7 +51,12 @@ export class GaiaDiskReader {
     let readStream: fs.ReadStream
     try {
       const metadataPath = path.join(storageRoot, METADATA_DIRNAME, topLevelDir, filename)
-      const metadata = await fs.readJson(metadataPath)
+      let metadata: {'content-type'?: string, 'etag'?: string} = { }
+      try {
+        metadata = await fs.readJson(metadataPath)
+      } catch (error) {
+        metadata['content-type'] = 'application/octet-stream'
+      }
       if (openRead) {
         readStream = fs.createReadStream(filePath)
       }
@@ -67,6 +72,7 @@ export class GaiaDiskReader {
       if (readStream) {
         readStream.close()
       }
+      throw error
     }
   }
 }
