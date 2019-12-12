@@ -219,9 +219,7 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
     try {
       await pipelineAsync(args.stream, fileWriteStream)
       logger.debug(`storing ${filename} in bucket ${this.bucket}`)
-
-      const etag = Buffer.from(fileDestination.metadata.md5Hash, 'base64').toString('hex')
-
+      const etag = GcDriver.formatETagFromMD5(fileDestination.metadata.md5Hash)
       return { publicURL, etag }
     } catch (error) {
       logger.error(`failed to store ${filename} in bucket ${this.bucket}`)
@@ -253,11 +251,17 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
     }
   }
 
+  static formatETagFromMD5(md5Hash: string): string {
+    const hex = Buffer.from(md5Hash, 'base64').toString('hex')
+    const formatted = `"${hex}"`
+    return formatted
+  }
+
   static parseFileMetadataStat(metadata: any): StatResult {
     const lastModified = dateToUnixTimeSeconds(new Date(metadata.updated))
     const result: StatResult = {
       exists: true,
-      etag: Buffer.from(metadata.md5Hash, 'base64').toString('hex'),
+      etag: this.formatETagFromMD5(metadata.md5Hash),
       contentType: metadata.contentType,
       contentLength: parseInt(metadata.size),
       lastModifiedDate: lastModified
