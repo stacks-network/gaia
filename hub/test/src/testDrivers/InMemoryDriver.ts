@@ -35,7 +35,9 @@ export class InMemoryDriver implements DriverModel {
         res.set({
           'Content-Type': matchingFile.contentType,
           'ETag': matchingFile.etag,
-          'Cache-Control': (config || {}).cacheControl
+          'Cache-Control': (config || {}).cacheControl,
+          'Content-Length': matchingFile.content.byteLength,
+          'Last-Modified': matchingFile.lastModified.toUTCString()
         }).send(matchingFile.content)
       } else {
         res.status(404).send('Could not return file')
