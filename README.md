@@ -277,7 +277,8 @@ interface DriverModel {
    * @param options.contentType - the HTTP content-type of the file
    * @param options.stream - the data to be stored at `path`
    * @param options.contentLength - the bytes of content in the stream
-   * @returns Promise that resolves to the public-readable URL of the stored content.
+   * @param options.ifMatch - optional etag value to be used for optimistic concurrency control
+   * @returns Promise that resolves to an object containing a public-readable URL of the stored content and the objects etag value
    */
   performWrite(options: { 
     path: string;
