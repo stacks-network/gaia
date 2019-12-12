@@ -28,6 +28,7 @@ export interface PerformWriteArgs {
   stream: Readable;
   contentLength: number;
   contentType: string;
+  ifMatch?: string;
 }
 
 export interface WriteResult {
