@@ -285,7 +285,11 @@ interface DriverModel {
     stream: Readable;
     contentLength: number;
     contentType: string;
-  }): Promise<string>;
+    ifMatch?: string;
+  }): Promise<{
+    publicURL: string,
+    etag: string
+  }>;
 
   /**
    * Deletes a file. Throws a `DoesNotExist` if the file does not exist. 
@@ -324,6 +328,7 @@ interface DriverModel {
     lastModifiedDate: number;
     contentLength: number;
     contentType: string;
+    etag: string;
   }>;
 
   /**
@@ -340,6 +345,7 @@ interface DriverModel {
     lastModifiedDate: number;
     contentLength: number;
     contentType: string;
+    etag: string;
   }>;
 
   /**
@@ -370,6 +376,7 @@ interface DriverModel {
         name: string;
         lastModifiedDate: number;
         contentLength: number;
+        etag: string;
     }[];
     page?: string;
   }>;
