@@ -30,9 +30,9 @@ export function makeHttpServer(config: Config) {
         res.set('Cache-Control', config.cacheControl)
       }
 
-      const isFileRead = req.method === 'GET'
+      const isGetRequest = req.method === 'GET'
 
-      const fileInfo = await server.handleGet(address, filename, isFileRead)
+      const fileInfo = await server.handleGet(address, filename, isGetRequest)
 
       if (!fileInfo.exists) {
         return res.status(404).send('File not found')
@@ -45,7 +45,7 @@ export function makeHttpServer(config: Config) {
         'content-length': fileInfo.contentLength
       })
 
-      if (isFileRead) {
+      if (isGetRequest) {
         await pipelineAsync(fileInfo.fileReadStream, res)
       }
       res.end()

@@ -18,20 +18,6 @@ export type GetFileInfo = {
   fileReadStream?: fs.ReadStream;
 }
 
-async function getFileMd5(filePath: string): Promise<string> {
-  const hash = createHash('md5')
-  let md5Hex = ''
-  hash.on('readable', () => {
-    const data = hash.read() as Buffer
-    if (data) {
-      md5Hex += data.toString('hex')
-    }
-  })
-  await pipelineAsync(fs.createReadStream(filePath), hash)
-  hash.end()
-  return md5Hex
-}
-
 export class GaiaDiskReader {
 
   config: DiskReaderConfig
@@ -49,7 +35,7 @@ export class GaiaDiskReader {
     return !path.includes('..')
   }
 
-  async handleGet(topLevelDir: string, filename: string, openRead: boolean): Promise<GetFileInfo> {
+  async handleGet(topLevelDir: string, filename: string, openFileStream: boolean): Promise<GetFileInfo> {
     const storageRoot = this.config.diskSettings.storageRootDirectory
     if (!storageRoot) {
       throw new Error('Misconfiguration: no storage root set')
@@ -76,16 +62,7 @@ export class GaiaDiskReader {
       } catch (error) {
         metadata['content-type'] = 'application/octet-stream'
       }
-      if (!metadata['etag']) {
-        metadata['etag'] = await getFileMd5(filePath)
-        try {
-          fs.writeJsonSync(filePath, metadata, {})
-        } catch (error) {
-          console.error(error)
-          console.error(`Error creating md5 etag metadata for file ${filePath}`)
-        }
-      }
-      if (openRead) {
+      if (openFileStream) {
         readStream = fs.createReadStream(filePath)
       }
       return { 
