@@ -398,6 +398,13 @@ the required CORS headers `Access-Control-Allow-Origin` and `Access-Control-Allo
 
 ---
 
+##### `HEAD ${read-url-prefix}/${address}/${path}`
+
+Returns the same headers as the corresponding `GET` request. `HEAD` requests
+do not return a response body. 
+
+---
+
 ##### `POST ${hubUrl}/store/${address}/${path}`
 
 This performs a write to the gaia hub at `${path}`. 
