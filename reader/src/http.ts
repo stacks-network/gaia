@@ -16,7 +16,14 @@ export function makeHttpServer(config: Config) {
     winstonInstance: logger
   }))
 
-  app.use(cors())
+  app.use(cors({
+    origin: '*', 
+    // Set the Access-Control-Max-Age header to 24 hours.
+    maxAge: 86400, 
+    // Expose ETag http response header to client
+    // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Expose-Headers
+    exposedHeaders: ['ETag']
+  }))
 
   const fileHandler = async (req: express.Request, res: express.Response) => {
     try {

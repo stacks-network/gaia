@@ -1,11 +1,6 @@
 import * as path from 'path'
 import * as fs from 'fs-extra'
-import { promisify } from 'util'
-import { pipeline } from 'stream'
-import { createHash } from 'crypto'
 import { DiskReaderConfig } from './config'
-
-const pipelineAsync = promisify(pipeline)
 
 const METADATA_DIRNAME = '.gaia-metadata'
 

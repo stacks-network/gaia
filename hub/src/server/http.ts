@@ -43,8 +43,22 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
   app.use(expressWinston.logger({
     winstonInstance: logger }))
 
-  // Set the Access-Control-Max-Age header to 24 hours.
-  app.use(cors({maxAge: 86400}))
+  const corsConfig = cors({
+    origin: '*',
+    // Set the Access-Control-Max-Age header to 24 hours.
+    maxAge: 86400, 
+    // Allow the client to include If-Match header in http requests
+    // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Headers
+    allowedHeaders: ['Authorization', 'If-Match'],
+    // Specify the `Access-Control-Allow-Credentials` header
+    credentials: true
+  })
+  
+  app.use(corsConfig)
+
+  // Enabling CORS Pre-Flight
+  // https://www.npmjs.com/package/cors#enabling-cors-pre-flight
+  app.options('*', corsConfig)
 
   // sadly, express doesn't like to capture slashes.
   //  but that's okay! regexes solve that problem
