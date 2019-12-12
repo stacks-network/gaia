@@ -20,6 +20,7 @@ export function makeHttpServer(config: Config) {
     origin: '*', 
     // Set the Access-Control-Max-Age header to 24 hours.
     maxAge: 86400, 
+    methods: 'GET,HEAD,OPTIONS',
     // Expose ETag http response header to client
     // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Expose-Headers
     exposedHeaders: ['ETag']
