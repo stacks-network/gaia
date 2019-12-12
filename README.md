@@ -400,7 +400,8 @@ On success, it returns a `202` status, and a JSON object:
 
 ```javascript
 {
- "publicURL": "${read-url-prefix}/${address}/${path}"
+ "publicURL": "${read-url-prefix}/${address}/${path}",
+ "etag": "version-identifier"
 }
 ```
 
