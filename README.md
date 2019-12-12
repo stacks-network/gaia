@@ -385,10 +385,9 @@ The Gaia storage API defines the following endpoints:
 
 ##### `GET ${read-url-prefix}/${address}/${path}`
 
-This returns the data stored by the gaia hub at `${path}`. In order
-for this to be usable from web applications, this read path _must_
-set the appropriate CORS headers. The HTTP Content-Type of the file
-should match the Content-Type of the corresponding write.
+This returns the data stored by the gaia hub at `${path}`.
+The response headers include `Content-Type` and `ETag`, along with
+the required CORS headers `Access-Control-Allow-Origin` and `Access-Control-Allow-Methods`.
 
 ---
 
@@ -409,6 +408,22 @@ The `POST` must contain an authentication header with a bearer token.
 The bearer token's content and generation is described in
 the [access control](#address-based-access-control) section of this
 document.
+
+Additionally it must contain an `If-Match` header containing the most
+up to date ETag. This ETag is returned in the response body of the _store_
+`POST` request, the response headers of `GET` and `HEAD` requests, and in
+the returned entries in `list-files` request. If the file has been updated
+elsewhere and the ETag supplied in the `If-Match` header doesn't match that
+of the file in gaia, a `412 Precondition Failed` error will be returned. The
+JSON body of this error contains the expected, up-to-date ETag:
+
+```javascript
+{
+  "error": "PreconditionFailedError",
+  "expectedEtag": "the-up-to-date-etag",
+  "message": "error-message"
+}
+```
 
 Some backend storage drivers will return error `409 Conflict` when a 
 concurrent write to the same file path occurs. This can be handled with
@@ -481,8 +496,8 @@ If the post body contains a `stat: true` field then the returned JSON includes f
 ```jsonc
 {
   "entries": [
-    { "name": "string", "lastModifiedDate": "number", "contentLength": "number" },
-    { "name": "string", "lastModifiedDate": "number", "contentLength": "number" },
+    { "name": "string", "lastModifiedDate": "number", "contentLength": "number", "etag": "string" },
+    { "name": "string", "lastModifiedDate": "number", "contentLength": "number", "etag": "string" },
     // ...
   ],
   "page": "string" // possible pagination marker
