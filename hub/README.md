@@ -44,15 +44,15 @@ These driver may require you to provide additional credentials for performing wr
 
 In order for a Gaia hub to operate properly CORS must be configured.
 
-For the **write endpoint**, you must configure your server to include the following headers:
+For the **write endpoint**, you must configure your server to respond to [CORS requests](https://developer.mozilla.org/en-US/docs/Glossary/Preflight_request). The minimum required HTTP response headers must include:
 - `Access-Control-Allow-Origin: *`
 - `Access-Control-Allow-Methods: GET, POST, OPTIONS, DELETE`
-- `Access-Control-Allow-Headers: Authorization, If-Match`
+- `Access-Control-Allow-Headers: Authorization, Content-Type, If-Match`
 
 
 For the **read endpoint**, you must configure your storage driver to include the following headers:
-- `Access-Control-Allow-Methods: GET`
 - `Access-Control-Allow-Origin: *`
+- `Access-Control-Allow-Methods: GET, HEAD`
 - `Access-Control-Expose-Headers: ETag`
 
 Here's an example of a storage driver (S3) configuration:
