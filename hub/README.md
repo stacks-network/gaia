@@ -47,7 +47,7 @@ In order for a Gaia hub to operate properly CORS must be configured.
 For the **write endpoint**, you must configure your server to include the following headers:
 - `Access-Control-Allow-Origin: *`
 - `Access-Control-Allow-Methods: GET, POST, OPTIONS, DELETE`
-- `Access-Control-Allow-Headers: Authorization, If-Match`
+- `Access-Control-Allow-Headers: Authorization, Content-Type, If-Match`
 
 
 For the **read endpoint**, you must configure your storage driver to include the following headers:
