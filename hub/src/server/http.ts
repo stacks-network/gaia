@@ -50,9 +50,7 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
     methods: 'DELETE,POST,GET,OPTIONS,HEAD',
     // Allow the client to include If-Match header in http requests
     // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Headers
-    allowedHeaders: ['Authorization', 'If-Match'],
-    // Specify the `Access-Control-Allow-Credentials` header
-    credentials: true
+    allowedHeaders: 'Authorization,Content-Type,If-Match'
   })
   
   app.use(corsConfig)

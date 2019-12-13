@@ -23,7 +23,7 @@ export function makeHttpServer(config: Config) {
     methods: 'GET,HEAD,OPTIONS',
     // Expose ETag http response header to client
     // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Expose-Headers
-    exposedHeaders: ['ETag']
+    exposedHeaders: 'Content-Type,ETag'
   }))
 
   const fileHandler = async (req: express.Request, res: express.Response) => {
