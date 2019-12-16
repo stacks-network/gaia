@@ -32,7 +32,7 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
   cacheControl?: string
   initPromise: Promise<void>
 
-  supportsETagMatching = false;
+  supportsETagMatching = true;
 
   static getConfigInformation() {
     const envVars: any = {}
@@ -188,15 +188,19 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
     */
     const maxBuffers = 1
 
+    let options = {
+      blobHTTPHeaders: {
+        blobContentType: args.contentType,
+        blobCacheControl: this.cacheControl || undefined
+      },
+      modifiedAccessConditions: {
+        ifMatch: args.ifMatch
+      }
+    }
+
     try {
       const uploadResult = await azure.uploadStreamToBlockBlob(
-        azure.Aborter.none, args.stream,
-        blockBlobURL, bufferSize, maxBuffers, {
-          blobHTTPHeaders: {
-            blobContentType: args.contentType,
-            blobCacheControl: this.cacheControl || undefined
-          }
-        }
+        azure.Aborter.none, args.stream, blockBlobURL, bufferSize, maxBuffers, options
       )
 
       // Return success and url to user
