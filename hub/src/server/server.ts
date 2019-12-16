@@ -215,17 +215,19 @@ export class HubServer {
     }
 
     const requestTag = requestHeaders['if-match']
-    if (requestTag) {
-      const freshTag = (await this.driver.performStat({
-        path: path,
-        storageTopLevel: address
-      })).etag
+    if (!this.driver.supportsETagMatching) {
+      if (requestTag) {
+        const freshTag = (await this.driver.performStat({
+          path: path,
+          storageTopLevel: address
+        })).etag
 
-      if (requestTag !== freshTag) {
-        throw new PreconditionFailedError(
-          'The entity you are trying to store has been overwritten since your last read',
-          freshTag
-        )
+        if (requestTag !== freshTag) {
+          throw new PreconditionFailedError(
+            'The entity you are trying to store has been overwritten since your last read',
+            freshTag
+          )
+        }
       }
     }
 
@@ -291,8 +293,11 @@ export class HubServer {
 
     const writeCommand: PerformWriteArgs = {
       storageTopLevel: address,
-      path, stream: monitoredStream, contentType,
-      contentLength: contentLengthBytes
+      path,
+      stream: monitoredStream,
+      contentType,
+      contentLength: contentLengthBytes,
+      ifMatch: requestTag
     }
 
     const [writeResponse] = await Promise.all([this.driver.performWrite(writeCommand), pipelinePromise])
