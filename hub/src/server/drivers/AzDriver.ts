@@ -188,7 +188,7 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
     */
     const maxBuffers = 1
 
-    let options = {
+    const options = {
       blobHTTPHeaders: {
         blobContentType: args.contentType,
         blobCacheControl: this.cacheControl || undefined
