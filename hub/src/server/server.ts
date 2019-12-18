@@ -214,20 +214,39 @@ export class HubServer {
       }
     }
 
-    const requestTag = requestHeaders['if-match']
+    const ifMatchTag = requestHeaders['if-match']
+    const ifNoneMatchTag = requestHeaders['if-none-match']
+
+    // only one match-tag header should be set
+    if (ifMatchTag && ifNoneMatchTag) {
+      throw new PreconditionFailedError('Request should not contain both if-match and if-none-match headers')
+    }
+
     if (!this.driver.supportsETagMatching) {
-      if (requestTag) {
-        const freshTag = (await this.driver.performStat({
+      // allow overwrites if tag is wildcard 
+      if (ifMatchTag && ifMatchTag !== '*') {
+        const currentETag = (await this.driver.performStat({
           path: path,
           storageTopLevel: address
         })).etag
 
-        if (requestTag !== freshTag) {
+        if (ifMatchTag !== currentETag) {
           throw new PreconditionFailedError(
-            'The entity you are trying to store has been overwritten since your last read',
-            freshTag
+            'The provided ETag does not match that of the resource on the server'
           )
         }
+      } else if (ifNoneMatchTag && ifNoneMatchTag === '*') {
+        // only proceed with writing file if the file does not already exist
+        const statResult = await this.driver.performStat({
+          path: path,
+          storageTopLevel: address
+        })
+
+        if (statResult.exists) {
+          throw new PreconditionFailedError('The entity you are trying to create already exists')
+        }
+      } else if (ifNoneMatchTag && ifNoneMatchTag !== '*') {
+        throw new PreconditionFailedError('Misuse of the if-none-match header. Expected to be * on write requests.')
       }
     }
 
@@ -297,7 +316,8 @@ export class HubServer {
       stream: monitoredStream,
       contentType,
       contentLength: contentLengthBytes,
-      ifMatch: requestTag
+      ifMatch: ifMatchTag,
+      ifNoneMatch: ifNoneMatchTag
     }
 
     const [writeResponse] = await Promise.all([this.driver.performWrite(writeCommand), pipelinePromise])

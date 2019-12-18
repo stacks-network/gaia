@@ -29,6 +29,7 @@ export interface PerformWriteArgs {
   contentLength: number;
   contentType: string;
   ifMatch?: string;
+  ifNoneMatch?: string;
 }
 
 export interface WriteResult {

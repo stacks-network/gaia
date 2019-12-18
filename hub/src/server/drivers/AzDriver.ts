@@ -194,7 +194,8 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
         blobCacheControl: this.cacheControl || undefined
       },
       modifiedAccessConditions: {
-        ifMatch: args.ifMatch
+        ifMatch: args.ifMatch,
+        ifNoneMatch: args.ifNoneMatch
       }
     }
 

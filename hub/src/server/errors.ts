@@ -9,10 +9,9 @@ export class ValidationError extends Error {
 
 export class PreconditionFailedError extends Error {
   expectedEtag: string;
-  constructor (message: string, etag: string) {
+  constructor (message: string) {
     super(message)
     this.name = this.constructor.name
-    this.expectedEtag = etag
   }
 }
 
