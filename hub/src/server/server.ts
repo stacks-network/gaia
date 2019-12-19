@@ -181,6 +181,7 @@ export class HubServer {
       'content-type'?: string,
       'content-length'?: string | number,
       'if-match'?: string,
+      'if-none-match'?: string,
       authorization?: string
     },
     stream: Readable
