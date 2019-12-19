@@ -100,7 +100,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
       }
 
       // if-match & if-none-match tests
-      if (!mockTest) {
+      if (!mockTest && driver.supportsETagMatching) {
         try {
           sampleData = getSampleData();
           await driver.performWrite({
