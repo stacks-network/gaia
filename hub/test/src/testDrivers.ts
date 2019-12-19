@@ -91,11 +91,57 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
             storageTopLevel: topLevelStorage,
             stream: sampleData.stream,
             contentType: 'text/plain; charset=utf-8',
-            contentLength: sampleData.contentLength })
+            contentLength: sampleData.contentLength,
+            ifNoneMatch: '*' })
       readUrl = writeResponse.publicURL;
       t.ok(readUrl.startsWith(`${prefix}${topLevelStorage}`), `${readUrl} must start with readUrlPrefix ${prefix}${topLevelStorage}`)
       if (mockTest) {
         addMockFetches(fetch, prefix, dataMap)
+      }
+
+      // if-match & if-none-match tests
+      if (!mockTest) {
+        try {
+          sampleData = getSampleData();
+          await driver.performWrite({
+            path: txtFileName,
+            storageTopLevel: topLevelStorage,
+            stream: sampleData.stream,
+            contentType: 'text/plain; charset=utf-8',
+            contentLength: sampleData.contentLength,
+            ifNoneMatch: '*'
+          })
+        } catch(err) {
+          t.ok(err, 'Should fail to write new file if file already exists')
+        }
+
+        try {
+          sampleData = getSampleData();
+          await driver.performWrite({
+            path: txtFileName,
+            storageTopLevel: topLevelStorage,
+            stream: sampleData.stream,
+            contentType: 'text/plain; charset=utf-8',
+            contentLength: sampleData.contentLength,
+            ifMatch: writeResponse.etag
+          })
+        } catch(err) {
+          t.error(err, 'Should perform write with correct etag')
+        }
+
+        try {
+          sampleData = getSampleData();
+          await driver.performWrite({
+            path: txtFileName,
+            storageTopLevel: topLevelStorage,
+            stream: sampleData.stream,
+            contentType: 'text/plain; charset=utf-8',
+            contentLength: sampleData.contentLength,
+            ifMatch: 'bad-etag'
+          })
+        } catch(err) {
+          t.ok(err, 'Should fail to write with bad etag')
+        }
       }
 
       resp = await fetch(readUrl)
