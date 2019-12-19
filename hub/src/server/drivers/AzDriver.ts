@@ -10,6 +10,7 @@ import {
 } from '../driverModel'
 import { Readable } from 'stream'
 import { BlobGetPropertiesHeaders, BlobProperties } from '@azure/storage-blob/typings/src/generated/src/models'
+import { IUploadStreamToBlockBlobOptions } from '@azure/storage-blob'
 
 export interface AZ_CONFIG_TYPE {
   azCredentials: {
@@ -188,14 +189,16 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
     */
     const maxBuffers = 1
 
-    const options = {
+    const options: IUploadStreamToBlockBlobOptions = {
       blobHTTPHeaders: {
         blobContentType: args.contentType,
         blobCacheControl: this.cacheControl || undefined
       },
-      modifiedAccessConditions: {
-        ifMatch: args.ifMatch,
-        ifNoneMatch: args.ifNoneMatch
+      accessConditions: {
+        modifiedAccessConditions: {
+          ifMatch: args.ifMatch,
+          ifNoneMatch: args.ifNoneMatch
+        }
       }
     }
 
