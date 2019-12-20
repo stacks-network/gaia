@@ -48,9 +48,9 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
     // Set the Access-Control-Max-Age header to 24 hours.
     maxAge: 86400, 
     methods: 'DELETE,POST,GET,OPTIONS,HEAD',
-    // Allow the client to include If-Match header in http requests
+    // Allow the client to include match headers in http requests
     // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Headers
-    allowedHeaders: 'Authorization,Content-Type,If-Match'
+    allowedHeaders: 'Authorization,Content-Type,If-Match,If-None-Match'
   })
   
   app.use(corsConfig)

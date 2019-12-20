@@ -424,26 +424,33 @@ The bearer token's content and generation is described in
 the [access control](#address-based-access-control) section of this
 document.
 
-Additionally it must contain an `If-Match` header containing the most
-up to date ETag. This ETag is returned in the response body of the _store_
-`POST` request, the response headers of `GET` and `HEAD` requests, and in
-the returned entries in `list-files` request. If the file has been updated
-elsewhere and the ETag supplied in the `If-Match` header doesn't match that
-of the file in gaia, a `412 Precondition Failed` error will be returned. The
-JSON body of this error contains the expected, up-to-date ETag:
+Additionally, file ETags and conditional request headers are used as a 
+concurrency control mechanism. All requests to this endpoint should contain
+either an `If-Match` header or an `If-None-Match` header. The three request
+types are as follows:
 
-```javascript
-{
-  "error": "PreconditionFailedError",
-  "expectedEtag": "the-up-to-date-etag",
-  "message": "error-message"
-}
-```
+__Update existing file__: this request must specify an `If-Match` header 
+containing the most up to date ETag. If the file has been updated elsewhere 
+and the ETag supplied in the `If-Match` header doesn't match that of the file 
+in gaia, a `412 Precondition Failed` error will be returned.
 
-Some backend storage drivers will return error `409 Conflict` when a 
-concurrent write to the same file path occurs. This can be handled with
-a retry. Other storage drivers tend to use `last writer wins` conflict
-resolution and will not throw an error. 
+__Create a new file__: this request must specify the `If-None-Match: *` 
+header. If the already exists at the given path, a `412 Precondition Failed` 
+error will be returned.
+
+__Overwrite a file__: this request must specify the `If-Match: *` header. 
+__Note__ that this bypasses concurrency control and should be used with 
+caution. Improper use can cause bugs such as unintended data loss. 
+
+
+The file ETag is returned in the response body of the _store_ `POST` request, the 
+response headers of `GET` and `HEAD` requests, and in the returned entries in 
+`list-files` request. 
+
+
+Additionally, a request to a file path that already has a previous ongoing 
+request still processing for the same file path will return with a 
+`409 Conflict` error. This can be handled with a retry. 
 
 ---
 
