@@ -223,6 +223,12 @@ export class HubServer {
       throw new PreconditionFailedError('Request should not contain both if-match and if-none-match headers')
     }
 
+    // only support using if-none-match for file creation, values that aren't the wildcard are prohibited
+    if (ifNoneMatchTag && ifNoneMatchTag !== '*') {
+      throw new PreconditionFailedError('Misuse of the if-none-match header. Expected to be * on write requests.')
+    }
+
+    // handle etag matching if not supported at the driver level
     if (!this.driver.supportsETagMatching) {
       // allow overwrites if tag is wildcard 
       if (ifMatchTag && ifMatchTag !== '*') {
@@ -246,8 +252,6 @@ export class HubServer {
         if (statResult.exists) {
           throw new PreconditionFailedError('The entity you are trying to create already exists')
         }
-      } else if (ifNoneMatchTag && ifNoneMatchTag !== '*') {
-        throw new PreconditionFailedError('Misuse of the if-none-match header. Expected to be * on write requests.')
       }
     }
 
