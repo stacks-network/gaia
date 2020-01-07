@@ -9,8 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Return ETag in response body of all requests.
 - Read ETag value from If-Match request header and conditionally approve
   write requests if the value is up to date for optimistic concurrency control.
+- Read the If-None-Match request header to conditionally approve a file overwrite.
 - New explicit error for requests that fail to provide an up to date ETag in
-  the If-Match header (412 Precondition Failed Error).
+  the If-Match header (412 Precondition Failed Error), or an `*` in the If-None-Match
+  header.
 ### Changed
 - Updated DriverModel's WriteResult type to include ETag.
 

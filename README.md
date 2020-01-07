@@ -278,6 +278,8 @@ interface DriverModel {
    * @param options.stream - the data to be stored at `path`
    * @param options.contentLength - the bytes of content in the stream
    * @param options.ifMatch - optional etag value to be used for optimistic concurrency control
+   * @param options.ifNoneMatch - used with the `*` value to save a file not known to exist, 
+   * guaranteeing that another upload didn't happen before, losing the data of the previous
    * @returns Promise that resolves to an object containing a public-readable URL of the stored content and the objects etag value
    */
   performWrite(options: { 
@@ -287,6 +289,7 @@ interface DriverModel {
     contentLength: number;
     contentType: string;
     ifMatch?: string;
+    ifNoneMatch?: string;
   }): Promise<{
     publicURL: string,
     etag: string
