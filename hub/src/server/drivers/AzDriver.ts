@@ -2,14 +2,14 @@
 
 import * as azure from '@azure/storage-blob'
 import { logger, dateToUnixTimeSeconds } from '../utils'
-import { BadPathError, InvalidInputError, DoesNotExist, ConflictError } from '../errors'
+import { BadPathError, InvalidInputError, DoesNotExist, ConflictError, PreconditionFailedError } from '../errors'
 import { 
-  PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult, 
-  PerformReadArgs, ReadResult, PerformListFilesArgs, ListFilesStatResult, ListFileStatResult,
-  DriverStatics, DriverModel, DriverModelTestMethods
+  PerformWriteArgs, WriteResult, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs,
+  StatResult, PerformReadArgs, ReadResult, PerformListFilesArgs, ListFilesStatResult,
+  ListFileStatResult, DriverStatics, DriverModel, DriverModelTestMethods
 } from '../driverModel'
 import { Readable } from 'stream'
-import { BlobGetPropertiesHeaders } from '@azure/storage-blob/typings/src/generated/src/models'
+import { BlobGetPropertiesHeaders, BlobProperties } from '@azure/storage-blob/typings/src/generated/src/models'
 
 export interface AZ_CONFIG_TYPE {
   azCredentials: {
@@ -31,6 +31,8 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
   readURL?: string
   cacheControl?: string
   initPromise: Promise<void>
+
+  supportsETagMatching = true;
 
   static getConfigInformation() {
     const envVars: any = {}
@@ -163,7 +165,7 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
     }
   }
 
-  async performWrite(args: PerformWriteArgs): Promise<string> {
+  async performWrite(args: PerformWriteArgs): Promise<WriteResult> {
     // cancel write and return 402 if path is invalid
     if (!AzDriver.isPathValid(args.path)) {
       throw new BadPathError('Invalid Path')
@@ -186,30 +188,43 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
     */
     const maxBuffers = 1
 
-    try {
-      await azure.uploadStreamToBlockBlob(
-        azure.Aborter.none, args.stream,
-        blockBlobURL, bufferSize, maxBuffers, {
-          blobHTTPHeaders: {
-            blobContentType: args.contentType,
-            blobCacheControl: this.cacheControl || undefined
-          }
+    const options: azure.IUploadStreamToBlockBlobOptions = {
+      blobHTTPHeaders: {
+        blobContentType: args.contentType,
+        blobCacheControl: this.cacheControl || undefined
+      },
+      accessConditions: {
+        modifiedAccessConditions: {
+          ifMatch: args.ifMatch,
+          ifNoneMatch: args.ifNoneMatch
         }
+      }
+    }
+
+    try {
+      const uploadResult = await azure.uploadStreamToBlockBlob(
+        azure.Aborter.none, args.stream, blockBlobURL, bufferSize, maxBuffers, options
       )
+
+      // Return success and url to user
+      const readURL = this.getReadURLPrefix()
+      const publicURL = `${readURL}${azBlob}`
+      logger.debug(`Storing ${azBlob} in ${this.bucket}, URL: ${publicURL}`)
+      return {
+        publicURL,
+        etag: uploadResult.eTag.replace(/^"|"$/g, '')
+      }
     } catch (error) {
       logger.error(`failed to store ${azBlob} in ${this.bucket}: ${error}`)
+      if (error.body && error.body.Code === 'ConditionNotMet') {
+        throw new PreconditionFailedError('The entity you are trying to create already exists')
+      }
       if (error.body && error.body.Code === 'InvalidBlockList') {
         throw new ConflictError('Likely failed due to concurrent PUTs to the same file')
       }
       throw new Error('Azure storage failure: failed to store' +
         ` ${azBlob} in container ${this.bucket}: ${error}`)
     }
-
-    // Return success and url to user
-    const readURL = this.getReadURLPrefix()
-    const publicURL = `${readURL}${azBlob}`
-    logger.debug(`Storing ${azBlob} in ${this.bucket}, URL: ${publicURL}`)
-    return publicURL
   }
 
   async performDelete(args: PerformDeleteArgs): Promise<void> {
@@ -265,13 +280,16 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
     }
   }
 
-  static parseFileStat(properties: BlobGetPropertiesHeaders) {
+  static parseFileStat(properties: BlobGetPropertiesHeaders | BlobProperties) {
     let lastModified: number | undefined
     if (properties.lastModified) {
       lastModified = dateToUnixTimeSeconds(properties.lastModified)
     }
+    let etag = (properties as BlobProperties).etag || (properties as BlobGetPropertiesHeaders).eTag
+    etag = etag.replace(/^"|"$/g, '')
     const result: StatResult = {
       exists: true,
+      etag,
       contentLength: properties.contentLength,
       contentType: properties.contentType,
       lastModifiedDate: lastModified

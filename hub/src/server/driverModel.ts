@@ -28,6 +28,13 @@ export interface PerformWriteArgs {
   stream: Readable;
   contentLength: number;
   contentType: string;
+  ifMatch?: string;
+  ifNoneMatch?: string;
+}
+
+export interface WriteResult {
+  publicURL: string;
+  etag: string;
 }
 
 export interface PerformDeleteArgs {
@@ -53,6 +60,7 @@ export interface PerformStatArgs {
 export interface StatResult {
   exists: boolean;
   lastModifiedDate: number;
+  etag: string;
   contentLength: number;
   contentType: string;
 }
@@ -64,8 +72,10 @@ export interface PerformRenameArgs {
 }
 
 export interface DriverModel {
+  supportsETagMatching: boolean;
+
   getReadURLPrefix(): string;
-  performWrite(args: PerformWriteArgs): Promise<string>;
+  performWrite(args: PerformWriteArgs): Promise<WriteResult>;
   performDelete(args: PerformDeleteArgs): Promise<void>;
   performRename(args: PerformRenameArgs): Promise<void>;
   performStat(args: PerformStatArgs): Promise<StatResult>;

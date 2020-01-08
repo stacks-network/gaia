@@ -47,6 +47,7 @@
             "runtimeArgs": ["--nolazy", "-r", "ts-node/register/transpile-only"],
             "env": {
                 "DRIVER_CONFIG_TEST_DATA": "${workspaceFolder}/hub/configs/drivers.json",
+                "TS_NODE_PROJECT": "${workspaceFolder}/hub/test/tsconfig.json"
             },
             "cwd": "${workspaceFolder}/hub",
             "outputCapture": "std"

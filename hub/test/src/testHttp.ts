@@ -2,6 +2,7 @@ import test = require('tape-promise/tape')
 import * as auth from '../../src/server/authentication'
 import * as os from 'os'
 import * as fs from 'fs'
+import * as crypto from 'crypto'
 import request = require('supertest')
 import { ecPairToAddress } from 'blockstack'
 
@@ -153,26 +154,30 @@ export function testHttpWithInMemoryDriver() {
         .expect(204)
         .expect('Access-Control-Max-Age', '86400')
 
-      let response = await request(app)
+      const hubInfo = await request(app)
         .get('/hub_info/')
         .expect(200)
     
-      const challenge = JSON.parse(response.text).challenge_text
+      const challenge = JSON.parse(hubInfo.text).challenge_text
       const authPart = auth.V1Authentication.makeAuthPart(sk, challenge)
       const authorization = `bearer ${authPart}`
 
-      const hubInfo = await request(app).post(path)
+      const writeResponse = await request(app).post(path)
         .set('Content-Type', 'application/octet-stream')
         .set('Authorization', authorization)
+        .set('If-None-Match', '*')
         .send(blob)
         .expect(202)
 
-      const url = JSON.parse(hubInfo.text).publicURL
+      const url = JSON.parse(writeResponse.text).publicURL
+      const etag = writeResponse.body.etag
       t.ok(url, 'Must return URL')
-      console.log(url)
+
       const resp = await fetch(url)
       const text = await resp.text()
+      const headerEtag = resp.headers.get('etag')
       t.equal(text, fileContents, 'Contents returned must be correct')
+      t.equal(etag, crypto.createHash('md5').update(text).digest('hex'), 'Response headers should contain correct etag')
 
       const filesResponse = await request(app).post(listPath)
         .set('Content-Type', 'application/json')
@@ -183,6 +188,14 @@ export function testHttpWithInMemoryDriver() {
       t.equal(files.entries.length, 1, 'Should return one file')
       t.equal(files.entries[0], 'helloWorld', 'Should be helloworld')
       t.ok(files.hasOwnProperty('page'), 'Response is missing a page')
+
+      const updatedBlob = Buffer.from('new text')
+      await request(app).post(path)
+        .set('Content-Type', 'application/octet-stream')
+        .set('Authorization', authorization)
+        .set('If-Match', etag)
+        .send(updatedBlob)
+        .expect(202)
 
       inMemoryDriver.filesInProgress.set(`${address}/helloWorld`, null)
       await request(app).post(path)
@@ -196,6 +209,28 @@ export function testHttpWithInMemoryDriver() {
         .set('Authorization', authorization)
         .set('Content-Length', '9999999')
         .expect(413)
+
+      await request(app).post(path)
+        .set('Content-Type', 'application/octet-stream')
+        .set('Authorization', authorization)
+        .set('If-Match', 'bad-etag')
+        .send(blob)
+        .expect(412)
+
+      await request(app).post(path)
+        .set('Content-Type', 'application/octet-stream')
+        .set('Authorization', authorization)
+        .set('If-Match', 'both-tags')
+        .set('If-None-Match', 'both-tags')
+        .send(blob)
+        .expect(412)
+
+      await request(app).post(path)
+        .set('Content-Type', 'application/octet-stream')
+        .set('Authorization', authorization)
+        .set('If-None-Match', 'not-a-wildcard')
+        .send(blob)
+        .expect(412)
 
       try {
         const largePayload = new PassThrough()

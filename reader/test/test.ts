@@ -30,14 +30,14 @@ function testServer() {
     }
 
     const server = new GaiaDiskReader(config)
-    server.handleGet('12345', 'foo/bar.txt')
+    server.handleGet('12345', 'foo/bar.txt', true)
       .then((result) => {
         t.ok(result.exists, 'file exists')
         t.equal(result.contentType, 'application/potatoes', 'file has correct content type')
 
         // try with missing content-type
         fs.unlinkSync(Path.join(storageDir, '.gaia-metadata/12345/foo/bar.txt'))
-        return server.handleGet('12345', 'foo/bar.txt')
+        return server.handleGet('12345', 'foo/bar.txt', true)
       })
       .then((result) => {
         t.ok(result.exists, 'file exists')
@@ -47,7 +47,7 @@ function testServer() {
         fs.rmdirSync(Path.join(storageDir, '.gaia-metadata/12345/foo'))
         fs.rmdirSync(Path.join(storageDir, '.gaia-metadata/12345'))
         fs.rmdirSync(Path.join(storageDir, '.gaia-metadata'))
-        return server.handleGet('12345', 'foo/bar.txt')
+        return server.handleGet('12345', 'foo/bar.txt', true)
       })
       .then((result) => {
         t.ok(result.exists, 'file exists')
@@ -58,7 +58,7 @@ function testServer() {
         fs.rmdirSync(Path.join(storageDir, '12345/foo'))
         fs.rmdirSync(Path.join(storageDir, '12345'))
 
-        return server.handleGet('12345', 'foo/bar.txt')
+        return server.handleGet('12345', 'foo/bar.txt', true)
       })
       .then((result) => {
         t.ok(!result.exists, 'file does not exist')

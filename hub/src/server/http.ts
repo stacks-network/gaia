@@ -43,8 +43,21 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
   app.use(expressWinston.logger({
     winstonInstance: logger }))
 
-  // Set the Access-Control-Max-Age header to 24 hours.
-  app.use(cors({maxAge: 86400}))
+  const corsConfig = cors({
+    origin: '*',
+    // Set the Access-Control-Max-Age header to 24 hours.
+    maxAge: 86400, 
+    methods: 'DELETE,POST,GET,OPTIONS,HEAD',
+    // Allow the client to include match headers in http requests
+    // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Headers
+    allowedHeaders: 'Authorization,Content-Type,If-Match,If-None-Match'
+  })
+  
+  app.use(corsConfig)
+
+  // Enabling CORS Pre-Flight
+  // https://www.npmjs.com/package/cors#enabling-cors-pre-flight
+  app.options('*', corsConfig)
 
   // sadly, express doesn't like to capture slashes.
   //  but that's okay! regexes solve that problem
@@ -61,8 +74,8 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
 
     const handleRequest = async () => {
       try {
-        const publicURL = await server.handleRequest(address, filename, req.headers, req)
-        writeResponse(res, { publicURL }, 202)
+        const responseData = await server.handleRequest(address, filename, req.headers, req)
+        writeResponse(res, responseData, 202)
       } catch (err) {
         logger.error(err)
         if (err instanceof errors.ValidationError) {
@@ -77,6 +90,8 @@ export function makeHttpServer(config: HubConfigInterface): { app: express.Appli
           writeResponse(res, { message: err.message, error: err.name }, 409) 
         } else if (err instanceof errors.PayloadTooLargeError) {
           writeResponse(res, { message: err.message, error: err.name }, 413)
+        } else if (err instanceof errors.PreconditionFailedError) {
+          writeResponse(res, { message: err.message, error: err.name, etag: err.expectedEtag }, 412)
         } else {
           writeResponse(res, { message: 'Server Error' }, 500)
         }

@@ -40,6 +40,35 @@ These driver may require you to provide additional credentials for performing wr
 
 *Note:* The disk driver requires a *nix like filesystem interface, and will not work correctly when trying to run in a Windows environment.
 
+### CORS Configuration
+
+In order for a Gaia hub to operate properly CORS must be configured.
+
+For the **write endpoint**, you must configure your server to respond to [CORS requests](https://developer.mozilla.org/en-US/docs/Glossary/Preflight_request). The minimum required HTTP response headers must include:
+- `Access-Control-Allow-Origin: *`
+- `Access-Control-Allow-Methods: GET, POST, OPTIONS, DELETE`
+- `Access-Control-Allow-Headers: Authorization, Content-Type, If-Match, If-None-Match`
+
+
+For the **read endpoint**, you must configure your storage driver to include the following headers:
+- `Access-Control-Allow-Origin: *`
+- `Access-Control-Allow-Methods: GET, HEAD`
+- `Access-Control-Expose-Headers: ETag`
+
+Here's an example of a storage driver (S3) configuration:
+
+```xml
+<CORSConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+  <CORSRule>
+    <AllowedMethod>GET</AllowedMethod>
+    <AllowedMethod>HEAD</AllowedMethod>
+    <AllowedOrigin>*</AllowedOrigin>
+    <ExposeHeader>ETag</ExposeHeader>
+    <MaxAgeSeconds>0</MaxAgeSeconds>
+  </CORSRule>
+</CORSConfiguration>
+```
+
 ### Require Correct Hub URL
 
 If you turn on the `requireCorrectHubUrl` option in your `config.json`

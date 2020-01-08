@@ -2,9 +2,9 @@ import * as S3 from 'aws-sdk/clients/s3'
 
 import { BadPathError, InvalidInputError, DoesNotExist } from '../errors'
 import { 
-  ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, 
-  StatResult, PerformReadArgs, ReadResult, PerformListFilesArgs, ListFilesStatResult, 
-  ListFileStatResult, DriverStatics, DriverModel, DriverModelTestMethods 
+  ListFilesResult, PerformWriteArgs, WriteResult, PerformDeleteArgs, PerformRenameArgs,
+  PerformStatArgs, StatResult, PerformReadArgs, ReadResult, PerformListFilesArgs,
+  ListFilesStatResult, ListFileStatResult, DriverStatics, DriverModel, DriverModelTestMethods 
 } from '../driverModel'
 import { timeout, logger, dateToUnixTimeSeconds } from '../utils'
 
@@ -27,6 +27,8 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
   pageSize: number
   cacheControl?: string
   initPromise: Promise<void>
+
+  supportsETagMatching = false;
 
   static getConfigInformation() {
     const envVars: any = {}
@@ -179,7 +181,7 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
     return listResult
   }
 
-  async performWrite(args: PerformWriteArgs): Promise<string> {
+  async performWrite(args: PerformWriteArgs): Promise<WriteResult> {
     if (args.contentType && args.contentType.length > 1024) {
       throw new InvalidInputError('Invalid content-type')
     }
@@ -200,16 +202,20 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
 
     // Upload stream to s3
     try {
-      await this.s3.upload(s3params).promise()
+      const uploadResult = await this.s3.upload(s3params).promise()
+
+      const publicURL = `${this.getReadURLPrefix()}${s3key}`
+      logger.debug(`storing ${s3key} in bucket ${this.bucket}`)
+
+      return {
+        publicURL,
+        etag: uploadResult.ETag
+      }
     } catch (error) {
       logger.error(`failed to store ${s3key} in bucket ${this.bucket}`)
       throw new Error('S3 storage failure: failed to store' +
         ` ${s3key} in bucket ${this.bucket}: ${error}`)
     }
-
-    const publicURL = `${this.getReadURLPrefix()}${s3key}`
-    logger.debug(`storing ${s3key} in bucket ${this.bucket}`)
-    return publicURL
   }
 
   async performDelete(args: PerformDeleteArgs): Promise<void> {
@@ -280,6 +286,7 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
     const result: StatResult = {
       exists: true,
       lastModifiedDate: lastModified,
+      etag: obj.ETag,
       contentLength: (obj as S3.HeadObjectOutput).ContentLength || (obj as S3.Object).Size,
       contentType: (obj as S3.HeadObjectOutput).ContentType
     }

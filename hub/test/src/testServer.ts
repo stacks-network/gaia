@@ -180,7 +180,7 @@ export function testServer() {
                             'content-length': 400,
                             authorization }, s)
         .then(path => {
-          t.equal(path, `http://potato.com/${testAddrs[0]}/foo.txt`)
+          t.equal(path.publicURL, `http://potato.com/${testAddrs[0]}/foo.txt`)
           t.equal(mockDriver.lastWrite.path, 'foo.txt')
           t.equal(mockDriver.lastWrite.storageTopLevel, testAddrs[0])
           t.equal(mockDriver.lastWrite.contentType, 'text/text')
@@ -189,7 +189,7 @@ export function testServer() {
                           { 'content-length': 400,
                             authorization }, s2))
         .then(path => {
-          t.equal(path, `http://potato.com/${testAddrs[0]}/foo.txt`)
+          t.equal(path.publicURL, `http://potato.com/${testAddrs[0]}/foo.txt`)
           t.equal(mockDriver.lastWrite.path, 'foo.txt')
           t.equal(mockDriver.lastWrite.storageTopLevel, testAddrs[0])
           t.equal(mockDriver.lastWrite.contentType, 'application/octet-stream')
@@ -218,7 +218,7 @@ export function testServer() {
                             'content-length': 400,
                             authorization }, s)
         .then(path => {
-          t.equal(path, `${mockDriver.readUrl}${testAddrs[0]}/foo.txt`)
+          t.equal(path.publicURL, `${mockDriver.readUrl}${testAddrs[0]}/foo.txt`)
           t.equal(mockDriver.lastWrite.path, 'foo.txt')
           t.equal(mockDriver.lastWrite.storageTopLevel, testAddrs[0])
           t.equal(mockDriver.lastWrite.contentType, 'text/text')
@@ -227,7 +227,7 @@ export function testServer() {
                           { 'content-length': 400,
                             authorization }, s2))
         .then(path => {
-          t.equal(path, `${mockDriver.readUrl}${testAddrs[0]}/foo.txt`)
+          t.equal(path.publicURL, `${mockDriver.readUrl}${testAddrs[0]}/foo.txt`)
           t.equal(mockDriver.lastWrite.path, 'foo.txt')
           t.equal(mockDriver.lastWrite.storageTopLevel, testAddrs[0])
           t.equal(mockDriver.lastWrite.contentType, 'application/octet-stream')
@@ -763,7 +763,7 @@ export function testServer() {
                             authorization }, s)
         .then(path => {
           // NOTE: the double-/ is *expected*
-          t.equal(path, `${mockDriver.readUrl}${testAddrs[0]}//foo/bar`)
+          t.equal(path.publicURL, `${mockDriver.readUrl}${testAddrs[0]}//foo/bar`)
           t.equal(mockDriver.lastWrite.path, '/foo/bar')
           t.equal(mockDriver.lastWrite.storageTopLevel, testAddrs[0])
           t.equal(mockDriver.lastWrite.contentType, 'text/text')
@@ -772,7 +772,7 @@ export function testServer() {
                           { 'content-length': 400,
                             authorization }, s2))
         .then(path => {
-          t.equal(path, `${mockDriver.readUrl}${testAddrs[0]}/baz/foo.txt`)
+          t.equal(path.publicURL, `${mockDriver.readUrl}${testAddrs[0]}/baz/foo.txt`)
           t.equal(mockDriver.lastWrite.path, 'baz/foo.txt')
           t.equal(mockDriver.lastWrite.storageTopLevel, testAddrs[0])
           t.equal(mockDriver.lastWrite.contentType, 'application/octet-stream')
@@ -919,7 +919,7 @@ export function testServer() {
                             authorization }, s)
         .then(path => {
           // NOTE: the double-/ is *expected*
-          t.equal(path, `${mockDriver.readUrl}${testAddrs[0]}//foo/bar`)
+          t.equal(path.publicURL, `${mockDriver.readUrl}${testAddrs[0]}//foo/bar`)
           t.equal(mockDriver.lastWrite.path, '/foo/bar')
           t.equal(mockDriver.lastWrite.storageTopLevel, testAddrs[0])
           t.equal(mockDriver.lastWrite.contentType, 'text/text')
@@ -928,7 +928,7 @@ export function testServer() {
                           { 'content-length': 400,
                             authorization }, s2))
         .then(path => {
-          t.equal(path, `${mockDriver.readUrl}${testAddrs[0]}/baz/foo.txt`)
+          t.equal(path.publicURL, `${mockDriver.readUrl}${testAddrs[0]}/baz/foo.txt`)
           t.equal(mockDriver.lastWrite.path, 'baz/foo.txt')
           t.equal(mockDriver.lastWrite.storageTopLevel, testAddrs[0])
           t.equal(mockDriver.lastWrite.contentType, 'application/octet-stream')

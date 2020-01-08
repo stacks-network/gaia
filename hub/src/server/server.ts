@@ -1,12 +1,12 @@
 
 
 import { validateAuthorizationHeader, getAuthenticationScopes, AuthScopeValues } from './authentication'
-import { ValidationError, DoesNotExist, PayloadTooLargeError } from './errors'
+import { ValidationError, DoesNotExist, PayloadTooLargeError, PreconditionFailedError } from './errors'
 import { ProofChecker } from './ProofChecker'
 import { AuthTimestampCache } from './revocations'
 
 import { Readable } from 'stream'
-import { DriverModel, PerformWriteArgs, PerformRenameArgs, PerformDeleteArgs, PerformListFilesArgs, ListFilesStatResult, ListFilesResult } from './driverModel'
+import { DriverModel, PerformWriteArgs, WriteResult, PerformRenameArgs, PerformDeleteArgs, PerformListFilesArgs, ListFilesStatResult, ListFilesResult } from './driverModel'
 import { HubConfigInterface } from './config'
 import { logger, generateUniqueID, bytesToMegabytes, megabytesToBytes, monitorStreamProgress } from './utils'
 
@@ -180,10 +180,12 @@ export class HubServer {
     requestHeaders: {
       'content-type'?: string,
       'content-length'?: string | number,
+      'if-match'?: string,
+      'if-none-match'?: string,
       authorization?: string
     },
     stream: Readable
-  ) {
+  ): Promise<WriteResult> {
 
     const oldestValidTokenTimestamp = await this.authTimestampCache.getAuthTimestamp(address)
     this.validate(address, requestHeaders, oldestValidTokenTimestamp)
@@ -210,6 +212,46 @@ export class HubServer {
       if (!match) {
         // not authorized to write to this path
         throw new ValidationError(`Address ${address} not authorized to write to ${path} by scopes`)
+      }
+    }
+
+    const ifMatchTag = requestHeaders['if-match']
+    const ifNoneMatchTag = requestHeaders['if-none-match']
+
+    // only one match-tag header should be set
+    if (ifMatchTag && ifNoneMatchTag) {
+      throw new PreconditionFailedError('Request should not contain both if-match and if-none-match headers')
+    }
+
+    // only support using if-none-match for file creation, values that aren't the wildcard are prohibited
+    if (ifNoneMatchTag && ifNoneMatchTag !== '*') {
+      throw new PreconditionFailedError('Misuse of the if-none-match header. Expected to be * on write requests.')
+    }
+
+    // handle etag matching if not supported at the driver level
+    if (!this.driver.supportsETagMatching) {
+      // allow overwrites if tag is wildcard 
+      if (ifMatchTag && ifMatchTag !== '*') {
+        const currentETag = (await this.driver.performStat({
+          path: path,
+          storageTopLevel: address
+        })).etag
+
+        if (ifMatchTag !== currentETag) {
+          throw new PreconditionFailedError(
+            'The provided ETag does not match that of the resource on the server'
+          )
+        }
+      } else if (ifNoneMatchTag && ifNoneMatchTag === '*') {
+        // only proceed with writing file if the file does not already exist
+        const statResult = await this.driver.performStat({
+          path: path,
+          storageTopLevel: address
+        })
+
+        if (statResult.exists) {
+          throw new PreconditionFailedError('The entity you are trying to create already exists')
+        }
       }
     }
 
@@ -275,17 +317,26 @@ export class HubServer {
 
     const writeCommand: PerformWriteArgs = {
       storageTopLevel: address,
-      path, stream: monitoredStream, contentType,
-      contentLength: contentLengthBytes
+      path,
+      stream: monitoredStream,
+      contentType,
+      contentLength: contentLengthBytes,
+      ifMatch: ifMatchTag,
+      ifNoneMatch: ifNoneMatchTag
     }
-    const [readURL] = await Promise.all([this.driver.performWrite(writeCommand), pipelinePromise])
+
+    const [writeResponse] = await Promise.all([this.driver.performWrite(writeCommand), pipelinePromise])
+    const readURL = writeResponse.publicURL
     const driverPrefix = this.driver.getReadURLPrefix()
     const readURLPrefix = this.getReadURLPrefix()
     if (readURLPrefix !== driverPrefix && readURL.startsWith(driverPrefix)) {
       const postFix = readURL.slice(driverPrefix.length)
-      return `${readURLPrefix}${postFix}`
+      return { 
+        publicURL: `${readURLPrefix}${postFix}`,
+        etag: writeResponse.etag
+      }
     }
-    return readURL
+    return writeResponse
   }
   
   isArchivalRestricted(scopes: AuthScopeValues) {

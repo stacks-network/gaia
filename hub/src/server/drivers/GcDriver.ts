@@ -2,9 +2,9 @@ import { Storage, File } from '@google-cloud/storage'
 
 import { BadPathError, InvalidInputError, DoesNotExist } from '../errors'
 import { 
-  ListFilesResult, PerformWriteArgs, PerformDeleteArgs, PerformRenameArgs, StatResult, 
-  PerformStatArgs, PerformReadArgs, ReadResult, PerformListFilesArgs, ListFilesStatResult, 
-  ListFileStatResult, DriverStatics, DriverModel, DriverModelTestMethods 
+  ListFilesResult, PerformWriteArgs, WriteResult, PerformDeleteArgs, PerformRenameArgs,
+  StatResult, PerformStatArgs, PerformReadArgs, ReadResult, PerformListFilesArgs,
+  ListFilesStatResult, ListFileStatResult, DriverStatics, DriverModel, DriverModelTestMethods 
 } from '../driverModel'
 import { pipelineAsync, logger, dateToUnixTimeSeconds } from '../utils'
 
@@ -31,6 +31,8 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
   cacheControl?: string
   initPromise: Promise<void>
   resumable: boolean
+
+  supportsETagMatching = false;
 
   static getConfigInformation() {
     const envVars: any = {}
@@ -176,7 +178,7 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
     return result
   }
 
-  async performWrite(args: PerformWriteArgs): Promise<string> {
+  async performWrite(args: PerformWriteArgs): Promise<WriteResult> {
     if (!GcDriver.isPathValid(args.path)) {
       throw new BadPathError('Invalid Path')
     }
@@ -217,13 +219,13 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
     try {
       await pipelineAsync(args.stream, fileWriteStream)
       logger.debug(`storing ${filename} in bucket ${this.bucket}`)
+      const etag = GcDriver.formatETagFromMD5(fileDestination.metadata.md5Hash)
+      return { publicURL, etag }
     } catch (error) {
       logger.error(`failed to store ${filename} in bucket ${this.bucket}`)
       throw new Error('Google cloud storage failure: failed to store' +
         ` ${filename} in bucket ${this.bucket}: ${error}`)
     }
-
-    return publicURL
   }
 
   async performDelete(args: PerformDeleteArgs): Promise<void> {
@@ -249,10 +251,17 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
     }
   }
 
+  static formatETagFromMD5(md5Hash: string): string {
+    const hex = Buffer.from(md5Hash, 'base64').toString('hex')
+    const formatted = `"${hex}"`
+    return formatted
+  }
+
   static parseFileMetadataStat(metadata: any): StatResult {
     const lastModified = dateToUnixTimeSeconds(new Date(metadata.updated))
     const result: StatResult = {
       exists: true,
+      etag: this.formatETagFromMD5(metadata.md5Hash),
       contentType: metadata.contentType,
       contentLength: parseInt(metadata.size),
       lastModifiedDate: lastModified
