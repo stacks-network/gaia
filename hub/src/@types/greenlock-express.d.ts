@@ -1,7 +1,7 @@
 declare module 'greenlock-express' {
-  import { Application } from 'express';
-  import * as http from 'http';
-  import * as https from 'https';
+  import { Application } from 'express'
+  import * as http from 'http'
+  import * as https from 'https'
 
   export interface GreenlockOptions {
     /** The email address of the ACME user / hosting provider */
