@@ -286,9 +286,6 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
             t.equal(error.constructor.name, 'DoesNotExist', 'Should throw DoesNotExist trying to performRead on directory')
           }
         }
-      }
-
-      if (!mockTest) {
 
         // test file stat on listFiles
         try {
@@ -393,9 +390,6 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           t.error(error, 'File stat directory error')
         }
 
-      }
-
-      if (!mockTest) {
         sampleData = getSampleData();
         const bogusContentType = 'x'.repeat(3000)
         try {
@@ -409,6 +403,25 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
         } catch (error) {
           t.pass('Extremely large content-type headers should fail to write')
         }
+
+        // test file write without content-length
+        const zeroByteTestFile = 'zero_bytes.txt'
+        const stream = new PassThrough()
+        stream.end(Buffer.alloc(0));
+        await driver.performWrite({
+          path: zeroByteTestFile,
+          storageTopLevel: topLevelStorage,
+          stream: stream,
+          contentType: 'text/plain; charset=utf-8',
+          contentLength: undefined
+        })
+        const readResult = await driver.performRead({
+          path: zeroByteTestFile,
+          storageTopLevel: topLevelStorage
+        })
+        t.equal(readResult.contentLength || 0, 0, 'Zero bytes file write should result in content-length read of 0');
+        const dataBuffer = await utils.readStream(readResult.data)
+        t.equal(dataBuffer.length, 0, 'Zero bytes file write should result in read of zero bytes');
       }
 
       try {
@@ -575,7 +588,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
             stream: stream1,
             contentType: 'text/plain; charset=utf-8',
             contentLength: 100
-          });
+          }).catch(error => error);
 
           const stream2 = new PassThrough()
           stream2.write('xyz sample content 2', 'utf8')
@@ -587,7 +600,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
             stream: stream2,
             contentType: 'text/plain; charset=utf-8',
             contentLength: 100
-          })
+          }).catch(error => error)
           await utils.timeout(10)
           stream1.end()
           await utils.timeout(10)

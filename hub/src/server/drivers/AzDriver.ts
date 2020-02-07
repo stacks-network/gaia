@@ -179,7 +179,8 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
     const blockBlobURL = azure.BlockBlobURL.fromBlobURL(blobURL)
 
     // 1MB max buffer block size
-    const bufferSize = Math.min(1024 * 1024, args.contentLength)
+    const defaultBufferSize = 1024 * 1024
+    const bufferSize = Math.min(defaultBufferSize, args.contentLength) || defaultBufferSize
 
     /** 
      * No parallelism since bottleneck would be in clients' http request
