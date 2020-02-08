@@ -207,6 +207,7 @@ export class InMemoryDriver implements DriverModel {
     if (args.page && !args.page.match(/^[0-9]+$/)) {
       throw new Error('Invalid page number')
     }
+    const pageSize = args.pageSize || this.pageSize;
     const pageNum = args.page ? parseInt(args.page) : 0
     const names = Array.from(this.files.entries())
       .filter(([path]) => path.startsWith(args.pathPrefix))
@@ -221,7 +222,7 @@ export class InMemoryDriver implements DriverModel {
         }
         return entry
       })
-    const entries = names.slice(pageNum * this.pageSize, (pageNum + 1) * this.pageSize)
+    const entries = names.slice(pageNum * pageSize, (pageNum + 1) * pageSize)
     const pageResult = entries.length === names.length ? null : `${pageNum + 1}`
     return Promise.resolve({
       entries,

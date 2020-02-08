@@ -124,10 +124,11 @@ class DiskDriver implements DriverModel {
     return fileNames
   }
 
-  async listFilesInDirectory(listPath: string, pageNum: number): Promise<ListFilesResult> {
+  async listFilesInDirectory(listPath: string, pageNum: number, pageSize?: number): Promise<ListFilesResult> {
+    pageSize = pageSize || this.pageSize
     const files = await this.findAllFiles(listPath)
     const entries = files.map(file => file.slice(listPath.length + 1))
-    const sliced = entries.slice(pageNum * this.pageSize, (pageNum + 1) * this.pageSize)
+    const sliced = entries.slice(pageNum * pageSize, (pageNum + 1) * pageSize)
     const page = sliced.length === entries.length ? null : `${pageNum + 1}`
     return {
       entries: sliced,
@@ -167,7 +168,7 @@ class DiskDriver implements DriverModel {
       throw new Error('Invalid arguments: invalid page or not a directory')
     }
 
-    const listResult = await this.listFilesInDirectory(listPath, pageNum)
+    const listResult = await this.listFilesInDirectory(listPath, pageNum, args.pageSize)
     return listResult
   }
 

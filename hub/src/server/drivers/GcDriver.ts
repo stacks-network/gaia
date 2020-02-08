@@ -119,11 +119,11 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
     await this.storage.bucket(this.bucket).delete()
   }
 
-  async listAllObjects(prefix: string, page?: string) {
+  async listAllObjects(prefix: string, page?: string, pageSize?: number) {
     // returns {'entries': [...], 'page': next_page}
     const opts: { prefix: string, maxResults: number, pageToken?: string } = {
       prefix: prefix,
-      maxResults: this.pageSize,
+      maxResults: pageSize || this.pageSize,
       pageToken: page || undefined
     }
 
@@ -162,7 +162,7 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
   }
 
   async listFilesStat(args: PerformListFilesArgs): Promise<ListFilesStatResult> {
-    const listResult = await this.listAllObjects(args.pathPrefix, args.page)
+    const listResult = await this.listAllObjects(args.pathPrefix, args.page, args.pageSize)
     const result: ListFilesStatResult = {
       page: listResult.page,
       entries: listResult.entries.map(entry => {

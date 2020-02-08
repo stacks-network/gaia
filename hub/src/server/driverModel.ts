@@ -20,6 +20,7 @@ export interface ListFileStatResult extends Required<StatResult> {
 export interface PerformListFilesArgs {
   pathPrefix: string;
   page?: string;
+  pageSize?: number;
 }
 
 export interface PerformWriteArgs { 

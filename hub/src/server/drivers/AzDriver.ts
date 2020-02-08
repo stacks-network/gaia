@@ -121,13 +121,13 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
     return `${this.getServiceUrl()}/${this.bucket}/`
   }
 
-  async listBlobs(prefix: string, page?: string): Promise<ListFilesStatResult> {
+  async listBlobs(prefix: string, page?: string, pageSize?: number): Promise<ListFilesStatResult> {
     // page is the marker / continuationToken for Azure
     const blobs = await this.container.listBlobFlatSegment(
       azure.Aborter.none,
       page || undefined, {
         prefix: prefix,
-        maxresults: this.pageSize
+        maxresults: pageSize || this.pageSize
       }
     )
     const items = blobs.segment.blobItems
@@ -145,7 +145,7 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
 
   async listFiles(args: PerformListFilesArgs) {
     try {
-      const files = await this.listBlobs(args.pathPrefix, args.page)
+      const files = await this.listBlobs(args.pathPrefix, args.page, args.pageSize)
       return { 
         entries: files.entries.map(f => f.name),
         page: files.page
@@ -158,7 +158,7 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
 
   async listFilesStat(args: PerformListFilesArgs): Promise<ListFilesStatResult> {
     try {
-      return await this.listBlobs(args.pathPrefix, args.page)
+      return await this.listBlobs(args.pathPrefix, args.page, args.pageSize)
     } catch (error) {
       logger.debug(`Failed to list files: ${error}`)
       throw error

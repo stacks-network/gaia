@@ -85,6 +85,38 @@ export function timeout(milliseconds: number): Promise<void> {
   })
 }
 
+export async function tryFor<T>(fn: () => T | Promise<T>, retryIntervalMS: number, totalTimeMS: number) {
+  const startTime = process.hrtime()
+
+  const getElapsedMilliseconds = () => {
+    const [elapsedSeconds, elapsedNS] = process.hrtime(startTime)
+    return (elapsedSeconds * 1000) + parseFloat((elapsedNS * 1e-6).toPrecision(4))
+  }
+
+  const getRemainingMS = () => {
+    const elapsedMs = getElapsedMilliseconds()
+    return totalTimeMS - elapsedMs
+  }
+
+  let lastError: any
+  do {
+    try {
+      return await fn()
+    } catch (error) {
+      lastError = error
+    }
+    const result = await Promise.race([
+      timeout(retryIntervalMS), 
+      timeout(getRemainingMS()).then(() => ({timeout: true}))
+    ])
+    if (result && result.timeout && lastError === undefined) {
+      lastError = new Error('Timed out')
+    }
+  } while (getRemainingMS() > 0)
+
+  throw lastError
+}
+
 export interface StreamProgressCallback {
   /**
    * A callback that is invoked each time a chunk passes through the stream. 
