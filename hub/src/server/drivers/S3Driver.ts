@@ -283,18 +283,12 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
     if (obj.LastModified) {
       lastModified = dateToUnixTimeSeconds(obj.LastModified)
     }
-    let contentLength = (obj as S3.HeadObjectOutput).ContentLength
-    if (!contentLength) {
-      const objSize = (obj as S3.Object).Size
-      if (objSize !== undefined) {
-        contentLength = objSize
-      }
-    }
+    const size = (obj as S3.HeadObjectOutput).ContentLength ?? (obj as S3.Object).Size
     const result: StatResult = {
       exists: true,
       lastModifiedDate: lastModified,
       etag: obj.ETag,
-      contentLength: contentLength,
+      contentLength: size,
       contentType: (obj as S3.HeadObjectOutput).ContentType
     }
     return result
