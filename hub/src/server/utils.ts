@@ -59,7 +59,7 @@ class MemoryStream extends stream.Writable {
     super(opts)
     this.buffers = []
   }
-  _write(chunk: any, encoding: string, callback: (error?: Error | null) => void): void {
+  _write(chunk: any, encoding: BufferEncoding, callback: (error?: Error | null) => void): void {
     this.buffers.push(Buffer.from(chunk, encoding))
     callback(null)
   }
