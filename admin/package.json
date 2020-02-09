@@ -12,7 +12,9 @@
     "start-dev": "ts-node src/index.ts",
     "build": "tsc && chmod +x lib/index.js",
     "lint": "eslint --ext .ts ./src",
-    "test": "npm run lint && NODE_ENV=test nyc node ./test/test.ts"
+    "test": "npm run lint && NODE_ENV=test nyc node ./test/test.ts",
+    "snyk-protect": "snyk protect",
+    "prepare": "npm run snyk-protect"
   },
   "bin": {
     "blockstack-gaia-admin": "lib/index.js"
@@ -37,7 +39,8 @@
     "cross-fetch": "^3.0.1",
     "express": "^4.16.4",
     "express-winston": "^3.1.0",
-    "winston": "^3.2.1"
+    "winston": "^3.2.1",
+    "snyk": "^1.290.2"
   },
   "devDependencies": {
     "@babel/cli": "^7.2.3",
@@ -81,5 +84,6 @@
       "text",
       "lcov"
     ]
-  }
+  },
+  "snyk": true
 }
