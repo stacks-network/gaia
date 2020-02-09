@@ -8,7 +8,7 @@
   },
   "dependencies": {
     "@azure/storage-blob": "^10.3.0",
-    "@google-cloud/storage": "^2.5.0",
+    "@google-cloud/storage": "^3.0.0",
     "ajv": "^6.10.0",
     "aws-sdk": "^2.482.0",
     "bitcoinjs-lib": "^5.1.2",
@@ -22,7 +22,8 @@
     "lru-cache": "^5.1.1",
     "nanoid": "^2.0.3",
     "node-fetch": "^2.6.0",
-    "winston": "^3.2.1"
+    "winston": "^3.2.1",
+    "snyk": "^1.290.2"
   },
   "devDependencies": {
     "@types/cors": "^2.8.5",
@@ -61,7 +62,9 @@
     "build": "tsc && chmod +x lib/index.js && npm run build-schema",
     "build-schema": "typescript-json-schema tsconfig.json HubConfig --required --noExtraProps --refs=false -o config-schema.json",
     "lint": "eslint --ext .ts ./src -f unix",
-    "test": "npm run build && npm run lint && NODE_ENV=test nyc node ./test/src/index.ts"
+    "test": "npm run build && npm run lint && NODE_ENV=test nyc node ./test/src/index.ts",
+    "snyk-protect": "snyk protect",
+    "prepare": "npm run snyk-protect"
   },
   "repository": {
     "type": "git",
@@ -92,5 +95,6 @@
       "text",
       "lcov"
     ]
-  }
+  },
+  "snyk": true
 }
