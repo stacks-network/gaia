@@ -8,3 +8,13 @@ patch:
         patched: '2020-02-09T13:58:34.058Z'
     - winston > async > lodash:
         patched: '2020-02-09T13:58:34.058Z'
+    - snyk > @snyk/dep-graph > lodash:
+        patched: '2020-02-09T13:59:13.670Z'
+    - snyk > inquirer > lodash:
+        patched: '2020-02-09T13:59:13.670Z'
+    - snyk > @snyk/snyk-cocoapods-plugin > @snyk/dep-graph > lodash:
+        patched: '2020-02-09T13:59:13.670Z'
+    - snyk > snyk-nuget-plugin > dotnet-deps-parser > lodash:
+        patched: '2020-02-09T13:59:13.670Z'
+    - snyk > @snyk/snyk-cocoapods-plugin > @snyk/cocoapods-lockfile-parser > @snyk/dep-graph > lodash:
+        patched: '2020-02-09T13:59:13.670Z'
