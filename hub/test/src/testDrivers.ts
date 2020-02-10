@@ -606,7 +606,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
             stream: stream1,
             contentType: 'text/plain; charset=utf-8',
             contentLength: 100
-          }).catch(error => error);
+          })
 
           const stream2 = new PassThrough()
           stream2.write('xyz sample content 2', 'utf8')
@@ -618,7 +618,11 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
             stream: stream2,
             contentType: 'text/plain; charset=utf-8',
             contentLength: 100
-          }).catch(error => error)
+          })
+
+          writeRequest1.catch(() => {/* ignore */})
+          writeRequest2.catch(() => {/* ignore */})
+
           await utils.timeout(100)
           stream1.end()
           await utils.timeout(100)
