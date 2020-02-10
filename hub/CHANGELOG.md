@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   header.
 ### Changed
 - Updated DriverModel's WriteResult type to include ETag.
+### Fixed
+- Fixed regression with `content-length: 0` file POSTs causing `500` server errors.
 
 ## [2.7.0]
 ### Added
