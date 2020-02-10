@@ -439,9 +439,6 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           pageSize: 1000
         })
         const statFile = statFilesResult.entries.find(f => f.name.includes(zeroByteTestFile))
-        if (statFile.contentLength === undefined) {
-          console.log(statFile)
-        }
         t.equal(statFile.contentLength, 0, 'Zero bytes file write should result in list file stat content-length 0');
       }
 
