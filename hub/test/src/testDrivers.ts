@@ -2,7 +2,7 @@ import test = require('tape-promise/tape')
 import { sandbox, FetchMockSandbox } from 'fetch-mock'
 import NodeFetch from 'node-fetch'
 
-import { Readable, PassThrough } from 'stream'
+import { Readable, PassThrough, ReadableOptions } from 'stream'
 import { DriverModel, DriverModelTestMethods } from '../../src/server/driverModel'
 import * as utils from '../../src/server/utils'
 
@@ -605,7 +605,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
             storageTopLevel: topLevelStorage,
             stream: stream1,
             contentType: 'text/plain; charset=utf-8',
-            contentLength: 100
+            contentLength: stream1.readableLength
           })
 
           const stream2 = new PassThrough()
@@ -617,16 +617,25 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
             storageTopLevel: topLevelStorage,
             stream: stream2,
             contentType: 'text/plain; charset=utf-8',
-            contentLength: 100
+            contentLength: stream1.readableLength
           })
 
-          writeRequest1.catch(() => {/* ignore */})
-          writeRequest2.catch(() => {/* ignore */})
+          const writePromises = Promise.all([
+            writeRequest1.catch(() => {
+              // ignore
+            }), 
+            writeRequest2.catch(() => {
+              // ignore
+            })
+          ])
 
           await utils.timeout(100)
           stream1.end()
           await utils.timeout(100)
           stream2.end()
+
+          await writePromises
+
           const [ writeResponse ] = await Promise.all([writeRequest1, writeRequest2])
           const readEndpoint = writeResponse.publicURL
           resp = await fetch(readEndpoint)
@@ -643,9 +652,9 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
             t.error(error, 'Unexpected error during concurrent writes')
           }
         }
-
+        
         try {
-          const brokenUploadStream = new BrokenReadableStream()
+          const brokenUploadStream = new BrokenReadableStream({autoDestroy: true})
           await driver.performWrite({
             path: 'broken_upload_stream_test',
             storageTopLevel: topLevelStorage,
@@ -699,7 +708,7 @@ function testDriverBucketCreation(driverName: string, createDriver: (config?: Ob
 class BrokenReadableStream extends Readable {
   readCount: number
   sampleData: Buffer
-  constructor(options?: any) {
+  constructor(options?: ReadableOptions) {
     super(options)
     this.readCount = 0
     this.sampleData = Buffer.from('hello world sample data')
@@ -708,8 +717,8 @@ class BrokenReadableStream extends Readable {
     if (this.readCount === 0) {
       super.push(this.sampleData)
     } else if (this.readCount === 1) {
-      // cause the stream to break/error
-      super.destroy(new Error('example stream read failure'))
+      super.emit('error', new Error('example stream read failure'))
+      super.emit('close')
     }
     this.readCount++
   }

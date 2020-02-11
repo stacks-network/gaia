@@ -74,7 +74,7 @@ export const availableDrivers: { [name: string]: { class: DriverConstructor, cre
   },
   gc: { 
     class: GcDriver,
-    create: config => new GcDriver({resumable: true, ...driverConfigs.gc, ...config}) 
+    create: config => new GcDriver({...driverConfigs.gc, ...config}) 
   },
   disk: { 
     class: DiskDriver,

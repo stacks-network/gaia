@@ -198,17 +198,11 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
       .bucket(this.bucket)
       .file(filename)
 
-    /* Note: Current latest version of google-cloud/storage@2.4.2 implements
-       something that keeps a socket retry pool or something similar open for 
-       several minutes in the event of a stream pipe failure. Only happens 
-       when `resumable` is disabled. We enable `resumable` in unit tests so
-       they complete on time, but want `resumable` disabled in production uses:
-        > There is some overhead when using a resumable upload that can cause
+    /*  > There is some overhead when using a resumable upload that can cause
         > noticeable performance degradation while uploading a series of small 
         > files. When uploading files less than 10MB, it is recommended that 
         > the resumable feature is disabled." 
-       For details see https://github.com/googleapis/nodejs-storage/issues/312
-    */
+       For details see https://github.com/googleapis/nodejs-storage/issues/312 */
 
     const fileWriteStream = fileDestination.createWriteStream({
       public: true,
