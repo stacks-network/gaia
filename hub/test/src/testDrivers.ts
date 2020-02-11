@@ -2,13 +2,14 @@ import test = require('tape-promise/tape')
 import { sandbox, FetchMockSandbox } from 'fetch-mock'
 import NodeFetch from 'node-fetch'
 
-import { Readable, PassThrough } from 'stream'
+import { Readable, PassThrough, ReadableOptions } from 'stream'
 import { DriverModel, DriverModelTestMethods } from '../../src/server/driverModel'
 import * as utils from '../../src/server/utils'
 
 import * as mockTestDrivers from './testDrivers/mockTestDrivers'
 import * as integrationTestDrivers from './testDrivers/integrationTestDrivers'
 import { BadPathError, DoesNotExist, ConflictError } from '../../src/server/errors'
+import { tryFor } from '../../src/server/utils'
 
 export function addMockFetches(fetchLib: FetchMockSandbox, prefix: any, dataMap: {key: string, data: string}[]) {
   dataMap.forEach(item => {
@@ -286,9 +287,6 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
             t.equal(error.constructor.name, 'DoesNotExist', 'Should throw DoesNotExist trying to performRead on directory')
           }
         }
-      }
-
-      if (!mockTest) {
 
         // test file stat on listFiles
         try {
@@ -393,9 +391,6 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           t.error(error, 'File stat directory error')
         }
 
-      }
-
-      if (!mockTest) {
         sampleData = getSampleData();
         const bogusContentType = 'x'.repeat(3000)
         try {
@@ -409,6 +404,42 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
         } catch (error) {
           t.pass('Extremely large content-type headers should fail to write')
         }
+
+        // test file write without content-length
+        const zeroByteTestFile = 'zero_bytes.txt'
+        const stream = new PassThrough()
+        stream.end(Buffer.alloc(0));
+        await driver.performWrite({
+          path: zeroByteTestFile,
+          storageTopLevel: topLevelStorage,
+          stream: stream,
+          contentType: 'text/plain; charset=utf-8',
+          contentLength: undefined
+        })
+
+        // test zero-byte file read result
+        const readResult = await driver.performRead({
+          path: zeroByteTestFile,
+          storageTopLevel: topLevelStorage
+        })
+        t.equal(readResult.contentLength, 0, 'Zero bytes file write should result in read content-length of 0');
+        const dataBuffer = await utils.readStream(readResult.data)
+        t.equal(dataBuffer.length, 0, 'Zero bytes file write should result in read of zero bytes');
+
+        // test zero-byte file stat result
+        const statResult = await driver.performStat({
+          path: zeroByteTestFile,
+          storageTopLevel: topLevelStorage
+        })
+        t.equal(statResult.contentLength, 0, 'Zero bytes file write should result in stat result content-length of 0');
+
+        // test zero-byte file list stat result
+        const statFilesResult = await driver.listFilesStat({
+          pathPrefix: topLevelStorage,
+          pageSize: 1000
+        })
+        const statFile = statFilesResult.entries.find(f => f.name.includes(zeroByteTestFile))
+        t.equal(statFile.contentLength, 0, 'Zero bytes file write should result in list file stat content-length 0');
       }
 
       try {
@@ -574,24 +605,37 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
             storageTopLevel: topLevelStorage,
             stream: stream1,
             contentType: 'text/plain; charset=utf-8',
-            contentLength: 100
-          });
+            contentLength: stream1.readableLength
+          })
 
           const stream2 = new PassThrough()
           stream2.write('xyz sample content 2', 'utf8')
 
-          await utils.timeout(1)
+          await utils.timeout(100)
           const writeRequest2 = driver.performWrite({
             path: concurrentTestFile,
             storageTopLevel: topLevelStorage,
             stream: stream2,
             contentType: 'text/plain; charset=utf-8',
-            contentLength: 100
+            contentLength: stream1.readableLength
           })
-          await utils.timeout(10)
+
+          const writePromises = Promise.all([
+            writeRequest1.catch(() => {
+              // ignore
+            }), 
+            writeRequest2.catch(() => {
+              // ignore
+            })
+          ])
+
+          await utils.timeout(100)
           stream1.end()
-          await utils.timeout(10)
+          await utils.timeout(100)
           stream2.end()
+
+          await writePromises
+
           const [ writeResponse ] = await Promise.all([writeRequest1, writeRequest2])
           const readEndpoint = writeResponse.publicURL
           resp = await fetch(readEndpoint)
@@ -608,9 +652,9 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
             t.error(error, 'Unexpected error during concurrent writes')
           }
         }
-
+        
         try {
-          const brokenUploadStream = new BrokenReadableStream()
+          const brokenUploadStream = new BrokenReadableStream({autoDestroy: true})
           await driver.performWrite({
             path: 'broken_upload_stream_test',
             storageTopLevel: topLevelStorage,
@@ -648,7 +692,7 @@ function testDriverBucketCreation(driverName: string, createDriver: (config?: Ob
       t.fail(`Could not initialize driver with creation of a new bucket: ${error}`)
     } finally {
       try {
-        await driver.deleteEmptyBucket()
+        await tryFor(() => driver.deleteEmptyBucket(), 100, 1500)
       } catch (error) {
         t.fail(`Error trying to cleanup bucket: ${error}`)
       }
@@ -664,7 +708,7 @@ function testDriverBucketCreation(driverName: string, createDriver: (config?: Ob
 class BrokenReadableStream extends Readable {
   readCount: number
   sampleData: Buffer
-  constructor(options?: any) {
+  constructor(options?: ReadableOptions) {
     super(options)
     this.readCount = 0
     this.sampleData = Buffer.from('hello world sample data')
@@ -673,8 +717,8 @@ class BrokenReadableStream extends Readable {
     if (this.readCount === 0) {
       super.push(this.sampleData)
     } else if (this.readCount === 1) {
-      // cause the stream to break/error
-      super.destroy(new Error('example stream read failure'))
+      super.emit('error', new Error('example stream read failure'))
+      super.emit('close')
     }
     this.readCount++
   }

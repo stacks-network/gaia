@@ -59,7 +59,7 @@ class MemoryStream extends stream.Writable {
     super(opts)
     this.buffers = []
   }
-  _write(chunk: any, encoding: string, callback: (error?: Error | null) => void): void {
+  _write(chunk: any, encoding: BufferEncoding, callback: (error?: Error | null) => void): void {
     this.buffers.push(Buffer.from(chunk, encoding))
     callback(null)
   }
@@ -83,6 +83,38 @@ export function timeout(milliseconds: number): Promise<void> {
       resolve()
     }, milliseconds)
   })
+}
+
+export async function tryFor<T>(fn: () => T | Promise<T>, retryIntervalMS: number, totalTimeMS: number) {
+  const startTime = process.hrtime()
+
+  const getElapsedMilliseconds = () => {
+    const [elapsedSeconds, elapsedNS] = process.hrtime(startTime)
+    return (elapsedSeconds * 1000) + parseFloat((elapsedNS * 1e-6).toPrecision(4))
+  }
+
+  const getRemainingMS = () => {
+    const elapsedMs = getElapsedMilliseconds()
+    return totalTimeMS - elapsedMs
+  }
+
+  let lastError: any
+  do {
+    try {
+      return await fn()
+    } catch (error) {
+      lastError = error
+    }
+    const result = await Promise.race([
+      timeout(retryIntervalMS), 
+      timeout(getRemainingMS()).then(() => ({timeout: true}))
+    ])
+    if (result && result.timeout && lastError === undefined) {
+      lastError = new Error('Timed out')
+    }
+  } while (getRemainingMS() > 0)
+
+  throw lastError
 }
 
 export interface StreamProgressCallback {

@@ -130,11 +130,11 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
     await this.s3.deleteBucket({ Bucket: this.bucket }).promise()
   }
 
-  async listAllKeys(prefix: string, page?: string): Promise<ListFilesStatResult> {
+  async listAllKeys(prefix: string, page?: string, pageSize?: number): Promise<ListFilesStatResult> {
     // returns {'entries': [...], 'page': next_page}
     const opts: S3.ListObjectsRequest = {
       Bucket: this.bucket,
-      MaxKeys: this.pageSize,
+      MaxKeys: pageSize || this.pageSize,
       Prefix: prefix
     }
     if (page) {
@@ -169,7 +169,7 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
 
   async listFiles(args: PerformListFilesArgs): Promise<ListFilesResult> {
     // returns {'entries': [...], 'page': next_page}
-    const listResult = await this.listAllKeys(args.pathPrefix, args.page)
+    const listResult = await this.listAllKeys(args.pathPrefix, args.page, args.pageSize)
     return {
       entries: listResult.entries.map(e => e.name),
       page: listResult.page
@@ -177,7 +177,7 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
   }
 
   async listFilesStat(args: PerformListFilesArgs): Promise<ListFilesStatResult> {
-    const listResult = await this.listAllKeys(args.pathPrefix, args.page)
+    const listResult = await this.listAllKeys(args.pathPrefix, args.page, args.pageSize)
     return listResult
   }
 
@@ -283,11 +283,12 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
     if (obj.LastModified) {
       lastModified = dateToUnixTimeSeconds(obj.LastModified)
     }
+    const size = (obj as S3.HeadObjectOutput).ContentLength ?? (obj as S3.Object).Size
     const result: StatResult = {
       exists: true,
       lastModifiedDate: lastModified,
       etag: obj.ETag,
-      contentLength: (obj as S3.HeadObjectOutput).ContentLength || (obj as S3.Object).Size,
+      contentLength: size,
       contentType: (obj as S3.HeadObjectOutput).ContentType
     }
     return result
