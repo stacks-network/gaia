@@ -9,6 +9,6 @@
     "codecovUpload": "codecov"
   },
   "devDependencies": {
-    "codecov": "^3.2.0"
+    "codecov": "^3.6.5"
   }
 }
