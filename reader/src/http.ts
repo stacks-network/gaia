@@ -1,9 +1,12 @@
-import express  from 'express'
-import expressWinston from 'express-winston'
-import cors from 'cors'
-import Path from 'path'
+import * as express from 'express'
+import * as expressWinston from 'express-winston'
+import * as cors from 'cors'
+import { promisify } from 'util'
+import { pipeline } from 'stream'
 import { Config, logger } from './config'
 import { GaiaDiskReader } from './server'
+
+const pipelineAsync = promisify(pipeline)
 
 export function makeHttpServer(config: Config) {
   const app = express()
@@ -13,43 +16,56 @@ export function makeHttpServer(config: Config) {
     winstonInstance: logger
   }))
 
-  app.use(cors())
+  app.use(cors({
+    origin: '*', 
+    // Set the Access-Control-Max-Age header to 24 hours.
+    maxAge: 86400, 
+    methods: 'GET,HEAD,OPTIONS',
+    // Expose ETag http response header to client
+    // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Expose-Headers
+    exposedHeaders: 'Content-Type,ETag'
+  }))
 
-  app.get(/\/([a-zA-Z0-9-_]+)\/(.+)/, (req, res) => {
-    let filename = req.params[1]
-    if (filename.endsWith('/')) {
-      filename = filename.substring(0, filename.length - 1)
-    }
-    const address = req.params[0]
+  const fileHandler = async (req: express.Request, res: express.Response) => {
+    try {
+      let filename = req.params[1]
+      if (filename.endsWith('/')) {
+        filename = filename.substring(0, filename.length - 1)
+      }
+      const address = req.params[0]
 
-    if (config.cacheControl) {
-      res.set('Cache-Control', config.cacheControl)
-    }
+      if (config.cacheControl) {
+        res.set('Cache-Control', config.cacheControl)
+      }
 
-    return server.handleGet(address, filename)
-      .then((fileInfo) => {
-        const exists = fileInfo.exists
-        const contentType = fileInfo.contentType
+      const isGetRequest = req.method === 'GET'
 
-        if (!exists) {
-          return res.status(404).send('File not found')
-        }
+      const fileInfo = await server.handleGet(address, filename, isGetRequest)
 
-        const opts = {
-          root: config.diskSettings.storageRootDirectory,
-          headers: {
-            'content-type': contentType
-          }
-        }
-        const path = Path.join(address, filename)
+      if (!fileInfo.exists) {
+        return res.status(404).send('File not found')
+      }
 
-        return res.sendFile(path, opts)
+      res.set({
+        'content-type': fileInfo.contentType,
+        'etag': fileInfo.etag,
+        'last-modified': fileInfo.lastModified.toUTCString(),
+        'content-length': fileInfo.contentLength
       })
-      .catch((err) => {
-        logger.error(err)
-        return res.status(400).send('Could not return file')
-      })
-  })
+
+      if (isGetRequest) {
+        await pipelineAsync(fileInfo.fileReadStream, res)
+      }
+      res.end()
+    } catch(err) {
+      logger.error(err)
+      return res.status(400).send('Could not return file')
+    }
+  }
+
+  const bucketFilePath = /\/([a-zA-Z0-9-_]+)\/(.+)/
+  app.get(bucketFilePath, fileHandler)
+  app.head(bucketFilePath, fileHandler)
 
   return app
 }

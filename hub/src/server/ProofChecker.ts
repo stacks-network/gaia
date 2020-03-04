@@ -24,7 +24,7 @@ export class ProofChecker {
     const result = await fetch(url)
     const json = await result.json()
     const token = json[0].token
-    const verified = await verifyProfileToken(token, address)
+    const verified = verifyProfileToken(token, address)
     return getTokenPayload(verified).claim
   }
 

@@ -1,15 +1,13 @@
 
 
-import stream, { Readable, PassThrough } from 'stream'
+import * as stream from 'stream'
 import { DriverConstructor, DriverStatics } from './driverModel'
 import S3Driver from './drivers/S3Driver'
 import AzDriver from './drivers/AzDriver'
 import GcDriver from './drivers/GcDriver'
 import DiskDriver from './drivers/diskDriver'
 import { promisify } from 'util'
-import winston from 'winston'
-
-import { pipeline } from 'stream'
+import * as winston from 'winston'
 import { DriverName } from './config'
 
 import nanoid = require('nanoid/generate')
@@ -25,7 +23,7 @@ export function generateUniqueID() {
 }
 
 
-export const pipelineAsync = promisify(pipeline)
+export const pipelineAsync = promisify(stream.pipeline)
 
 export const logger = winston.createLogger()
 
@@ -61,7 +59,7 @@ class MemoryStream extends stream.Writable {
     super(opts)
     this.buffers = []
   }
-  _write(chunk: any, encoding: string, callback: (error?: Error | null) => void): void {
+  _write(chunk: any, encoding: BufferEncoding, callback: (error?: Error | null) => void): void {
     this.buffers.push(Buffer.from(chunk, encoding))
     callback(null)
   }
@@ -87,6 +85,38 @@ export function timeout(milliseconds: number): Promise<void> {
   })
 }
 
+export async function tryFor<T>(fn: () => T | Promise<T>, retryIntervalMS: number, totalTimeMS: number) {
+  const startTime = process.hrtime()
+
+  const getElapsedMilliseconds = () => {
+    const [elapsedSeconds, elapsedNS] = process.hrtime(startTime)
+    return (elapsedSeconds * 1000) + parseFloat((elapsedNS * 1e-6).toPrecision(4))
+  }
+
+  const getRemainingMS = () => {
+    const elapsedMs = getElapsedMilliseconds()
+    return totalTimeMS - elapsedMs
+  }
+
+  let lastError: any
+  do {
+    try {
+      return await fn()
+    } catch (error) {
+      lastError = error
+    }
+    const result = await Promise.race([
+      timeout(retryIntervalMS), 
+      timeout(getRemainingMS()).then(() => ({timeout: true}))
+    ])
+    if (result && result.timeout && lastError === undefined) {
+      lastError = new Error('Timed out')
+    }
+  } while (getRemainingMS() > 0)
+
+  throw lastError
+}
+
 export interface StreamProgressCallback {
   /**
    * A callback that is invoked each time a chunk passes through the stream. 
@@ -100,18 +130,18 @@ export interface StreamProgressCallback {
 }
 
 export interface MonitorStreamResult {
-  monitoredStream: Readable;
+  monitoredStream: stream.Readable;
   pipelinePromise: Promise<void>;
 }
 
 export function monitorStreamProgress(
-  inputStream: Readable, 
+  inputStream: stream.Readable, 
   progressCallback: StreamProgressCallback
 ): MonitorStreamResult {
 
   // Create a PassThrough stream to monitor streaming chunk sizes. 
   let monitoredContentSize = 0
-  const monitorStream = new PassThrough({
+  const monitorStream = new stream.PassThrough({
     transform: (chunk: Buffer, _encoding, callback) => {
       monitoredContentSize += chunk.length
       try {

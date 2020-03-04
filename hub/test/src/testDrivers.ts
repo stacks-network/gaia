@@ -1,26 +1,17 @@
+import test = require('tape-promise/tape')
+import { sandbox, FetchMockSandbox } from 'fetch-mock'
+import NodeFetch from 'node-fetch'
 
-import test from 'tape-promise/tape'
-import proxyquire from 'proxyquire'
-import FetchMock from 'fetch-mock'
-import * as NodeFetch from 'node-fetch'
-
-import fs from 'fs'
-import path from 'path'
-import os from 'os'
-
-import { Readable, Writable, PassThrough } from 'stream'
-import InMemoryDriver from './testDrivers/InMemoryDriver'
+import { Readable, PassThrough, ReadableOptions } from 'stream'
 import { DriverModel, DriverModelTestMethods } from '../../src/server/driverModel'
-import { ListFilesResult } from '../../src/server/driverModel'
 import * as utils from '../../src/server/utils'
-
-import DiskDriver from '../../src/server/drivers/diskDriver'
 
 import * as mockTestDrivers from './testDrivers/mockTestDrivers'
 import * as integrationTestDrivers from './testDrivers/integrationTestDrivers'
 import { BadPathError, DoesNotExist, ConflictError } from '../../src/server/errors'
+import { tryFor } from '../../src/server/utils'
 
-export function addMockFetches(fetchLib: FetchMock.FetchMockSandbox, prefix: any, dataMap: {key: string, data: string}[]) {
+export function addMockFetches(fetchLib: FetchMockSandbox, prefix: any, dataMap: {key: string, data: string}[]) {
   dataMap.forEach(item => {
     fetchLib.get(`${prefix}${item.key}`, item.data, { overwriteRoutes: true })
   })
@@ -48,7 +39,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
         return { stream: s, contentLength: contentBuff.length }
       }
 
-      const fetch = <FetchMock.FetchMockSandbox>(mockTest ? FetchMock.sandbox() : NodeFetch)
+      const fetch = (mockTest ? sandbox() : NodeFetch) as FetchMockSandbox
 
       try {
         const writeArgs : any = { path: '../foo.js'}
@@ -63,13 +54,14 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
       // Test binary data content-type
       const binFileName = `${fileSubDir}/foo.bin`;
       let sampleData = getSampleData();
-      let readUrl = await driver.performWrite({
+      let writeResponse = await driver.performWrite({
         path: binFileName,
         storageTopLevel: topLevelStorage,
         stream: sampleData.stream,
         contentType: 'application/octet-stream',
         contentLength: sampleData.contentLength
       });
+      let readUrl = writeResponse.publicURL;
       t.ok(readUrl.startsWith(`${prefix}${topLevelStorage}`), `${readUrl} must start with readUrlPrefix ${prefix}${topLevelStorage}`)
 
       if (mockTest) {
@@ -81,7 +73,9 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
       let resptxt = await resp.text()
       t.equal(resptxt, sampleDataString, `Must get back ${sampleDataString}: got back: ${resptxt}`)
       if (!mockTest) {
-        t.equal(resp.headers.get('content-type'), 'application/octet-stream', 'Read-end point response should contain correct content-type')
+        t.equal(resp.headers.get('content-type'), 'application/octet-stream', 'Read endpoint response should contain correct content-type')
+        t.equal(resp.headers.get('etag'), writeResponse.etag,
+          'Read endpoint should contain correct etag')
         t.equal(resp.headers.get('cache-control'), cacheControlOpt, 'cacheControl not respected in response headers')
       }
 
@@ -93,15 +87,62 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
       // Test a text content-type that has implicit charset set
       const txtFileName = `${fileSubDir}/foo_text.txt`;
       sampleData = getSampleData();
-      readUrl = await driver.performWrite(
+      writeResponse = await driver.performWrite(
           { path: txtFileName,
             storageTopLevel: topLevelStorage,
             stream: sampleData.stream,
             contentType: 'text/plain; charset=utf-8',
-            contentLength: sampleData.contentLength })
+            contentLength: sampleData.contentLength,
+            ifNoneMatch: '*' })
+      readUrl = writeResponse.publicURL;
       t.ok(readUrl.startsWith(`${prefix}${topLevelStorage}`), `${readUrl} must start with readUrlPrefix ${prefix}${topLevelStorage}`)
       if (mockTest) {
         addMockFetches(fetch, prefix, dataMap)
+      }
+
+      // if-match & if-none-match tests
+      if (!mockTest && driver.supportsETagMatching) {
+        try {
+          sampleData = getSampleData();
+          await driver.performWrite({
+            path: txtFileName,
+            storageTopLevel: topLevelStorage,
+            stream: sampleData.stream,
+            contentType: 'text/plain; charset=utf-8',
+            contentLength: sampleData.contentLength,
+            ifNoneMatch: '*'
+          })
+        } catch(err) {
+          t.ok(err, 'Should fail to write new file if file already exists')
+        }
+
+        try {
+          sampleData = getSampleData();
+          await driver.performWrite({
+            path: txtFileName,
+            storageTopLevel: topLevelStorage,
+            stream: sampleData.stream,
+            contentType: 'text/plain; charset=utf-8',
+            contentLength: sampleData.contentLength,
+            ifMatch: writeResponse.etag
+          })
+        } catch(err) {
+          t.error(err, 'Should perform write with correct etag')
+        }
+
+        try {
+          sampleData = getSampleData();
+          await driver.performWrite({
+            path: txtFileName,
+            storageTopLevel: topLevelStorage,
+            stream: sampleData.stream,
+            contentType: 'text/plain; charset=utf-8',
+            contentLength: sampleData.contentLength,
+            ifMatch: 'bad-etag'
+          })
+        } catch(err) {
+          t.ok(err, 'Should fail to write with bad etag')
+        }
       }
 
       resp = await fetch(readUrl)
@@ -174,7 +215,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           const stream = new PassThrough()
           stream.end('Hello read test!')
           const dateNow1 = Math.round(Date.now() / 1000)
-          await driver.performWrite({
+          const writeResult = await driver.performWrite({
             path: readTestFile,
             storageTopLevel: topLevelStorage,
             stream: stream,
@@ -187,13 +228,24 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           })
           const dataBuffer = await utils.readStream(readResult.data)
           const dataStr = dataBuffer.toString('utf8')
-          t.equal(dataStr, 'Hello read test!')
+          t.equal(dataStr, 'Hello read test!', 'File read should return data matching the write')
           t.equal(readResult.exists, true, 'File stat should return exists after write')
           t.equal(readResult.contentLength, 16, 'File stat should have correct content length')
           t.equal(readResult.contentType, "text/plain; charset=utf-8", 'File stat should have correct content type')
+          t.equal(readResult.etag, writeResult.etag, 'File read should return same etag as write result')
           const dateDiff = Math.abs(readResult.lastModifiedDate - dateNow1)
           t.equal(dateDiff < 10, true, `File stat last modified date is not within range, diff: ${dateDiff} -- ${readResult.lastModifiedDate} vs ${dateNow1}`)
 
+          const fetchResult = await fetch(writeResult.publicURL)
+          t.equal(fetchResult.status, 200, 'Read endpoint HEAD fetch should return 200 OK status code')
+          const fetchStr = await fetchResult.text()
+          t.equal(fetchStr, 'Hello read test!', 'Read endpoint GET should return data matching the write')
+          t.equal(fetchResult.headers.get('content-length'), '16', 'Read endpoint GET should have correct content length header')
+          t.equal(fetchResult.headers.get('content-type'), 'text/plain; charset=utf-8', 'Read endpoint GET should have correct content type header')
+          t.equal(fetchResult.headers.get('etag'), readResult.etag, 'Read endpoint GET should return same etag as read result')
+          const lastModifiedHeader = new Date(fetchResult.headers.get('last-modified')).getTime()
+          const fetchDateDiff = Math.abs(lastModifiedHeader - dateNow1)
+          t.equal(dateDiff < 10, true, `Read endpoint HEAD last-modified header is not within range, diff: ${fetchDateDiff} -- ${lastModifiedHeader} vs ${dateNow1}`)
         } catch (error) {
           t.error(error, 'Error performing file read test')
         }
@@ -235,9 +287,6 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
             t.equal(error.constructor.name, 'DoesNotExist', 'Should throw DoesNotExist trying to performRead on directory')
           }
         }
-      }
-
-      if (!mockTest) {
 
         // test file stat on listFiles
         try {
@@ -245,7 +294,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           const stream1 = new PassThrough()
           stream1.end('abc sample content 1', 'utf8')
           const dateNow1 = Math.round(Date.now() / 1000)
-          await driver.performWrite({
+          const writeResult = await driver.performWrite({
             path: statTestFile,
             storageTopLevel: topLevelStorage,
             stream: stream1,
@@ -258,8 +307,17 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           const statResult = listStatResult.entries.find(e => e.name.includes(statTestFile))
           t.equal(statResult.exists, true, 'File stat should return exists after write')
           t.equal(statResult.contentLength, 20, 'File stat should have correct content length')
+          t.equal(statResult.etag, writeResult.etag, 'File read should return same etag as write file result')
           const dateDiff = Math.abs(statResult.lastModifiedDate - dateNow1)
           t.equal(dateDiff < 10, true, `File stat last modified date is not within range, diff: ${dateDiff} -- ${statResult.lastModifiedDate} vs ${dateNow1}`)
+
+          const fetchResult = await fetch(writeResult.publicURL, { method: 'HEAD' })
+          t.equal(fetchResult.status, 200, 'Read endpoint HEAD fetch should return 200 OK status code')
+          t.equal(fetchResult.headers.get('content-length'), '20', 'Read endpoint HEAD should have correct content length')
+          t.equal(fetchResult.headers.get('etag'), statResult.etag, 'Read endpoint HEAD should return same etag as list files stat result')
+          const lastModifiedHeader = new Date(fetchResult.headers.get('last-modified')).getTime()
+          const fetchDateDiff = Math.abs(statResult.lastModifiedDate - dateNow1)
+          t.equal(dateDiff < 10, true, `Read endpoint HEAD last-modified header is not within range, diff: ${fetchDateDiff} -- ${lastModifiedHeader} vs ${dateNow1}`)
         } catch (error) {
           t.error(error, 'File stat on list files error')
         }
@@ -270,7 +328,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           const stream1 = new PassThrough()
           stream1.end('abc sample content 1', 'utf8')
           const dateNow1 = Math.round(Date.now() / 1000)
-          await driver.performWrite({
+          const writeResult = await driver.performWrite({
             path: statTestFile,
             storageTopLevel: topLevelStorage,
             stream: stream1,
@@ -285,8 +343,18 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           t.equal(statResult.exists, true, 'File stat should return exists after write')
           t.equal(statResult.contentLength, 20, 'File stat should have correct content length')
           t.equal(statResult.contentType, "text/plain; charset=utf-8", 'File stat should have correct content type')
+          t.equal(statResult.etag, writeResult.etag, 'File stat should return same etag as write file result')
           const dateDiff = Math.abs(statResult.lastModifiedDate - dateNow1)
           t.equal(dateDiff < 10, true, `File stat last modified date is not within range, diff: ${dateDiff} -- ${statResult.lastModifiedDate} vs ${dateNow1}`)
+
+          const fetchResult = await fetch(writeResult.publicURL, { method: 'HEAD' })
+          t.equal(fetchResult.status, 200, 'Read endpoint HEAD fetch should return 200 OK status code')
+          t.equal(fetchResult.headers.get('content-length'), '20', 'Read endpoint HEAD should have correct content length')
+          t.equal(fetchResult.headers.get('etag'), statResult.etag, 'Read endpoint HEAD should return same etag as stat file result')
+          const lastModifiedHeader = new Date(fetchResult.headers.get('last-modified')).getTime()
+          const fetchDateDiff = Math.abs(statResult.lastModifiedDate - dateNow1)
+          t.equal(dateDiff < 10, true, `Read endpoint HEAD last-modified header is not within range, diff: ${fetchDateDiff} -- ${lastModifiedHeader} vs ${dateNow1}`)
+
         } catch (error) {
           t.error(error, 'File stat error')
         }
@@ -323,9 +391,6 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           t.error(error, 'File stat directory error')
         }
 
-      }
-
-      if (!mockTest) {
         sampleData = getSampleData();
         const bogusContentType = 'x'.repeat(3000)
         try {
@@ -339,6 +404,42 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
         } catch (error) {
           t.pass('Extremely large content-type headers should fail to write')
         }
+
+        // test file write without content-length
+        const zeroByteTestFile = 'zero_bytes.txt'
+        const stream = new PassThrough()
+        stream.end(Buffer.alloc(0));
+        await driver.performWrite({
+          path: zeroByteTestFile,
+          storageTopLevel: topLevelStorage,
+          stream: stream,
+          contentType: 'text/plain; charset=utf-8',
+          contentLength: undefined
+        })
+
+        // test zero-byte file read result
+        const readResult = await driver.performRead({
+          path: zeroByteTestFile,
+          storageTopLevel: topLevelStorage
+        })
+        t.equal(readResult.contentLength, 0, 'Zero bytes file write should result in read content-length of 0');
+        const dataBuffer = await utils.readStream(readResult.data)
+        t.equal(dataBuffer.length, 0, 'Zero bytes file write should result in read of zero bytes');
+
+        // test zero-byte file stat result
+        const statResult = await driver.performStat({
+          path: zeroByteTestFile,
+          storageTopLevel: topLevelStorage
+        })
+        t.equal(statResult.contentLength, 0, 'Zero bytes file write should result in stat result content-length of 0');
+
+        // test zero-byte file list stat result
+        const statFilesResult = await driver.listFilesStat({
+          pathPrefix: topLevelStorage,
+          pageSize: 1000
+        })
+        const statFile = statFilesResult.entries.find(f => f.name.includes(zeroByteTestFile))
+        t.equal(statFile.contentLength, 0, 'Zero bytes file write should result in list file stat content-length 0');
       }
 
       try {
@@ -504,25 +605,39 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
             storageTopLevel: topLevelStorage,
             stream: stream1,
             contentType: 'text/plain; charset=utf-8',
-            contentLength: 100
-          });
+            contentLength: stream1.readableLength
+          })
 
           const stream2 = new PassThrough()
           stream2.write('xyz sample content 2', 'utf8')
 
-          await utils.timeout(1)
+          await utils.timeout(100)
           const writeRequest2 = driver.performWrite({
             path: concurrentTestFile,
             storageTopLevel: topLevelStorage,
             stream: stream2,
             contentType: 'text/plain; charset=utf-8',
-            contentLength: 100
+            contentLength: stream1.readableLength
           })
-          await utils.timeout(10)
+
+          const writePromises = Promise.all([
+            writeRequest1.catch(() => {
+              // ignore
+            }), 
+            writeRequest2.catch(() => {
+              // ignore
+            })
+          ])
+
+          await utils.timeout(100)
           stream1.end()
-          await utils.timeout(10)
+          await utils.timeout(100)
           stream2.end()
-          const [ readEndpoint ] = await Promise.all([writeRequest1, writeRequest2])
+
+          await writePromises
+
+          const [ writeResponse ] = await Promise.all([writeRequest1, writeRequest2])
+          const readEndpoint = writeResponse.publicURL
           resp = await fetch(readEndpoint)
           resptxt = await resp.text()
           if (resptxt === 'xyz sample content 2' || resptxt === 'abc sample content 1') {
@@ -537,9 +652,9 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
             t.error(error, 'Unexpected error during concurrent writes')
           }
         }
-
+        
         try {
-          const brokenUploadStream = new BrokenReadableStream()
+          const brokenUploadStream = new BrokenReadableStream({autoDestroy: true})
           await driver.performWrite({
             path: 'broken_upload_stream_test',
             storageTopLevel: topLevelStorage,
@@ -577,7 +692,7 @@ function testDriverBucketCreation(driverName: string, createDriver: (config?: Ob
       t.fail(`Could not initialize driver with creation of a new bucket: ${error}`)
     } finally {
       try {
-        await driver.deleteEmptyBucket()
+        await tryFor(() => driver.deleteEmptyBucket(), 100, 1500)
       } catch (error) {
         t.fail(`Error trying to cleanup bucket: ${error}`)
       }
@@ -593,7 +708,7 @@ function testDriverBucketCreation(driverName: string, createDriver: (config?: Ob
 class BrokenReadableStream extends Readable {
   readCount: number
   sampleData: Buffer
-  constructor(options?: any) {
+  constructor(options?: ReadableOptions) {
     super(options)
     this.readCount = 0
     this.sampleData = Buffer.from('hello world sample data')
@@ -602,8 +717,8 @@ class BrokenReadableStream extends Readable {
     if (this.readCount === 0) {
       super.push(this.sampleData)
     } else if (this.readCount === 1) {
-      // cause the stream to break/error
-      super.destroy(new Error('example stream read failure'))
+      super.emit('error', new Error('example stream read failure'))
+      super.emit('close')
     }
     this.readCount++
   }

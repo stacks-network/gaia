@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.0]
+### Added
+- Return ETag in response body of all requests.
+- Read ETag value from If-Match request header and conditionally approve
+  write requests if the value is up to date for optimistic concurrency control.
+- Read the If-None-Match request header to conditionally approve a file overwrite.
+- New explicit error for requests that fail to provide an up to date ETag in
+  the If-Match header (412 Precondition Failed Error), or an `*` in the If-None-Match
+  header.
+### Changed
+- Updated DriverModel's WriteResult type to include ETag.
+### Fixed
+- Fixed regression with `content-length: 0` file POSTs causing `500` server errors.
+
+## [2.7.0]
+### Added
+- Support for running an `https` server by providing the TLS/SSL certs. 
+- Support for running an `https` server with Automatic Certificate Management 
+  Environment (ACME) via `Let's Encrypt (TM)`. 
+### Changed
+- Modify the default `cacheControl` setting from `public, max-age=1` to `no-cache`.
+
 ## [2.6.0]
 ### Added
 - Implemented the `putFileArchival` restrictive auth scope which causes any 

@@ -1,8 +1,17 @@
-import Path from 'path'
-import fs from 'fs-extra'
+import * as path from 'path'
+import * as fs from 'fs-extra'
 import { DiskReaderConfig } from './config'
 
 const METADATA_DIRNAME = '.gaia-metadata'
+
+export type GetFileInfo = { 
+  exists: boolean; 
+  contentType?: string;
+  contentLength?: number;
+  etag?: string; 
+  lastModified?: Date;
+  fileReadStream?: fs.ReadStream;
+}
 
 export class GaiaDiskReader {
 
@@ -18,10 +27,10 @@ export class GaiaDiskReader {
 
   isPathValid(path: string){
     // for now, only disallow double dots.
-    return (path.indexOf('..') === -1)
+    return !path.includes('..')
   }
 
-  handleGet(topLevelDir: string, filename: string): Promise<{ exists: boolean, contentType?: string }> {
+  async handleGet(topLevelDir: string, filename: string, openFileStream: boolean): Promise<GetFileInfo> {
     const storageRoot = this.config.diskSettings.storageRootDirectory
     if (!storageRoot) {
       throw new Error('Misconfiguration: no storage root set')
@@ -31,23 +40,39 @@ export class GaiaDiskReader {
       throw new Error('Invalid file name')
     }
 
-    const filePath = Path.join(storageRoot, topLevelDir, filename)
+    const filePath = path.join(storageRoot, topLevelDir, filename)
+    let stat: fs.Stats
     try {
-      fs.statSync(filePath)
+      stat = await fs.stat(filePath)
     } catch (e) {
-      const ret = { exists: false, contentType: <string>undefined }
-      return Promise.resolve().then(() => ret)
+      return { exists: false }
     }
 
-    const metadataPath = Path.join(storageRoot, METADATA_DIRNAME, topLevelDir, filename)
+    let readStream: fs.ReadStream
     try {
-      const metadataJSON = fs.readFileSync(metadataPath).toString()
-      const metadata = JSON.parse(metadataJSON)
-      const ret = { exists: true, contentType: metadata['content-type'] }
-      return Promise.resolve().then(() => ret)
-    } catch (e) {
-      const ret = { exists: true, contentType: 'application/octet-stream' }
-      return Promise.resolve().then(() => ret)
+      const metadataPath = path.join(storageRoot, METADATA_DIRNAME, topLevelDir, filename)
+      let metadata: {'content-type'?: string, 'etag'?: string} = { }
+      try {
+        metadata = await fs.readJson(metadataPath)
+      } catch (error) {
+        metadata['content-type'] = 'application/octet-stream'
+      }
+      if (openFileStream) {
+        readStream = fs.createReadStream(filePath)
+      }
+      return { 
+        exists: true, 
+        lastModified: stat.mtime, 
+        contentLength: stat.size, 
+        contentType: metadata['content-type'], 
+        etag: metadata['etag'],
+        fileReadStream: readStream
+      }
+    } catch (error) {
+      if (readStream) {
+        readStream.close()
+      }
+      throw error
     }
   }
 }

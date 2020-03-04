@@ -1,4 +1,4 @@
-import test from 'tape-promise/tape'
+import test = require('tape-promise/tape')
 import * as auth from '../../src/server/authentication'
 import * as errors from '../../src/server/errors'
 import { HubServer }  from '../../src/server/server'
@@ -9,8 +9,7 @@ import { InMemoryDriver } from './testDrivers/InMemoryDriver'
 import { testPairs, testAddrs, createTestKeys } from './common'
 import { MockAuthTimestampCache } from './MockAuthTimestampCache'
 import * as integrationTestDrivers from './testDrivers/integrationTestDrivers'
-import { utils } from 'mocha';
-import { timeout } from '../../src/server/utils';
+import { timeout } from '../../src/server/utils'
 
 const TEST_SERVER_NAME = 'test-server'
 const TEST_AUTH_CACHE_SIZE = 10
@@ -52,7 +51,7 @@ export function testServer() {
       const { testPairs, testAddrs } = createTestKeys(2);
       const server = new HubServer(mockDriver, new MockProofs(),
                                   { serverName: TEST_SERVER_NAME, whitelist: [testAddrs[0]],
-                                    authTimestampCacheSize: TEST_AUTH_CACHE_SIZE })
+                                    authTimestampCacheSize: TEST_AUTH_CACHE_SIZE, port: 0, driver: null })
       const challengeText = auth.getChallengeText(TEST_SERVER_NAME)
       const authPart0 = auth.LegacyAuthentication.makeAuthPart(testPairs[1], challengeText)
       const auth0 = `bearer ${authPart0}`
@@ -88,7 +87,7 @@ export function testServer() {
       const server = new HubServer(mockDriver, new MockProofs(),
                                   { whitelist: [testAddrs[0]], requireCorrectHubUrl: true,
                                     serverName: TEST_SERVER_NAME, validHubUrls: ['https://testserver.com'],
-                                    authTimestampCacheSize: TEST_AUTH_CACHE_SIZE })
+                                    authTimestampCacheSize: TEST_AUTH_CACHE_SIZE, port: 0, driver: null })
 
       const challengeText = auth.getChallengeText(TEST_SERVER_NAME)
 
@@ -124,7 +123,7 @@ export function testServer() {
       const server = new HubServer(mockDriver, new MockProofs(),
                                   { whitelist: [testAddrs[0]], requireCorrectHubUrl: true,
                                     serverName: TEST_SERVER_NAME, validHubUrls: ['https://testserver.com'],
-                                    authTimestampCacheSize: TEST_AUTH_CACHE_SIZE })
+                                    authTimestampCacheSize: TEST_AUTH_CACHE_SIZE, port: 0, driver: null })
 
       const challengeTexts = []
       challengeTexts.push(auth.getChallengeText(TEST_SERVER_NAME))
@@ -163,7 +162,7 @@ export function testServer() {
     await usingMemoryDriver(mockDriver => {
       const server = new HubServer(mockDriver, new MockProofs(),
                                   { whitelist: [testAddrs[0]], readURL: 'http://potato.com/',
-                                    serverName: TEST_SERVER_NAME, authTimestampCacheSize: TEST_AUTH_CACHE_SIZE })
+                                    serverName: TEST_SERVER_NAME, authTimestampCacheSize: TEST_AUTH_CACHE_SIZE, port: 0, driver: null })
       server.authTimestampCache = new MockAuthTimestampCache()
       const challengeText = auth.getChallengeText(TEST_SERVER_NAME)
       const authPart = auth.LegacyAuthentication.makeAuthPart(testPairs[0], challengeText)
@@ -181,7 +180,7 @@ export function testServer() {
                             'content-length': 400,
                             authorization }, s)
         .then(path => {
-          t.equal(path, `http://potato.com/${testAddrs[0]}/foo.txt`)
+          t.equal(path.publicURL, `http://potato.com/${testAddrs[0]}/foo.txt`)
           t.equal(mockDriver.lastWrite.path, 'foo.txt')
           t.equal(mockDriver.lastWrite.storageTopLevel, testAddrs[0])
           t.equal(mockDriver.lastWrite.contentType, 'text/text')
@@ -190,7 +189,7 @@ export function testServer() {
                           { 'content-length': 400,
                             authorization }, s2))
         .then(path => {
-          t.equal(path, `http://potato.com/${testAddrs[0]}/foo.txt`)
+          t.equal(path.publicURL, `http://potato.com/${testAddrs[0]}/foo.txt`)
           t.equal(mockDriver.lastWrite.path, 'foo.txt')
           t.equal(mockDriver.lastWrite.storageTopLevel, testAddrs[0])
           t.equal(mockDriver.lastWrite.contentType, 'application/octet-stream')
@@ -202,7 +201,7 @@ export function testServer() {
     await usingMemoryDriver(async (mockDriver) => {
       const server = new HubServer(mockDriver, new MockProofs(),
                                   { whitelist: [testAddrs[0]], serverName: TEST_SERVER_NAME,
-                                    authTimestampCacheSize: TEST_AUTH_CACHE_SIZE })
+                                    authTimestampCacheSize: TEST_AUTH_CACHE_SIZE, port: 0, driver: null })
       const challengeText = auth.getChallengeText(TEST_SERVER_NAME)
       const authPart = auth.LegacyAuthentication.makeAuthPart(testPairs[0], challengeText)
       const authorization = `bearer ${authPart}`
@@ -219,7 +218,7 @@ export function testServer() {
                             'content-length': 400,
                             authorization }, s)
         .then(path => {
-          t.equal(path, `${mockDriver.readUrl}${testAddrs[0]}/foo.txt`)
+          t.equal(path.publicURL, `${mockDriver.readUrl}${testAddrs[0]}/foo.txt`)
           t.equal(mockDriver.lastWrite.path, 'foo.txt')
           t.equal(mockDriver.lastWrite.storageTopLevel, testAddrs[0])
           t.equal(mockDriver.lastWrite.contentType, 'text/text')
@@ -228,7 +227,7 @@ export function testServer() {
                           { 'content-length': 400,
                             authorization }, s2))
         .then(path => {
-          t.equal(path, `${mockDriver.readUrl}${testAddrs[0]}/foo.txt`)
+          t.equal(path.publicURL, `${mockDriver.readUrl}${testAddrs[0]}/foo.txt`)
           t.equal(mockDriver.lastWrite.path, 'foo.txt')
           t.equal(mockDriver.lastWrite.storageTopLevel, testAddrs[0])
           t.equal(mockDriver.lastWrite.contentType, 'application/octet-stream')
@@ -245,7 +244,7 @@ export function testServer() {
     await usingMemoryDriver(async (mockDriver) => {
       const server = new HubServer(mockDriver, new MockProofs(), {
                                     serverName: TEST_SERVER_NAME,
-                                    authTimestampCacheSize: 4})
+                                    authTimestampCacheSize: 4, port: 0, driver: null})
       const getJunkData = () => {
         const s = new Readable()
         s.push('hello world')
@@ -281,7 +280,7 @@ export function testServer() {
 
       const server = new HubServer(driver, new MockProofs(), {
                                     serverName: TEST_SERVER_NAME,
-                                    authTimestampCacheSize: TEST_AUTH_CACHE_SIZE})
+                                    authTimestampCacheSize: TEST_AUTH_CACHE_SIZE, port: 0, driver: null})
       const challengeText = auth.getChallengeText(TEST_SERVER_NAME)
       let authPart = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText)
       let authorization = `bearer ${authPart}`
@@ -316,7 +315,7 @@ export function testServer() {
 
       const server = new HubServer(mockDriver, new MockProofs(), {
                                     serverName: TEST_SERVER_NAME,
-                                    authTimestampCacheSize: TEST_AUTH_CACHE_SIZE})
+                                    authTimestampCacheSize: TEST_AUTH_CACHE_SIZE, port: 0, driver: null})
       const challengeText = auth.getChallengeText(TEST_SERVER_NAME)
       let authPart = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText)
       let authorization = `bearer ${authPart}`
@@ -382,7 +381,7 @@ export function testServer() {
       const server = new HubServer(mockDriver, new MockProofs(), {
                                     serverName: TEST_SERVER_NAME,
                                     whitelist: [testAddrs[1]],
-                                    authTimestampCacheSize: TEST_AUTH_CACHE_SIZE})
+                                    authTimestampCacheSize: TEST_AUTH_CACHE_SIZE, port: 0, driver: null})
 
       const challengeText = auth.getChallengeText(TEST_SERVER_NAME)
       const associationToken = auth.V1Authentication.makeAssociationToken(testPairs[1], testPairs[0].publicKey.toString('hex'))
@@ -441,7 +440,8 @@ export function testServer() {
 
       const server = new HubServer(mockDriver, new MockProofs(), {
                                     serverName: TEST_SERVER_NAME,
-                                    authTimestampCacheSize: TEST_AUTH_CACHE_SIZE})
+                                    authTimestampCacheSize: TEST_AUTH_CACHE_SIZE,
+                                    port: 0, driver: null})
       const challengeText = auth.getChallengeText(TEST_SERVER_NAME)
       let authPart = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText)
       let authorization = `bearer ${authPart}`
@@ -488,7 +488,7 @@ export function testServer() {
 
       const server = new HubServer(mockDriver, new MockProofs(),
                                   { whitelist: [testAddrs[0]], serverName: TEST_SERVER_NAME,
-                                    authTimestampCacheSize: TEST_AUTH_CACHE_SIZE })
+                                    authTimestampCacheSize: TEST_AUTH_CACHE_SIZE, port: 0, driver: null })
       const challengeText = auth.getChallengeText(TEST_SERVER_NAME)
 
       const authPart = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText, undefined, undefined, scopes)
@@ -651,7 +651,7 @@ export function testServer() {
 
       const server = new HubServer(mockDriver, new MockProofs(),
                                   { whitelist: [testAddrs[0]], serverName: TEST_SERVER_NAME,
-                                    authTimestampCacheSize: TEST_AUTH_CACHE_SIZE })
+                                    authTimestampCacheSize: TEST_AUTH_CACHE_SIZE, port: 0, driver: null })
       const challengeText = auth.getChallengeText(TEST_SERVER_NAME)
 
       const authPart = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText, undefined, undefined, scopes)
@@ -720,7 +720,7 @@ export function testServer() {
 
       const server = new HubServer(mockDriver, new MockProofs(),
                                   { whitelist: [testAddrs[0]], serverName: TEST_SERVER_NAME,
-                                    authTimestampCacheSize: TEST_AUTH_CACHE_SIZE })
+                                    authTimestampCacheSize: TEST_AUTH_CACHE_SIZE, port: 0, driver: null })
       const challengeText = auth.getChallengeText(TEST_SERVER_NAME)
 
       const authPart = auth.V1Authentication.makeAuthPart(testPairs[0], challengeText, undefined, undefined, writeScopes)
@@ -763,7 +763,7 @@ export function testServer() {
                             authorization }, s)
         .then(path => {
           // NOTE: the double-/ is *expected*
-          t.equal(path, `${mockDriver.readUrl}${testAddrs[0]}//foo/bar`)
+          t.equal(path.publicURL, `${mockDriver.readUrl}${testAddrs[0]}//foo/bar`)
           t.equal(mockDriver.lastWrite.path, '/foo/bar')
           t.equal(mockDriver.lastWrite.storageTopLevel, testAddrs[0])
           t.equal(mockDriver.lastWrite.contentType, 'text/text')
@@ -772,7 +772,7 @@ export function testServer() {
                           { 'content-length': 400,
                             authorization }, s2))
         .then(path => {
-          t.equal(path, `${mockDriver.readUrl}${testAddrs[0]}/baz/foo.txt`)
+          t.equal(path.publicURL, `${mockDriver.readUrl}${testAddrs[0]}/baz/foo.txt`)
           t.equal(mockDriver.lastWrite.path, 'baz/foo.txt')
           t.equal(mockDriver.lastWrite.storageTopLevel, testAddrs[0])
           t.equal(mockDriver.lastWrite.contentType, 'application/octet-stream')
@@ -817,7 +817,7 @@ export function testServer() {
 
       const server = new HubServer(mockDriver, new MockProofs(),
                                   { whitelist: [testAddrs[1]], serverName: TEST_SERVER_NAME,
-                                    authTimestampCacheSize: TEST_AUTH_CACHE_SIZE })
+                                    authTimestampCacheSize: TEST_AUTH_CACHE_SIZE, port: 0, driver: null })
       const challengeText = auth.getChallengeText(TEST_SERVER_NAME)
 
       const associationToken = auth.V1Authentication.makeAssociationToken(testPairs[1], testPairs[0].publicKey.toString('hex'))
@@ -882,7 +882,7 @@ export function testServer() {
 
       const server = new HubServer(mockDriver, new MockProofs(),
                                   { whitelist: [testAddrs[1]], serverName: TEST_SERVER_NAME,
-                                    authTimestampCacheSize: TEST_AUTH_CACHE_SIZE })
+                                    authTimestampCacheSize: TEST_AUTH_CACHE_SIZE, port: 0, driver: null })
       const challengeText = auth.getChallengeText(TEST_SERVER_NAME)
 
       const associationToken = auth.V1Authentication.makeAssociationToken(testPairs[1], testPairs[0].publicKey.toString('hex'))
@@ -919,7 +919,7 @@ export function testServer() {
                             authorization }, s)
         .then(path => {
           // NOTE: the double-/ is *expected*
-          t.equal(path, `${mockDriver.readUrl}${testAddrs[0]}//foo/bar`)
+          t.equal(path.publicURL, `${mockDriver.readUrl}${testAddrs[0]}//foo/bar`)
           t.equal(mockDriver.lastWrite.path, '/foo/bar')
           t.equal(mockDriver.lastWrite.storageTopLevel, testAddrs[0])
           t.equal(mockDriver.lastWrite.contentType, 'text/text')
@@ -928,7 +928,7 @@ export function testServer() {
                           { 'content-length': 400,
                             authorization }, s2))
         .then(path => {
-          t.equal(path, `${mockDriver.readUrl}${testAddrs[0]}/baz/foo.txt`)
+          t.equal(path.publicURL, `${mockDriver.readUrl}${testAddrs[0]}/baz/foo.txt`)
           t.equal(mockDriver.lastWrite.path, 'baz/foo.txt')
           t.equal(mockDriver.lastWrite.storageTopLevel, testAddrs[0])
           t.equal(mockDriver.lastWrite.contentType, 'application/octet-stream')

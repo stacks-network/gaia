@@ -16,7 +16,10 @@ $ npm run start
 
 ## Note on SSL
 
-We *strongly* recommend that you deploy your Gaia hub with SSL enabled. Otherwise, the tokens used to authenticate with the Gaia hub may be stolen by attackers, which could allow them to execute writes on your behalf.
+We *strongly* recommend that you deploy your Gaia hub with SSL enabled. Otherwise, the tokens used to authenticate with the Gaia hub may be stolen by attackers, which could allow them to execute writes on your behalf. 
+
+Configuration options are available to run the hub with an `https` Node.js server. 
+Otherwise, a reverse proxy web server such as nginx or Apache can be used. 
 
 ## Configuring the hub
 
@@ -36,6 +39,35 @@ Set the driver you wish to use in your `config.json` file with the `driver` para
 These driver may require you to provide additional credentials for performing writes to the backends. See `config.sample.json` for fields for those credentials. In some cases, the driver can use a system configured credential for the backend (e.g., if you are logged into your AWS CLI account, and run the hub from that environment, it won't need to read credentials from your `config.json`).
 
 *Note:* The disk driver requires a *nix like filesystem interface, and will not work correctly when trying to run in a Windows environment.
+
+### CORS Configuration
+
+In order for a Gaia hub to operate properly CORS must be configured.
+
+For the **write endpoint**, you must configure your server to respond to [CORS requests](https://developer.mozilla.org/en-US/docs/Glossary/Preflight_request). The minimum required HTTP response headers must include:
+- `Access-Control-Allow-Origin: *`
+- `Access-Control-Allow-Methods: GET, POST, OPTIONS, DELETE`
+- `Access-Control-Allow-Headers: Authorization, Content-Type, If-Match, If-None-Match`
+
+
+For the **read endpoint**, you must configure your storage driver to include the following headers:
+- `Access-Control-Allow-Origin: *`
+- `Access-Control-Allow-Methods: GET, HEAD`
+- `Access-Control-Expose-Headers: ETag`
+
+Here's an example of a storage driver (S3) configuration:
+
+```xml
+<CORSConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+  <CORSRule>
+    <AllowedMethod>GET</AllowedMethod>
+    <AllowedMethod>HEAD</AllowedMethod>
+    <AllowedOrigin>*</AllowedOrigin>
+    <ExposeHeader>ETag</ExposeHeader>
+    <MaxAgeSeconds>0</MaxAgeSeconds>
+  </CORSRule>
+</CORSConfiguration>
+```
 
 ### Require Correct Hub URL
 
@@ -84,6 +116,72 @@ $ which blockstack-gaia-hub
 
 If you intend to run a Gaia hub in production, you will still need to generate a
 `config.json` file per the above instructions.
+
+### Configuring SSL without a reverse proxy / web server
+
+SSL can be setup by providing existing TLS cert files, or automatically via ACME. 
+
+See the [`config-schema.json`](config-schema.json) file for all details on all supported config options. 
+
+#### Using TLS cert files
+
+Supports both cert files in both the `PFX / PKCS12` format and the `PEM key & cert chain` format.
+
+Example of the config values for typical `pfx` cert file usage:
+```json
+{
+  "enableHttps": "cert_files",
+  "tlsCertConfig": {
+    "pfxFile": "~/.config/ssl/cert.pfx"
+  }
+}
+```
+
+Example of the config values for the typical PEM files usage:
+```json
+{
+  "enableHttps": "cert_files",
+  "tlsCertConfig": {
+    "keyFile": "~/.config/ssl/key.pem",
+    "certFile": "~/.config/ssl/cert.pem"
+  }
+}
+```
+
+#### Using ACMEv2 client
+
+This uses the [`greenlock-express`](https://www.npmjs.com/package/greenlock-express) middleware to provide support for Lets Encrypt v2 (i.e. [`ACME draft-12`](https://tools.ietf.org/html/draft-ietf-acme-acme-12)). 
+
+The default ACME standard [challenge type `http-01`](https://letsencrypt.org/docs/challenge-types/#http-01-challenge) is used. This requires specifying the domain name(s) in the config _or_ ensuring that the server hostname is the intended domain name. 
+
+
+However, the lib supports extensible ACME `challenge type` modules which a Gaia hub deployment system can use to easily add support for various DNS/DDNS services. Modules are already available for Google Cloud DNS, AWS (S3, Route53), Azure, CloudFlare, Digital Ocean, Namecheap, Godaddy, and more. 
+
+
+Example of minimum config required to use (requires that server hostname is set to the intended domain name):
+```json
+{
+  "enableHttps": "acme",
+  "acmeConfig": {
+    "email": "matt@example.com",
+    "agreeTos": true
+  }
+}
+```
+
+Example of config where the domain name(s) are specified:
+```json
+{
+  "enableHttps": "acme",
+  "acmeConfig": {
+    "email": "matt@example.com",
+    "agreeTos": true,
+    "approveDomains": ["gaia-testing.example.com", "gaia-testing2.example.com"]
+  }
+}
+```
+
+
 
 ### Deploy the Hub with Docker, nginx
 

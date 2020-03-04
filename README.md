@@ -277,7 +277,10 @@ interface DriverModel {
    * @param options.contentType - the HTTP content-type of the file
    * @param options.stream - the data to be stored at `path`
    * @param options.contentLength - the bytes of content in the stream
-   * @returns Promise that resolves to the public-readable URL of the stored content.
+   * @param options.ifMatch - optional etag value to be used for optimistic concurrency control
+   * @param options.ifNoneMatch - used with the `*` value to save a file not known to exist, 
+   * guaranteeing that another upload didn't happen before, losing the data of the previous
+   * @returns Promise that resolves to an object containing a public-readable URL of the stored content and the objects etag value
    */
   performWrite(options: { 
     path: string;
@@ -285,7 +288,12 @@ interface DriverModel {
     stream: Readable;
     contentLength: number;
     contentType: string;
-  }): Promise<string>;
+    ifMatch?: string;
+    ifNoneMatch?: string;
+  }): Promise<{
+    publicURL: string,
+    etag: string
+  }>;
 
   /**
    * Deletes a file. Throws a `DoesNotExist` if the file does not exist. 
@@ -324,6 +332,7 @@ interface DriverModel {
     lastModifiedDate: number;
     contentLength: number;
     contentType: string;
+    etag: string;
   }>;
 
   /**
@@ -340,6 +349,7 @@ interface DriverModel {
     lastModifiedDate: number;
     contentLength: number;
     contentType: string;
+    etag: string;
   }>;
 
   /**
@@ -370,6 +380,7 @@ interface DriverModel {
         name: string;
         lastModifiedDate: number;
         contentLength: number;
+        etag: string;
     }[];
     page?: string;
   }>;
@@ -385,10 +396,16 @@ The Gaia storage API defines the following endpoints:
 
 ##### `GET ${read-url-prefix}/${address}/${path}`
 
-This returns the data stored by the gaia hub at `${path}`. In order
-for this to be usable from web applications, this read path _must_
-set the appropriate CORS headers. The HTTP Content-Type of the file
-should match the Content-Type of the corresponding write.
+This returns the data stored by the gaia hub at `${path}`.
+The response headers include `Content-Type` and `ETag`, along with
+the required CORS headers `Access-Control-Allow-Origin` and `Access-Control-Allow-Methods`.
+
+---
+
+##### `HEAD ${read-url-prefix}/${address}/${path}`
+
+Returns the same headers as the corresponding `GET` request. `HEAD` requests
+do not return a response body. 
 
 ---
 
@@ -400,7 +417,8 @@ On success, it returns a `202` status, and a JSON object:
 
 ```javascript
 {
- "publicUrl": "${read-url-prefix}/${address}/${path}"
+ "publicURL": "${read-url-prefix}/${address}/${path}",
+ "etag": "version-identifier"
 }
 ```
 
@@ -409,10 +427,33 @@ The bearer token's content and generation is described in
 the [access control](#address-based-access-control) section of this
 document.
 
-Some backend storage drivers will return error `409 Conflict` when a 
-concurrent write to the same file path occurs. This can be handled with
-a retry. Other storage drivers tend to use `last writer wins` conflict
-resolution and will not throw an error. 
+Additionally, file ETags and conditional request headers are used as a 
+concurrency control mechanism. All requests to this endpoint should contain
+either an `If-Match` header or an `If-None-Match` header. The three request
+types are as follows:
+
+__Update existing file__: this request must specify an `If-Match` header 
+containing the most up to date ETag. If the file has been updated elsewhere 
+and the ETag supplied in the `If-Match` header doesn't match that of the file 
+in gaia, a `412 Precondition Failed` error will be returned.
+
+__Create a new file__: this request must specify the `If-None-Match: *` 
+header. If the already exists at the given path, a `412 Precondition Failed` 
+error will be returned.
+
+__Overwrite a file__: this request must specify the `If-Match: *` header. 
+__Note__ that this bypasses concurrency control and should be used with 
+caution. Improper use can cause bugs such as unintended data loss. 
+
+
+The file ETag is returned in the response body of the _store_ `POST` request, the 
+response headers of `GET` and `HEAD` requests, and in the returned entries in 
+`list-files` request. 
+
+
+Additionally, a request to a file path that already has a previous ongoing 
+request still processing for the same file path will return with a 
+`409 Conflict` error. This can be handled with a retry. 
 
 ---
 
@@ -480,8 +521,8 @@ If the post body contains a `stat: true` field then the returned JSON includes f
 ```jsonc
 {
   "entries": [
-    { "name": "string", "lastModifiedDate": "number", "contentLength": "number" },
-    { "name": "string", "lastModifiedDate": "number", "contentLength": "number" },
+    { "name": "string", "lastModifiedDate": "number", "contentLength": "number", "etag": "string" },
+    { "name": "string", "lastModifiedDate": "number", "contentLength": "number", "etag": "string" },
     // ...
   ],
   "page": "string" // possible pagination marker
