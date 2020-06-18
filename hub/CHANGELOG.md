@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.1]
+### Fixed
+- Return 412 Precondition Failed Error if `If-None-Match` header is set to `*` on a
+  write request, but the file already exists.
+
 ## [2.8.0]
 ### Added
 - Return ETag in response body of all requests.
