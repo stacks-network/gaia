@@ -218,6 +218,9 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
     } catch (error) {
       logger.error(`failed to store ${azBlob} in ${this.bucket}: ${error}`)
       if (error.body && error.body.Code === 'ConditionNotMet') {
+        throw new PreconditionFailedError('The provided ETag does not match that of the resource on the server')
+      }
+      if (error.body && error.body.Code === 'BlobAlreadyExists') {
         throw new PreconditionFailedError('The entity you are trying to create already exists')
       }
       if (error.body && error.body.Code === 'InvalidBlockList') {

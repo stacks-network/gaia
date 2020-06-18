@@ -232,6 +232,13 @@ export function testHttpWithInMemoryDriver() {
         .send(blob)
         .expect(412)
 
+      await request(app).post(path)
+        .set('Content-Type', 'application/octet-stream')
+        .set('Authorization', authorization)
+        .set('If-None-Match', '*')
+        .send(blob)
+        .expect(412)
+
       try {
         const largePayload = new PassThrough()
         largePayload.end('x'.repeat(1000))
