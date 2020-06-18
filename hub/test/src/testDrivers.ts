@@ -113,7 +113,11 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
             ifNoneMatch: '*'
           })
         } catch(err) {
-          t.ok(err, 'Should fail to write new file if file already exists')
+          if (err.name === 'PreconditionFailedError') {
+            t.ok(err, 'Should fail to write new file if file already exists')
+          } else {
+            t.error('Should throw PreconditionFailedError');
+          }
         }
 
         try {

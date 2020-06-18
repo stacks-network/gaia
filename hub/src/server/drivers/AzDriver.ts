@@ -220,6 +220,9 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
       if (error.body && error.body.Code === 'ConditionNotMet') {
         throw new PreconditionFailedError('The entity you are trying to create already exists')
       }
+      if (error.body && error.body.Code === 'BlobAlreadyExists') {
+        throw new PreconditionFailedError('Misuse of the if-none-match header. Expected to be * on write requests.')
+      }
       if (error.body && error.body.Code === 'InvalidBlockList') {
         throw new ConflictError('Likely failed due to concurrent PUTs to the same file')
       }
