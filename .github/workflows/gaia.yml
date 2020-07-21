@@ -1,0 +1,183 @@
+name: gaia
+env:
+  DOCKER_REGISTRY_QUAY: quay.io
+
+on: [push, pull_request]
+
+jobs:
+  notify-start:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Notify slack start
+        if: success()
+        id: slack
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        uses: voxmedia/github-action-slack-notify-build@v1.1.2
+        with:
+          channel: devops-notify
+          status: STARTING
+          color: warning
+          
+  semantic-release:
+    runs-on: ubuntu-latest
+    needs: notify-start
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Semantic Release
+        uses: cycjimmy/semantic-release-action@v2.5.0
+        id: semantic
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SEMANTIC_RELEASE_PACKAGE: gh-actions-test
+        with:
+          extra_plugins: |
+            @semantic-release/changelog
+            @semantic-release/git
+            semantic-release-slack-bot
+
+  build-publish-gaia:
+    runs-on: ubuntu-latest
+    needs:
+      - notify-start
+      - semantic-release
+    env:
+      IMAGE_NAME: blockstack/gaia
+      CONTEXT: hub
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Build/Tag/Push Image - Quay
+        uses: docker/build-push-action@v1
+        with:
+          repository: ${{ env.IMAGE_NAME }}
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_PASSWORD }}
+          registry: ${{ env.DOCKER_REGISTRY_QUAY }}
+          path: ${{ env.CONTEXT }}
+          tags: ${{ jobs.semantic-release.steps.semantic.outputs.new_release_version }}
+          tag_with_ref: true
+          add_git_labels: true
+          push: false
+
+      - name: Build/Tag/Push Image - Dockerhub
+        uses: docker/build-push-action@v1
+        with:
+          repository: ${{ env.IMAGE_NAME }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          path: ${{ env.CONTEXT }}
+          tags: ${{ jobs.semantic-release.steps.semantic.outputs.new_release_version }}
+          tag_with_ref: true
+          add_git_labels: true
+          push: false
+
+  build-publish-gaia-read:
+    runs-on: ubuntu-latest
+    needs:
+      - notify-start
+      - semantic-release
+    env:
+      IMAGE_NAME: blockstack/gaia-read
+      CONTEXT: read
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Build/Tag/Push Image - Quay
+        uses: docker/build-push-action@v1
+        with:
+          repository: ${{ env.IMAGE_NAME }}
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_PASSWORD }}
+          registry: ${{ env.DOCKER_REGISTRY_QUAY }}
+          path: ${{ env.CONTEXT }}
+          tags: ${{ jobs.semantic-release.steps.semantic.outputs.new_release_version }}
+          tag_with_ref: true
+          add_git_labels: true
+          push: false
+
+      - name: Build/Tag/Push Image - Dockerhub
+        uses: docker/build-push-action@v1
+        with:
+          repository: ${{ env.IMAGE_NAME }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          path: ${{ env.CONTEXT }}
+          tags: ${{ jobs.semantic-release.steps.semantic.outputs.new_release_version }}
+          tag_with_ref: true
+          add_git_labels: true
+          push: false
+
+  build-publish-gaia-admin:
+    runs-on: ubuntu-latest
+    needs:
+      - notify-start
+      - semantic-release
+    env:
+      IMAGE_NAME: blockstack/gaia-admin
+      CONTEXT: admin
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Build/Tag/Push Image - Quay
+        uses: docker/build-push-action@v1
+        with:
+          repository: ${{ env.IMAGE_NAME }}
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_PASSWORD }}
+          registry: ${{ env.DOCKER_REGISTRY_QUAY }}
+          path: ${{ env.CONTEXT }}
+          tags: ${{ jobs.semantic-release.steps.semantic.outputs.new_release_version }}
+          tag_with_ref: true
+          add_git_labels: true
+          push: false
+
+      - name: Build/Tag/Push Image - Dockerhub
+        uses: docker/build-push-action@v1
+        with:
+          repository: ${{ env.IMAGE_NAME }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          path: ${{ env.CONTEXT }}
+          tags: ${{ jobs.semantic-release.steps.semantic.outputs.new_release_version }}
+          tag_with_ref: true
+          add_git_labels: true
+          push: false
+
+  notify-finish:
+    runs-on: ubuntu-latest
+    needs:
+      - notify-start
+      - semantic-release
+      - build-publish-gaia
+      - build-publish-gaia-read
+      - build-publish-gaia-admin
+    steps:
+      - name: Notify slack success
+        if: success()
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        uses: voxmedia/github-action-slack-notify-build@v1.1.2
+        with:
+          message_id: ${{ jobs.notify-start.steps.slack.outputs.message_id }}
+          channel: devops-notify
+          status: SUCCESS
+          color: good
+
+      - name: Notify slack fail
+        if: failure()
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        uses: voxmedia/github-action-slack-notify-build@v1.1.2
+        with:
+          message_id: ${{ jobs.notify-start.steps.slack.outputs.message_id }}
+          channel: devops-notify
+          status: FAILED
+          color: danger
