@@ -1,6 +1,7 @@
 name: gaia
 env:
   DOCKER_REGISTRY_QUAY: quay.io
+  NEW_VERSION_ARTIFACT_NAME: new_release_version
 
 on: [push, pull_request]
 
@@ -25,13 +26,13 @@ jobs:
             @semantic-release/git
             semantic-release-slack-bot
 
-      - run: echo ${{ steps.semantic.outputs.new_release_version }} > new_release_version.txt
+      - run: echo ${{ steps.semantic.outputs.new_release_version }} > ${{ env.NEW_VERSION_ARTIFACT_NAME }}.txt
 
       - name: Store New Release Version
         uses: actions/upload-artifact@v2
         with:
-          name: new-release-version
-          path: new_release_version.txt
+          name: ${{ env.NEW_VERSION_ARTIFACT_NAME }}
+          path: ${{ env.NEW_VERSION_ARTIFACT_NAME }}.txt
 
   build-publish:
     runs-on: ubuntu-latest
@@ -56,6 +57,14 @@ jobs:
           status: STARTING
           color: warning
 
+      - name: Retrieve New Release Version
+        uses: actions/download-artifact@v2
+        with:
+          name: ${{ env.NEW_VERSION_ARTIFACT_NAME }}
+
+      - name: Set New Release Version
+        run: echo '::set-env name=NEW_VERSION::$(cat ${{ env.NEW_VERSION_ARTIFACT_NAME }}.txt)'
+
       - name: Build/Tag/Push Image - Quay
         uses: docker/build-push-action@v1
         with:
@@ -64,7 +73,7 @@ jobs:
           password: ${{ secrets.QUAY_PASSWORD }}
           registry: ${{ env.DOCKER_REGISTRY_QUAY }}
           path: ${{ matrix.context }}
-          tags: ${{ jobs.semantic-release.steps.semantic.outputs.new_release_version }}
+          tags: ${{ env.NEW_VERSION }}
           tag_with_ref: true
           add_git_labels: true
           push: false
@@ -76,7 +85,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
           path: ${{ matrix.context }}
-          tags: ${{ jobs.semantic-release.steps.semantic.outputs.new_release_version }}
+          tags: ${{ env.NEW_VERSION }}
           tag_with_ref: true
           add_git_labels: true
           push: false
