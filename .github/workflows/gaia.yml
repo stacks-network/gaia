@@ -62,7 +62,7 @@ jobs:
           name: ${{ env.NEW_VERSION_ARTIFACT_NAME }}
 
       - name: Set New Release Version
-        run: echo '::set-env name=NEW_VERSION::$(cat ${{ env.NEW_VERSION_ARTIFACT_NAME }}.txt)'
+        run: echo "::set-env name=NEW_VERSION::$(cat ${{ env.NEW_VERSION_ARTIFACT_NAME }}.txt)"
 
       - name: Build/Tag/Push Image - Quay
         uses: docker/build-push-action@v1
