@@ -38,7 +38,7 @@ jobs:
     needs: semantic-release
     strategy:
       matrix:
-        context: [hub, read, admin]
+        context: [hub, reader, admin]
     env:
       IMAGE_NAME: blockstack/gaia-${{ matrix.context }}
 
