@@ -19,9 +19,39 @@
     "codecovUpload": "codecov"
   },
   "devDependencies": {
+    "@commitlint/cli": "^9.1.1",
+    "@commitlint/config-conventional": "^9.1.1",
     "codecov": "^3.6.5",
     "cross-env": "^7.0.0",
+    "husky": "^4.2.5",
     "npm-run-all": "^4.1.5",
     "rimraf": "^3.0.1"
+  },
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ]
+  },
+  "husky": {
+    "hooks": {
+      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
+    }
+  },
+  "release": {
+    "plugins": [
+      "@semantic-release/commit-analyzer",
+      "@semantic-release/release-notes-generator",
+      "@semantic-release/github",
+      "@semantic-release/changelog",
+      "@semantic-release/git",
+      [
+        "semantic-release-slack-bot",
+        {
+          "notifyOnSuccess": true,
+          "notifyOnFail": true,
+          "markdownReleaseNotes": true
+        }
+      ]
+    ]
   }
 }

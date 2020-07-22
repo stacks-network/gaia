@@ -1,0 +1,114 @@
+name: gaia
+env:
+  DOCKER_REGISTRY_QUAY: quay.io
+  NEW_VERSION_ARTIFACT_NAME: new_release_version
+
+on: [push, pull_request]
+
+jobs:          
+  semantic-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Semantic Release
+        uses: cycjimmy/semantic-release-action@v2.5.0
+        id: semantic
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SEMANTIC_RELEASE_PACKAGE: gh-actions-test
+        with:
+          extra_plugins: |
+            @semantic-release/changelog
+            @semantic-release/git
+            semantic-release-slack-bot
+
+      - run: echo ${{ steps.semantic.outputs.new_release_version }} > ${{ env.NEW_VERSION_ARTIFACT_NAME }}.txt
+
+      - name: Store New Release Version
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.NEW_VERSION_ARTIFACT_NAME }}
+          path: ${{ env.NEW_VERSION_ARTIFACT_NAME }}.txt
+
+  build-publish:
+    runs-on: ubuntu-latest
+    needs: semantic-release
+    strategy:
+      matrix:
+        context: [hub, reader, admin]
+    env:
+      IMAGE_NAME: blockstack/gaia-${{ matrix.context }}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Notify slack start
+        if: success()
+        id: slack
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        uses: voxmedia/github-action-slack-notify-build@v1.1.2
+        with:
+          channel: devops-notify
+          status: STARTING
+          color: warning
+
+      - name: Retrieve New Release Version
+        uses: actions/download-artifact@v2
+        with:
+          name: ${{ env.NEW_VERSION_ARTIFACT_NAME }}
+
+      - name: Set New Release Version
+        run: echo "::set-env name=NEW_VERSION::$(cat ${{ env.NEW_VERSION_ARTIFACT_NAME }}.txt)"
+
+      - name: Build/Tag/Push Image - Quay
+        uses: docker/build-push-action@v1
+        with:
+          repository: ${{ env.IMAGE_NAME }}
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_PASSWORD }}
+          registry: ${{ env.DOCKER_REGISTRY_QUAY }}
+          path: ${{ matrix.context }}
+          tags: ${{ env.NEW_VERSION }}
+          tag_with_ref: true
+          add_git_labels: true
+          # Only push if there's a new release on main branch, or if building a non-main branch
+          push: ${{ github.ref != 'refs/heads/master' || env.NEW_VERSION != '' }}
+
+      - name: Build/Tag/Push Image - Dockerhub
+        uses: docker/build-push-action@v1
+        with:
+          repository: ${{ env.IMAGE_NAME }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          path: ${{ matrix.context }}
+          tags: ${{ env.NEW_VERSION }}
+          tag_with_ref: true
+          add_git_labels: true
+          # Only push if there's a new release on main branch, or if building a non-main branch
+          push: ${{ github.ref != 'refs/heads/master' || env.NEW_VERSION != '' }}
+
+      - name: Notify slack success
+        if: success()
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        uses: voxmedia/github-action-slack-notify-build@v1.1.2
+        with:
+          message_id: ${{ steps.slack.outputs.message_id }}
+          channel: devops-notify
+          status: SUCCESS
+          color: good
+
+      - name: Notify slack fail
+        if: failure()
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        uses: voxmedia/github-action-slack-notify-build@v1.1.2
+        with:
+          message_id: ${{ steps.slack.outputs.message_id }}
+          channel: devops-notify
+          status: FAILED
+          color: danger
