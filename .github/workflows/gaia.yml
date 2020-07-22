@@ -75,7 +75,8 @@ jobs:
           tags: ${{ env.NEW_VERSION }}
           tag_with_ref: true
           add_git_labels: true
-          push: true
+          # Only push if there's a new release on main branch, or if building a non-main branch
+          push: ${{ github.ref != 'refs/heads/master' || env.NEW_VERSION != '' }}
 
       - name: Build/Tag/Push Image - Dockerhub
         uses: docker/build-push-action@v1
@@ -87,7 +88,8 @@ jobs:
           tags: ${{ env.NEW_VERSION }}
           tag_with_ref: true
           add_git_labels: true
-          push: true
+          # Only push if there's a new release on main branch, or if building a non-main branch
+          push: ${{ github.ref != 'refs/heads/master' || env.NEW_VERSION != '' }}
 
       - name: Notify slack success
         if: success()
