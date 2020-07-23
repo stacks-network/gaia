@@ -1,9 +1,16 @@
 name: gaia
 env:
-  DOCKER_REGISTRY_QUAY: quay.io
   NEW_VERSION_ARTIFACT_NAME: new_release_version
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - '**'
+    tags-ignore:
+      - '**'
+    paths-ignore:
+      - '**/CHANGELOG.md'
+  pull_request:
 
 jobs:          
   semantic-release:
@@ -11,14 +18,16 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.GH_TOKEN }}
 
       - name: Semantic Release
         uses: cycjimmy/semantic-release-action@v2.5.0
         id: semantic
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-          SEMANTIC_RELEASE_PACKAGE: gh-actions-test
+          SEMANTIC_RELEASE_PACKAGE: ${{ github.workflow }}
         with:
           extra_plugins: |
             @semantic-release/changelog
@@ -40,7 +49,7 @@ jobs:
       matrix:
         context: [hub, reader, admin]
     env:
-      IMAGE_NAME: blockstack/gaia-${{ matrix.context }}
+      IMAGE_NAME: blockstack/${{ github.workflow }}-${{ matrix.context }}
 
     steps:
       - uses: actions/checkout@v2
@@ -70,7 +79,7 @@ jobs:
           repository: ${{ env.IMAGE_NAME }}
           username: ${{ secrets.QUAY_USERNAME }}
           password: ${{ secrets.QUAY_PASSWORD }}
-          registry: ${{ env.DOCKER_REGISTRY_QUAY }}
+          registry: quay.io
           path: ${{ matrix.context }}
           tags: ${{ env.NEW_VERSION }}
           tag_with_ref: true
