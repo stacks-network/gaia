@@ -1,7 +1,4 @@
 name: gaia
-env:
-  NEW_VERSION_ARTIFACT_NAME: new_release_version
-
 on:
   push:
     branches:
@@ -15,6 +12,8 @@ on:
 jobs:          
   semantic-release:
     runs-on: ubuntu-latest
+    outputs:
+      new_release_version: ${{ steps.semantic.outputs.new_release_version }}
 
     steps:
       - uses: actions/checkout@v2
@@ -33,14 +32,6 @@ jobs:
             @semantic-release/changelog
             @semantic-release/git
             semantic-release-slack-bot
-
-      - run: echo ${{ steps.semantic.outputs.new_release_version }} > ${{ env.NEW_VERSION_ARTIFACT_NAME }}.txt
-
-      - name: Store New Release Version
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{ env.NEW_VERSION_ARTIFACT_NAME }}
-          path: ${{ env.NEW_VERSION_ARTIFACT_NAME }}.txt
 
   build-publish:
     runs-on: ubuntu-latest
@@ -65,14 +56,6 @@ jobs:
           status: STARTING
           color: warning
 
-      - name: Retrieve New Release Version
-        uses: actions/download-artifact@v2
-        with:
-          name: ${{ env.NEW_VERSION_ARTIFACT_NAME }}
-
-      - name: Set New Release Version
-        run: echo "::set-env name=NEW_VERSION::$(cat ${{ env.NEW_VERSION_ARTIFACT_NAME }}.txt)"
-
       - name: Build/Tag/Push Image - Quay
         uses: docker/build-push-action@v1
         with:
@@ -81,11 +64,11 @@ jobs:
           password: ${{ secrets.QUAY_PASSWORD }}
           registry: quay.io
           path: ${{ matrix.context }}
-          tags: ${{ env.NEW_VERSION }}
+          tags: ${{ needs.semantic-release.outputs.new_release_version }}
           tag_with_ref: true
           add_git_labels: true
           # Only push if there's a new release on main branch, or if building a non-main branch
-          push: ${{ github.ref != 'refs/heads/master' || env.NEW_VERSION != '' }}
+          push: ${{ github.ref != 'refs/heads/master' || needs.semantic-release.outputs.new_release_version != '' }}
 
       - name: Build/Tag/Push Image - Dockerhub
         uses: docker/build-push-action@v1
@@ -94,11 +77,11 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
           path: ${{ matrix.context }}
-          tags: ${{ env.NEW_VERSION }}
+          tags: ${{ needs.semantic-release.outputs.new_release_version }}
           tag_with_ref: true
           add_git_labels: true
           # Only push if there's a new release on main branch, or if building a non-main branch
-          push: ${{ github.ref != 'refs/heads/master' || env.NEW_VERSION != '' }}
+          push: ${{ github.ref != 'refs/heads/master' || needs.semantic-release.outputs.new_release_version != '' }}
 
       - name: Notify slack success
         if: success()
