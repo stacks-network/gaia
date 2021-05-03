@@ -16,7 +16,7 @@
     "command": "/bin/sh",
     "argv": [
       "-c",
-      "docker restart docker_hub_1 &"
+      "docker restart deploy_hub_1 &"
     ],
     "env": {},
     "setuid": 1000,
