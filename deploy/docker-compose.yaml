@@ -61,6 +61,10 @@ services:
     ports:
       - 80:80
       - 443:443
+    environment:
+      CERTBOT_EMAIL: ${EMAIL}
+      STAGING: 1
+      DEBUG: 0
     networks:
       - gaia
     depends_on:
