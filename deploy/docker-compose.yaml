@@ -57,24 +57,16 @@ services:
       - .env
     volumes:
       - nginx_ssl:/etc/letsencrypt
-      - ./configs/nginx/user_conf.d:/etc/nginx/user_conf.d
-      # - "./nginx/nginx.conf:/etc/nginx/nginx.conf"
-      # - "./nginx/conf.d:/etc/nginx/conf.d"
-      # - "./nginx/certbot/conf:/etc/letsencrypt"
-      # - "./nginx/html/index.html:/usr/share/nginx/html/index.html"
+      - ./configs/nginx/conf.d:/etc/nginx/user_conf.d
     ports:
       - 80:80
       - 443:443
-    # environment:
-    #   SERVER_NAME: "${DOMAIN}"
-    #   SERVER_HTTP_PORT: "80"
     networks:
       - gaia
     depends_on:
       - hub
       - admin
       - reader
-    # command: sh -c "envsubst \"`env | awk -F = '{printf \" $$%s\", $$1}'`\" < /etc/nginx/conf.d/default.template > /etc/nginx/conf.d/default.conf && while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g 'daemon off;'"
 
 volumes:
   nginx_ssl:
