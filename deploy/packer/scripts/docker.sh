@@ -8,7 +8,8 @@ sudo apt-get install -y \
     curl \
     gnupg \
     lsb-release \
-    git
+    git \
+    jq
 
 echo === Downloading Docker GPG keyring ===
 curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
@@ -21,4 +22,8 @@ echo \
 echo === Installing Docker ===
 sudo apt-get update
 sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+VERSION=$(curl --silent https://api.github.com/repos/docker/compose/releases/latest | jq .name -r)
+DESTINATION=/usr/local/bin/docker-compose
+sudo curl -L https://github.com/docker/compose/releases/download/${VERSION}/docker-compose-$(uname -s)-$(uname -m) -o $DESTINATION
+sudo chmod 755 $DESTINATION
 echo === Docker Install Done ===

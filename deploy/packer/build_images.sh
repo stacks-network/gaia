@@ -1,7 +1,7 @@
 #!/bin/sh
 
 VERSION=$(curl -sL https://api.github.com/repos/blockstack/gaia/tags | jq .[0].name | tr -d '"v')
-# echo "Setting Version to ${VERSION}"
+echo "Setting Version to ${VERSION}"
 # echo ""
 # echo "Building gaia-hub-ephemeral"
 # echo "    version: ${VERSION}"
