@@ -1,6 +1,17 @@
 version: "3.8"
 
 services:
+  prep:
+    image: cmd.cat/envsubst
+    restart: on-failure:10
+    env_file:
+      - .env
+    volumes:
+      - ./configs/nginx/conf.d:/configs
+    networks:
+      - gaia
+    command: sh -c "envsubst '$${DOMAIN_NAME}' < /configs/gaia.template > /configs/gaia.conf"
+
   hub:
     image: ${HUB_IMAGE}
     restart: always
@@ -16,6 +27,8 @@ services:
       GAIA_DISK_STORAGE_ROOT_DIR: ${GAIA_DISK_STORAGE_ROOT_DIR}
     networks:
       - gaia
+    depends_on:
+    - prep
 
   admin:
     image: ${ADMIN_IMAGE}
@@ -32,7 +45,8 @@ services:
       CONFIG_PATH: "/src/admin/etc/config.json"
     networks:
       - gaia
-    command: node lib/index.js
+    depends_on:
+    - prep
 
   reader:
     image: ${READER_IMAGE}
@@ -49,6 +63,8 @@ services:
       GAIA_DISK_STORAGE_ROOT_DIR: "${GAIA_DISK_STORAGE_ROOT_DIR}"
     networks:
       - gaia
+    depends_on:
+      - prep
 
   nginx:
     image: ${NGINX_IMAGE}
@@ -57,7 +73,7 @@ services:
       - .env
     volumes:
       - nginx_ssl:/etc/letsencrypt
-      - ./configs/nginx/conf.d:/etc/nginx/user_conf.d
+      - ./configs/nginx/conf.d/gaia.conf:/etc/nginx/user_conf.d/gaia.conf
     ports:
       - 80:80
       - 443:443
