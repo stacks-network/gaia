@@ -1,1 +1,20 @@
-# create_docker_network.service\n[Unit]\nDescription=Gaia Docker Network\nConditionFileIsExecutable=/gaia/scripts/create-docker-network.sh\nRequires=docker.service\nRequires=clone-repo.service\nBefore=gaia.service\nBefore=nginx.service\nBefore=certbot.service\n\n[Service]\nTimeoutStartSec=0\nType=oneshot\nRemainAfterExit=yes\n\nExecStart=/bin/sh /gaia/scripts/create-docker-network.sh\n\n[Install]\nWantedBy=multi-user.target\n
+# create_docker_network.service
+[Unit]
+Description=Gaia Docker Network
+ConditionFileIsExecutable=/gaia/scripts/create-docker-network.sh
+Requires=docker.service
+Requires=clone-repo.service
+Before=gaia.service
+Before=nginx.service
+Before=certbot.service
+
+[Service]
+TimeoutStartSec=0
+Type=oneshot
+RemainAfterExit=yes
+
+ExecStart=/bin/sh /gaia/scripts/create-docker-network.sh
+
+[Install]
+WantedBy=multi-user.target
+

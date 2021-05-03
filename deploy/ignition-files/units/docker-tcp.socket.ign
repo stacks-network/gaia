@@ -1,1 +1,12 @@
-# docker-tcp.socket\n[Unit]\nDescription=Docker Socket for the API\n\n[Socket]\nListenStream=2375\nService=docker.service\nBindIPv6Only=both\n\n[Install]\nWantedBy=sockets.target\n
+# docker-tcp.socket
+[Unit]
+Description=Docker Socket for the API
+
+[Socket]
+ListenStream=2375
+Service=docker.service
+BindIPv6Only=both
+
+[Install]
+WantedBy=sockets.target
+

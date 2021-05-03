@@ -1,1 +1,24 @@
-# gaia.service\n[Unit]\nDescription=Gaia\nRequires=docker.service\nRequires=create-docker-network.service\nRequires=clone-repo.service\nRequires=letsencrypt-init.service\nRequires=check-dns.service\nAfter=docker.service\nAfter=create-docker-network.service\nAfter=clone-repo.service\nAfter=letsencrypt-init.service\nAfter=check-dns.service\nConditionPathExists=/tmp/letsencrypt.init\nConditionPathExists=/tmp/dns_checked\n\n[Service]\nType=oneshot\nExecStart=/bin/true\nRemainAfterExit=yes\n\n[Install]\nWantedBy=multi-user.target\n
+# gaia.service
+[Unit]
+Description=Gaia
+Requires=docker.service
+Requires=create-docker-network.service
+Requires=clone-repo.service
+Requires=letsencrypt-init.service
+Requires=check-dns.service
+After=docker.service
+After=create-docker-network.service
+After=clone-repo.service
+After=letsencrypt-init.service
+After=check-dns.service
+ConditionPathExists=/tmp/letsencrypt.init
+ConditionPathExists=/tmp/dns_checked
+
+[Service]
+Type=oneshot
+ExecStart=/bin/true
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+

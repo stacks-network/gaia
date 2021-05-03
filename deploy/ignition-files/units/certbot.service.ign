@@ -1,1 +1,31 @@
-# certbot.service\n[Unit]\nDescription=LetsEncrypt Certbot Service\nRequires=gaia.service\nRequires=letsencrypt.service\nAfter=gaia.service\nAfter=letsencrypt.service\n\n[Service]\nType=oneshot\nRemainAfterExit=no\nEnvironmentFile=/gaia/gaia.env\nEnvironmentFile=/etc/environment\nExecStartPre=-/usr/bin/docker pull ${CERTBOT_IMAGE}ExecStart=/usr/bin/docker run \\\n  --rm \\\n  --net=gaia \\\n  -m 64m \\\n  --oom-kill-disable \\\n  -v ${LOCAL_CERTBOT_CONF}:${REMOTE_CERTBOT_CONF} \\\n  -v ${LOCAL_CERTBOT_WWW}:${REMOTE_CERTBOT_WWW} \\\n  --name certbot \\\n  ${CERTBOT_IMAGE} \\\nrenew\nExecStart=/usr/bin/docker exec nginx sh -c \"nginx -s reload\"\n\nExecStop=-/usr/bin/docker stop certbot\nExecReload=-/usr/bin/docker restart certbot\n\n[Install]\nWantedBy=multi-user.target\n
+# certbot.service
+[Unit]
+Description=LetsEncrypt Certbot Service
+Requires=gaia.service
+Requires=letsencrypt.service
+After=gaia.service
+After=letsencrypt.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=no
+EnvironmentFile=/gaia/gaia.env
+EnvironmentFile=/etc/environment
+ExecStartPre=-/usr/bin/docker pull ${CERTBOT_IMAGE}ExecStart=/usr/bin/docker run \\
+  --rm \\
+  --net=gaia \\
+  -m 64m \\
+  --oom-kill-disable \\
+  -v ${LOCAL_CERTBOT_CONF}:${REMOTE_CERTBOT_CONF} \\
+  -v ${LOCAL_CERTBOT_WWW}:${REMOTE_CERTBOT_WWW} \\
+  --name certbot \\
+  ${CERTBOT_IMAGE} \\
+renew
+ExecStart=/usr/bin/docker exec nginx sh -c \"nginx -s reload\"
+
+ExecStop=-/usr/bin/docker stop certbot
+ExecReload=-/usr/bin/docker restart certbot
+
+[Install]
+WantedBy=multi-user.target
+

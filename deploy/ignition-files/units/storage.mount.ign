@@ -1,1 +1,13 @@
-# storage.mount\n[Unit]\nDescription=Mount Local Disk to /storage\nConditionPathExists=/storage\nBefore=gaia.service\n\n[Mount]\nWhat=/dev/xvdf\nWhere=/storage\nType=xfs\n\n[Install]\nWantedBy=local-fs.target\
+# storage.mount
+[Unit]
+Description=Mount Local Disk to /storage
+ConditionPathExists=/storage
+Before=gaia.service
+
+[Mount]
+What=/dev/xvdf
+Where=/storage
+Type=xfs
+
+[Install]
+WantedBy=local-fs.target\

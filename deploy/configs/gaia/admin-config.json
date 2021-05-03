@@ -10,7 +10,7 @@
   "port": 8009,
   "apiKeys": [ "hello" ],
   "gaiaSettings": {
-    "configPath": "/tmp/hub-config/config.json"
+    "configPath": "/tmp/hub/config.json"
   },
   "reloadSettings": {
     "command": "/bin/sh",
