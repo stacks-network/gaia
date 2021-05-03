@@ -1,0 +1,14 @@
+# reset-ssl-certs.service
+[Unit]
+Description=Reset Gaia to first boot
+ConditionFileIsExecutable=/gaia/scripts/reset-certs.sh
+
+[Service]
+Type=oneshot
+RemainAfterExit=no
+EnvironmentFile=/gaia/gaia.env
+EnvironmentFile=/etc/environment
+ExecStart=/bin/bash /gaia/scripts/reset-certs.sh
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,29 @@
+{
+  "serverName": "hub",
+  "port": 3000,
+  "driver": "disk",
+  "bucket": "hub",
+  "readURL": "http://localhost:80/hub/",
+  "awsCredentials": {
+    "accessKeyId": "",
+    "secretAccessKey": ""
+  },
+  "proofsConfig": {
+    "proofsRequired": 0
+  },
+  "azCredentials": {
+    "accountName": "",
+    "accountKey": ""
+  },
+  "gcCredentials": {
+    "projectId": ""
+  },
+  "argsTransport": {
+    "level": "debug",
+    "handleExceptions": true,
+    "stringify": true,
+    "timestamp": true,
+    "colorize": false,
+    "json": true
+  }
+}

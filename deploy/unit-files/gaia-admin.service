@@ -1,0 +1,35 @@
+# gaia-admin.service
+[Unit]
+Description=Gaia Admin Service
+PartOf=gaia.service
+After=gaia.service
+
+[Service]
+WorkingDirectory=/gaia
+EnvironmentFile=/gaia/gaia.env
+TimeoutStartSec=0
+#Restart=always
+Restart=on-failure
+RemainAfterExit=yes
+RestartSec=5
+ExecStartPre=/bin/bash /gaia/scripts/update-configs.sh
+ExecStartPre=-/usr/bin/docker pull ${ADMIN_IMAGE}
+ExecStart=/usr/bin/docker run \
+  --rm \
+  --net=gaia \
+  -m 128m \
+  --oom-kill-disable \
+  -p 8009:3000 \
+  -v /gaia/admin-config:/src/admin/etc \
+  -v /gaia/hub-config:/tmp/hub-config \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -e CONFIG_PATH="/src/admin/etc/config.json" \
+  --name gaia-admin \
+  ${ADMIN_IMAGE} \
+node lib/index.js
+
+ExecStop=-/usr/bin/docker stop gaia-admin
+ExecReload=-/usr/bin/docker restart gaia-admin
+
+[Install]
+WantedBy=gaia.service

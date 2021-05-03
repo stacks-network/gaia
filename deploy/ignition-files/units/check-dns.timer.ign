@@ -1,0 +1,1 @@
+# check_dns.timer\n[Unit]\nDescription=Check DNS Record timer\n\n[Timer]\nOnActiveSec=60\nOnUnitActiveSec=60\n\n[Install]\nWantedBy=timers.target\n

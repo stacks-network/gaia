@@ -1,0 +1,459 @@
+{
+	"ignition": {
+		"config": {},
+		"security": {
+			"tls": {}
+		},
+		"timeouts": {},
+		"version": "2.3.0"
+	},
+	"networkd": {},
+	"passwd": {},
+	"storage": {
+		"directories": [
+			{
+				"filesystem": "root",
+				"group": {
+					"name": "root"
+				},
+				"path": "/storage",
+				"user": {
+					"name": "root"
+				},
+				"mode": 493
+			},
+			{
+				"filesystem": "root",
+				"group": {
+					"name": "root"
+				},
+				"path": "/etc/sysctl.d",
+				"user": {
+					"name": "root"
+				},
+				"mode": 493
+			},
+			{
+				"filesystem": "root",
+				"group": {
+					"name": "root"
+				},
+				"path": "/etc/motd.d",
+				"user": {
+					"name": "root"
+				},
+				"mode": 493
+			}
+		],
+		"files": [
+			{
+				"filesystem": "root",
+				"group": {
+					"name": "root"
+				},
+				"path": "/etc/coreos/update.conf",
+				"user": {
+					"name": "root"
+				},
+				"contents": {
+					"source": "https://raw.githubusercontent.com/blockstackpbc/gaia-docker/master/ignition-files/etc/coreos/update.conf",
+					"verification": {
+						"hash": "sha512-14884911c8101089d23535fcb08f6f77da46b0687581ff1f49e90943d1ac7366cd55050d0df809022c3acae41e8c666ae75cf8ac03989de56a89f3af10ce3ce0"
+					}
+				},
+				"mode": 420
+			},
+			{
+				"filesystem": "root",
+				"group": {
+					"name": "root"
+				},
+				"path": "/etc/docker/docker.json",
+				"user": {
+					"name": "root"
+				},
+				"contents": {
+					"source": "https://raw.githubusercontent.com/blockstackpbc/gaia-docker/master/ignition-files/etc/docker/docker.json",
+					"verification": {
+						"hash": "sha512-1400605e29faaf0531c0b9ffeda072b65a98fbd53839d667737dc1780fcc4db80ed780d00bf7f007f166981916319c1fbf75cd163ffbaefd51bc9ece662fe708"
+					}
+				},
+				"mode": 420
+			},
+			{
+				"filesystem": "root",
+				"group": {
+					"name": "root"
+				},
+				"path": "/etc/vim/vimrc.local",
+				"user": {
+					"name": "root"
+				},
+				"contents": {
+					"source": "https://raw.githubusercontent.com/blockstackpbc/gaia-docker/master/ignition-files/etc/vim/vimrc.local",
+					"verification": {
+						"hash": "sha512-22696cbba09f2a2a986f941b2c20037208030a92f3430e372b4c9e4a8276c3f2b8ac8279ef8ad6a7a3fd217660194a896a48c8c76118f3c6c9e13e0190ad5d8b"
+					}
+				},
+				"mode": 420
+			},
+			{
+				"filesystem": "root",
+				"group": {
+					"name": "root"
+				},
+				"path": "/etc/motd.d/default.conf",
+				"user": {
+					"name": "root"
+				},
+				"contents": {
+					"source": "https://raw.githubusercontent.com/blockstackpbc/gaia-docker/master/ignition-files/etc/motd.d/default.conf",
+					"verification": {
+						"hash": "sha512-d1b8bcc12471d2aa312b63df1c4f8fa6c9e88d338401e6b1a808bb344cbfb0ebbaf4513ecce4df06ca644f5fdd34ce0aabe70e33e668cb249753361a5e5bd3b0"
+					}
+				},
+				"mode": 420
+			},
+			{
+				"filesystem": "root",
+				"group": {
+					"name": "root"
+				},
+				"path": "/etc/modules-load.d/nf.conf",
+				"user": {
+					"name": "root"
+				},
+				"contents": {
+					"source": "https://raw.githubusercontent.com/blockstackpbc/gaia-docker/master/ignition-files/etc/modules-load.d/nf.conf",
+					"verification": {
+						"hash": "sha512-ec7e60d8bd06520bb9ccdd933cb67c88eb010b1f6a1ffa7565398816fc406f917680af6e1908016b3031435c007c22cc25a33755e6074d02d4758e7deb093a8f"
+					}
+				},
+				"mode": 420
+			},
+			{
+				"filesystem": "root",
+				"group": {
+					"name": "root"
+				},
+				"path": "/etc/sysctl.d/startup.conf",
+				"user": {
+					"name": "root"
+				},
+				"contents": {
+					"source": "https://raw.githubusercontent.com/blockstackpbc/gaia-docker/master/ignition-files/etc/sysctl.d/startup.conf",
+					"verification": {
+						"hash": "sha512-8941719a8564ae28435a531faff5b77511cbdaeb7fcbc66179240ce6625df389ad671d9bc3bed3d7f3dc3fce08b80fc2657db45e205a8dd5028aa458ad6c07bc"
+					}
+				},
+				"mode": 420
+			},
+			{
+				"filesystem": "root",
+				"group": {
+					"name": "root"
+				},
+				"path": "/etc/systemd/system/certbot.service",
+				"user": {
+					"name": "root"
+				},
+				"contents": {
+					"source": "https://raw.githubusercontent.com/blockstackpbc/gaia-docker/master/unit-files/certbot.service"
+				},
+				"mode": 420
+			},
+			{
+				"filesystem": "root",
+				"group": {
+					"name": "root"
+				},
+				"path": "/etc/systemd/system/certbot.timer",
+				"user": {
+					"name": "root"
+				},
+				"contents": {
+					"source": "https://raw.githubusercontent.com/blockstackpbc/gaia-docker/master/unit-files/certbot.timer"
+				},
+				"mode": 420
+			},
+			{
+				"filesystem": "root",
+				"group": {
+					"name": "root"
+				},
+				"path": "/etc/systemd/system/check-dns.service",
+				"user": {
+					"name": "root"
+				},
+				"contents": {
+					"source": "https://raw.githubusercontent.com/blockstackpbc/gaia-docker/master/unit-files/check-dns.service"
+				},
+				"mode": 420
+			},
+			{
+				"filesystem": "root",
+				"group": {
+					"name": "root"
+				},
+				"path": "/etc/systemd/system/check-dns.timer",
+				"user": {
+					"name": "root"
+				},
+				"contents": {
+					"source": "https://raw.githubusercontent.com/blockstackpbc/gaia-docker/master/unit-files/check-dns.timer"
+				},
+				"mode": 420
+			},
+			{
+				"filesystem": "root",
+				"group": {
+					"name": "root"
+				},
+				"path": "/etc/systemd/system/clone-repo.service",
+				"user": {
+					"name": "root"
+				},
+				"contents": {
+					"source": "https://raw.githubusercontent.com/blockstackpbc/gaia-docker/master/unit-files/clone-repo.service"
+				},
+				"mode": 420
+			},
+			{
+				"filesystem": "root",
+				"group": {
+					"name": "root"
+				},
+				"path": "/etc/systemd/system/create-docker-network.service",
+				"user": {
+					"name": "root"
+				},
+				"contents": {
+					"source": "https://raw.githubusercontent.com/blockstackpbc/gaia-docker/master/unit-files/create-docker-network.service"
+				},
+				"mode": 420
+			},
+			{
+				"filesystem": "root",
+				"group": {
+					"name": "root"
+				},
+				"path": "/etc/systemd/system/gaia-admin.service",
+				"user": {
+					"name": "root"
+				},
+				"contents": {
+					"source": "https://raw.githubusercontent.com/blockstackpbc/gaia-docker/master/unit-files/gaia-admin.service"
+				},
+				"mode": 420
+			},
+			{
+				"filesystem": "root",
+				"group": {
+					"name": "root"
+				},
+				"path": "/etc/systemd/system/gaia-hub.service",
+				"user": {
+					"name": "root"
+				},
+				"contents": {
+					"source": "https://raw.githubusercontent.com/blockstackpbc/gaia-docker/master/unit-files/gaia-hub.service"
+				},
+				"mode": 420
+			},
+			{
+				"filesystem": "root",
+				"group": {
+					"name": "root"
+				},
+				"path": "/etc/systemd/system/gaia-reader.service",
+				"user": {
+					"name": "root"
+				},
+				"contents": {
+					"source": "https://raw.githubusercontent.com/blockstackpbc/gaia-docker/master/unit-files/gaia-reader.service"
+				},
+				"mode": 420
+			},
+			{
+				"filesystem": "root",
+				"group": {
+					"name": "root"
+				},
+				"path": "/etc/systemd/system/gaia.service",
+				"user": {
+					"name": "root"
+				},
+				"contents": {
+					"source": "https://raw.githubusercontent.com/blockstackpbc/gaia-docker/master/unit-files/gaia.service"
+				},
+				"mode": 420
+			},
+			{
+				"filesystem": "root",
+				"group": {
+					"name": "root"
+				},
+				"path": "/etc/systemd/system/letsencrypt-init.service",
+				"user": {
+					"name": "root"
+				},
+				"contents": {
+					"source": "https://raw.githubusercontent.com/blockstackpbc/gaia-docker/master/unit-files/letsencrypt-init.service"
+				},
+				"mode": 420
+			},
+			{
+				"filesystem": "root",
+				"group": {
+					"name": "root"
+				},
+				"path": "/etc/systemd/system/letsencrypt-init.timer",
+				"user": {
+					"name": "root"
+				},
+				"contents": {
+					"source": "https://raw.githubusercontent.com/blockstackpbc/gaia-docker/master/unit-files/letsencrypt-init.timer"
+				},
+				"mode": 420
+			},
+			{
+				"filesystem": "root",
+				"group": {
+					"name": "root"
+				},
+				"path": "/etc/systemd/system/letsencrypt.service",
+				"user": {
+					"name": "root"
+				},
+				"contents": {
+					"source": "https://raw.githubusercontent.com/blockstackpbc/gaia-docker/master/unit-files/letsencrypt.service"
+				},
+				"mode": 420
+			},
+			{
+				"filesystem": "root",
+				"group": {
+					"name": "root"
+				},
+				"path": "/etc/systemd/system/nginx.service",
+				"user": {
+					"name": "root"
+				},
+				"contents": {
+					"source": "https://raw.githubusercontent.com/blockstackpbc/gaia-docker/master/unit-files/nginx.service"
+				},
+				"mode": 420
+			},
+			{
+				"filesystem": "root",
+				"group": {
+					"name": "root"
+				},
+				"path": "/etc/systemd/system/reset-ssl-certs.service",
+				"user": {
+					"name": "root"
+				},
+				"contents": {
+					"source": "https://raw.githubusercontent.com/blockstackpbc/gaia-docker/master/unit-files/reset-ssl-certs.service"
+				},
+				"mode": 420
+			},
+			{
+				"filesystem": "root",
+				"group": {
+					"name": "root"
+				},
+				"path": "/etc/systemd/system/storage.mount",
+				"user": {
+					"name": "root"
+				},
+				"contents": {
+					"source": "https://raw.githubusercontent.com/blockstackpbc/gaia-docker/master/unit-files/storage.mount"
+				},
+				"mode": 420
+			}
+		]
+	},
+	"systemd": {
+		"units": [
+			{
+				"dropins": [
+					{
+						"contents": "[Service]\nTTYVTDisallocate=no\n",
+						"name": "no-disallocate.conf"
+					}
+				],
+				"name": "getty@.service"
+			},
+			{
+				"contents": "[Unit]\nDescription=Docker Socket for the API\n\n[Socket]\nListenStream=2375\nService=docker.service\nBindIPv6Only=both\n\n[Install]\nWantedBy=sockets.target\n",
+				"enabled": true,
+				"name": "docker-tcp.socket"
+			},
+			{
+				"enabled": false,
+				"name": "certbot.service"
+			},
+			{
+				"enabled": true,
+				"name": "certbot.timer"
+			},
+			{
+				"enabled": false,
+				"name": "check-dns.service"
+			},
+			{
+				"enabled": true,
+				"name": "check-dns.timer"
+			},
+			{
+				"enabled": true,
+				"name": "clone-repo.service"
+			},
+			{
+				"enabled": true,
+				"name": "create-docker-network.service"
+			},
+			{
+				"enabled": true,
+				"name": "gaia-admin.service"
+			},
+			{
+				"enabled": true,
+				"name": "gaia-hub.service"
+			},
+			{
+				"enabled": true,
+				"name": "gaia-reader.service"
+			},
+			{
+				"enabled": true,
+				"name": "gaia.service"
+			},
+			{
+				"enabled": false,
+				"name": "letsencrypt-init.service"
+			},
+			{
+				"enabled": true,
+				"name": "letsencrypt-init.timer"
+			},
+			{
+				"enabled": true,
+				"name": "letsencrypt.service"
+			},
+			{
+				"enabled": true,
+				"name": "nginx.service"
+			},
+			{
+				"enabled": false,
+				"name": "reset-ssl-certs.service"
+			},
+			{
+				"enabled": false,
+				"name": "storage.mount"
+			}
+		]
+	}
+}

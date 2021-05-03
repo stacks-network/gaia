@@ -1,0 +1,1 @@
+# letsencrypt_init.service\n[Unit]\nDescription=LetsEncrypt Init Service\nConditionPathExists=!/tmp/letsencrypt.init\nConditionFileIsExecutable=/gaia/scripts/letsencrypt-init.sh\n\n[Service]\nType=oneshot\nRemainAfterExit=no\nEnvironmentFile=/etc/environment\nExecStart=/bin/bash -x /gaia/scripts/letsencrypt-init.sh\n\n[Install]\nWantedBy=multi-user.target\n

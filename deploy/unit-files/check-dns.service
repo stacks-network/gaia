@@ -1,0 +1,16 @@
+# check-dns.service
+[Unit]
+Description=Check DNS Record Service
+After=letsencrypt-init.service
+ConditionPathExists=/tmp/letsencrypt.init
+ConditionPathExists=!/tmp/dns_checked
+ConditionFileIsExecutable=/gaia/scripts/check-dns.sh
+
+[Service]
+Type=oneshot
+RemainAfterExit=no
+EnvironmentFile=/etc/environment
+ExecStart=/bin/bash /gaia/scripts/check-dns.sh
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,66 @@
+{
+  "variables": {
+    "version": "",
+    "subnet_id": "",
+    "vpc_id": "",
+    "user_data_file": "",
+    "profile": "",
+    "name_prefix": "",
+    "root_volume_size": "",
+    "ami_description": ""
+  },
+  "builders": [{
+    "type": "amazon-ebs",
+    "region": "{{user `region`}}",
+    "communicator": "ssh",
+    "ssh_pty": true,
+    "associate_public_ip_address": "true",
+    "instance_type": "t2.micro",
+    "vpc_id": "{{user `vpc_id`}}",
+    "subnet_id": "{{user `subnet_id`}}",
+    "ssh_username": "core",
+    "ami_groups": "all",
+    "ami_name": "{{user `name_prefix`}}-ephemeral-{{user `version`}}-hvm",
+    "ami_regions": "{{user `ami_regions`}}",
+    "ami_description": "{{user `ami_description`}} {{user `version`}} Ephemeral (HVM)",
+    "user_data_file": "{{user `user_data_file`}}",
+    "profile": "{{user `profile`}}",
+    "source_ami_filter": {
+      "filters": {
+        "virtualization-type": "hvm",
+        "name": "*CoreOS*stable*hvm*",
+        "root-device-type": "ebs"
+      },
+      "owners": ["595879546273"],
+      "most_recent": true
+    },
+    "tags": {
+      "OS": "CoreOS Stable",
+      "Name": "{{user `name_prefix`}}_{{user `version`}}",
+      "BuildType": "Ephemeral",
+      "BuildMethod": "Packer",
+      "BuildTime": "{{timestamp}}",
+      "Version": "{{user `version`}}"
+    },
+    "launch_block_device_mappings" : [{
+      "device_name": "/dev/xvda",
+      "volume_size": "{{user `root_volume_size`}}",
+      "volume_type": "gp2",
+      "delete_on_termination": true
+    }]
+  }],
+  "provisioners": [{
+    "type": "shell",
+    "execute_command": "sudo -S sh '{{ .Path }}'",
+    "inline_shebang": "/bin/sh -e -x",
+    "inline": [
+      "echo '** Shreding sensitive data ...'",
+      "shred -u /etc/ssh/*_key /etc/ssh/*_key.pub",
+      "shred -u /home/core/.ssh/authorized_keys",
+      "shred -u /home/core/.ssh/authorized_keys.d/*",
+      "sudo touch /boot/coreos/first_boot",
+      "sudo rm /etc/machine-id",
+      "sync; sleep 1; sync"
+    ]
+  }]
+}
