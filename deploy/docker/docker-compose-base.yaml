@@ -1,22 +1,9 @@
 version: "3.8"
 
 services:
-  prep:
-    image: cmd.cat/envsubst
-    restart: on-failure:10
-    env_file:
-      - .env
-    volumes:
-      - ./configs/nginx/conf.d:/configs
-    networks:
-      - gaia
-    command: sh -c "envsubst '$${DOMAIN_NAME}' < /configs/gaia.template > /configs/gaia.conf"
-
   hub:
     image: blockstack/gaia-hub:2.8.2
     restart: always
-    env_file:
-      - .env
     volumes:
       - ./configs/gaia/hub-config.json:/src/hub/etc/config.json
       - ~/storage:/storage
@@ -34,8 +21,6 @@ services:
   admin:
     image: blockstack/gaia-admin:2.8.2
     restart: always
-    env_file:
-      - .env
     volumes:
       - ./configs/gaia/admin-config.json:/src/admin/etc/config.json
       - ./configs/gaia/hub-config.json:/tmp/hub/config.json
@@ -53,8 +38,6 @@ services:
   reader:
     image: blockstack/gaia-reader:2.8.2
     restart: always
-    env_file:
-      - .env
     volumes:
       - ./configs/gaia/reader-config.json:/src/reader/etc/config.json
       - ~/storage:/storage
@@ -72,8 +55,6 @@ services:
   nginx:
     image: jonasal/nginx-certbot:2
     restart: always
-    env_file:
-      - .env
     volumes:
       - nginx_ssl:/etc/letsencrypt
       - ./configs/nginx/conf.d/gaia.conf:/etc/nginx/user_conf.d/gaia.conf
@@ -84,7 +65,7 @@ services:
       - 443:443
     environment:
       CERTBOT_EMAIL: ${EMAIL}
-      STAGING: 1
+      STAGING: 0
       DEBUG: 0
     networks:
       - gaia

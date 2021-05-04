@@ -1,0 +1,18 @@
+version: "3.8"
+
+services:
+  hub:
+    env_file:
+      - env-azure.env
+
+  admin:
+    env_file:
+      - env-azure.env
+
+  reader:
+    env_file:
+      - env-azure.env
+
+  nginx:
+    env_file:
+      - env-azure.env
