@@ -78,6 +78,7 @@ services:
       - nginx_ssl:/etc/letsencrypt
       - ./configs/nginx/conf.d/gaia.conf:/etc/nginx/user_conf.d/gaia.conf
       - ./configs/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./configs/nginx/dhparam.pem:/etc/letsencrypt/dhparams/dhparam.pem
     ports:
       - 80:80
       - 443:443
