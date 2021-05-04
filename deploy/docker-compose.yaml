@@ -13,61 +13,64 @@ services:
     command: sh -c "envsubst '$${DOMAIN_NAME}' < /configs/gaia.template > /configs/gaia.conf"
 
   hub:
-    image: ${HUB_IMAGE}
+    image: blockstack/gaia-hub:2.8.2
     restart: always
     env_file:
       - .env
     volumes:
-      - "./configs/gaia/hub-config.json:/src/hub/etc/config.json"
-      - "${LOCAL_DISK}:${GAIA_DISK_STORAGE_ROOT_DIR}"
+      - ./configs/gaia/hub-config.json:/src/hub/etc/config.json
+      - ~/storage:/storage
     ports:
       - 3000:3000
     environment:
-      CONFIG_PATH: "/src/hub/etc/config.json"
-      GAIA_DISK_STORAGE_ROOT_DIR: ${GAIA_DISK_STORAGE_ROOT_DIR}
+      CONFIG_PATH: /src/hub/etc/config.json
+      GAIA_DISK_STORAGE_ROOT_DIR: /storage
+      NODE_ENV: production
     networks:
       - gaia
     depends_on:
     - prep
 
   admin:
-    image: ${ADMIN_IMAGE}
+    image: blockstack/gaia-admin:2.8.2
     restart: always
     env_file:
       - .env
     volumes:
-      - "./configs/gaia/admin-config.json:/src/admin/etc/config.json"
-      - "./configs/gaia/hub-config.json:/tmp/hub/config.json"
-      - "/var/run/docker.sock:/var/run/docker.sock"
+      - ./configs/gaia/admin-config.json:/src/admin/etc/config.json
+      - ./configs/gaia/hub-config.json:/tmp/hub/config.json
+      - /var/run/docker.sock:/var/run/docker.sock
     ports:
       - 8009:8009
     environment:
-      CONFIG_PATH: "/src/admin/etc/config.json"
+      CONFIG_PATH: /src/admin/etc/config.json
+      NODE_ENV: production
     networks:
       - gaia
     depends_on:
     - prep
 
   reader:
-    image: ${READER_IMAGE}
+    image: blockstack/gaia-reader:2.8.2
     restart: always
     env_file:
       - .env
     volumes:
-      - "./configs/gaia/reader-config.json:/src/reader/etc/config.json"
-      - "${LOCAL_DISK}:${GAIA_DISK_STORAGE_ROOT_DIR}"
+      - ./configs/gaia/reader-config.json:/src/reader/etc/config.json
+      - ~/storage:/storage
     ports:
       - 8008:8008
     environment:
-      CONFIG_PATH: "/src/reader/etc/config.json"
-      GAIA_DISK_STORAGE_ROOT_DIR: "${GAIA_DISK_STORAGE_ROOT_DIR}"
+      CONFIG_PATH: /src/reader/etc/config.json
+      GAIA_DISK_STORAGE_ROOT_DIR: /storage
+      NODE_ENV: production
     networks:
       - gaia
     depends_on:
       - prep
 
   nginx:
-    image: ${NGINX_IMAGE}
+    image: jonasal/nginx-certbot:2
     restart: always
     env_file:
       - .env
