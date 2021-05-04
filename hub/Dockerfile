@@ -12,4 +12,4 @@ RUN apk add --no-cache --virtual .build-deps alpine-sdk python && \
     npm prune --production && \
     apk del .build-deps
 
-CMD ["node", "lib/index.js"]
+CMD ["npm", "run", "start"]

@@ -69,7 +69,8 @@
     "lint:fix": "eslint --ext .ts ./src --fix",
     "test:build": "tsc -p ./test/tsconfig.json",
     "test:coverage": "cross-env NODE_ENV=test LOCAL_DRIVER_CONFIG_TEST_DATA=configs/drivers.json nyc node ./test/src/index.ts",
-    "test": "npm-run-all build --parallel lint test:coverage"
+    "test": "npm-run-all build --parallel lint test:coverage",
+    "start": "node lib/index.js"
   },
   "repository": {
     "type": "git",

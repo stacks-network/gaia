@@ -10,4 +10,4 @@ RUN npm install && \
     npm run build && \
     npm prune --production
 
-CMD ["node", "lib/index.js"]
+CMD ["npm", "run", "start"]
