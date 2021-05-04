@@ -5,7 +5,7 @@ services:
     image: blockstack/gaia-hub:2.8.2
     restart: always
     volumes:
-      - ./configs/gaia/hub-config.json:/src/hub/etc/config.json
+      - ../configs/gaia/hub-config.json:/src/hub/etc/config.json
       - ~/storage:/storage
     ports:
       - 3000:3000
@@ -22,8 +22,8 @@ services:
     image: blockstack/gaia-admin:2.8.2
     restart: always
     volumes:
-      - ./configs/gaia/admin-config.json:/src/admin/etc/config.json
-      - ./configs/gaia/hub-config.json:/tmp/hub/config.json
+      - ../configs/gaia/admin-config.json:/src/admin/etc/config.json
+      - ../configs/gaia/hub-config.json:/tmp/hub/config.json
       - /var/run/docker.sock:/var/run/docker.sock
     ports:
       - 8009:8009
@@ -39,7 +39,7 @@ services:
     image: blockstack/gaia-reader:2.8.2
     restart: always
     volumes:
-      - ./configs/gaia/reader-config.json:/src/reader/etc/config.json
+      - ../configs/gaia/reader-config.json:/src/reader/etc/config.json
       - ~/storage:/storage
     ports:
       - 8008:8008
@@ -57,9 +57,9 @@ services:
     restart: always
     volumes:
       - nginx_ssl:/etc/letsencrypt
-      - ./configs/nginx/conf.d/gaia.conf:/etc/nginx/user_conf.d/gaia.conf
-      - ./configs/nginx/nginx.conf:/etc/nginx/nginx.conf
-      - ./configs/nginx/dhparam.pem:/etc/letsencrypt/dhparams/dhparam.pem
+      - ../configs/nginx/conf.d/gaia.conf:/etc/nginx/user_conf.d/gaia.conf
+      - ../configs/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ../configs/nginx/dhparam.pem:/etc/letsencrypt/dhparams/dhparam.pem
     ports:
       - 80:80
       - 443:443
