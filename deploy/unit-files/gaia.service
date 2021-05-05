@@ -5,7 +5,7 @@ After=docker.service
 ConditionFileIsExecutable=/usr/local/bin/docker-compose
 
 [Service]
-WorkingDirectory=/gaia
+WorkingDirectory=/gaia/docker
 TimeoutStartSec=0
 Restart=on-failure
 RemainAfterExit=yes

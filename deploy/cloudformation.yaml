@@ -36,7 +36,7 @@ Mappings:
       Arch: HVM64
   AWSRegionArch2AMI:
     us-west-2:
-      HVM64: ami-0e629a0ea7852d8c4
+      HVM64: ami-0e4d6a22ff3b6eafa
 Resources:
   GaiaBucket:
     Type: AWS::S3::Bucket
@@ -54,7 +54,7 @@ Resources:
               - POST
             AllowedOrigins:
               - '*'
-            ExposeHeaders:
+            ExposedHeaders:
               - 'ETag'
             MaxAge: '0'
   GaiaBucketPolicy:
@@ -89,7 +89,7 @@ Resources:
           - 
             Effect: "Allow"
             Action: "s3:*"
-            Resource: !Ref GaiaBucketName
+            Resource: "*"
   tagRole:
     Type: 'AWS::IAM::Role'
     Properties:
