@@ -5,6 +5,14 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: 'Gaia Hub Template'
 Parameters:
+  VpcId:
+    Description: ID of the VPC in which to launch the EC2 instance
+    Type: AWS::EC2::VPC::Id
+    ConstraintDescription: must be the ID of an existing VPC.
+  SubnetId:
+    Description: ID of the Subnet in which to launch the EC2 instance
+    Type: AWS::EC2::Subnet::Id
+    ConstraintDescription: must be the ID of an existing Subnet.
   KeyName:
     Description: Name of an existing EC2 KeyPair to enable SSH access to the instance
     Type: AWS::EC2::KeyPair::KeyName
@@ -132,8 +140,9 @@ Resources:
       InstanceType:
         Ref: InstanceType
       IamInstanceProfile: !Ref tagProfile
-      SecurityGroups:
+      SecurityGroupIds:
       - Ref: InstanceSecurityGroup
+      SubnetId: !Ref SubnetId
       KeyName:
         Ref: KeyName
       ImageId:
@@ -175,6 +184,7 @@ Resources:
         FromPort: 443
         ToPort: 443
         CidrIp: 0.0.0.0/0
+      VpcId: !Ref VpcId
 Outputs:
   InstanceId:
     Description: InstanceId of the Gaia Hub
