@@ -6,6 +6,8 @@ services:
       - disk.env
 
   hub:
+    volumes:
+      - ${LOCAL_STORAGE}:${GAIA_DISK_STORAGE_ROOT_DIR}
     env_file:
       - disk.env
 
@@ -14,9 +16,27 @@ services:
       - disk.env
 
   reader:
+    image: blockstack/gaia-reader:2.8.2
+    restart: always
+    volumes:
+      - ../configs/gaia/reader-config.json:/src/reader/etc/config.json
+      - ${LOCAL_STORAGE}:${GAIA_DISK_STORAGE_ROOT_DIR}
     env_file:
       - disk.env
+    ports:
+      - 8008:8008
+    environment:
+      CONFIG_PATH: /src/reader/etc/config.json
+      GAIA_DISK_STORAGE_ROOT_DIR: /storage
+      NODE_ENV: production
+    networks:
+      - gaia
+    depends_on:
+      - prep
 
   nginx:
     env_file:
       - disk.env
+      depends_on:
+        - reader
+  

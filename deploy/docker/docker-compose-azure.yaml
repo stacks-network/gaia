@@ -13,10 +13,6 @@ services:
     env_file:
       - azure.env
 
-  reader:
-    env_file:
-      - azure.env
-
   nginx:
     env_file:
       - azure.env

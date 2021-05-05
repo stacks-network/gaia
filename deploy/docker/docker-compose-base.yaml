@@ -15,7 +15,6 @@ services:
     restart: always
     volumes:
       - ../configs/gaia/hub-config.json:/src/hub/etc/config.json
-      # - ~/storage:/storage
     ports:
       - 3000:3000
     environment:
@@ -43,23 +42,6 @@ services:
     depends_on:
     - prep
 
-  # reader:
-  #   image: blockstack/gaia-reader:2.8.2
-  #   restart: always
-  #   volumes:
-  #     - ../configs/gaia/reader-config.json:/src/reader/etc/config.json
-  #     - ~/storage:/storage
-  #   ports:
-  #     - 8008:8008
-  #   environment:
-  #     CONFIG_PATH: /src/reader/etc/config.json
-  #     GAIA_DISK_STORAGE_ROOT_DIR: /storage
-  #     NODE_ENV: production
-  #   networks:
-  #     - gaia
-  #   depends_on:
-  #     - prep
-
   nginx:
     image: jonasal/nginx-certbot:2
     restart: always
@@ -79,7 +61,6 @@ services:
     depends_on:
       - hub
       - admin
-      - reader
 
 volumes:
   nginx_ssl:

@@ -13,10 +13,6 @@ services:
     env_file:
       - aws.env
 
-  reader:
-    env_file:
-      - aws.env
-
   nginx:
     env_file:
       - aws.env

@@ -13,10 +13,6 @@ services:
     env_file:
       - gcp.env
 
-  reader:
-    env_file:
-      - gcp.env
-
   nginx:
     env_file:
       - gcp.env
