@@ -12,7 +12,7 @@ sudo cat <<EOF> /etc/rc.local
 # This script is executed at the end of each multiuser runlevel.
 # Make sure that the script will "exit 0" on success or any other
 # value on error.
-/usr/local/bin/aws_tags || exit 1
+source /usr/local/bin/aws_tags || exit 1
 
 echo === Configuring Gaia ===
 cp /root/gaia/deploy/docker/sample-aws.env /root/gaia/deploy/docker/aws.env
