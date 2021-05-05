@@ -1,6 +1,17 @@
 version: "3.8"
 
 services:
+  prep:
+    image: cmd.cat/envsubst
+    restart: on-failure:10
+    env_file:
+      - .env
+    volumes:
+      - ./configs/nginx/conf.d:/configs
+    networks:
+      - gaia
+    command: sh -c "envsubst '$${DOMAIN_NAME}' < /configs/gaia.template > /configs/gaia.conf"
+
   hub:
     image: blockstack/gaia-hub:2.8.2
     restart: always
