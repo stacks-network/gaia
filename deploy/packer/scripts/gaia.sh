@@ -25,7 +25,5 @@ sudo cp -R /root/gaia/deploy/packer/system-files/etc/sysctl.d/startup.conf /etc/
 for FILE in $(sudo ls /root/gaia/deploy/unit-files); do
   sudo cp -a /root/gaia/deploy/unit-files/${FILE} /etc/systemd/system/${FILE}
 done
-sudo cp -R /root/gaia/deploy/configs /gaia/
-sudo cp -R /root/gaia/deploy/docker /gaia/
 sudo systemctl disable gaia
 
