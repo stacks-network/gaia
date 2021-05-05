@@ -25,16 +25,18 @@ Parameters:
     AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
     ConstraintDescription: must be a valid IP CIDR range of the form x.x.x.x/x.
   DomainName:
-    Description: Domain Name to run hub 
+    Description: Domain Name to run hub
     Type: String
   GaiaBucketName:
-    Description: S3 Bucket to store data 
+    Description: S3 Bucket to store data
     Type: String
 Mappings:
   AWSInstanceType2Arch:
     t2.micro:
       Arch: HVM64
   AWSRegionArch2AMI:
+    us-east-1:
+      HVM64: ami-04c4e13d4ff216a72
     us-west-2:
       HVM64: ami-0e4d6a22ff3b6eafa
 Resources:
