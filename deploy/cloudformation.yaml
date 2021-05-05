@@ -166,6 +166,8 @@ Resources:
       - Key: BucketName
         Value:
           Ref: GaiaBucketName
+      - Key: Name
+        Value: !Ref AWS::StackName
       # - Key: GaiaStorageType
       #   Value:
       #     Ref: GaiaStorageType
