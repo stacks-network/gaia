@@ -3,16 +3,16 @@ version: "3.8"
 services:
   hub:
     env_file:
-      - env-aws.env
+      - aws.env
 
   admin:
     env_file:
-      - env-aws.env
+      - aws.env
 
   reader:
     env_file:
-      - env-aws.env
+      - aws.env
 
   nginx:
     env_file:
-      - env-aws.env
+      - aws.env

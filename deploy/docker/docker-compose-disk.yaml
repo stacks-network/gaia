@@ -3,16 +3,16 @@ version: "3.8"
 services:
   hub:
     env_file:
-      - env-disk.env
+      - disk.env
 
   admin:
     env_file:
-      - env-disk.env
+      - disk.env
 
   reader:
     env_file:
-      - env-disk.env
+      - disk.env
 
   nginx:
     env_file:
-      - env-disk.env
+      - disk.env

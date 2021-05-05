@@ -3,16 +3,16 @@ version: "3.8"
 services:
   hub:
     env_file:
-      - env-gcp.env
+      - gcp.env
 
   admin:
     env_file:
-      - env-gcp.env
+      - gcp.env
 
   reader:
     env_file:
-      - env-gcp.env
+      - gcp.env
 
   nginx:
     env_file:
-      - env-gcp.env
+      - gcp.env
