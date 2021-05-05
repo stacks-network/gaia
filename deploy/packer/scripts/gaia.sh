@@ -20,7 +20,6 @@ sed -i "s/DOMAIN_NAME=\".*\"/DOMAIN_NAME=\"$Domain\"/g" /gaia/deploy/docker/aws.
 sed -i "s/CERTBOT_EMAIL=\".*\"/CERTBOT_EMAIL=\"$Email\"/g" /gaia/deploy/docker/aws.env
 sed -i "s/GAIA_BUCKET_NAME=\".*\"/GAIA_BUCKET_NAME=\"$BucketName\"/g" /gaia/deploy/docker/aws.env
 
-sudo systemctl start gaia
 exit 0
 EOF
 
