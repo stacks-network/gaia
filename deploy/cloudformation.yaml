@@ -33,6 +33,14 @@ Parameters:
   GaiaBucketName:
     Description: S3 Bucket to store data
     Type: String
+  GaiaStorageType:
+    Description: Gaia storage type
+    Type: String
+    Default: aws
+    AllowedValues:
+    - aws
+    - disk
+    ConstraintDescription: Must be either 'aws' for S3 storage, or 'disk' for EBS storage.
 Mappings:
   AWSInstanceType2Arch:
     t2.micro:
@@ -146,6 +154,9 @@ Resources:
       - Key: BucketName
         Value:
           Ref: GaiaBucketName
+      - Key: GaiaStorageType
+        Value:
+          Ref: GaiaStorageType
   InstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:

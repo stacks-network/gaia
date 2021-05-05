@@ -33,5 +33,4 @@ for FILE in $(sudo ls /root/gaia/deploy/unit-files); do
   sudo cp -a /root/gaia/deploy/unit-files/${FILE} /etc/systemd/system/${FILE}
 done
 
-sudo systemctl disable gaia
-
+sudo systemctl enable gaia
