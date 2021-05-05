@@ -14,15 +14,14 @@ sudo cat <<EOF> /etc/rc.local
 # value on error.
 source /usr/local/bin/aws_tags || exit 1
 
-echo === Configuring Gaia ===
-cp /root/gaia/deploy/docker/sample-aws.env /root/gaia/deploy/docker/aws.env
+cp /root/gaia/deploy/docker/sample-aws.env /gaia/docker/aws.env
 sed -i "s/DOMAIN_NAME=\".*\"/DOMAIN_NAME=\"$Domain\"/g" /root/gaia/deploy/docker/aws.env
 sed -i "s/CERTBOT_EMAIL=\".*\"/CERTBOT_EMAIL=\"$Email\"/g" /root/gaia/deploy/docker/aws.env
 sed -i "s/GAIA_BUCKET_NAME=\".*\"/GAIA_BUCKET_NAME=\"$BucketName\"/g" /root/gaia/deploy/docker/aws.env
 exit 0
 EOF
 
-chmod 755 /etc/rc.local
+sudo chmod 755 /etc/rc.local
 sudo mv /tmp/aws_tags /usr/local/bin/aws_tags
 sudo chmod 755 /usr/local/bin/aws_tags
 
@@ -33,4 +32,8 @@ for FILE in $(sudo ls /root/gaia/deploy/unit-files); do
   sudo cp -a /root/gaia/deploy/unit-files/${FILE} /etc/systemd/system/${FILE}
 done
 
+sudo cp -R /root/gaia/deploy/configs /gaia/
+sudo cp -R /root/gaia/deploy/docker /gaia/
+
 sudo systemctl enable gaia
+sudo rm -rf /root/gaia
