@@ -5,7 +5,7 @@ services:
     env_file:
       - aws.env
 
-    hub:
+  hub:
     env_file:
       - aws.env
 
