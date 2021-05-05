@@ -62,7 +62,11 @@ Resources:
   GaiaBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Ref GaiaBucketName
+      BucketName: !Join
+              - ''
+              - - !Ref GaiaBucketName
+                - '-'
+                - !Ref AWS::StackName
       AccessControl: PublicRead
       CorsConfiguration:
         CorsRules:
@@ -81,7 +85,7 @@ Resources:
   GaiaBucketPolicy:
     Type: 'AWS::S3::BucketPolicy'
     Properties:
-      Bucket: !Ref GaiaBucketName
+      Bucket: !Ref GaiaBucket
       PolicyDocument:
         Statement:
           - Action:
@@ -91,7 +95,7 @@ Resources:
             Resource: !Join
               - ''
               - - 'arn:aws:s3:::'
-                - !Ref GaiaBucketName
+                - !Ref GaiaBucket
                 - /*
             Principal: '*'
   tagPolicy: 
@@ -163,6 +167,8 @@ Resources:
       - Key: BucketName
         Value:
           Ref: GaiaBucketName
+      - Key: Name
+        Value: !Ref AWS::StackName
       # - Key: GaiaStorageType
       #   Value:
       #     Ref: GaiaStorageType
