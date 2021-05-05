@@ -2,6 +2,7 @@
 [Unit]
 Description=Gaia Hub Service
 After=docker.service
+ConditionPathExists=/gaia/deploy/docker/aws.env
 ConditionFileIsExecutable=/usr/local/bin/docker-compose
 
 [Service]
