@@ -14,7 +14,7 @@ ExecStartPre=-/usr/bin/docker-compose pull
 ExecStart=/usr/local/bin/docker-compose -f docker-compose-base.yaml -f docker-compose-aws.yaml --env-file aws.env up
 
 ExecStop=-/usr/local/bin/docker-compose -f docker-compose-base.yaml -f docker-compose-aws.yaml --env-file aws.env down
-ExecReload=-/usr/local/bin/docker-compose -f docker-compose-base.yaml -f docker-compose-aws.yaml --env-file aws.env down; /usr/loca/bin/docker-compose -f docker-compose-base.yaml -f docker-compose-aws.yaml --env-file aws.env up -d
+ExecReload=-/usr/local/bin/docker-compose -f docker-compose-base.yaml -f docker-compose-aws.yaml --env-file aws.env down; /usr/local/bin/docker-compose -f docker-compose-base.yaml -f docker-compose-aws.yaml --env-file aws.env up -d
 
 [Install]
 WantedBy=gaia.service
