@@ -37,6 +37,8 @@ services:
   nginx:
     env_file:
       - disk.env
+    volumes:
+      - ../configs/nginx/reader.conf:/etc/nginx/reader.conf
     depends_on:
       - reader
   

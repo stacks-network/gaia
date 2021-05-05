@@ -125,11 +125,8 @@ server {
     break;
   }
 
-  location /reader/ {
-    # proxy
-    proxy_pass http://gaia_reader/;
-    break;
-  }
+  # /reader
+  include /etc/nginx/reader*conf;
 
   location = /healthz {
     satisfy any;
