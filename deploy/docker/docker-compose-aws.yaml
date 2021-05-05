@@ -1,7 +1,11 @@
 version: "3.8"
 
 services:
-  hub:
+  prep:
+    env_file:
+      - aws.env
+
+    hub:
     env_file:
       - aws.env
 

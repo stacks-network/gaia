@@ -1,6 +1,10 @@
 version: "3.8"
 
 services:
+  prep:
+    env_file:
+      - disk.env
+
   hub:
     env_file:
       - disk.env
