@@ -44,6 +44,10 @@
     }
   }],
   "provisioners": [{
+      "type": "file",
+      "source": "scripts/aws-tags.sh",
+      "destination": "/var/lib/cloud/scripts/per-boot/aws-tags.sh"
+  },{
     "type": "shell",
     "execute_command": "sudo -u root /bin/sh -c '{{.Path}}'",
     "environment_vars": [
