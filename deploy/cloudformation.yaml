@@ -27,6 +27,9 @@ Parameters:
   DomainName:
     Description: Domain Name to run hub
     Type: String
+  EmailAddress:
+    Description: Email address used to request SSL certificate
+    Type: String
   GaiaBucketName:
     Description: S3 Bucket to store data
     Type: String
@@ -135,8 +138,14 @@ Resources:
           - Arch
       Tags:
       - Key: Domain
-        Value: 
+        Value:
           Ref: DomainName
+      - Key: Email
+        Value:
+          Ref: EmailAddress
+      - Key: BucketName
+        Value:
+          Ref: GaiaBucketName
   InstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:

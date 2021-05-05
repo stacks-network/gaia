@@ -13,8 +13,15 @@ sudo cat <<EOF> /etc/rc.local
 # Make sure that the script will "exit 0" on success or any other
 # value on error.
 /usr/local/bin/aws_tags || exit 1
+
+echo === Configuring Gaia ===
+cp /root/gaia/deploy/docker/sample-aws.env /root/gaia/deploy/docker/aws.env
+sed -i "s/DOMAIN_NAME=\".*\"/DOMAIN_NAME=\"$Domain\"/g" /root/gaia/deploy/docker/aws.env
+sed -i "s/CERTBOT_EMAIL=\".*\"/CERTBOT_EMAIL=\"$Email\"/g" /root/gaia/deploy/docker/aws.env
+sed -i "s/GAIA_BUCKET_NAME=\".*\"/GAIA_BUCKET_NAME=\"$BucketName\"/g" /root/gaia/deploy/docker/aws.env
 exit 0
 EOF
+
 chmod 755 /etc/rc.local
 sudo mv /tmp/aws_tags /usr/local/bin/aws_tags
 sudo chmod 755 /usr/local/bin/aws_tags
@@ -25,5 +32,6 @@ sudo cp -R /root/gaia/deploy/packer/system-files/etc/sysctl.d/startup.conf /etc/
 for FILE in $(sudo ls /root/gaia/deploy/unit-files); do
   sudo cp -a /root/gaia/deploy/unit-files/${FILE} /etc/systemd/system/${FILE}
 done
+
 sudo systemctl disable gaia
 
