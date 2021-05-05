@@ -47,9 +47,9 @@ Mappings:
       Arch: HVM64
   AWSRegionArch2AMI:
     us-east-1:
-      HVM64: ami-04c4e13d4ff216a72
-    us-west-2:
-      HVM64: ami-0e4d6a22ff3b6eafa
+      HVM64: ami-04260c964d6617bf0
+    # us-west-2:
+    #   HVM64: ami-0e4d6a22ff3b6eafa
 Resources:
   GaiaBucket:
     Type: AWS::S3::Bucket
