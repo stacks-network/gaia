@@ -62,12 +62,13 @@ Mappings:
       aws: s3
       disk: disk
 Conditions:
-  CreateProdResources: !Equals
+  CreateS3Resources: !Equals
     - !Ref GaiaStorageType
     - s3
 Resources:
   GaiaBucket:
     Type: AWS::S3::Bucket
+    Condition: CreateS3Resources
     Properties:
       BucketName: !Join
         - ""
@@ -91,6 +92,7 @@ Resources:
             MaxAge: "0"
   GaiaBucketPolicy:
     Type: "AWS::S3::BucketPolicy"
+    Condition: CreateS3Resources
     Properties:
       Bucket: !Ref GaiaBucket
       PolicyDocument:
@@ -156,7 +158,7 @@ Resources:
         Fn::FindInMap:
           - AWSRegion2AMI
           - Ref: AWS::Region
-          - AMI
+          - Ref: GaiaStorageType
       Tags:
         - Key: Name
           Value:
@@ -167,15 +169,18 @@ Resources:
         - Key: Email
           Value:
             Ref: EmailAddress
-        - Key: BucketName
-          Value:
-            Ref: GaiaBucketName
         - Key: GaiaStorageType
           Value:
             Fn::FindInMap:
               - StorageType2Tag
-              - Storagetype
+              - StorageType
               - Ref: GaiaStorageType
+        - !If
+          - CreateS3Resources
+          - Key: BucketName
+            Value:
+              Ref: GaiaBucket
+          - !Ref "AWS::NoValue"
   InstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -221,3 +226,4 @@ Outputs:
     Description: S3 Bucket where Gaia Hub Stores data
     Value:
       Ref: GaiaBucket
+    Condition: CreateS3Resources
