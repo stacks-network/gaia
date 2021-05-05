@@ -21,7 +21,7 @@
       "subnet_id": "{{user `subnet_id`}}",
       "ssh_username": "{{user `aws_ssh_username`}}",
       "ami_groups": "all",
-      "ami_name": "{{user `name_prefix`}}-ebs-{{user `version`}}-hvm",
+      "ami_name": "{{user `name_prefix`}}-ebs-{{user `version`}}-hvm-{{timestamp}}",
       "ami_regions": "{{user `ami_regions`}}",
       "ami_description": "{{user `ami_description`}} {{user `version`}} EBS (HVM)",
       "user_data_file": "{{user `user_data_file`}}",
