@@ -3,7 +3,7 @@ const privateKey = bsk.makeECPrivateKey()
 const publicKey = bsk.getPublicKeyFromPrivate(privateKey)
 const address = bsk.publicKeyToAddress(publicKey)
 
-const hubUrl = 'http://localhost:80'
+const hubUrl = 'https://gaia.stacks.co'
 
 bsk.connectToGaiaHub(hubUrl, privateKey)
   .then((hubConfig) => {
