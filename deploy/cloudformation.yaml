@@ -2,8 +2,8 @@
 # Amazon EC2 instance in a security group Creates an Amazon EC2 instance in an Amazon EC2 security group.
 #https://raw.githubusercontent.com/tongueroo/cloudformation-examples/master/templates/single-instance.yml
 ---
-AWSTemplateFormatVersion: '2010-09-09'
-Description: 'Gaia Hub Template'
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Gaia Hub Template"
 Parameters:
   VpcId:
     Description: ID of the VPC in which to launch the EC2 instance
@@ -30,8 +30,8 @@ Parameters:
   SSHLocation:
     Description: The IP address range that can be used to SSH to the EC2 instances
     Type: String
-    MinLength: '9'
-    MaxLength: '18'
+    MinLength: "9"
+    MaxLength: "18"
     Default: 0.0.0.0/0
     AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
     ConstraintDescription: must be a valid IP CIDR range of the form x.x.x.x/x.
@@ -49,8 +49,8 @@ Parameters:
     Type: String
     Default: s3
     AllowedValues:
-    - s3
-    - disk
+      - s3
+      - disk
     ConstraintDescription: Must be either 's3' for S3 storage, or 'disk' for EBS storage.
 Mappings:
   AWSRegion2AMI:
@@ -62,7 +62,7 @@ Mappings:
       aws: s3
       disk: disk
 Conditions:
-  CreateProdResources: !Equals 
+  CreateProdResources: !Equals
     - !Ref GaiaStorageType
     - s3
 Resources:
@@ -70,80 +70,76 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: !Join
-              - ''
-              - - !Ref GaiaBucketName
-                - '-'
-                - !Ref AWS::StackName
+        - ""
+        - - !Ref GaiaBucketName
+          - "-"
+          - !Ref AWS::StackName
       AccessControl: PublicRead
       CorsConfiguration:
         CorsRules:
           - AllowedHeaders:
-              - '*'
+              - "*"
             AllowedMethods:
               - GET
               - HEAD
               - DELETE
               - POST
             AllowedOrigins:
-              - '*'
+              - "*"
             ExposedHeaders:
-              - 'ETag'
-            MaxAge: '0'
+              - "ETag"
+            MaxAge: "0"
   GaiaBucketPolicy:
-    Type: 'AWS::S3::BucketPolicy'
+    Type: "AWS::S3::BucketPolicy"
     Properties:
       Bucket: !Ref GaiaBucket
       PolicyDocument:
         Statement:
           - Action:
-              - 's3:GetObject'
-              - 's3:GetObjectVersion'
+              - "s3:GetObject"
+              - "s3:GetObjectVersion"
             Effect: Allow
             Resource: !Join
-              - ''
-              - - 'arn:aws:s3:::'
+              - ""
+              - - "arn:aws:s3:::"
                 - !Ref GaiaBucket
                 - /*
-            Principal: '*'
-  tagPolicy: 
+            Principal: "*"
+  tagPolicy:
     Type: AWS::IAM::ManagedPolicy
-    Properties: 
+    Properties:
       ManagedPolicyName: !Ref AWS::StackName
       Description: "Policy for Retrieving Tags"
       Path: "/"
-      PolicyDocument: 
+      PolicyDocument:
         Version: "2012-10-17"
-        Statement: 
-          - 
-            Effect: "Allow"
+        Statement:
+          - Effect: "Allow"
             Action: "ec2:Describe*"
             Resource: "*"
-          - 
-            Effect: "Allow"
+          - Effect: "Allow"
             Action: "s3:*"
             Resource: "*"
   tagRole:
-    Type: 'AWS::IAM::Role'
+    Type: "AWS::IAM::Role"
     Properties:
-      ManagedPolicyArns: [
-        !Ref tagPolicy
-      ]
+      ManagedPolicyArns: [!Ref tagPolicy]
       AssumeRolePolicyDocument:
         Statement:
           - Action:
-              - 'sts:AssumeRole'
+              - "sts:AssumeRole"
             Effect: Allow
-            Principal: 
-              Service: 
+            Principal:
+              Service:
                 - "ec2.amazonaws.com"
       Path: /
       RoleName: !Ref AWS::StackName
   tagProfile:
-    Type: 'AWS::IAM::InstanceProfile'
-    Properties: 
+    Type: "AWS::IAM::InstanceProfile"
+    Properties:
       Path: /
       Roles:
-        - !Ref tagRole 
+        - !Ref tagRole
       InstanceProfileName: !Ref AWS::StackName
   EC2Instance:
     Type: AWS::EC2::Instance
@@ -152,76 +148,76 @@ Resources:
         Ref: InstanceType
       IamInstanceProfile: !Ref tagProfile
       SecurityGroupIds:
-      - Ref: InstanceSecurityGroup
+        - Ref: InstanceSecurityGroup
       SubnetId: !Ref SubnetId
       KeyName:
         Ref: KeyName
       ImageId:
         Fn::FindInMap:
-        - AWSRegion2AMI
-        - Ref: AWS::Region
-        - AMI
+          - AWSRegion2AMI
+          - Ref: AWS::Region
+          - AMI
       Tags:
-      - Key: Name
-        Value:
-          Ref: AWS::StackName
-      - Key: Domain
-        Value:
-          Ref: DomainName
-      - Key: Email
-        Value:
-          Ref: EmailAddress
-      - Key: BucketName
-        Value:
-          Ref: GaiaBucketName
-      - Key: GaiaStorageType
-        Value:
-          Fn::FindInMap:
-          - StorageType2Tag
-          - Storagetype
-          - Ref: GaiaStorageType
+        - Key: Name
+          Value:
+            Ref: AWS::StackName
+        - Key: Domain
+          Value:
+            Ref: DomainName
+        - Key: Email
+          Value:
+            Ref: EmailAddress
+        - Key: BucketName
+          Value:
+            Ref: GaiaBucketName
+        - Key: GaiaStorageType
+          Value:
+            Fn::FindInMap:
+              - StorageType2Tag
+              - Storagetype
+              - Ref: GaiaStorageType
   InstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Gaia-Hub
       GroupName: !Ref AWS::StackName
       SecurityGroupIngress:
-      - IpProtocol: tcp
-        FromPort: '22'
-        ToPort: '22'
-        CidrIp: 
-          Ref: SSHLocation
-      - IpProtocol: tcp
-        FromPort: 80
-        ToPort: 80
-        CidrIp: 0.0.0.0/0
-      - IpProtocol: tcp
-        FromPort: 443
-        ToPort: 443
-        CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: "22"
+          ToPort: "22"
+          CidrIp:
+            Ref: SSHLocation
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
       VpcId: !Ref VpcId
 Outputs:
   InstanceId:
     Description: InstanceId of the Gaia Hub
-    Value: 
+    Value:
       Ref: EC2Instance
   PublicDNS:
     Description: Public DNSName of the Gaia Hub
     Value:
       Fn::GetAtt:
-      - EC2Instance
-      - PublicDnsName
+        - EC2Instance
+        - PublicDnsName
   Domain:
     Description: Supplied Domain to use
-    Value: 
+    Value:
       Ref: DomainName
   PublicIP:
     Description: Public IP address of the Gaia Hub
     Value:
       Fn::GetAtt:
-      - EC2Instance
-      - PublicIp
+        - EC2Instance
+        - PublicIp
   GaiaBucket:
     Description: S3 Bucket where Gaia Hub Stores data
     Value:
-        Ref: GaiaBucket
+      Ref: GaiaBucket
