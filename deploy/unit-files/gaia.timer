@@ -1,0 +1,9 @@
+# gaia.timer
+[Unit]
+Description=Gaia Hub timer
+
+[Timer]
+OnStartupSec=60
+
+[Install]
+WantedBy=timers.target
