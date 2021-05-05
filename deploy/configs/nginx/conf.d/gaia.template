@@ -6,10 +6,6 @@ upstream gaia_admin {
   server  admin.gaia:8009;
 }
 
-upstream gaia_reader {
-  server  reader.gaia:8008;
-}
-
 server {
   listen 443 ssl;
   listen [::]:443 ssl;
