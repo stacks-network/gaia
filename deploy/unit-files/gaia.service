@@ -12,10 +12,11 @@ Restart=on-failure
 RemainAfterExit=yes
 RestartSec=30
 ExecStartPre=-/usr/bin/docker-compose pull
-ExecStart=/usr/local/bin/docker-compose -f docker-compose-base.yaml -f docker-compose-aws.yaml --env-file aws.env up
+ExecStart=/bin/bash -c '. aws_tags; /usr/local/bin/docker-compose -f docker-compose-base.yaml -f docker-compose-$${GaiaStorageType%:*}.yaml --env-file $${GaiaStorageType%:*}.env up -d'
 
-ExecStop=-/usr/local/bin/docker-compose -f docker-compose-base.yaml -f docker-compose-aws.yaml --env-file aws.env down
-ExecReload=-/usr/local/bin/docker-compose -f docker-compose-base.yaml -f docker-compose-aws.yaml --env-file aws.env down; /usr/local/bin/docker-compose -f docker-compose-base.yaml -f docker-compose-aws.yaml --env-file aws.env up -d
+ExecStop=/bin/bash -c '. aws_tags; /usr/local/bin/docker-compose -f docker-compose-base.yaml -f docker-compose-$${GaiaStorageType%:*}.yaml --env-file $${GaiaStorageType%:*}.env down'
+
+ExecReload=-/bin/bash -c '. aws_tags; /usr/local/bin/docker-compose -f docker-compose-base.yaml -f docker-compose-$${GaiaStorageType%:*}.yaml --env-file $${GaiaStorageType%:*}.env down; /usr/local/bin/docker-compose -f docker-compose-base.yaml -f docker-compose-$${GaiaStorageType%:*}.yaml --env-file $${GaiaStorageType%:*}.env up -d
 
 [Install]
 WantedBy=gaia.service

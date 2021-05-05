@@ -22,7 +22,10 @@ Parameters:
     Type: String
     Default: t2.micro
     AllowedValues:
-    - t2.micro
+      - t2.micro
+      - t2.medium
+      - m5.large
+      - m5.xlarge
     ConstraintDescription: must be a valid EC2 instance type.
   SSHLocation:
     Description: The IP address range that can be used to SSH to the EC2 instances
@@ -39,25 +42,31 @@ Parameters:
     Description: Email address used to request SSL certificate
     Type: String
   GaiaBucketName:
-    Description: S3 Bucket to store data
+    Description: S3 Bucket to store data. This will be ignored if GaiaStorageType is set to 'disk'
     Type: String
-  # GaiaStorageType:
-  #   Description: Gaia storage type
-  #   Type: String
-  #   Default: aws
-  #   AllowedValues:
-  #   - aws
-  #   - disk
-  #   ConstraintDescription: Must be either 'aws' for S3 storage, or 'disk' for EBS storage.
+  GaiaStorageType:
+    Description: Gaia storage type
+    Type: String
+    Default: s3
+    AllowedValues:
+    - s3
+    - disk
+    ConstraintDescription: Must be either 's3' for S3 storage, or 'disk' for EBS storage.
 Mappings:
-  AWSInstanceType2Arch:
-    t2.micro:
-      Arch: HVM64
-  AWSRegionArch2AMI:
+  AWSRegion2AMI:
     us-east-1:
-      HVM64: ami-046c56a920eb3fe8e
+      s3: ami-046c56a920eb3fe8e
+      disk: ami-046c56a920eb3fe8e
     # us-west-2:
     #   HVM64: ami-0254838274841b05a
+  StorageType2Tag:
+    StorageType:
+      aws: s3
+      disk: disk
+Conditions:
+  CreateProdResources: !Equals 
+    - !Ref GaiaStorageType
+    - s3
 Resources:
   GaiaBucket:
     Type: AWS::S3::Bucket
@@ -151,13 +160,13 @@ Resources:
         Ref: KeyName
       ImageId:
         Fn::FindInMap:
-        - AWSRegionArch2AMI
+        - AWSRegion2AMI
         - Ref: AWS::Region
-        - Fn::FindInMap:
-          - AWSInstanceType2Arch
-          - Ref: InstanceType
-          - Arch
+        - AMI
       Tags:
+      - Key: Name
+        Value:
+          Ref: AWS::StackName
       - Key: Domain
         Value:
           Ref: DomainName
@@ -167,11 +176,12 @@ Resources:
       - Key: BucketName
         Value:
           Ref: GaiaBucketName
-      - Key: Name
-        Value: !Ref AWS::StackName
-      # - Key: GaiaStorageType
-      #   Value:
-      #     Ref: GaiaStorageType
+      - Key: GaiaStorageType
+        Value:
+          Fn::FindInMap:
+          - StorageType2Tag
+          - Storagetype
+          - Ref: GaiaStorageType
   InstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:

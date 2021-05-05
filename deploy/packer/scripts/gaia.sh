@@ -16,9 +16,14 @@ sudo cat <<'EOF'> /etc/rc.local
 
 echo === Configuring Gaia ===
 cp /gaia/deploy/docker/sample-aws.env /gaia/deploy/docker/aws.env
+cp /gaia/deploy/docker/sample-disk.env /gaia/deploy/docker/disk.env
+
 sed -i "s/DOMAIN_NAME=\".*\"/DOMAIN_NAME=\"$Domain\"/g" /gaia/deploy/docker/aws.env
 sed -i "s/CERTBOT_EMAIL=\".*\"/CERTBOT_EMAIL=\"$Email\"/g" /gaia/deploy/docker/aws.env
 sed -i "s/GAIA_BUCKET_NAME=\".*\"/GAIA_BUCKET_NAME=\"$BucketName\"/g" /gaia/deploy/docker/aws.env
+
+sed -i "s/DOMAIN_NAME=\".*\"/DOMAIN_NAME=\"$Domain\"/g" /gaia/deploy/docker/disk.env
+sed -i "s/CERTBOT_EMAIL=\".*\"/CERTBOT_EMAIL=\"$Email\"/g" /gaia/deploy/docker/disk.env
 
 exit 0
 EOF
