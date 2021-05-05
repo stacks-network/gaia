@@ -63,16 +63,56 @@ server {
     return 301 https://$host$request_uri;
   }
 
-  location = / {
-    root /usr/share/nginx/html;
-    try_files /index.html $uri $uri/;
-    break;
-  }
-
   location / {
+    add_header Access-Control-Allow-Origin *;
+    add_header Access-Control-Allow-Methods GET;
     # proxy
     proxy_pass http://gaia_hub/;
     break;
+  }
+
+  location ~ ^/store/([123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]+)/?.*$ {
+    if ($redirect_to_https) {
+      return 308 https://$host$request_uri;
+    }
+    # Cors Preflight methods needs additional options and different Return Code
+    if ($request_method = 'OPTIONS') {
+      add_header Access-Control-Allow-Origin *;
+      add_header Access-Control-Allow-Methods "POST, OPTIONS";
+      add_header Access-Control-Allow-Headers "Origin, X-Requested-With, Content-Type, authorization, If-Match, If-None-Match";
+      add_header Access-Control-Max-Age 21600;
+      add_header Content-Type "text/plain charset=UTF-8";
+      add_header Content-Length 0;
+      return 204;
+    }
+    add_header Access-Control-Allow-Origin *;
+    add_header Access-Control-Allow-Methods "POST, OPTIONS";
+    add_header Access-Control-Allow-Headers "authorization, Content-Type, If-Match, If-None-Match";
+    set $location_path  "/";
+    client_max_body_size 25m;
+    # access_by_lua_file '/etc/nginx/lua/rate-limiting.lua';
+    proxy_pass http://gaia_hub;
+  }
+
+  location ~ ^/(delete|list-files|revoke-all)/([123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]+)/?.*$ {
+    if ($redirect_to_https) {
+      return 308 https://$host$request_uri;
+    }
+    # Cors Preflight methods needs additional options and different Return Code
+    if ($request_method = 'OPTIONS') {
+      add_header Access-Control-Allow-Origin *;
+      add_header Access-Control-Allow-Methods "DELETE, POST, GET, OPTIONS";
+      add_header Access-Control-Allow-Headers "Origin, X-Requested-With, Content-Type, authorization, If-Match, If-None-Match";
+      add_header Access-Control-Max-Age 21600;
+      add_header Content-Type "text/plain charset=UTF-8";
+      add_header Content-Length 0;
+      return 204;
+    }
+    add_header Access-Control-Allow-Origin *;
+    add_header Access-Control-Allow-Methods "DELETE, POST, GET, OPTIONS";
+    add_header Access-Control-Allow-Headers "Origin, X-Requested-With, Content-Type, authorization, If-Match, If-None-Match";
+    set $location_path  "/";
+    proxy_pass http://gaia_hub;
   }
 
   location /admin {

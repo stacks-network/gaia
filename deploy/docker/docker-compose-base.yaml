@@ -20,7 +20,6 @@ services:
       - 3000:3000
     environment:
       CONFIG_PATH: /src/hub/etc/config.json
-      GAIA_DISK_STORAGE_ROOT_DIR: /storage
       NODE_ENV: production
     networks:
       - gaia
@@ -73,7 +72,6 @@ services:
       - 80:80
       - 443:443
     environment:
-      CERTBOT_EMAIL: ${EMAIL}
       STAGING: 0
       DEBUG: 0
     networks:
