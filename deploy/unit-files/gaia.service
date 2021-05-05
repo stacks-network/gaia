@@ -1,23 +1,20 @@
 # gaia.service
 [Unit]
-Description=Gaia
-Requires=docker.service
-Requires=create-docker-network.service
-Requires=clone-repo.service
-Requires=letsencrypt-init.service
-Requires=check-dns.service
+Description=Gaia Hub Service
 After=docker.service
-After=create-docker-network.service
-After=clone-repo.service
-After=letsencrypt-init.service
-After=check-dns.service
-ConditionPathExists=/tmp/letsencrypt.init
-ConditionPathExists=/tmp/dns_checked
+ConditionFileIsExecutable=/usr/local/bin/docker-compose
 
 [Service]
-Type=oneshot
-ExecStart=/bin/true
+WorkingDirectory=/gaia
+TimeoutStartSec=0
+Restart=on-failure
 RemainAfterExit=yes
+RestartSec=30
+ExecStartPre=-/usr/bin/docker-compose pull
+ExecStart=/usr/local/bin/docker-compose -f docker-compose.yaml up -d
+
+ExecStop=-/usr/local/bin/docker-compose -f docker-compose.yaml down
+ExecReload=-/usr/local/bin/docker-compose -f docker-compose.yaml down; /usr/loca/bin/docker-compose -f docker-compose.yaml up -d
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=gaia.service

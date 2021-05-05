@@ -1,3 +1,5 @@
+#!/bin/sh
+# export ec2 tags as env vars
 EC2_INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
 EC2_AZ=`curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone`
 EC2_REGION="`echo \"$EC2_AZ\" | sed 's/[a-z]$//'`"
