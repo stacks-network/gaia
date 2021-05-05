@@ -37,6 +37,6 @@ services:
   nginx:
     env_file:
       - disk.env
-      depends_on:
-        - reader
+    depends_on:
+      - reader
   
