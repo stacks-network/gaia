@@ -97,7 +97,7 @@ Resources:
   tagPolicy: 
     Type: AWS::IAM::ManagedPolicy
     Properties: 
-      ManagedPolicyName: Gaia_Hub_Describe_Tags
+      ManagedPolicyName: !Ref AWS::StackName
       Description: "Policy for Retrieving Tags"
       Path: "/"
       PolicyDocument: 
@@ -126,14 +126,14 @@ Resources:
               Service: 
                 - "ec2.amazonaws.com"
       Path: /
-      RoleName: Gaia_Hub_Tags
+      RoleName: !Ref AWS::StackName
   tagProfile:
     Type: 'AWS::IAM::InstanceProfile'
     Properties: 
       Path: /
       Roles:
         - !Ref tagRole 
-      InstanceProfileName: Gaia_Hub
+      InstanceProfileName: !Ref AWS::StackName
   EC2Instance:
     Type: AWS::EC2::Instance
     Properties:
@@ -169,7 +169,8 @@ Resources:
   InstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: Enable SSH access via port 22
+      GroupDescription: Gaia-Hub
+      GroupName: !Ref AWS::StackName
       SecurityGroupIngress:
       - IpProtocol: tcp
         FromPort: '22'
