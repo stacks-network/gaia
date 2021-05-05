@@ -55,17 +55,14 @@ Mappings:
       Arch: HVM64
   AWSRegionArch2AMI:
     us-east-1:
-      HVM64: ami-0f7135eb03cf6da7f
+      HVM64: ami-046c56a920eb3fe8e
     # us-west-2:
     #   HVM64: ami-0254838274841b05a
 Resources:
   GaiaBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Join
-              - ''
-              - - !Ref GaiaBucketName
-                - !Ref AWS::StackName
+      BucketName: !Ref GaiaBucketName
       AccessControl: PublicRead
       CorsConfiguration:
         CorsRules:
@@ -166,8 +163,6 @@ Resources:
       - Key: BucketName
         Value:
           Ref: GaiaBucketName
-      - Key: Name
-        Value: !Ref AWS::StackName
       # - Key: GaiaStorageType
       #   Value:
       #     Ref: GaiaStorageType
