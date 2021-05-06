@@ -59,7 +59,7 @@ Mappings:
       disk: ami-0fee1adb52fef6a51
   StorageType2Tag:
     StorageType:
-      aws: s3
+      s3: aws
       disk: disk
 Conditions:
   CreateS3Resources: !Equals
