@@ -71,9 +71,8 @@ Resources:
     Condition: CreateS3Resources
     Properties:
       BucketName: !Join
-        - ""
+        - "-"
         - - !Ref GaiaBucketName
-          - "-"
           - !Ref AWS::StackName
       AccessControl: PublicRead
       CorsConfiguration:
