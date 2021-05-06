@@ -55,8 +55,8 @@ Parameters:
 Mappings:
   AWSRegion2AMI:
     us-east-1:
-      s3: ami-0c32a34ccfdfde9d7
-      disk: ami-08ebad8cb86bdc41c
+      s3: ami-0d82785510af3274e
+      disk: ami-04957312a84a3936a
   StorageType2Tag:
     StorageType:
       s3: aws
