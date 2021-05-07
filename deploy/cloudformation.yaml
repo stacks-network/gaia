@@ -10,7 +10,7 @@ Parameters:
     Type: AWS::EC2::VPC::Id
     ConstraintDescription: must be the ID of an existing VPC.
   SubnetId:
-    Description: ID of the Subnet in which to launch the EC2 instance
+    Description: ID of the public Subnet in which to launch the EC2 instance
     Type: AWS::EC2::Subnet::Id
     ConstraintDescription: must be the ID of an existing Subnet.
   KeyName:
