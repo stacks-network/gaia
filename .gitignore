@@ -75,3 +75,5 @@ hub/configs
 
 # Deploy files
 deploy/configs/nginx/conf.d/gaia.conf
+deploy/docker/*.env
+!deploy/docker/sample*.env

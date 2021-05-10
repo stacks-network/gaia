@@ -2,13 +2,18 @@ version: "3.8"
 
 services:
   prep:
-    image: cmd.cat/envsubst
+    image: cmd.cat/envsubst/openssl
     restart: on-failure:10
     volumes:
       - ../configs/nginx/conf.d:/configs
+      - nginx_ssl:/etc/letsencrypt/live
     networks:
       - gaia
-    command: sh -c "envsubst '$${DOMAIN_NAME}' < /configs/gaia.template > /configs/gaia.conf"
+    command: |
+      sh -c "envsubst '$${DOMAIN_NAME}' < /configs/gaia.template > /configs/gaia.conf && \
+      mkdir -p /etc/letsencrypt/live/localhost && \
+      openssl req -x509 -nodes -newkey rsa:2048 -days 1024 -keyout /etc/letsencrypt/live/localhost/privkey.pem -out /etc/letsencrypt/live/localhost/fullchain.pem -subj /CN=localhost && \
+      cp etc/letsencrypt/live/localhost/fullchain.pem etc/letsencrypt/live/localhost/chain.pem"
 
   hub:
     image: blockstack/gaia-hub:2.8.2
@@ -46,7 +51,7 @@ services:
     image: jonasal/nginx-certbot:2
     restart: always
     volumes:
-      - nginx_ssl:/etc/letsencrypt
+      - nginx_ssl:/etc/letsencrypt/live
       - ../configs/nginx/conf.d/gaia.conf:/etc/nginx/user_conf.d/gaia.conf
       - ../configs/nginx/nginx.conf:/etc/nginx/nginx.conf
       - ../configs/nginx/dhparam.pem:/etc/letsencrypt/dhparams/dhparam.pem
