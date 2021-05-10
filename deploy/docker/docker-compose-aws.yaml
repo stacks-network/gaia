@@ -1,0 +1,18 @@
+version: "3.8"
+
+services:
+  prep:
+    env_file:
+      - aws.env
+
+  hub:
+    env_file:
+      - aws.env
+
+  admin:
+    env_file:
+      - aws.env
+
+  nginx:
+    env_file:
+      - aws.env

@@ -1,0 +1,76 @@
+version: "3.8"
+
+services:
+  prep:
+    image: cmd.cat/envsubst/openssl
+    restart: on-failure:10
+    volumes:
+      - ../configs/nginx/conf.d:/configs
+      - nginx_ssl:/etc/letsencrypt/live
+    networks:
+      - gaia
+    command: |
+      sh -c "envsubst '$${DOMAIN_NAME}' < /configs/gaia.template > /configs/gaia.conf && \
+      mkdir -p /etc/letsencrypt/live/localhost && \
+      openssl req -x509 -nodes -newkey rsa:2048 -days 1024 -keyout /etc/letsencrypt/live/localhost/privkey.pem -out /etc/letsencrypt/live/localhost/fullchain.pem -subj /CN=localhost && \
+      cp etc/letsencrypt/live/localhost/fullchain.pem etc/letsencrypt/live/localhost/chain.pem"
+
+  hub:
+    image: blockstack/gaia-hub:2.8.2
+    restart: always
+    volumes:
+      - ../configs/gaia/hub-config.json:/src/hub/etc/config.json
+    ports:
+      - 3000:3000
+    environment:
+      CONFIG_PATH: /src/hub/etc/config.json
+      NODE_ENV: production
+    networks:
+      - gaia
+    depends_on:
+    - prep
+
+  admin:
+    image: blockstack/gaia-admin:2.8.2
+    restart: always
+    volumes:
+      - ../configs/gaia/admin-config.json:/src/admin/etc/config.json
+      - ../configs/gaia/hub-config.json:/tmp/hub/config.json
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - 8009:8009
+    environment:
+      CONFIG_PATH: /src/admin/etc/config.json
+      NODE_ENV: production
+    networks:
+      - gaia
+    depends_on:
+    - prep
+
+  nginx:
+    image: jonasal/nginx-certbot:2
+    restart: always
+    volumes:
+      - nginx_ssl:/etc/letsencrypt/live
+      - ../configs/nginx/conf.d/gaia.conf:/etc/nginx/user_conf.d/gaia.conf
+      - ../configs/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ../configs/nginx/dhparam.pem:/etc/letsencrypt/dhparams/dhparam.pem
+    ports:
+      - 80:80
+      - 443:443
+    environment:
+      STAGING: 0
+      DEBUG: 0
+    networks:
+      - gaia
+    depends_on:
+      - hub
+      - admin
+
+volumes:
+  nginx_ssl:
+
+networks:
+  gaia:
+    driver: bridge
+    name: gaia

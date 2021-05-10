@@ -1,0 +1,18 @@
+version: "3.8"
+
+services:
+  prep:
+    env_file:
+      - gcp.env
+
+  hub:
+    env_file:
+      - gcp.env
+
+  admin:
+    env_file:
+      - gcp.env
+
+  nginx:
+    env_file:
+      - gcp.env

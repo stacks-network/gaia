@@ -1,0 +1,228 @@
+# http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/sample-templates-services-us-west-2.html#w1ab2c21c45c15c15
+# Amazon EC2 instance in a security group Creates an Amazon EC2 instance in an Amazon EC2 security group.
+#https://raw.githubusercontent.com/tongueroo/cloudformation-examples/master/templates/single-instance.yml
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Gaia Hub Template"
+Parameters:
+  VpcId:
+    Description: ID of the VPC in which to launch the EC2 instance
+    Type: AWS::EC2::VPC::Id
+    ConstraintDescription: must be the ID of an existing VPC.
+  SubnetId:
+    Description: ID of the public Subnet in which to launch the EC2 instance
+    Type: AWS::EC2::Subnet::Id
+    ConstraintDescription: must be the ID of an existing Subnet.
+  KeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the instance
+    Type: AWS::EC2::KeyPair::KeyName
+    ConstraintDescription: must be the name of an existing EC2 KeyPair.
+  InstanceType:
+    Description: Gaia Hub EC2 instance type
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+      - t2.micro
+      - t2.medium
+      - m5.large
+      - m5.xlarge
+    ConstraintDescription: must be a valid EC2 instance type.
+  SSHLocation:
+    Description: The IP address range that can be used to SSH to the EC2 instances
+    Type: String
+    MinLength: "9"
+    MaxLength: "18"
+    Default: 0.0.0.0/0
+    AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
+    ConstraintDescription: must be a valid IP CIDR range of the form x.x.x.x/x.
+  DomainName:
+    Description: Domain Name to run hub
+    Type: String
+  EmailAddress:
+    Description: Email address used to request SSL certificate
+    Type: String
+  GaiaBucketName:
+    Description: S3 Bucket to store data. This will be ignored if GaiaStorageType is set to 'disk'
+    Type: String
+  GaiaStorageType:
+    Description: Gaia storage type
+    Type: String
+    Default: s3
+    AllowedValues:
+      - s3
+      - disk
+    ConstraintDescription: Must be either 's3' for S3 storage, or 'disk' for EBS storage.
+Mappings:
+  AWSRegion2AMI:
+    us-east-1:
+      s3: ami-0d82785510af3274e
+      disk: ami-04957312a84a3936a
+  StorageType2Tag:
+    StorageType:
+      s3: aws
+      disk: disk
+Conditions:
+  CreateS3Resources: !Equals
+    - !Ref GaiaStorageType
+    - s3
+Resources:
+  GaiaBucket:
+    Type: AWS::S3::Bucket
+    Condition: CreateS3Resources
+    Properties:
+      BucketName: !Join
+        - "-"
+        - - !Ref GaiaBucketName
+          - !Ref AWS::StackName
+      AccessControl: PublicRead
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - "*"
+            AllowedMethods:
+              - GET
+              - HEAD
+              - DELETE
+              - POST
+            AllowedOrigins:
+              - "*"
+            ExposedHeaders:
+              - "ETag"
+            MaxAge: "0"
+  GaiaBucketPolicy:
+    Type: "AWS::S3::BucketPolicy"
+    Condition: CreateS3Resources
+    Properties:
+      Bucket: !Ref GaiaBucket
+      PolicyDocument:
+        Statement:
+          - Action:
+              - "s3:GetObject"
+              - "s3:GetObjectVersion"
+            Effect: Allow
+            Resource: !Join
+              - ""
+              - - "arn:aws:s3:::"
+                - !Ref GaiaBucket
+                - /*
+            Principal: "*"
+  tagPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: !Ref AWS::StackName
+      Description: "Policy for Retrieving Tags"
+      Path: "/"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action: "ec2:Describe*"
+            Resource: "*"
+          - Effect: "Allow"
+            Action: "s3:*"
+            Resource: "*"
+  tagRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      ManagedPolicyArns: [!Ref tagPolicy]
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - "sts:AssumeRole"
+            Effect: Allow
+            Principal:
+              Service:
+                - "ec2.amazonaws.com"
+      Path: /
+      RoleName: !Ref AWS::StackName
+  tagProfile:
+    Type: "AWS::IAM::InstanceProfile"
+    Properties:
+      Path: /
+      Roles:
+        - !Ref tagRole
+      InstanceProfileName: !Ref AWS::StackName
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType:
+        Ref: InstanceType
+      IamInstanceProfile: !Ref tagProfile
+      SecurityGroupIds:
+        - Ref: InstanceSecurityGroup
+      SubnetId: !Ref SubnetId
+      KeyName:
+        Ref: KeyName
+      ImageId:
+        Fn::FindInMap:
+          - AWSRegion2AMI
+          - Ref: AWS::Region
+          - Ref: GaiaStorageType
+      Tags:
+        - Key: Name
+          Value:
+            Ref: AWS::StackName
+        - Key: Domain
+          Value:
+            Ref: DomainName
+        - Key: Email
+          Value:
+            Ref: EmailAddress
+        - Key: GaiaStorageType
+          Value:
+            Fn::FindInMap:
+              - StorageType2Tag
+              - StorageType
+              - Ref: GaiaStorageType
+        - !If
+          - CreateS3Resources
+          - Key: BucketName
+            Value:
+              Ref: GaiaBucket
+          - !Ref "AWS::NoValue"
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Gaia-Hub
+      GroupName: !Ref AWS::StackName
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: "22"
+          ToPort: "22"
+          CidrIp:
+            Ref: SSHLocation
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+      VpcId: !Ref VpcId
+Outputs:
+  InstanceId:
+    Description: InstanceId of the Gaia Hub
+    Value:
+      Ref: EC2Instance
+  PublicDNS:
+    Description: Public DNSName of the Gaia Hub
+    Value:
+      Fn::GetAtt:
+        - EC2Instance
+        - PublicDnsName
+  Domain:
+    Description: Supplied Domain to use
+    Value:
+      Ref: DomainName
+  PublicIP:
+    Description: Public IP address of the Gaia Hub
+    Value:
+      Fn::GetAtt:
+        - EC2Instance
+        - PublicIp
+  GaiaBucket:
+    Description: S3 Bucket where Gaia Hub Stores data
+    Value:
+      Ref: GaiaBucket
+    Condition: CreateS3Resources

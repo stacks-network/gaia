@@ -1,0 +1,12 @@
+{
+  "name_prefix": "hiro-gaia-hub",
+  "region": "us-east-1",
+  "ami_regions": "us-west-2",
+  "profile": "default",
+  "version": "2.8.1",
+  "vpc_id": "vpc-xxxxxxxx",
+  "subnet_id": "subnet-xxxxxxxx",
+  "root_volume_size": "10",
+  "ami_description": "Hiro Gaia-Hub",
+  "aws_ssh_username": "admin"
+}

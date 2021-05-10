@@ -1,0 +1,22 @@
+# gaia.service
+[Unit]
+Description=Gaia Hub Service
+After=docker.service
+ConditionPathExists=/gaia/deploy/docker/aws.env
+ConditionFileIsExecutable=/usr/local/bin/docker-compose
+
+[Service]
+WorkingDirectory=/gaia/deploy/docker
+TimeoutStartSec=0
+Restart=on-failure
+RemainAfterExit=yes
+RestartSec=30
+ExecStartPre=-/usr/bin/docker-compose pull
+ExecStart=/bin/bash -c '. aws_tags; /usr/local/bin/docker-compose -f docker-compose-base.yaml -f docker-compose-$${GaiaStorageType%:*}.yaml --env-file $${GaiaStorageType%:*}.env up'
+
+ExecStop=/bin/bash -c '. aws_tags; /usr/local/bin/docker-compose -f docker-compose-base.yaml -f docker-compose-$${GaiaStorageType%:*}.yaml --env-file $${GaiaStorageType%:*}.env down'
+
+ExecReload=-/bin/bash -c '. aws_tags; /usr/local/bin/docker-compose -f docker-compose-base.yaml -f docker-compose-$${GaiaStorageType%:*}.yaml --env-file $${GaiaStorageType%:*}.env down; /usr/local/bin/docker-compose -f docker-compose-base.yaml -f docker-compose-$${GaiaStorageType%:*}.yaml --env-file $${GaiaStorageType%:*}.env up
+
+[Install]
+WantedBy=gaia.service
