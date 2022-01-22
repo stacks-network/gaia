@@ -23,7 +23,7 @@
     "greenlock-store-fs": "^3.0.2",
     "jsontokens": "^2.0.2",
     "lru-cache": "^5.1.1",
-    "nanoid": "^2.1.11",
+    "nanoid": "^3.1.31",
     "node-fetch": "^2.6.1",
     "winston": "^3.2.1"
   },
