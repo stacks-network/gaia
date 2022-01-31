@@ -1,6 +1,6 @@
 #!/bin/sh
 echo === Cloning gaia repo ===
-sudo git clone -b great-gaia-guidance --depth 1 https://github.com/blockstack/gaia /gaia
+sudo git clone -b great-gaia-guidance --depth 1 https://github.com/stacks-network/gaia /gaia
 
 echo === Configuring Boot Scripts ===
 sudo mkdir -p /gaia

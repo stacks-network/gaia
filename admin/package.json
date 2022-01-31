@@ -21,7 +21,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/blockstack/gaia"
+    "url": "git+https://github.com/stacks-network/gaia"
   },
   "keywords": [
     "decentralized",
@@ -30,7 +30,7 @@
   "author": "Jude Nelson",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/blockstack/gaia"
+    "url": "https://github.com/stacks-network/gaia"
   },
   "dependencies": {
     "ajv": "^6.10.2",
@@ -59,7 +59,7 @@
     "ts-node": "^8.6.2",
     "typescript": "^3.7.5"
   },
-  "homepage": "https://github.com/blockstack/gaia",
+  "homepage": "https://github.com/stacks-network/gaia",
   "nyc": {
     "cache": false,
     "all": true,
