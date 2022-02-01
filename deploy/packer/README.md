@@ -89,6 +89,6 @@ example:
 
 2. Run the packer build process (ex): 
 ```bash
-$ VERSION=$(curl -sL https://api.github.com/repos/blockstack/gaia/tags | jq .[0].name | tr -d '"v')
+$ VERSION=$(curl -sL https://api.github.com/repos/stacks-network/gaia/tags | jq .[0].name | tr -d '"v')
 $ packer build --var-file=vars.json --var "version=${VERSION}" gaia.json
 ```

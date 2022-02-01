@@ -5,7 +5,7 @@ The rest of this will probably be refactored
 To get started running a gaia hub, execute the following:
 
 ```bash
-$ git clone https://github.com/blockstack/gaia.git
+$ git clone https://github.com/stacks-network/gaia.git
 $ cd gaia/hub/
 $ npm install
 $ npm run build

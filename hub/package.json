@@ -74,7 +74,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/blockstack/gaia.git"
+    "url": "https://github.com/stacks-network/gaia.git"
   },
   "authors": [
     "Aaron Blankstein (aaron@blockstack.com)",
