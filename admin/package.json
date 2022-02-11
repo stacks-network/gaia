@@ -33,7 +33,7 @@
     "url": "https://github.com/stacks-network/gaia"
   },
   "dependencies": {
-    "ajv": "^6.10.2",
+    "ajv": "^6.12.3",
     "body-parser": "^1.19.0",
     "cors": "^2.8.5",
     "cross-fetch": "^3.0.4",
