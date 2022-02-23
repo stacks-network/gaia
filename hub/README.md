@@ -1,3 +1,7 @@
+**WARNING! These instructions are obsolete and should be used with caution.  
+For better, up to date instructions on setting up a GAIA Hub please refer instead to:  
+(Running a GAIA hub with docker-compose)[https://github.com/stacks-network/gaia/blob/master/deploy/README.md]**  
+
 The rest of this will probably be refactored
 
 # Running the Gaia Hub
