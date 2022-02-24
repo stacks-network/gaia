@@ -1,9 +1,5 @@
 # Running a Gaia Hub with docker-compose
 
-Please refer to the [Official Docs](https://docs.stacks.co/storage-hubs/overview.html) for the most up to date instructions.
-
-
-
 ## MacOS for local testing/development
 
 The following assumes you have [Docker Installed](https://docs.docker.com/docker-for-mac/install/)
