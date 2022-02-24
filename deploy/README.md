@@ -22,7 +22,7 @@ In your working directory:
 
 1. Change your cwd:
     ```
-    $ cd gaia/docker
+    $ cd gaia/deploy/docker
     ```
 
 1. Create a copy of sample-disk.env and fill out the values:
