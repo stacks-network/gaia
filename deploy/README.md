@@ -45,7 +45,7 @@ In your working directory:
 
 ### Modifying the configuration for your gaia-hub
 Two methods exist:
-1. Edit the `gaia/deploy/configs/hub-config.json` using `vim` or other
+1. Edit the `gaia/deploy/configs/gaia/hub-config.json` using `vim` or other
   * requires a restart of the containers: `docker-compose -f docker-compose-base.yaml -f docker-compose-disk.yaml --env-file disk.env restart`
 
 
