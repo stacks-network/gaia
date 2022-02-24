@@ -15,6 +15,7 @@ remotely administer it with an API key.  Using this service, you can:
 You can build this service from this directory as follows:
 
 ```
+$ npm install
 $ npm run build
 ```
 
