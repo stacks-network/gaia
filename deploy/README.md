@@ -1,9 +1,5 @@
 # Running a Gaia Hub with docker-compose
 
-Please refer to the [Official Docs](https://docs.stacks.co/storage-hubs/overview.html) for the most up to date instructions.
-
-
-
 ## MacOS for local testing/development
 
 The following assumes you have [Docker Installed](https://docs.docker.com/docker-for-mac/install/)
@@ -22,7 +18,7 @@ In your working directory:
 
 1. Change your cwd:
     ```
-    $ cd gaia/docker
+    $ cd gaia/deploy/docker
     ```
 
 1. Create a copy of sample-disk.env and fill out the values:
@@ -49,7 +45,7 @@ In your working directory:
 
 ### Modifying the configuration for your gaia-hub
 Two methods exist:
-1. Edit the `gaia/deploy/configs/hub-config.json` using `vim` or other
+1. Edit the `gaia/deploy/configs/gaia/hub-config.json` using `vim` or other
   * requires a restart of the containers: `docker-compose -f docker-compose-base.yaml -f docker-compose-disk.yaml --env-file disk.env restart`
 
 
