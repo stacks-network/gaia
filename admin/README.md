@@ -15,6 +15,7 @@ remotely administer it with an API key.  Using this service, you can:
 You can build this service from this directory as follows:
 
 ```
+$ sudo npm install
 $ npm run build
 ```
 
@@ -24,12 +25,12 @@ To run in place:
 $ node lib/index.js [/path/to/config.json]
 ```
 
-To install this service as the `blockstack-gaia-admin` program in your `$PATH`:
+To install this service as the `gaia-admin` program in your `$PATH`:
 
 ```
 $ sudo npm install -g
-$ which blockstack-gaia-admin
-/usr/bin/blockstack-gaia-admin
+$ which gaia-admin
+/usr/bin/gaia-admin
 ```
 
 ## Configuration
@@ -41,15 +42,12 @@ it needs to know the following:
 * what API key(s) will be used to authenticate administrative requests
 * what command(s) to run to restart the Gaia hub on a config change
 
-Here is a sample config file for a Gaia hub config located at
-`/tmp/gaia-config.json`, and with a single API key "`hello`".  The reload
-command is set to kill all instances of the `blockstack-gaia-hub` program, and
-restart it with `nohup`.  You should tailor this to your deployment.
+Here is a sample config file for a Gaia hub config located [here](https://github.com/stacks-network/gaia/blob/master/deploy/configs/gaia/admin-config.json) with a single API key "`hello`".  The reload
+command is set to restart the docker container `docker_hub_1`.  You should tailor this to your deployment.
 
 ```bash
-$ cat /tmp/gaia-admin.json
 {
-   "argsTransport": {
+  "argsTransport": {
     "level": "debug",
     "handleExceptions": true,
     "timestamp": true,
@@ -58,13 +56,16 @@ $ cat /tmp/gaia-admin.json
     "json": true
   },
   "port": 8009,
-  "apiKeys": ["hello"],
+  "apiKeys": [ "hello" ],
   "gaiaSettings": {
-    "configPath": "/tmp/gaia-config.json"
+    "configPath": "/tmp/hub/config.json"
   },
   "reloadSettings": {
     "command": "/bin/sh",
-    "argv": ["-c", "pkill -9 blockstack-gaia-hub; nohup /usr/bin/blockstack-gaia-hub /tmp/gaia-config.json &"],
+    "argv": [
+      "-c",
+      "docker restart docker_hub_1 &"
+    ],
     "env": {},
     "setuid": 1000,
     "setgid": 1000
