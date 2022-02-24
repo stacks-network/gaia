@@ -25,12 +25,12 @@ To run in place:
 $ node lib/index.js [/path/to/config.json]
 ```
 
-To install this service as the `blockstack-gaia-admin` program in your `$PATH`:
+To install this service as the `gaia-admin` program in your `$PATH`:
 
 ```
 $ sudo npm install -g
-$ which blockstack-gaia-admin
-/usr/bin/blockstack-gaia-admin
+$ which gaia-admin
+/usr/bin/gaia-admin
 ```
 
 ## Configuration
