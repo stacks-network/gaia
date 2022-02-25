@@ -4,16 +4,11 @@ Gaia: A decentralized high-performance storage system
 [![codecov](https://codecov.io/gh/blockstack/gaia/branch/master/graph/badge.svg)](https://codecov.io/gh/blockstack/gaia)
 
 This document describes the high-level design and implementation of the
-Gaia storage system. It includes specifications for backend storage drivers
-and interactions between developer APIs and the Gaia service. 
+Gaia storage system, also briefly explained in the [docs.stacks.co](https://docs.stacks.co/build-apps/references/gaia). It includes specifications for backend storage drivers and interactions between developer APIs and the Gaia service.
 
-Developers who wish to _use_ the Gaia storage system should see the
-`blockstack.js` APIs
-documented [here](https://docs.stacks.co/build-apps/references/gaia) and [here](https://github.com/hirosystems/stacks.js/tree/master/packages/storage).
+Developers who wish to *use* the Gaia storage system should see the `stacks.js` documentation [here](https://stacks.js.org/) and in particular the storage package [here](https://github.com/hirosystems/stacks.js/tree/master/packages/storage).
 
-If you would like to deploy your own hub, there are instructions available [here](https://forum.stacks.org/t/tech-preview-using-your-own-gaia-hub-with-the-cli/6160)
-
-Instructions on setting up and configuring a Gaia Hub can be found in [this readme](https://github.com/stacks-network/gaia/blob/master/hub/README.md).
+Instructions on setting up and configuring a Gaia Hub can be found [here](https://github.com/stacks-network/gaia/blob/master/deploy/README.md) and [here](https://forum.stacks.org/t/tech-preview-using-your-own-gaia-hub-with-the-cli/6160).
 
 # Overview
 
