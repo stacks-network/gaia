@@ -12,7 +12,6 @@ Instructions on setting up and configuring a Gaia Hub can be found [here](https:
 
 # Overview
 
-<!--- I swapped these two paragraphs and did some word-smithing (jcn) -->
 Gaia works by hosting data in one or more existing storage systems of the user's choice.
 These storage systems are typically cloud storage systems.  We currently have driver support
 for S3 and Azure Blob Storage, but the driver model allows for other backend support
@@ -35,7 +34,7 @@ In Gaia, the control of user data lies in the way that user data is accessed. Wh
 fetches a file `data.txt` for a given user `alice.id`, the lookup will follow these steps:
 
 1. Fetch the zonefile for `alice.id`, and read her profile URL from that zonefile
-2. Fetch the Alice's profile and _verify_ that it is signed by `alice.id`'s key 
+2. Fetch the Alice's profile and _verify_ that it is signed by `alice.id`'s key
 3. Read the application root URL (e.g. `https://gaia.alice.org/`) out of the profile
 4. Fetch file from `https://gaia.alice.org/data.txt`
 
@@ -238,7 +237,7 @@ In order to limit the users that may interact with such a hub to users
 who provide social proofs of identity, we support an execution mode
 where the hub checks that a user's profile.json object contains
 _social proofs_ in order to be able to write to other locations. This
-can be configured via the [config.json](#configuration-files).
+can be configured via the `config.json`.
 
 # Driver model
 
@@ -273,11 +272,11 @@ interface DriverModel {
    * @param options.stream - the data to be stored at `path`
    * @param options.contentLength - the bytes of content in the stream
    * @param options.ifMatch - optional etag value to be used for optimistic concurrency control
-   * @param options.ifNoneMatch - used with the `*` value to save a file not known to exist, 
+   * @param options.ifNoneMatch - used with the `*` value to save a file not known to exist,
    * guaranteeing that another upload didn't happen before, losing the data of the previous
    * @returns Promise that resolves to an object containing a public-readable URL of the stored content and the objects etag value
    */
-  performWrite(options: { 
+  performWrite(options: {
     path: string;
     storageTopLevel: string;
     stream: Readable;
@@ -315,7 +314,7 @@ interface DriverModel {
   }): Promise<void>;
 
   /**
-   * Retrieves metadata for a given file. 
+   * Retrieves metadata for a given file.
    * @param options.path - path of the file
    * @param options.storageTopLevel - the top level directory
    */
@@ -332,7 +331,7 @@ interface DriverModel {
 
   /**
    * Returns an object with a NodeJS stream.Readable for the file content
-   * and metadata about the file. 
+   * and metadata about the file.
    * @param options.path - path of the file
    * @param options.storageTopLevel - the top level directory
    */
@@ -357,15 +356,15 @@ interface DriverModel {
   listFiles(options: {
     pathPrefix: string;
     page?: string;
-  }): Promise<{ 
+  }): Promise<{
     entries: string[];
     page?: string;
   }>;
 
   /**
    * Return a list of files beginning with the given prefix,
-   * as well as file metadata, and a driver-specific page identifier 
-   * for requesting the next page of entries. 
+   * as well as file metadata, and a driver-specific page identifier
+   * for requesting the next page of entries.
    */
   listFilesStat(options: {
     pathPrefix: string;

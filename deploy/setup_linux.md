@@ -2,7 +2,12 @@
 
 Steps to setup a GAIA hub on a Linux server (fresh install). This example is using Debian 11, but should work on any Linux distribution.  
 
-Server will use the following ports: 80, 443, 3000, 8008, 8009.
+This configuration will setup the following 4 docker containers:
+
+* Nginx with certbot on TCP ports 80 and 443.
+* Gaia hub on TCP port 3000.
+* Gaia admin on TCP port 8009.
+* Gaia reader on TCP port 8008
 
 **1. Update the system and install the dependencies and software we will use to test:**
 
@@ -29,7 +34,7 @@ mkdir -p ~/.docker/cli-plugins/
 curl -SL https://github.com/docker/compose/releases/download/v2.2.3/docker-compose-linux-x86_64 -o ~/.docker/cli-plugins/docker-compose
 chmod +x ~/.docker/cli-plugins/docker-compose
 ```
-**3. Clone the GAIA repository** and enter it's directory.
+**3. Clone the GAIA repository** and enter it's docker directory.
 
 ```bash
 git clone https://github.com/stacks-network/gaia.git && cd gaia/deploy/docker
