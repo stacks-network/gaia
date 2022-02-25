@@ -1,7 +1,7 @@
 Gaia: A decentralized high-performance storage system
 ====================================
 
-[![codecov](https://codecov.io/gh/blockstack/gaia/branch/master/graph/badge.svg)](https://codecov.io/gh/blockstack/gaia)
+[![codecov](https://codecov.io/gh/stacks-network/gaia/branch/master/graph/badge.svg)](https://app.codecov.io/gh/stacks-network/gaia)
 
 This document describes the high-level design and implementation of the
 Gaia storage system, also briefly explained in the [docs.stacks.co](https://docs.stacks.co/build-apps/references/gaia). It includes specifications for backend storage drivers and interactions between developer APIs and the Gaia service.
