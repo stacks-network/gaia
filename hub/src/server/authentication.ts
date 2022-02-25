@@ -322,7 +322,7 @@ export class V1Authentication implements AuthenticationInterface {
       let claimedHub = payload.hubUrl
       if (!claimedHub) {
         throw new ValidationError(
-          'Authentication must provide a claimed hub. You may need to update blockstack.js.')
+          'Authentication must provide a claimed hub. You may need to update stacks.js.')
       }
       if (claimedHub.endsWith('/')) {
         claimedHub = claimedHub.slice(0, -1)

@@ -5,7 +5,7 @@ export function testProofChecker() {
 
   test('proof checker validation', async (t) => {
     // This profile has 6 social proofs setup.
-    // At least 1 should be valid despite bugs in blockstack.js
+    // At least 1 should be valid despite bugs in stacks.js
     // social website DOM parsing or whatever else going wrong. 
     const address = '1Nw25PemCRv24UQAcZdaj4uD11nkTCWRTE'
     const filename = 'somefile'
