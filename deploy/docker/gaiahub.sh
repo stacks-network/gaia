@@ -39,7 +39,7 @@ check_files_exist() {
 
 #Checks if already running my containers
 check_containers() {
-	if [[ $(docker compose -f ${SCRIPTPATH}/${FILE1} -f ${SCRIPTPATH}/${FILE2} --env-file $SCRIPTPATH{}/${FILE3} ps -q) ]];
+	if [[ $(docker compose -f ${SCRIPTPATH}/${FILE1} -f ${SCRIPTPATH}/${FILE2} --env-file ${SCRIPTPATH}/${FILE3} ps -q) ]];
 	then
 		# docker running
 		return 0
@@ -65,7 +65,7 @@ gh_start() {
 		echo "GAIA Hub already running. I won't do anything."
 		return
 	fi
-	docker compose -f ${SCRIPTPATH}/docker-compose-base.yaml -f ${SCRIPTPATH}/docker-compose-disk.yaml --env-file ${SCRIPTPATH}/disk.env up -d
+	docker compose -f ${SCRIPTPATH}/${FILE1} -f ${SCRIPTPATH}/${FILE2} --env-file ${SCRIPTPATH}/${FILE3} up -d
 	echo "GAIA HUB started."
 }
 
@@ -75,11 +75,12 @@ gh_stop() {
 		echo "GAIA Hub is not running, so there is nothing to stop."
 		return
 	fi
-	docker compose -f ${SCRIPTPATH}/docker-compose-base.yaml -f ${SCRIPTPATH}/docker-compose-disk.yaml --env-file ${SCRIPTPATH}/disk.env down
+	docker compose -f ${SCRIPTPATH}/${FILE1} -f ${SCRIPTPATH}/${FILE2} --env-file ${SCRIPTPATH}/${FILE3} down
 	echo "GAIA HUB stopped."
 }
 
 #Starts GH, Stops GH or displays instructions.
+#Will only execute the start, stop and status if the files I need exist. If they don't it will display a warning.
 case ${TASK} in 
 	start|up)
 		if ! check_files_exist; then
