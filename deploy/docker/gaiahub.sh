@@ -22,6 +22,17 @@ check_containers() {
 	return 1
 }
 
+gh_status() {
+	if ! check_containers; then
+		echo "GAIA HUB running."
+		return
+	fi
+	if check_containers; then
+		echo "GAIA HUB not running."
+		return
+	fi
+}
+
 #Starts GAIA HUB
 gh_start() {
 	if ! check_containers; then
@@ -49,6 +60,9 @@ case ${TASK} in
 		;;
 	stop|down)
 		gh_stop
+		;;
+	status)
+		gh_status
 		;;
 	*)
 		instructions

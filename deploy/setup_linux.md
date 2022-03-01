@@ -1,6 +1,6 @@
 # Setup a local GAIA hub with docker-compose on Linux
 
-Steps to setup a GAIA hub on a Linux server (fresh install). This example is using Debian 11, but should work on any Linux distribution.  
+Steps to setup a GAIA hub on a Linux server (fresh install). This example is using Debian, but should work on any Linux distribution.  
 
 This configuration will setup the following 4 docker containers:
 
@@ -54,10 +54,32 @@ sed -i 's/my-email@example.com/'"$MYGAIAEMAIL"'/g' disk.env
 
 ```
 
-**5. Start Server**
+**5. Start GAIA HUB service**
+
+Make the start and stop script executable:
+
 ```bash
-docker compose -f docker-compose-base.yaml -f docker-compose-disk.yaml --env-file disk.env up -d
+chmod +x ./gaiahub.sh
 ```
+
+To start GAIA HUB
+
+```bash
+./gaiahub.sh start
+```
+
+To stop GAIA HUB
+
+```bash
+./gaiahub.sh stop
+```
+
+To view GAIA HUB status
+```bash
+./gaiahub.sh status
+```
+
+
 
 **6. Verify server works locally** with the following command:
 ```bash
