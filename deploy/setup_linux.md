@@ -27,12 +27,14 @@ echo \
 apt update && apt install -y docker-ce docker-ce-cli containerd.io
 ```
 
-Install *docker-compose* by downloading the [latest-release](https://github.com/docker/compose/releases), which at the moment of this writing its v.2.2.3:
+Install *docker-compose* by downloading the [latest-release](https://github.com/docker/compose/releases):
 
 ```bash
-mkdir -p ~/.docker/cli-plugins/
-curl -SL https://github.com/docker/compose/releases/download/v2.2.3/docker-compose-linux-x86_64 -o ~/.docker/cli-plugins/docker-compose
-chmod +x ~/.docker/cli-plugins/docker-compose
+VERSION_DC=$(curl --silent https://api.github.com/repos/docker/compose/releases/latest | jq .name -r)
+DESTINATION_DC=~/.docker/cli-plugins
+mkdir -p ${DESTINATION_DC}
+curl -SL https://github.com/docker/compose/releases/download/${VERSION_DC}/docker-compose-linux-x86_64 -o ${DESTINATION_DC}/docker-compose
+chmod +x ${DESTINATION_DC}/docker-compose
 ```
 **3. Clone the GAIA repository** and enter it's docker directory.
 
