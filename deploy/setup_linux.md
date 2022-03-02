@@ -49,7 +49,7 @@ In the folder ./deploy/docker/ they are different sample files for different con
 export MYGAIADOMAIN=gaia.site.com
 export MYGAIAEMAIL=gaiarocks@mydomain.com
 cp sample-disk.env disk.env
-sed -i 's/=my-domain.com/='"$MYGAIADOMAIN"'/g' disk.env
+sed -i 's/my-domain.com/'"$MYGAIADOMAIN"'/g' disk.env
 sed -i 's/my-email@example.com/'"$MYGAIAEMAIL"'/g' disk.env
 
 ```
