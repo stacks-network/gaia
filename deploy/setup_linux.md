@@ -56,12 +56,6 @@ sed -i 's/my-email@example.com/'"$MYGAIAEMAIL"'/g' disk.env
 
 **5. Start GAIA HUB service**
 
-Make the start and stop script executable:
-
-```bash
-chmod +x ./gaiahub.sh
-```
-
 To start GAIA HUB
 
 ```bash

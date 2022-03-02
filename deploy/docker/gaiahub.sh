@@ -49,19 +49,19 @@ check_containers() {
 }
 
 gh_status() {
-	if ! check_containers; then
-		echo "GAIA HUB running."
-		return
-	fi
 	if check_containers; then
+		echo "GAIA HUB running."
+		return 1
+	fi
+	if ! check_containers; then
 		echo "GAIA HUB not running."
-		return
+		return 0
 	fi
 }
 
 #Starts GAIA HUB
 gh_start() {
-	if ! check_containers; then
+	if check_containers; then
 		echo "GAIA Hub already running. I won't do anything."
 		return
 	fi
@@ -71,7 +71,7 @@ gh_start() {
 
 #Stops GAIA HUB
 gh_stop() {
-	if check_containers; then
+	if ! check_containers; then
 		echo "GAIA Hub is not running, so there is nothing to stop."
 		return
 	fi
@@ -84,6 +84,7 @@ gh_stop() {
 case ${TASK} in 
 	start|up)
 		if ! check_files_exist; then
+			echo "will start"
 			gh_start
 		fi
 		;;
