@@ -1,4 +1,6 @@
 #!/bin/bash
+# Enable exit on error
+set -uo pipefail
 
 TASK="$1"
 SCRIPTPATH=$(pwd -P)
@@ -20,16 +22,16 @@ instructions() {
 #Checks files I need exist
 check_files_exist() {
 	# If a file I need is missing, inform the user.
-	if ! test -f "$FILE_BASE"; then
-		echo "Missing $FILE_BASE. Did you delete it?"
+	if ! [ -f "$FILE_BASE" ]; then
+		echo "Missing $FILE_BASE. Did you delete it?" >&2
 		return 0
 	fi
-	if ! test -f "$FILE_DISK"; then
-		echo "Missing $FILE_DISK. Did you delete it?"
+	if ! [ -f "$FILE_DISK" ]; then
+		echo "Missing $FILE_DISK. Did you delete it?" >&2
 		return 0
 	fi
-	if ! test -f "$FILE_ENV"; then
-		echo "Missing $FILE_ENV. Looks like you forgot to create one."
+	if ! [ -f "$FILE_ENV" ]; then
+		echo "Missing $FILE_ENV. Looks like you forgot to create one." >&2
 		return 0
 	fi
 	# If all files I need exist, then continue
@@ -52,10 +54,8 @@ gh_status() {
 		echo "GAIA HUB running."
 		return 1
 	fi
-	if ! check_containers; then
-		echo "GAIA HUB not running."
-		return 0
-	fi
+	echo "GAIA HUB not running."
+	return 0
 }
 
 #Starts GAIA HUB
