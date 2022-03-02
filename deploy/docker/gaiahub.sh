@@ -1,11 +1,10 @@
 #!/bin/bash
 
-TASK=$1
-WHICH=$(which docker)
+TASK="$1"
 SCRIPTPATH=$(pwd -P)
-FILE-BASE="docker-compose-base.yaml"
-FILE-DISK="docker-compose-disk.yaml"
-FILE-ENV="disk.env"
+FILE_BASE="docker-compose-base.yaml"
+FILE_DISK="docker-compose-disk.yaml"
+FILE_ENV="disk.env"
 
 #Prints instructions to show possible commands
 instructions() {
@@ -21,16 +20,16 @@ instructions() {
 #Checks files I need exist
 check_files_exist() {
 	# If a file I need is missing, inform the user.
-	if ! test -f "$FILE-BASE"; then
-		echo "Missing $FILE-BASE. Did you delete it?"
+	if ! test -f "$FILE_BASE"; then
+		echo "Missing $FILE_BASE. Did you delete it?"
 		return 0
 	fi
-	if ! test -f "$FILE-DISK"; then
-		echo "Missing $FILE-DISK. Did you delete it?"
+	if ! test -f "$FILE_DISK"; then
+		echo "Missing $FILE_DISK. Did you delete it?"
 		return 0
 	fi
-	if ! test -f "$FILE-ENV"; then
-		echo "Missing $FILE-ENV. Looks like you forgot to create one."
+	if ! test -f "$FILE_ENV"; then
+		echo "Missing $FILE_ENV. Looks like you forgot to create one."
 		return 0
 	fi
 	# If all files I need exist, then continue
@@ -39,7 +38,7 @@ check_files_exist() {
 
 #Checks if already running my containers
 check_containers() {
-	if [[ $(docker compose -f ${SCRIPTPATH}/${FILE-BASE} -f ${SCRIPTPATH}/${FILE-DISK} --env-file ${SCRIPTPATH}/${FILE-ENV} ps -q) ]];
+	if [[ $(docker compose -f "${SCRIPTPATH}"/"${FILE_BASE}" -f "${SCRIPTPATH}"/"${FILE_DISK}" --env-file "${SCRIPTPATH}"/"${FILE_ENV}" ps -q) ]];
 	then
 		# docker running
 		return 0
@@ -65,7 +64,7 @@ gh_start() {
 		echo "GAIA Hub already running. I won't do anything."
 		return
 	fi
-	docker compose -f ${SCRIPTPATH}/${FILE-BASE} -f ${SCRIPTPATH}/${FILE-DISK} --env-file ${SCRIPTPATH}/${FILE-ENV} up -d
+	docker compose -f "${SCRIPTPATH}"/"${FILE_BASE}" -f "${SCRIPTPATH}"/"${FILE_DISK}" --env-file "${SCRIPTPATH}"/"${FILE_ENV}" up -d
 	echo "GAIA HUB started."
 }
 
@@ -75,7 +74,7 @@ gh_stop() {
 		echo "GAIA Hub is not running, so there is nothing to stop."
 		return
 	fi
-	docker compose -f ${SCRIPTPATH}/${FILE-BASE} -f ${SCRIPTPATH}/${FILE-DISK} --env-file ${SCRIPTPATH}/${FILE-ENV} down
+	docker compose -f "${SCRIPTPATH}"/"${FILE_BASE}" -f "${SCRIPTPATH}"/"${FILE_DISK}" --env-file "${SCRIPTPATH}"/"${FILE_ENV}" down
 	echo "GAIA HUB stopped."
 }
 
