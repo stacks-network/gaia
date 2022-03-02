@@ -1,6 +1,6 @@
-# Setup a local GAIA hub with docker-compose on Linux
+# Setup a local GAIA hub in Linux
 
-Steps to setup a GAIA hub on a Linux server (fresh install). This example is using Debian, but should work on any Linux distribution.  
+Steps to setup a GAIA hub on a Linux server (fresh install). This example is using Debian, but should work on any Linux distribution. It uses docker compose in the backgroud. 
 
 This configuration will setup the following 4 docker containers:
 
