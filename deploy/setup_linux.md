@@ -88,3 +88,24 @@ An correct result should look similar to this:
       "read_url_prefix": "https://gaia.site.com/reader/"
     }
 ```
+
+**7. Test your GAIA HUB**
+The following script will test your GAIA Hub, by trying to connect to it, uploading a file and downloading it again.
+
+`node gaia_test.js https://yourgaiaurl`
+
+A correct result will be something like this:
+```
+Will run a test for the GAIA HUB: https://gaia.mydomain.com
+Generating some test keys...
+Private key:  5aacc60fc2a429e1f02be139f3cac82061c6a980********************
+Public key:   025691f17f2ab80dc4af363bb9c7aac59e9e1db6ae8ff668202582a3f4ec9678ff
+Address:      15n8Xo8acRvSZghJG2dxJ8dCdzDMYicUuS
+[DEBUG] connectToGaiaHub: https://gaia.mydomain.com/hub_info
+[DEBUG] uploadToGaiaHub: uploading testing.txt to https://gaia.mydomain.com
+File uploaded successfully.
+Upload to gaia hub thinks it can read it from: https://gaia.mydomain.com/reader/15n8Xo8acRvSZghJG2dxJ8dCdzDMYicUuS/testing.txt
+Hub info thinks it can read it from          : https://gaia.mydomain.com/reader/15n8Xo8acRvSZghJG2dxJ8dCdzDMYicUuS/testing.txt
+Let's now try to fetch the uploaded file...
+File fetched successfully. Contents of file: GAIA ROCKS!
+```
