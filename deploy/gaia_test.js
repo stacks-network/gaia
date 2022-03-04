@@ -1,3 +1,9 @@
+/*
+ * This script will test your GAIA hub by connecting to it,
+ * uploading a test file and then downloading it.
+ * It requieres a GAIA Hub URL as input to test.
+ * Usage from the command line is: node gaia_test https://yourgaiadomian.com
+ */
 //Import required dependencies
 const { makeECPrivateKey, getPublicKeyFromPrivate, publicKeyToAddress } = require('@stacks/encryption');
 const { connectToGaiaHub, uploadToGaiaHub } = require('@stacks/storage');
