@@ -16,9 +16,8 @@ jobs:
       new_release_version: ${{ steps.semantic.outputs.new_release_version }}
 
     steps:
-      - uses: actions/checkout@v2
-        with:
-          token: ${{ secrets.GH_TOKEN }}
+      - name: Checkout
+        uses: actions/checkout@v2
 
       - name: Semantic Release
         uses: cycjimmy/semantic-release-action@v2.5.0
