@@ -53,5 +53,9 @@
         }
       ]
     ]
+  },
+  "dependencies": {
+    "@stacks/encryption": "^3.5.0",
+    "@stacks/storage": "^3.5.0"
   }
 }
