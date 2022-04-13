@@ -11,18 +11,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Cache node modules
-        uses: actions/cache@v2
-        with:
-          key: v1-dependencies-{{ checksum "package-lock.json" }}-{{ checksum "hub/package-lock.json" }}-{{ checksum "reader/package-lock.json" }}-{{ checksum "admin/package-lock.json" }}
-          path: node_modules
-
       - name: npm install
         run: npm install
 
-      - run: mkdir $HOME/.config
-
-      # run tests!
       - run: npm run test
 
       - run: npm run codecovUpload
