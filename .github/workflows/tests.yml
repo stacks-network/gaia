@@ -13,6 +13,10 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: '16'
-      - run: sudo npm install
+      - run: |
+           mkdir ~/.npm
+           npm config set prefix '~/.npm'
+           export PATH=~/.npm/bin:$PATH
+           npm install
       - run: npm run test
       - run: npm run codecovUpload
