@@ -43,7 +43,7 @@ git clone https://github.com/stacks-network/gaia.git && cd gaia/deploy/docker
 ```
 
 **4. Copy and edit appropiate .env file**.  
-In the folder ./deploy/docker/ they are different sample files for different configurations like using aws, azure or disk among others. In this example we will store the data localy so we will copy the *disk* file and update the domain and email fields. Please change `gaia.site.com` and `gaiarocks@mydomain.com` accordingly. Note you need both for the SSL certificate to be created correctly.
+In the folder `./deploy/docker/` they are different sample files for different configurations like using aws, azure or disk among others. In this example we will store the data localy so we will copy the *disk* file and update the domain and email fields. Please change `gaia.site.com` and `gaiarocks@mydomain.com` accordingly. Note you need both for the SSL certificate to be created correctly.
 
 ```bash
 export MYGAIADOMAIN=gaia.site.com
@@ -77,9 +77,9 @@ To view GAIA HUB status
 
 **6. Verify server works locally** with the following command:
 ```bash
-curl -sk https://localhost/hub_info | jq
+curl -sk http://localhost/hub_info | jq
 ```
-An correct result should look similar to this:
+A correct result should look similar to this:
 ```bash
     {
       "challenge_text": "[\"gaiahub\",\"0\",\"gaia-0\",\"blockstack_storage_please_sign\"]",
@@ -90,9 +90,18 @@ An correct result should look similar to this:
 ```
 
 **7. Test your GAIA HUB**
-The following script will test your GAIA Hub, by trying to connect to it, uploading a file and downloading it again.
+Running `gaia_test.js` will test your GAIA Hub, by trying to connect to it, uploading a file and downloading it again.
 
-`node gaia_test.js https://yourgaiaurl`
+First install all required dependencies with:
+```bash
+npm install
+```
+
+Then, from the root folder of the project type:
+
+```bash
+node ./deploy/gaia_test.js https://yourgaiaurl
+```
 
 A correct result will be something like this:
 ```
