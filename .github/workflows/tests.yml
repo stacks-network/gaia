@@ -13,7 +13,7 @@ jobs:
 
       - name: Cache node modules
         uses: actions/cache@v2
-        paths:
+        path:
           - node_modules
           - hub/node_modules
           - reader/node_modules
