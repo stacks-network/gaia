@@ -14,9 +14,9 @@ jobs:
         with:
           node-version: '16'
       - run: |
-          mkdir ~/.npm
-          npm config set prefix '~/.npm'
-          export PATH=~/.npm/bin:$PATH
+          #  mkdir ~/.npm
+          #  npm config set prefix '~/.npm'
+          #  export PATH=~/.npm/bin:$PATH
           npm --version
           node --version
           npm install
