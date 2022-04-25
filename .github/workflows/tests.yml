@@ -22,5 +22,5 @@ jobs:
           npm install
       - run: |
           npm install eslint
-          npm install typescript
+          npm install typescript --save-dev
           npm test
