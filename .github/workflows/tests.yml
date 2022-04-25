@@ -17,6 +17,8 @@ jobs:
            mkdir ~/.npm
            npm config set prefix '~/.npm'
            export PATH=~/.npm/bin:$PATH
-           npm install
+           npm --version
+           node --version
+#          npm install
       - run: npm run test
       - run: npm run codecovUpload
