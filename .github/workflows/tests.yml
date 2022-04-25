@@ -21,6 +21,6 @@ jobs:
           node --version
           npm install
       - run: |
-          apk update
-          apk add eslint
+          apt update
+          apt install eslint
           npm test
