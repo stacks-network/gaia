@@ -20,6 +20,6 @@ jobs:
            npm --version
            node --version
            npm install uuid@latest
-#          npm install
+           npm install
       - run: npm run test
       - run: npm run codecovUpload
