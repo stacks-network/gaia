@@ -5,14 +5,14 @@ on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: node:16
+    container: node:14
 
     steps:
       - name: Checkout
         uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
-          node-version: '16'
+          node-version: '14'
       - run: |
           #  mkdir ~/.npm
           #  npm config set prefix '~/.npm'
