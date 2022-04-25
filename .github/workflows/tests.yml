@@ -14,11 +14,10 @@ jobs:
         with:
           node-version: '16'
       - run: |
-           mkdir ~/.npm
-           npm config set prefix '~/.npm'
-           export PATH=~/.npm/bin:$PATH
+#           mkdir ~/.npm
+#           npm config set prefix '~/.npm'
+#           export PATH=~/.npm/bin:$PATH
            npm --version
-           npm install uuid@latest
            node --version
            npm install
       - run: npm run test
