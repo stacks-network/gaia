@@ -20,5 +20,6 @@ jobs:
           npm --version
           node --version
           npm install
-      - run: npm run test
+# Testing tests individually
+      - run: npm test --prefix hub
       - run: npm run codecovUpload
