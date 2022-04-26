@@ -5,7 +5,7 @@ on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: node:12
+#    container: node:12
 
     steps:
 #      - run: echo "This job was automatically triggered by a ${{ github.event_name }} event. Running on a ${{ runner.os }} server."
