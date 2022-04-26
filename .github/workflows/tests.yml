@@ -8,8 +8,8 @@ jobs:
     container: node:12
 
     steps:
-      - run: echo "This job was automatically triggered by a ${{ github.event_name }} event. Running on a ${{ runner.os  }} server."
-      - run: echo "Repository: {{ github.repository  }} - Branch: ${{ github.ref  }}"
+      - run: echo "This job was automatically triggered by a ${{ github.event_name }} event. Running on a ${{ runner.os }} server."
+      - run: echo "Repository: {{ github.repository }} - Branch: ${{ github.ref }}"
       - name: Check out repository code
         uses: actions/checkout@v3
       - uses: actions/setup-node@v3
