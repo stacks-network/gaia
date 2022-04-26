@@ -8,12 +8,15 @@ jobs:
     container: node:12
 
     steps:
-      - name: Checkout
+      - run: echo "This job was automatically triggered by a ${{ github.event_name }} event. Running on a ${{ runner.os  }} server."
+      - run: echo "Repository: {{ github.repository  }} - Branch: ${{ github.ref  }}"
+      - name: Check out repository code
         uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
           node-version: '12'
-      - run: |
+      - name: Install dependencies
+        run: |
           mkdir ~/.npm
           npm config set prefix '~/.npm'
           export PATH=~/.npm/bin:$PATH
