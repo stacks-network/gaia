@@ -1,0 +1,23 @@
+name: Containers
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '14'
+# LTS node version 14 reaches end of life on 2023-04-30
+# LTS node version 16 currently fails
+      - run: |
+          mkdir ~/.npm
+          npm config set prefix '~/.npm'
+          export PATH=~/.npm/bin:$PATH
+          npm --version
+          node --version
+          npm install
+      - run: npm test
+      - run: npm run codecovUpload
