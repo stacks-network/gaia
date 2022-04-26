@@ -21,7 +21,7 @@ jobs:
           npm --version
           node --version
           npm install
-      - run: |
-          npm install eslint
-          npm install typescript --save-dev
-          npm test
+      - run: npm test
+# npm install eslint
+# npm install typescript --save-dev
+# npm test
