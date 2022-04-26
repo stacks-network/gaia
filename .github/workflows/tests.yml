@@ -20,3 +20,4 @@ jobs:
           node --version
           npm install
       - run: npm test
+      - run: npm run codecovUpload
