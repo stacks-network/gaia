@@ -6,7 +6,7 @@ Gaia: A decentralized high-performance storage system
 This document describes the high-level design and implementation of the
 Gaia storage system, also briefly explained in the [docs.stacks.co](https://docs.stacks.co/build-apps/references/gaia). It includes specifications for backend storage drivers and interactions between developer APIs and the Gaia service.
 
-Developers who wish to *use* the Gaia storage system should see the `stacks.js` documentation [here](https://stacks.js.org/) and in particular the storage package [here](https://github.com/hirosystems/stacks.js/tree/master/packages/storage).
+Developers who wish to use the Gaia storage system should see the `stacks.js` documentation [here](https://stacks.js.org/) and in particular the storage package [here](https://github.com/hirosystems/stacks.js/tree/master/packages/storage).
 
 Instructions on setting up, configuring and testing a Gaia Hub can be found [here](https://github.com/stacks-network/gaia/blob/master/deploy/README.md) and [here](https://forum.stacks.org/t/tech-preview-using-your-own-gaia-hub-with-the-cli/6160).
 
