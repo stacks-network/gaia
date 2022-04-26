@@ -15,8 +15,7 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: '12'
-      - name: Install dependencies
-        run: |
+      - run: |
           mkdir ~/.npm
           npm config set prefix '~/.npm'
           export PATH=~/.npm/bin:$PATH
