@@ -148,9 +148,16 @@ Resources:
       InstanceType:
         Ref: InstanceType
       IamInstanceProfile: !Ref tagProfile
-      SecurityGroupIds:
-        - Ref: InstanceSecurityGroup
-      SubnetId: !Ref SubnetId
+      # SecurityGroupIds:
+      #   - Ref: InstanceSecurityGroup
+      # SubnetId: !Ref SubnetId
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: "true"
+          DeviceIndex: "0"
+          GroupSet:
+            - Ref: InstanceSecurityGroup
+          SubnetId:
+            Ref: SubnetId
       KeyName:
         Ref: KeyName
       ImageId:
