@@ -148,8 +148,8 @@ Resources:
       InstanceType:
         Ref: InstanceType
       IamInstanceProfile: !Ref tagProfile
-      SecurityGroupIds:
-        - Ref: InstanceSecurityGroup
+      # SecurityGroupIds:
+      #   - Ref: InstanceSecurityGroup
       # SubnetId: !Ref SubnetId
       NetworkInterfaces:
         - AssociatePublicIpAddress: "true"
