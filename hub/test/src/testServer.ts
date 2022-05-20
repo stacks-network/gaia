@@ -265,7 +265,7 @@ export function testServer() {
       }
 
       t.equal(server.authTimestampCache.currentCacheEvictions, 6, 'Auth cache should have correct number of evictions')
-      t.equal(server.authTimestampCache.cache.itemCount, 4, 'Auth cache should have correct item count')
+      t.equal(server.authTimestampCache.cache.size, 4, 'Auth cache should have correct item count')
       server.authTimestampCache.setupCacheEvictionLogger(1)
       await new Promise((res) => setTimeout(() => res(), 10))
       t.equal(server.authTimestampCache.currentCacheEvictions, 0, 'Auth cache eviction count should have been cleared by logger')

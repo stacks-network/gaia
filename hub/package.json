@@ -22,7 +22,7 @@
     "greenlock-express": "^2.7.17",
     "greenlock-store-fs": "^3.0.2",
     "jsontokens": "^2.0.2",
-    "lru-cache": "^5.1.1",
+    "lru-cache": "^7.10.1",
     "nanoid": "^3.3.4",
     "node-fetch": "^2.6.1",
     "winston": "^3.7.2"
@@ -33,7 +33,7 @@
     "@types/express-winston": "^3.0.4",
     "@types/fetch-mock": "^7.3.5",
     "@types/fs-extra": "^9.0.13",
-    "@types/lru-cache": "^5.1.0",
+    "@types/lru-cache": "^7.10.10",
     "@types/nanoid": "^2.1.0",
     "@types/node": "^12.12.26",
     "@types/node-fetch": "^2.6.1",
