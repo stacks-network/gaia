@@ -33,7 +33,6 @@
     "@types/express-winston": "^3.0.4",
     "@types/fetch-mock": "^7.3.5",
     "@types/fs-extra": "^9.0.13",
-    "@types/lru-cache": "^7.10.10",
     "@types/nanoid": "^2.1.0",
     "@types/node": "^12.12.26",
     "@types/node-fetch": "^2.6.1",
