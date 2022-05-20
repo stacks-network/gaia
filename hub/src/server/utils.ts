@@ -10,7 +10,7 @@ import { promisify } from 'util'
 import * as winston from 'winston'
 import { DriverName } from './config'
 
-import nanoid = require('nanoid/generate')
+import { customAlphabet } from 'nanoid'
 
 const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
 
@@ -18,8 +18,8 @@ const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
  * Generates a random 10 char string using uppercase & lowercase alpha numeric alphabet.
  */
 export function generateUniqueID() {
-  const id = nanoid(alphabet, 10) //=> "mAB6Yps3V3"
-  return id
+  const nanoid = customAlphabet(alphabet, 10) //=> "mAB6Yps3V3"
+  return nanoid()
 }
 
 
