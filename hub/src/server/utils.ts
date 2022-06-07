@@ -1,6 +1,8 @@
 
 
 import * as stream from 'stream'
+import { customAlphabet } from 'nanoid'
+
 import { DriverConstructor, DriverStatics } from './driverModel'
 import S3Driver from './drivers/S3Driver'
 import AzDriver from './drivers/AzDriver'
@@ -10,9 +12,9 @@ import { promisify } from 'util'
 import * as winston from 'winston'
 import { DriverName } from './config'
 
-import { customAlphabet } from 'nanoid'
 
 const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
+type BufferEncoding = 'ascii' | 'utf8' | 'utf-8' | 'utf16le' | 'ucs2' | 'ucs-2' | 'base64' | 'base64url' | 'latin1' | 'binary' | 'hex';
 
 /**
  * Generates a random 10 char string using uppercase & lowercase alpha numeric alphabet.
