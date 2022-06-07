@@ -422,7 +422,7 @@ export class LegacyAuthentication implements AuthenticationInterface {
   }
 
   isAuthenticationValid(address: string, challengeTexts: Array<string>,
-                        options? : {}) { //  eslint-disable-line @typescript-eslint/no-unused-vars
+                        options? : Record<string, unknown>) { //  eslint-disable-line @typescript-eslint/no-unused-vars
     if (ecPairToAddress(this.publickey) !== address) {
       throw new ValidationError('Address not allowed to write on this path')
     }
