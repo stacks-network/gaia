@@ -10,7 +10,7 @@
   "dependencies": {
     "@azure/storage-blob": "^10.5.0",
     "@google-cloud/storage": "^4.3.1",
-    "ajv": "^6.10.2",
+    "ajv": "^8.11.0",
     "aws-sdk": "^2.534.0",
     "bitcoinjs-lib": "^5.1.6",
     "blockstack": "^19.3.0",
@@ -54,7 +54,7 @@
     "tape-promise": "^4.0.0",
     "ts-node": "^10.8.1",
     "typescript": "^4.7.3",
-    "typescript-json-schema": "^0.42.0"
+    "typescript-json-schema": "^0.53.1"
   },
   "bin": {
     "blockstack-gaia-hub": "./cmd/index.js"

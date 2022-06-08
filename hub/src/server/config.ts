@@ -1,7 +1,7 @@
 import * as winston from 'winston'
 import * as fs from 'fs'
 import * as process from 'process'
-import * as Ajv from 'ajv'
+import Ajv from 'ajv'
 
 import { getDriverClass, logger } from './utils'
 import { DriverModel, DriverConstructor } from './driverModel'
@@ -431,9 +431,8 @@ export function validateConfigSchema(
   try {
     const ajv = new Ajv({
       allErrors: true,
-      strictDefaults: true,
-      verbose: true,
-      errorDataPath: 'property'
+      strictSchema: true,
+      verbose: true
     })
     if (!fs.existsSync(schemaFilePath)) {
       warnCallback(`Could not find config schema file at ${schemaFilePath}`)

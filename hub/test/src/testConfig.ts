@@ -34,7 +34,7 @@ export function testConfig() {
       msg += warning
     })
     t.equals(msg, 
-      'Config schema validation warning: config.driver is a required property, config.port is a required property', 
+      'Config schema validation warning: config must have required property \'driver\', config must have required property \'port\'',
       'Should have correct schema warning')
     t.end()
   })
@@ -50,7 +50,7 @@ export function testConfig() {
       msg += warning
     })
     t.equals(msg, 
-      'Config schema validation warning: config[\'typo\'] is an invalid additional property', 
+      'Config schema validation warning: config must NOT have additional properties',
       'Should have correct schema warning')
     t.end()
   })
@@ -84,7 +84,7 @@ export function testConfig() {
       msg += warning
     })
     t.equals(msg, 
-      'Error validating config schema JSON file: Error: schema is invalid: data.additionalProperties should be object,boolean', 
+      'Error validating config schema JSON file: Error: schema is invalid: data/additionalProperties must be object,boolean',
       'Should have correct schema warning')
     t.end()
   })
