@@ -1,6 +1,6 @@
-
-
 import * as stream from 'stream'
+import { customAlphabet } from 'nanoid'
+
 import { DriverConstructor, DriverStatics } from './driverModel'
 import S3Driver from './drivers/S3Driver'
 import AzDriver from './drivers/AzDriver'
@@ -9,8 +9,6 @@ import DiskDriver from './drivers/diskDriver'
 import { promisify } from 'util'
 import * as winston from 'winston'
 import { DriverName } from './config'
-
-import { customAlphabet } from 'nanoid'
 
 const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
 

@@ -6,7 +6,7 @@ import * as crypto from 'crypto'
 import request = require('supertest')
 import { ecPairToAddress } from 'blockstack'
 
-import { FetchMockSandbox, sandbox, restore } from 'fetch-mock'
+import * as fetchMock from 'fetch-mock'
 import NodeFetch from 'node-fetch'
 
 import { makeHttpServer } from '../../src/server/http'
@@ -475,11 +475,11 @@ function testHttpWithAzure() {
         console.log(json)
       })
       .catch((err) => t.false(true, `Unexpected err: ${err}`))
-      .then(() => { restore(); t.end() })
+      .then(() => { fetchMock.restore(); t.end() })
   })
 
   test('handle request', (t) => {
-    let fetch = sandbox()
+    let fetch = fetchMock.sandbox()
     let { app, server } = makeHttpServer(config)
     server.authTimestampCache = new MockAuthTimestampCache()
     let sk = testPairs[1]
