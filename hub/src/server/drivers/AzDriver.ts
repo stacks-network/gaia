@@ -32,7 +32,7 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
   cacheControl?: string
   initPromise: Promise<void>
 
-  supportsETagMatching = true;
+  supportsETagMatching = true
 
   static getConfigInformation() {
     const envVars: any = {}

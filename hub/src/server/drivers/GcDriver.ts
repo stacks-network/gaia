@@ -32,7 +32,7 @@ class GcDriver implements DriverModel, DriverModelTestMethods {
   initPromise: Promise<void>
   resumable: boolean
 
-  supportsETagMatching = false;
+  supportsETagMatching = false
 
   static getConfigInformation() {
     const envVars: any = {}
