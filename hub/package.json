@@ -12,10 +12,11 @@
     "@google-cloud/storage": "^4.3.1",
     "ajv": "^8.11.0",
     "aws-sdk": "^2.534.0",
-    "bitcoinjs-lib": "^5.1.6",
+    "bitcoinjs-lib": "^6.0.1",
     "blockstack": "^19.3.0",
     "body-parser": "^1.20.0",
     "cors": "^2.8.5",
+    "ecpair": "^2.0.1",
     "express": "^4.18.1",
     "express-winston": "^4.2.0",
     "fs-extra": "^10.1.0",
@@ -25,6 +26,7 @@
     "lru-cache": "^7.10.1",
     "nanoid": "^3.3.4",
     "node-fetch": "^2.6.1",
+    "tiny-secp256k1": "^2.2.1",
     "winston": "^3.7.2"
   },
   "devDependencies": {
