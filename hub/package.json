@@ -11,7 +11,7 @@
     "@azure/storage-blob": "^10.5.0",
     "@google-cloud/storage": "^4.3.1",
     "ajv": "^8.11.0",
-    "aws-sdk": "^2.534.0",
+    "aws-sdk": "^2.1152.0",
     "bitcoinjs-lib": "^6.0.1",
     "blockstack": "^21.1.1",
     "body-parser": "^1.20.0",
