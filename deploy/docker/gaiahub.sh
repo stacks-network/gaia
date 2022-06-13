@@ -8,14 +8,31 @@ FILE_BASE="docker-compose-base.yaml"
 FILE_DISK="docker-compose-disk.yaml"
 FILE_ENV="disk.env"
 
+# # Base colors
+COLRED=$'\033[31m' # Red
+COLGREEN=$'\033[32m' # Green
+COLYELLOW=$'\033[33m' # Yellow
+COLBLUE=$'\033[34m' # Blue
+COLMAGENTA=$'\033[35m' # Magenta
+COLCYAN=$'\033[36m' # Cyan
+
+# # Bright colors
+COLBRRED=$'\033[91m' # Bright Red
+
+# # Text formatting
+COLBOLD=$'\033[1m' # Bold Text
+
+# # Text rest to default
+COLRESET=$'\033[0m' # reset color
+
 #Prints instructions to show possible commands
 instructions() {
 	echo
 	echo "Usage:"
-	echo " To start the GAIA Hub type: $0 start."
-	echo " To stop the GAIA Hub type: $0 stop."
-	echo " To check if GAIA Hub is running type: $0 status."
-	echo " Simply typing $0 displays this help message."
+	echo " To start the GAIA Hub type: ${COLCYAN}$0 start ${COLRESET}"
+	echo " To stop the GAIA Hub type: ${COLCYAN}$0 stop${COLRESET}"
+	echo " To check if GAIA Hub is running type: ${COLCYAN}$0 status${COLRESET}"
+	echo " Simply typing ${COLCYAN}$0${COLRESET} displays this help message."
 	echo
 	exit 0
 }
@@ -24,15 +41,15 @@ instructions() {
 check_files_exist() {
 	# If a file I need is missing, inform the user.
 	if ! [ -f "$FILE_BASE" ]; then
-		echo "Missing $FILE_BASE. Did you delete it?" >&2
+		echo "${COLRED}Error: Missing $FILE_BASE{COLRESET}. Did you delete it?" >&2
 		return 1
 	fi
 	if ! [ -f "$FILE_DISK" ]; then
-		echo "Missing $FILE_DISK. Did you delete it?" >&2
+		echo "${COLRED}Error: Missing $FILE_DISK{COLRESET}. Did you delete it?" >&2
 		return 1
 	fi
 	if ! [ -f "$FILE_ENV" ]; then
-		echo "Missing $FILE_ENV. Looks like you forgot to create one." >&2
+		echo "${COLRED}Error: Missing $FILE_ENV${COLRESET}. Looks like you forgot to create one." >&2
 		return 1
 	fi
 	# If all files I need exist, then continue
@@ -52,10 +69,10 @@ check_containers() {
 
 gh_status() {
 	if check_containers; then
-		echo "GAIA HUB running."
+		echo "GAIA HUB is running."
 		return 1
 	fi
-	echo "GAIA HUB not running."
+	echo "GAIA HUB is not running."
 	return 0
 }
 
