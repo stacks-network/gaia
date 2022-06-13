@@ -1,6 +1,6 @@
 #!/bin/bash
 # Enable exit on error
-set -uo pipefail
+set -eo pipefail
 
 TASK="$1"
 SCRIPTPATH=$(pwd -P)
@@ -17,6 +17,7 @@ instructions() {
 	echo " To check if GAIA Hub is running type: $0 status."
 	echo " Simply typing $0 displays this help message."
 	echo
+	exit 0
 }
 
 #Checks files I need exist
@@ -62,20 +63,22 @@ gh_status() {
 gh_start() {
 	if check_containers; then
 		echo "GAIA Hub already running. I won't do anything."
-		return
+		return 1
 	fi
 	docker compose -f "${SCRIPTPATH}"/"${FILE_BASE}" -f "${SCRIPTPATH}"/"${FILE_DISK}" --env-file "${SCRIPTPATH}"/"${FILE_ENV}" up -d
 	echo "GAIA HUB started."
+	return 0
 }
 
 #Stops GAIA HUB
 gh_stop() {
 	if ! check_containers; then
 		echo "GAIA Hub is not running, so there is nothing to stop."
-		return
+		return 1
 	fi
 	docker compose -f "${SCRIPTPATH}"/"${FILE_BASE}" -f "${SCRIPTPATH}"/"${FILE_DISK}" --env-file "${SCRIPTPATH}"/"${FILE_ENV}" down
 	echo "GAIA HUB stopped."
+	return 0
 }
 
 #Exit on error if the programs I need are not found
