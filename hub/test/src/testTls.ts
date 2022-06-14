@@ -41,7 +41,7 @@ export function testTls() {
     const server = tlsServer.createHttpsServer(app, certData)
 
     try {
-      await new Promise((resolve, reject) => {
+      await new Promise<void>((resolve, reject) => {
         server.on('error', error => reject(error))
         server.listen(0, '127.0.0.1', () => resolve())
       })
@@ -82,7 +82,7 @@ export function testTls() {
     const server = tlsServer.createHttpsServer(app, certData)
 
     try {
-      await new Promise((resolve, reject) => {
+      await new Promise<void>((resolve, reject) => {
         server.on('error', error => reject(error))
         server.listen(0, '127.0.0.1', () => resolve())
       })
@@ -123,7 +123,7 @@ export function testTls() {
     const server = tlsServer.createHttpsServer(app, certData)
 
     try {
-      await new Promise((resolve, reject) => {
+      await new Promise<void>((resolve, reject) => {
         server.on('error', error => reject(error))
         server.listen(0, '127.0.0.1', () => resolve())
       })
@@ -164,7 +164,7 @@ export function testTls() {
     const server = tlsServer.createHttpsServer(app, certData)
 
     try {
-      await new Promise((resolve, reject) => {
+      await new Promise<void>((resolve, reject) => {
         server.on('error', error => reject(error))
         server.listen(0, '127.0.0.1', () => resolve())
       })
@@ -206,7 +206,7 @@ export function testTls() {
     const server = tlsServer.createHttpsServer(app, certData)
 
     try {
-      await new Promise((resolve, reject) => {
+      await new Promise<void>((resolve, reject) => {
         server.on('error', error => reject(error))
         server.listen(0, '127.0.0.1', () => resolve())
       })
@@ -248,7 +248,7 @@ export function testTls() {
     const server = tlsServer.createHttpsServer(app, certData)
 
     try {
-      await new Promise((resolve, reject) => {
+      await new Promise<void>((resolve, reject) => {
         server.on('error', error => reject(error))
         server.listen(0, '127.0.0.1', () => resolve())
       })
