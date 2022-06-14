@@ -127,7 +127,7 @@ export class V1Authentication implements AuthenticationInterface {
     }
     const scopes = payload.scopes
     if (scopes) {
-      validateScopes(scopes)
+      validateScopes(scopes as any)
     }
     return new V1Authentication(token)
   }
@@ -156,7 +156,7 @@ export class V1Authentication implements AuthenticationInterface {
     }
 
     const signerKeyHex = ecPairToHexString(secretKey).slice(0, 64)
-    const token = new TokenSigner('ES256K', signerKeyHex).sign(payload)
+    const token = new TokenSigner('ES256K', signerKeyHex).sign(payload as any)
     return `v1:${token}`
   }
 
@@ -174,7 +174,7 @@ export class V1Authentication implements AuthenticationInterface {
     }
 
     const signerKeyHex = ecPairToHexString(secretKey).slice(0, 64)
-    const token = new TokenSigner('ES256K', signerKeyHex).sign(payload)
+    const token = new TokenSigner('ES256K', signerKeyHex).sign(payload as any)
     return token
   }
 
@@ -218,7 +218,7 @@ export class V1Authentication implements AuthenticationInterface {
     }
 
     // the bearer of the association token must have authorized the bearer
-    const childAddress = ecPairToAddress(pubkeyHexToECPair(childPublicKey))
+    const childAddress = ecPairToAddress(pubkeyHexToECPair(childPublicKey as string))
     if (childAddress !== bearerAddress) {
       throw new ValidationError(
         `Association token child key ${childPublicKey} does not match ${bearerAddress}`)
@@ -255,7 +255,7 @@ export class V1Authentication implements AuthenticationInterface {
     }
 
     // unambiguously convert to AuthScope
-    const scopes: AuthScopeEntry[] = payload.scopes.map((s: any) => {
+    const scopes: AuthScopeEntry[] = (payload.scopes as any).map((s: any) => {
       const r = {
         scope: String(s.scope),
         domain: String(s.domain)
@@ -322,7 +322,7 @@ export class V1Authentication implements AuthenticationInterface {
     }
 
     if (options && options.requireCorrectHubUrl) {
-      let claimedHub = payload.hubUrl
+      let claimedHub = payload.hubUrl as string
       if (!claimedHub) {
         throw new ValidationError(
           'Authentication must provide a claimed hub. You may need to update stacks.js.')
@@ -343,7 +343,7 @@ export class V1Authentication implements AuthenticationInterface {
     }
 
     if (scopes) {
-      validateScopes(scopes)
+      validateScopes(scopes as any)
     }
 
     let verified
@@ -357,7 +357,7 @@ export class V1Authentication implements AuthenticationInterface {
       throw new ValidationError('Failed to verify supplied authentication JWT')
     }
 
-    if (!challengeTexts.includes(gaiaChallenge)) {
+    if (!challengeTexts.includes(gaiaChallenge as string)) {
       throw new ValidationError(`Invalid gaiaChallenge text in supplied JWT: "${gaiaChallenge}"` +
                                 ` not found in ${JSON.stringify(challengeTexts)}`)
     }
@@ -371,7 +371,7 @@ export class V1Authentication implements AuthenticationInterface {
     if ('associationToken' in payload &&
         payload.associationToken) {
       return this.checkAssociationToken(
-        payload.associationToken, address)
+        payload.associationToken as string, address)
     } else {
       return address
     }
