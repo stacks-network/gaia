@@ -11,7 +11,7 @@ export function testConfig() {
 
   test('initial defaults', (t) => {
     const configResult = config.getConfig()
-    t.deepEqual(configResult, config.getConfigDefaults())
+    t.deepLooseEqual(configResult, config.getConfigDefaults())
     t.end()
   })
 
@@ -34,7 +34,7 @@ export function testConfig() {
       msg += warning
     })
     t.equals(msg, 
-      'Config schema validation warning: config.driver is a required property, config.port is a required property', 
+      'Config schema validation warning: config must have required property \'driver\', config must have required property \'port\'',
       'Should have correct schema warning')
     t.end()
   })
@@ -50,7 +50,7 @@ export function testConfig() {
       msg += warning
     })
     t.equals(msg, 
-      'Config schema validation warning: config[\'typo\'] is an invalid additional property', 
+      'Config schema validation warning: config must NOT have additional properties',
       'Should have correct schema warning')
     t.end()
   })
@@ -84,7 +84,7 @@ export function testConfig() {
       msg += warning
     })
     t.equals(msg, 
-      'Error validating config schema JSON file: Error: schema is invalid: data.additionalProperties should be object,boolean', 
+      'Error validating config schema JSON file: Error: schema is invalid: data/additionalProperties must be object,boolean',
       'Should have correct schema warning')
     t.end()
   })
@@ -92,14 +92,14 @@ export function testConfig() {
   test('read envvar with parseInt or parseList', (t) => {
     process.env.GAIA_PAGE_SIZE = '1003'
     let configResult = config.getConfig()
-    t.deepEqual(configResult, Object.assign({}, config.getConfigDefaults(), { pageSize: 1003 }))
+    t.deepLooseEqual(configResult, Object.assign({}, config.getConfigDefaults(), { pageSize: 1003 }))
     process.env.GAIA_PAGE_SIZE = 'abc'
     t.throws(() => config.getConfig(), undefined, 'Should throw error on non-number input')
     delete process.env.GAIA_PAGE_SIZE
 
     process.env.GAIA_WHITELIST = "aaron.id, blankstein.id"
     configResult = config.getConfig()
-    t.deepEqual(configResult, Object.assign({}, config.getConfigDefaults(), { whitelist: ['aaron.id', 'blankstein.id'] }))
+    t.deepLooseEqual(configResult, Object.assign({}, config.getConfigDefaults(), { whitelist: ['aaron.id', 'blankstein.id'] }))
 
     delete process.env.GAIA_WHITELIST
 
@@ -115,7 +115,7 @@ export function testConfig() {
                                          { azCredentials: { accountName: undefined,
                                                             accountKey: undefined }})
 
-    t.deepEqual(configResult, configExpected)
+    t.deepLooseEqual(configResult, configExpected)
     process.env.CONFIG_PATH = configOriginal
     t.end()
   })
@@ -128,7 +128,7 @@ export function testConfig() {
     const configExpected = Object.assign({}, config.getConfigDefaults(), { driver: 'azure' },
                                          { azCredentials: { accountName: 'pancakes', accountKey: undefined }})
 
-    t.deepEqual(configResult, configExpected)
+    t.deepLooseEqual(configResult, configExpected)
     process.env.CONFIG_PATH = configOriginal
     t.end()
   })
@@ -146,7 +146,7 @@ export function testConfig() {
                                    { azCredentials: { accountName: 'pancakes',
                                                       accountKey: 'apples' }})
 
-    t.deepEqual(configResult, configExpected)
+    t.deepLooseEqual(configResult, configExpected)
 
     process.env.GAIA_AZURE_ACCOUNT_NAME = 'latkes'
 
@@ -155,7 +155,7 @@ export function testConfig() {
                                    { azCredentials: { accountName: 'latkes', accountKey: 'apples' }})
 
 
-    t.deepEqual(configResult, configExpected)
+    t.deepLooseEqual(configResult, configExpected)
 
     process.env.GAIA_DRIVER = 'bogusDriver'
     t.throws(() => config.getConfig(), undefined, 'Should throw error on invalid driver type config')
@@ -167,7 +167,7 @@ export function testConfig() {
     configExpected = Object.assign({}, config.getConfigDefaults(), { driver: 'aws' },
                                    { awsCredentials: undefined })
 
-    t.deepEqual(configResult, configExpected)
+    t.deepLooseEqual(configResult, configExpected)
 
     process.env.GAIA_S3_ACCESS_KEY_ID = 'foo'
     process.env.GAIA_S3_SECRET_ACCESS_KEY = 'bar'
@@ -180,7 +180,7 @@ export function testConfig() {
                                      secretAccessKey: 'bar',
                                      sessionToken: 'baz' } })
 
-    t.deepEqual(configResult, configExpected, 'S3 driver reads env vars correctly')
+    t.deepLooseEqual(configResult, configExpected, 'S3 driver reads env vars correctly')
 
     process.env.GAIA_DRIVER = 'google-cloud'
 
@@ -188,7 +188,7 @@ export function testConfig() {
     configExpected = Object.assign({}, config.getConfigDefaults(), { driver: 'google-cloud' },
                                    { gcCredentials: {} })
 
-    t.deepEqual(configResult, configExpected)
+    t.deepLooseEqual(configResult, configExpected)
 
     process.env.GAIA_GCP_EMAIL        = '1'
     process.env.GAIA_GCP_PROJECT_ID   = '2'
@@ -202,7 +202,7 @@ export function testConfig() {
                                      email: '1', projectId: '2', keyFilename: '3', credentials: { client_email: '4', private_key: '5' }
                                    } })
 
-    t.deepEqual(configResult, configExpected, 'GCP driver reads env vars correctly')
+    t.deepLooseEqual(configResult, configExpected, 'GCP driver reads env vars correctly')
 
     process.env.GAIA_DRIVER = 'disk'
 
@@ -210,7 +210,7 @@ export function testConfig() {
     configExpected = Object.assign({}, config.getConfigDefaults(), { driver: 'disk' },
                                    { diskSettings: { storageRootDirectory: undefined } })
 
-    t.deepEqual(configResult, configExpected)
+    t.deepLooseEqual(configResult, configExpected)
 
     process.env.GAIA_DISK_STORAGE_ROOT_DIR = '1'
 
@@ -218,7 +218,7 @@ export function testConfig() {
     configExpected = Object.assign({}, config.getConfigDefaults(), { driver: 'disk' },
                                    { diskSettings: { storageRootDirectory: '1' } })
 
-    t.deepEqual(configResult, configExpected, 'Disk driver reads env vars correctly')
+    t.deepLooseEqual(configResult, configExpected, 'Disk driver reads env vars correctly')
 
     delete process.env.GAIA_DISK_STORAGE_ROOT_DIR
 
@@ -276,7 +276,7 @@ export function testConfig() {
           pfxPassphrase: 'test-pfx-password'
         }
       })
-      t.deepEqual(configResult, expected, 'tls config contains envvar values')
+      t.deepLooseEqual(configResult, expected, 'tls config contains envvar values')
     } finally {
       delete process.env.GAIA_HTTPS_PORT
       delete process.env.GAIA_ENABLE_HTTPS

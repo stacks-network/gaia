@@ -6,7 +6,7 @@ import * as errors from '../../src/server/errors'
 
 
 import { testPairs, testAddrs} from './common'
-import { ECPairInterface } from 'bitcoinjs-lib'
+import { ECPairInterface } from 'ecpair'
 
 export function testAuth() {
   test('authentication legacy/regression', (t) => {

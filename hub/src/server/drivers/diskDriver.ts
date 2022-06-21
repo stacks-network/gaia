@@ -26,7 +26,7 @@ class DiskDriver implements DriverModel {
   pageSize: number
   initPromise: Promise<void>
 
-  supportsETagMatching = false;
+  supportsETagMatching = false
 
   static getConfigInformation() {
     const envVars: any = {}

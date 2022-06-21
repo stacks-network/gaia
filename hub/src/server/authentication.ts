@@ -1,16 +1,19 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
+import ECPairFactory, { ECPairInterface } from 'ecpair'
+import * as ecc from 'tiny-secp256k1'
 import * as crypto from 'crypto'
 import { decodeToken, TokenSigner, TokenVerifier } from 'jsontokens'
 import { ecPairToHexString, ecPairToAddress } from 'blockstack'
 import { ValidationError, AuthTokenTimestampValidationError } from './errors'
 import { logger } from './utils'
 
-const DEFAULT_STORAGE_URL = 'storage.blockstack.org'
 export const LATEST_AUTH_VERSION = 'v1'
+const DEFAULT_STORAGE_URL = 'storage.blockstack.org'
+const ECPair = ECPairFactory(ecc)
 
 function pubkeyHexToECPair (pubkeyHex: string) {
   const pkBuff = Buffer.from(pubkeyHex, 'hex')
-  return bitcoinjs.ECPair.fromPublicKey(pkBuff)
+  return ECPair.fromPublicKey(pkBuff)
 }
 
 export interface AuthScopeEntry {
@@ -124,12 +127,12 @@ export class V1Authentication implements AuthenticationInterface {
     }
     const scopes = payload.scopes
     if (scopes) {
-      validateScopes(scopes)
+      validateScopes(scopes as any)
     }
     return new V1Authentication(token)
   }
 
-  static makeAuthPart(secretKey: bitcoinjs.ECPairInterface, challengeText: string,
+  static makeAuthPart(secretKey: ECPairInterface, challengeText: string,
                       associationToken?: string, hubUrl?: string, scopes?: AuthScopeEntry[],
                       issuedAtDate?: number) {
 
@@ -153,11 +156,11 @@ export class V1Authentication implements AuthenticationInterface {
     }
 
     const signerKeyHex = ecPairToHexString(secretKey).slice(0, 64)
-    const token = new TokenSigner('ES256K', signerKeyHex).sign(payload)
+    const token = new TokenSigner('ES256K', signerKeyHex).sign(payload as any)
     return `v1:${token}`
   }
 
-  static makeAssociationToken(secretKey: bitcoinjs.ECPairInterface, childPublicKey: string) {
+  static makeAssociationToken(secretKey: ECPairInterface, childPublicKey: string) {
     const FOUR_MONTH_SECONDS = 60 * 60 * 24 * 31 * 4
     const publicKeyHex = secretKey.publicKey.toString('hex')
     const salt = crypto.randomBytes(16).toString('hex')
@@ -171,7 +174,7 @@ export class V1Authentication implements AuthenticationInterface {
     }
 
     const signerKeyHex = ecPairToHexString(secretKey).slice(0, 64)
-    const token = new TokenSigner('ES256K', signerKeyHex).sign(payload)
+    const token = new TokenSigner('ES256K', signerKeyHex).sign(payload as any)
     return token
   }
 
@@ -215,7 +218,7 @@ export class V1Authentication implements AuthenticationInterface {
     }
 
     // the bearer of the association token must have authorized the bearer
-    const childAddress = ecPairToAddress(pubkeyHexToECPair(childPublicKey))
+    const childAddress = ecPairToAddress(pubkeyHexToECPair(childPublicKey as string))
     if (childAddress !== bearerAddress) {
       throw new ValidationError(
         `Association token child key ${childPublicKey} does not match ${bearerAddress}`)
@@ -252,7 +255,7 @@ export class V1Authentication implements AuthenticationInterface {
     }
 
     // unambiguously convert to AuthScope
-    const scopes: AuthScopeEntry[] = payload.scopes.map((s: any) => {
+    const scopes: AuthScopeEntry[] = (payload.scopes as any).map((s: any) => {
       const r = {
         scope: String(s.scope),
         domain: String(s.domain)
@@ -319,7 +322,7 @@ export class V1Authentication implements AuthenticationInterface {
     }
 
     if (options && options.requireCorrectHubUrl) {
-      let claimedHub = payload.hubUrl
+      let claimedHub = payload.hubUrl as string
       if (!claimedHub) {
         throw new ValidationError(
           'Authentication must provide a claimed hub. You may need to update stacks.js.')
@@ -340,7 +343,7 @@ export class V1Authentication implements AuthenticationInterface {
     }
 
     if (scopes) {
-      validateScopes(scopes)
+      validateScopes(scopes as any)
     }
 
     let verified
@@ -354,7 +357,7 @@ export class V1Authentication implements AuthenticationInterface {
       throw new ValidationError('Failed to verify supplied authentication JWT')
     }
 
-    if (!challengeTexts.includes(gaiaChallenge)) {
+    if (!challengeTexts.includes(gaiaChallenge as string)) {
       throw new ValidationError(`Invalid gaiaChallenge text in supplied JWT: "${gaiaChallenge}"` +
                                 ` not found in ${JSON.stringify(challengeTexts)}`)
     }
@@ -368,7 +371,7 @@ export class V1Authentication implements AuthenticationInterface {
     if ('associationToken' in payload &&
         payload.associationToken) {
       return this.checkAssociationToken(
-        payload.associationToken, address)
+        payload.associationToken as string, address)
     } else {
       return address
     }
@@ -385,9 +388,9 @@ export class LegacyAuthentication implements AuthenticationInterface {
     return new AuthScopeValues()
   }
 
-  publickey: bitcoinjs.ECPairInterface
+  publickey: ECPairInterface
   signature: string
-  constructor(publickey: bitcoinjs.ECPairInterface, signature: string) {
+  constructor(publickey: ECPairInterface, signature: string) {
     this.publickey = publickey
     this.signature = signature
   }
@@ -401,7 +404,7 @@ export class LegacyAuthentication implements AuthenticationInterface {
     return new LegacyAuthentication(publickey, signature)
   }
 
-  static makeAuthPart(secretKey: bitcoinjs.ECPairInterface, challengeText: string) {
+  static makeAuthPart(secretKey: ECPairInterface, challengeText: string) {
     const publickey = secretKey.publicKey.toString('hex')
     const digest = bitcoinjs.crypto.sha256(Buffer.from(challengeText))
     const signatureBuffer = secretKey.sign(digest)
