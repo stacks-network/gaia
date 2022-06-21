@@ -19,13 +19,13 @@
     "codecovUpload": "codecov"
   },
   "devDependencies": {
-    "@commitlint/cli": "^9.1.1",
-    "@commitlint/config-conventional": "^9.1.1",
+    "@commitlint/cli": "^17.0.2",
+    "@commitlint/config-conventional": "^17.0.2",
     "codecov": "^3.7.1",
-    "cross-env": "^7.0.0",
-    "husky": "^4.2.5",
+    "cross-env": "^7.0.3",
+    "husky": "^8.0.1",
     "npm-run-all": "^4.1.5",
-    "rimraf": "^3.0.1"
+    "rimraf": "^3.0.2"
   },
   "commitlint": {
     "extends": [
@@ -55,7 +55,7 @@
     ]
   },
   "dependencies": {
-    "@stacks/encryption": "^3.5.0",
-    "@stacks/storage": "^3.5.0"
+    "@stacks/encryption": "^4.3.0",
+    "@stacks/storage": "^4.3.0"
   }
 }
