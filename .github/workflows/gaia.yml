@@ -8,6 +8,7 @@ on:
     paths-ignore:
       - '**/CHANGELOG.md'
   pull_request:
+  workflow_dispatch: 
 
 jobs:          
   semantic-release:
