@@ -14,6 +14,8 @@ import AzDriver from '../../../src/server/drivers/AzDriver'
 import S3Driver from '../../../src/server/drivers/S3Driver'
 import GcDriver from '../../../src/server/drivers/GcDriver'
 import DiskDriver from '../../../src/server/drivers/diskDriver'
+import {BlobServiceClient, BlockBlobUploadStreamOptions} from '@azure/storage-blob'
+import {getPagedAsyncIterator} from '@azure/core-paging'
 
 type DataMap = {key: string, data: string, etag: string}[];
 
@@ -36,65 +38,78 @@ export function makeMockedAzureDriver() {
   }
 
   const dataMap: DataMap = []
-  const uploadStreamToBlockBlob = async (aborter, stream, blockBlobURL, bufferSize, maxBuffers, options) => {
-    const buffer = await readStream(stream)
-    const etag = createHash('md5').update(buffer).digest('hex')
-    dataMap.push({data: buffer.toString(), key: blockBlobURL.blobName, etag: etag })
-    return { eTag: etag }
-  }
 
-  const listBlobFlatSegment = (_, __, { prefix }) => {
-    const items = dataMap
-      .filter(x => x.key.startsWith(prefix))
-      .map(x => { return {
-        name: x.key,
-        properties: {
-          lastModified: new Date(),
-          eTag: x.etag,
-          contentLength: x.data.length,
-          contentType: "?"
-        }
-      }})
-    return { segment: { blobItems: items } }
-  }
-
-  const ContainerURL = {
-    fromServiceURL: () => {
-      return {
-        create: () => null,
-        listBlobFlatSegment: listBlobFlatSegment,
-      }
-    }
-  }
-
-  const fromBlobURL = (blobName: string) => {
-    return {
-      blobName,
-      delete: () => {
-        return Promise.resolve().then(() => {
-          const newDataMap = dataMap.filter((d) => d.key !== blobName)
-          if (newDataMap.length === dataMap.length) {
-            const err: any = new Error()
-            err.statusCode = 404
-            throw err
+  class ContainerClient {
+    create = () => null
+    getBlockBlobClient = (blobName) => new BlockBlobClient(blobName)
+    listBlobsFlat = ({ prefix }) => {
+      const items = dataMap
+        .filter(x => x.key.startsWith(prefix))
+        .map(x => { return {
+          name: x.key,
+          properties: {
+            lastModified: new Date(),
+            etag: x.etag,
+            contentLength: x.data.length,
+            contentType: "?"
           }
-          dataMap.length = 0
-          dataMap.push(...newDataMap)
-        })
-      }
+        }})
+
+      return getPagedAsyncIterator({
+        firstPageLink: "0",
+        getPage: (pageLink, maxPageSize) => {
+          return new Promise<{page, nextPageLink}>((resolve => {
+            const start = Number(pageLink)
+            const end = start + maxPageSize
+            const blobItems = end ? items.slice(start, end) : items.slice(start)
+            const page = {
+              segment: {
+                blobItems: blobItems
+              },
+              continuationToken: end
+            }
+            resolve({ page: page, nextPageLink: String(end) })
+          }))
+        }
+      })
     }
   }
-  
+
+  class BlockBlobClient {
+    blobName: string
+
+    constructor(blobName) {
+      this.blobName = blobName
+    }
+    uploadStream = async (stream, bufferSize, maxBuffers, options) => {
+      const buffer = await readStream(stream)
+      const etag = createHash('md5').update(buffer).digest('hex')
+      dataMap.push({data: buffer.toString(), key: this.blobName, etag: etag })
+      return { etag: etag }
+    }
+    delete = () => {
+      return Promise.resolve().then(() => {
+        const newDataMap = dataMap.filter((d) => d.key !== this.blobName)
+        if (newDataMap.length === dataMap.length) {
+          const err: any = new Error()
+          err.statusCode = 404
+          throw err
+        }
+        dataMap.length = 0
+        dataMap.push(...newDataMap)
+      })
+    }
+  }
+
+  class BlobServiceClient {
+    getContainerClient = () => new ContainerClient()
+  }
+
   const driverClass = proxyquire('../../../src/server/drivers/AzDriver', {
     '@azure/storage-blob': {
-      SharedKeyCredential: class { },
-      ContainerURL: ContainerURL,
-      StorageURL: { newPipeline: () => null },
-      ServiceURL: class { },
-      BlobURL: { fromContainerURL: (_, blobName) => blobName },
-      BlockBlobURL: { fromBlobURL: fromBlobURL },
-      Aborter: { none: null },
-      uploadStreamToBlockBlob: uploadStreamToBlockBlob
+      BlobServiceClient: BlobServiceClient,
+      ContainerClient: ContainerClient,
+      BlockBlobClient: BlockBlobClient
     }
   }).default
   return { driverClass, dataMap, config }

@@ -1,6 +1,10 @@
 
 
-import * as azure from '@azure/storage-blob'
+import {
+  BlobGetPropertiesHeaders, BlobProperties, StorageSharedKeyCredential, ContainerClient, newPipeline, BlobServiceClient,
+  BlockBlobUploadStreamOptions, BlobItem
+} from '@azure/storage-blob'
+import { AbortSignal } from '@azure/abort-controller'
 import { logger, dateToUnixTimeSeconds } from '../utils'
 import { BadPathError, InvalidInputError, DoesNotExist, ConflictError, PreconditionFailedError } from '../errors'
 import { 
@@ -9,7 +13,6 @@ import {
   ListFileStatResult, DriverStatics, DriverModel, DriverModelTestMethods
 } from '../driverModel'
 import { Readable } from 'stream'
-import { BlobGetPropertiesHeaders, BlobProperties } from '@azure/storage-blob/typings/src/generated/src/models'
 
 export interface AZ_CONFIG_TYPE {
   azCredentials: {
@@ -24,7 +27,7 @@ export interface AZ_CONFIG_TYPE {
 
 // The AzDriver utilized the azure nodejs sdk to write files to azure blob storage
 class AzDriver implements DriverModel, DriverModelTestMethods {
-  container: azure.ContainerURL
+  container: ContainerClient
   accountName: string
   bucket: string
   pageSize: number
@@ -64,12 +67,11 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
     this.readURL = config.readURL
     this.cacheControl = config.cacheControl
 
-    const sharedKeyCredential = new azure.SharedKeyCredential(
+    const sharedKeyCredential = new StorageSharedKeyCredential(
       config.azCredentials.accountName, config.azCredentials.accountKey)
-    const pipeline = azure.StorageURL.newPipeline(sharedKeyCredential)
-    const service = new azure.ServiceURL(this.getServiceUrl(), pipeline)
-    this.container = azure.ContainerURL.fromServiceURL(service, this.bucket)
-
+    const pipeline = newPipeline(sharedKeyCredential)
+    const service = new BlobServiceClient(this.getServiceUrl(), pipeline)
+    this.container = service.getContainerClient(this.bucket)
     this.initPromise = this.createContainerIfNotExists()
   }
 
@@ -77,7 +79,7 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
     // Check for container(bucket), create it if does not exist
     // Set permissions to 'blob' to allow public reads
     try {
-      await this.container.create(azure.Aborter.none, { access: 'blob' })
+      await this.container.create({ abortSignal: AbortSignal.none, access: 'blob' })
       logger.info(`Create container ${this.bucket} successfully`)
     } catch (error) {
       if (error.body && error.body.Code === 'ContainerAlreadyExists') {
@@ -97,7 +99,7 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
       /* istanbul ignore next */
       throw new Error('Tried deleting non-empty bucket')
     }
-    await this.container.delete(azure.Aborter.none)
+    await this.container.delete({abortSignal: AbortSignal.none})
   }
 
   ensureInitialized() {
@@ -123,15 +125,12 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
 
   async listBlobs(prefix: string, page?: string, pageSize?: number): Promise<ListFilesStatResult> {
     // page is the marker / continuationToken for Azure
-    const blobs = await this.container.listBlobFlatSegment(
-      azure.Aborter.none,
-      page || undefined, {
-        prefix: prefix,
-        maxresults: pageSize || this.pageSize
-      }
-    )
+    const iterator = this.container.listBlobsFlat({abortSignal: AbortSignal.none, prefix: prefix})
+      .byPage({continuationToken: page, maxPageSize: pageSize})
+    const blobs = (await iterator.next()).value
+
     const items = blobs.segment.blobItems
-    const entries: ListFileStatResult[] = items.map(e => {
+    const entries: ListFileStatResult[] = items.map((e: BlobItem) => {
       const fileStat = AzDriver.parseFileStat(e.properties)
       const result: ListFileStatResult = {
         ...fileStat,
@@ -140,7 +139,7 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
       }
       return result
     })
-    return { entries, page: blobs.nextMarker || null }
+    return { entries, page: blobs.continuationToken || null }
   }
 
   async listFiles(args: PerformListFilesArgs) {
@@ -175,8 +174,7 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
     }
     // Prepend ${address}/ to filename
     const azBlob = `${args.storageTopLevel}/${args.path}`
-    const blobURL = azure.BlobURL.fromContainerURL(this.container, azBlob)
-    const blockBlobURL = azure.BlockBlobURL.fromBlobURL(blobURL)
+    const blockBlob = this.container.getBlockBlobClient(azBlob)
 
     // 1MB max buffer block size
     const defaultBufferSize = 1024 * 1024
@@ -189,23 +187,19 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
     */
     const maxBuffers = 1
 
-    const options: azure.IUploadStreamToBlockBlobOptions = {
+    const options: BlockBlobUploadStreamOptions = {
       blobHTTPHeaders: {
         blobContentType: args.contentType,
         blobCacheControl: this.cacheControl || undefined
       },
-      accessConditions: {
-        modifiedAccessConditions: {
-          ifMatch: args.ifMatch,
-          ifNoneMatch: args.ifNoneMatch
-        }
+      conditions: {
+        ifMatch: args.ifMatch,
+        ifNoneMatch: args.ifNoneMatch
       }
     }
 
     try {
-      const uploadResult = await azure.uploadStreamToBlockBlob(
-        azure.Aborter.none, args.stream, blockBlobURL, bufferSize, maxBuffers, options
-      )
+      const uploadResult = await blockBlob.uploadStream(args.stream, bufferSize, maxBuffers, options)
 
       // Return success and url to user
       const readURL = this.getReadURLPrefix()
@@ -213,7 +207,7 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
       logger.debug(`Storing ${azBlob} in ${this.bucket}, URL: ${publicURL}`)
       return {
         publicURL,
-        etag: uploadResult.eTag.replace(/^"|"$/g, '')
+        etag: uploadResult.etag.replace(/^"|"$/g, '')
       }
     } catch (error) {
       logger.error(`failed to store ${azBlob} in ${this.bucket}: ${error}`)
@@ -237,10 +231,9 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
       throw new BadPathError('Invalid Path')
     }
     const azBlob = `${args.storageTopLevel}/${args.path}`
-    const blobURL = azure.BlobURL.fromContainerURL(this.container, azBlob)
-    const blockBlobURL = azure.BlockBlobURL.fromBlobURL(blobURL)
+    const blockBlob = this.container.getBlockBlobClient(azBlob)
     try {
-      await blockBlobURL.delete(azure.Aborter.none)
+      await blockBlob.delete({abortSignal: AbortSignal.none})
     } catch (error) {
       if (error.statusCode === 404) {
         throw new DoesNotExist('File does not exist')
@@ -258,12 +251,11 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
       throw new BadPathError('Invalid Path')
     }
     const azBlob = `${args.storageTopLevel}/${args.path}`
-    const blobURL = azure.BlobURL.fromContainerURL(this.container, azBlob)
-    const blockBlobURL = azure.BlockBlobURL.fromBlobURL(blobURL)
+    const blockBlob = this.container.getBlockBlobClient(azBlob)
 
     try {
       const offset = 0
-      const downloadResult = await blockBlobURL.download(azure.Aborter.none, offset)
+      const downloadResult = await blockBlob.download(offset, null, {abortSignal: AbortSignal.none})
       const dataStream = downloadResult.readableStreamBody as Readable
       const fileStat = AzDriver.parseFileStat(downloadResult)
       const result: ReadResult = {
@@ -289,7 +281,7 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
     if (properties.lastModified) {
       lastModified = dateToUnixTimeSeconds(properties.lastModified)
     }
-    let etag = (properties as BlobProperties).etag || (properties as BlobGetPropertiesHeaders).eTag
+    let etag = (properties as BlobProperties).etag || (properties as BlobGetPropertiesHeaders).etag
     etag = etag.replace(/^"|"$/g, '')
     const result: StatResult = {
       exists: true,
@@ -306,10 +298,9 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
       throw new BadPathError('Invalid Path')
     }
     const azBlob = `${args.storageTopLevel}/${args.path}`
-    const blobURL = azure.BlobURL.fromContainerURL(this.container, azBlob)
-    const blockBlobURL = azure.BlockBlobURL.fromBlobURL(blobURL)
+    const blockBlob = this.container.getBlockBlobClient(azBlob)
     try {
-      const propertiesResult = await blockBlobURL.getProperties(azure.Aborter.none)
+      const propertiesResult = await blockBlob.getProperties({abortSignal: AbortSignal.none})
       const result = AzDriver.parseFileStat(propertiesResult)
       return result
     } catch (error) {
@@ -336,19 +327,18 @@ class AzDriver implements DriverModel, DriverModelTestMethods {
     }
 
     const origAzBlob = `${args.storageTopLevel}/${args.path}`
-    const origBlobUrl = azure.BlobURL.fromContainerURL(this.container, origAzBlob)
-    const origBlockBlobURL = azure.BlockBlobURL.fromBlobURL(origBlobUrl)
+    const origBlockBlob = this.container.getBlockBlobClient(origAzBlob)
 
     const newAzBlob = `${args.storageTopLevel}/${args.newPath}`
-    const newBlobURL = azure.BlobURL.fromContainerURL(this.container, newAzBlob)
-    const newBlockBlobURL = azure.BlockBlobURL.fromBlobURL(newBlobURL)
+    const newBlockBlob = this.container.getBlockBlobClient(newAzBlob)
 
     try {
-      const copyResult = await newBlockBlobURL.startCopyFromURL(azure.Aborter.none, origBlockBlobURL.url)
+      const copyPoller = await newBlockBlob.beginCopyFromURL(origBlockBlob.url, {abortSignal: AbortSignal.none})
+      const copyResult = await copyPoller.pollUntilDone()
       if (copyResult.copyStatus !== 'success') {
         throw new Error(`Expected copy status to be success, got ${copyResult.copyStatus}`)
       }
-      await origBlockBlobURL.delete(azure.Aborter.none)
+      await origBlockBlob.delete({abortSignal: AbortSignal.none})
     } catch (error) {
       if (error.statusCode === 404) {
         throw new DoesNotExist('File does not exist')
