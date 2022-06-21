@@ -107,7 +107,7 @@ availableDrivers.diskSelfHosted = {
 
     const app = gaiaReader.makeHttpServer(<any>selfHostedConfig);
     const serverPromise = new Promise<http.Server>((res, rej) => {
-      const server = app.listen(0, 'localhost', err => err ? rej(err) : res(server));
+      const server = app.listen(0, 'localhost', () => res(server));
     });
 
     return new class SelfHostedDiskDriver extends DiskDriver { 
@@ -121,7 +121,7 @@ availableDrivers.diskSelfHosted = {
       async dispose() {
         await super.dispose();
         const server = await serverPromise;
-        await new Promise((res, rej) => server.close(err => err ? rej(err): res()));
+        await new Promise<void>((res, rej) => server.close(err => err ? rej(err): res()));
       }
     }(selfHostedConfig);
   }

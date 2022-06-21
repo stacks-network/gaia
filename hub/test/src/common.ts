@@ -1,6 +1,9 @@
 
-import { ECPair, ECPairInterface } from 'bitcoinjs-lib'
+import ECPairFactory, { ECPairInterface } from 'ecpair'
+import * as ecc from 'tiny-secp256k1';
 import { ecPairToAddress } from 'blockstack'
+
+const ECPair = ECPairFactory(ecc);
 
 export const testWIFs = [
   'L4kMoaVivcd1FMPPwRU9XT2PdKHPob3oo6YmgTBHrnBHMmo7GcCf',

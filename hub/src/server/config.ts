@@ -1,7 +1,7 @@
 import * as winston from 'winston'
 import * as fs from 'fs'
 import * as process from 'process'
-import * as Ajv from 'ajv'
+import Ajv from 'ajv'
 
 import { getDriverClass, logger } from './utils'
 import { DriverModel, DriverConstructor } from './driverModel'
@@ -33,11 +33,11 @@ class LoggingConfig implements LoggingConfigInterface {
   /**
    * @default warn
    */
-  level? = 'warn' as LogLevel;
-  handleExceptions? = true;
-  timestamp? = true;
-  colorize? = true;
-  json? = false;
+  level? = 'warn' as LogLevel
+  handleExceptions? = true
+  timestamp? = true
+  colorize? = true
+  json? = false
 }
 
 export interface ProofCheckerConfigInterface { 
@@ -49,7 +49,7 @@ class ProofCheckerConfig implements ProofCheckerConfigInterface {
   /**
    * @TJS-type integer
    */
-  proofsRequired? = 0;
+  proofsRequired? = 0
 }
 
 export interface AcmeConfigInterface {
@@ -162,39 +162,39 @@ export class HubConfig {
   /**
    * Required if `driver` is `azure`
    */
-  azCredentials?: SubType<AZ_CONFIG_TYPE, 'azCredentials'>;
+  azCredentials?: SubType<AZ_CONFIG_TYPE, 'azCredentials'>
 
   /**
    * Required if `driver` is `disk`
    */
-  diskSettings?: SubType<DISK_CONFIG_TYPE, 'diskSettings'>;
+  diskSettings?: SubType<DISK_CONFIG_TYPE, 'diskSettings'>
 
   /**
    * Required if `driver` is `google-cloud`
    */
-  gcCredentials?: SubType<GC_CONFIG_TYPE, 'gcCredentials'>;
+  gcCredentials?: SubType<GC_CONFIG_TYPE, 'gcCredentials'>
 
   /**
    * Required if `driver` is `aws`
    */
-  awsCredentials?: SubType<S3_CONFIG_TYPE, 'awsCredentials'>;
+  awsCredentials?: SubType<S3_CONFIG_TYPE, 'awsCredentials'>
 
-  argsTransport? = new LoggingConfig();
-  proofsConfig? = new ProofCheckerConfig();
-  requireCorrectHubUrl? = false;
+  argsTransport? = new LoggingConfig()
+  proofsConfig? = new ProofCheckerConfig()
+  requireCorrectHubUrl? = false
   /**
    * Domain name used for auth/signing challenges. 
    * If `requireCorrectHubUrl` is true then this must match the hub url in an auth payload. 
    */
-  serverName? = 'gaia-0';
-  bucket? = 'hub';
+  serverName? = 'gaia-0'
+  bucket? = 'hub'
   /**
    * @minimum 1
    * @maximum 4096
    * @TJS-type integer
    */
-  pageSize? = 100;
-  cacheControl? = 'no-cache';
+  pageSize? = 100
+  cacheControl? = 'no-cache'
   /**
    * The maximum allowed POST body size in megabytes. 
    * The content-size header is checked, and the POST body stream 
@@ -202,20 +202,20 @@ export class HubConfig {
    * [Recommended] Minimum 100KB (or approximately 0.1MB)
    * @minimum 0.1
    */
-  maxFileUploadSize? = 20;
+  maxFileUploadSize? = 20
   /**
    * @TJS-type integer
    */
-  authTimestampCacheSize? = 50000;
+  authTimestampCacheSize? = 50000
 
-  driver = undefined as DriverName;
+  driver = undefined as DriverName
 
   /**
    * @minimum 0
    * @maximum 65535
    * @TJS-type integer
    */
-  port = 3000;
+  port = 3000
 
   /**
    * Requires `enableHttps` to be set. 
@@ -224,14 +224,14 @@ export class HubConfig {
    * @maximum 65535
    * @TJS-type integer
    */
-  httpsPort? = 443;
+  httpsPort? = 443
 
   /**
    * Disabled by default. 
    * If set to `cert_files` then `tlsCertConfig` must be set. 
    * If set to `acme` then `acmeConfig` must be set. 
    */
-  enableHttps? = undefined as HttpsOption;
+  enableHttps? = undefined as HttpsOption
 
   /**
    * Options for Automatic Certificate Management Environment client. 
@@ -240,7 +240,7 @@ export class HubConfig {
    * See https://tools.ietf.org/html/rfc8555 
    * See https://github.com/ietf-wg-acme/acme 
    */
-  acmeConfig?: AcmeConfigInterface;
+  acmeConfig?: AcmeConfigInterface
 
   /**
    * Options for configuring the Node.js `https` server. 
@@ -248,7 +248,7 @@ export class HubConfig {
    * See https://nodejs.org/docs/latest-v10.x/api/https.html#https_https_createserver_options_requestlistener 
    * See https://nodejs.org/docs/latest-v10.x/api/tls.html#tls_tls_createsecurecontext_options 
    */
-  tlsCertConfig?: TlsCertConfigInterface;
+  tlsCertConfig?: TlsCertConfigInterface
 
   /**
    * List of ID addresses allowed to use this hub. Specifying this makes the hub private 
@@ -256,12 +256,12 @@ export class HubConfig {
    * publicly usable by any ID. 
    */
   whitelist?: string[]
-  readURL?: string;
+  readURL?: string
   /**
    * If `requireCorrectHubUrl` is true then the hub specified in an auth payload can also be
    * contained within in array.  
    */
-  validHubUrls?: string[];
+  validHubUrls?: string[]
 
 
   /**
@@ -269,14 +269,14 @@ export class HubConfig {
    * @private
    * @ignore
    */
-  driverInstance?: DriverModel;
+  driverInstance?: DriverModel
 
   /**
    * Only used in tests
    * @private
    * @ignore
    */
-  driverClass?: DriverConstructor;
+  driverClass?: DriverConstructor
 
 }
 
@@ -431,9 +431,8 @@ export function validateConfigSchema(
   try {
     const ajv = new Ajv({
       allErrors: true,
-      strictDefaults: true,
-      verbose: true,
-      errorDataPath: 'property'
+      strictSchema: true,
+      verbose: true
     })
     if (!fs.existsSync(schemaFilePath)) {
       warnCallback(`Could not find config schema file at ${schemaFilePath}`)
