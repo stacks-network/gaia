@@ -1,8 +1,8 @@
-import test = require('tape')
+import test from 'tape'
 import * as fs from 'fs'
 import * as Path from 'path'
 
-import { GaiaDiskReader } from '../src/server'
+import { GaiaDiskReader } from '../src/server.js'
 
 function testServer() {
   test('check handleGet', (t) => {

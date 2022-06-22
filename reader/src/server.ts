@@ -1,6 +1,6 @@
-import * as path from 'path'
-import * as fs from 'fs-extra'
-import { DiskReaderConfig } from './config'
+import path from 'path'
+import fs from 'fs-extra'
+import { DiskReaderConfig } from './config.js'
 
 const METADATA_DIRNAME = '.gaia-metadata'
 
