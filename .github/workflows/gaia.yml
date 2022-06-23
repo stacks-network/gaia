@@ -44,19 +44,19 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Build/Tag/Push Image - Quay
-        uses: docker/build-push-action@v1
-        with:
-          repository: ${{ env.IMAGE_NAME }}
-          username: ${{ secrets.QUAY_USERNAME }}
-          password: ${{ secrets.QUAY_PASSWORD }}
-          registry: quay.io
-          path: ${{ matrix.context }}
-          tags: ${{ needs.semantic-release.outputs.new_release_version }}
-          tag_with_ref: true
-          add_git_labels: true
-          # Only push if there's a new release on main branch, or if building a non-main branch
-          push: ${{ github.ref != 'refs/heads/master' || needs.semantic-release.outputs.new_release_version != '' }}
+#      - name: Build/Tag/Push Image - Quay
+#        uses: docker/build-push-action@v1
+#        with:
+#          repository: ${{ env.IMAGE_NAME }}
+#          username: ${{ secrets.QUAY_USERNAME }}
+#          password: ${{ secrets.QUAY_PASSWORD }}
+#          registry: quay.io
+#          path: ${{ matrix.context }}
+#          tags: ${{ needs.semantic-release.outputs.new_release_version }}
+#          tag_with_ref: true
+#          add_git_labels: true
+#          # Only push if there's a new release on main branch, or if building a non-main branch
+#          push: ${{ github.ref != 'refs/heads/master' || needs.semantic-release.outputs.new_release_version != '' }}
 
       - name: Build/Tag/Push Image - Dockerhub
         uses: docker/build-push-action@v1
