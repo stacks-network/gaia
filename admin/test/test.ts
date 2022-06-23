@@ -1,7 +1,7 @@
-import test = require('tape')
-import fs = require('fs')
+import test from 'tape'
+import fs from 'fs'
 
-import { AdminAPI, patchConfigFile, readConfigFileSections } from '../src/server'
+import { AdminAPI, patchConfigFile, readConfigFileSections } from '../src/server.js'
 
 function testServer() {
   test('patch config file only sets top-level fields', (t) => {
