@@ -5,13 +5,13 @@ import * as os from 'os'
 import * as path from 'path'
 import * as http from 'http'
 
-import { DriverModel, DriverConstructor } from '../../../src/server/driverModel'
-import AzDriver from '../../../src/server/drivers/AzDriver'
-import S3Driver from '../../../src/server/drivers/S3Driver'
-import GcDriver from '../../../src/server/drivers/GcDriver'
-import DiskDriver from '../../../src/server/drivers/diskDriver'
-import InMemoryDriver from './InMemoryDriver'
-import * as gaiaReader from '../../../../reader/src/http'
+import { DriverModel, DriverConstructor } from '../../../src/server/driverModel.js'
+import AzDriver from '../../../src/server/drivers/AzDriver.js'
+import S3Driver from '../../../src/server/drivers/S3Driver.js'
+import GcDriver from '../../../src/server/drivers/GcDriver.js'
+import DiskDriver from '../../../src/server/drivers/diskDriver.js'
+import InMemoryDriver from './InMemoryDriver.js'
+import * as gaiaReader from '../../../../reader/src/http.js'
 
 /**
  * Either a:

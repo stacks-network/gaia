@@ -1,15 +1,15 @@
-import * as fs from 'fs-extra'
+import fs from 'fs-extra'
 import { readdir } from 'fs'
 import { PassThrough } from 'stream'
-import { BadPathError, InvalidInputError, DoesNotExist } from '../errors'
+import { BadPathError, InvalidInputError, DoesNotExist } from '../errors.js'
 import * as Path from 'path'
 import * as crypto from 'crypto'
 import { 
   ListFilesResult, PerformWriteArgs, WriteResult, PerformDeleteArgs, PerformRenameArgs,
   PerformStatArgs, StatResult, PerformReadArgs, ReadResult, PerformListFilesArgs,
   ListFilesStatResult, ListFileStatResult, DriverStatics, DriverModel 
-} from '../driverModel'
-import { pipelineAsync, logger, dateToUnixTimeSeconds } from '../utils'
+} from '../driverModel.js'
+import { pipelineAsync, logger, dateToUnixTimeSeconds } from '../utils.js'
 
 export interface DISK_CONFIG_TYPE { 
   diskSettings: { storageRootDirectory?: string },

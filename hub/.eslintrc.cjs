@@ -27,6 +27,7 @@ module.exports = {
         "paths": ["src"],
         "extensions": [".js", ".ts", ".d.ts"]
       },
+      "typescript": {}
     },
   },
   "rules": {
@@ -57,7 +58,6 @@ module.exports = {
       "ImportDeclaration": "first",
       "CallExpression": { "arguments": "first" }
     }],
-
     "@typescript-eslint/no-object-literal-type-assertion": "off",
     "@typescript-eslint/explicit-member-accessibility": "off",
     "@typescript-eslint/explicit-function-return-type": "off",

@@ -1,17 +1,20 @@
-import test = require('tape-promise/tape')
-import * as express from 'express'
+import test from 'tape-promise/tape.js'
+import express from 'express'
 import * as fs from 'fs'
 import * as path from 'path'
+import * as url from 'url'
 import * as https from 'https'
-import * as tlsServer from '../../src/server/tlsServer'
-import { TlsPemCert, TlsPfxCert } from '../../src/server/config'
+import * as tlsServer from '../../src/server/tlsServer.js'
+import { TlsPemCert, TlsPfxCert } from '../../src/server/config.js'
 import { AddressInfo } from 'net'
 import { RequestOptions } from 'https'
 import { IncomingMessage } from 'http'
-import { readStream } from '../../src/server/utils'
+import { readStream } from '../../src/server/utils.js'
 
 
 export function testTls() {
+  const __filename = url.fileURLToPath(import.meta.url)
+  const __dirname = path.dirname(__filename);
 
   const keyPemFile = path.resolve(__dirname, '../data/tls_certs/key.pem')
   const keyPemBuffer = fs.readFileSync(keyPemFile)

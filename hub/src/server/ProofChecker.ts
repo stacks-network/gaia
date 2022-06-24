@@ -1,11 +1,11 @@
 import { validateProofs, verifyProfileToken } from 'blockstack'
-import * as cheerio from 'cheerio'
-import { logger } from './utils'
+import cheerio from 'cheerio'
+import { logger } from './utils.js'
 import fetch from 'node-fetch'
 
-import { NotEnoughProofError } from './errors'
-import { ProofCheckerConfigInterface } from './config'
-import { getTokenPayload } from './authentication'
+import { NotEnoughProofError } from './errors.js'
+import { ProofCheckerConfigInterface } from './config.js'
+import { getTokenPayload } from './authentication.js'
 
 export class ProofChecker {
   proofsRequired: number

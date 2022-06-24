@@ -1,12 +1,12 @@
 import { Storage, File } from '@google-cloud/storage'
 
-import { BadPathError, InvalidInputError, DoesNotExist } from '../errors'
+import { BadPathError, InvalidInputError, DoesNotExist } from '../errors.js'
 import { 
   ListFilesResult, PerformWriteArgs, WriteResult, PerformDeleteArgs, PerformRenameArgs,
   StatResult, PerformStatArgs, PerformReadArgs, ReadResult, PerformListFilesArgs,
   ListFilesStatResult, ListFileStatResult, DriverStatics, DriverModel, DriverModelTestMethods 
-} from '../driverModel'
-import { pipelineAsync, logger, dateToUnixTimeSeconds } from '../utils'
+} from '../driverModel.js'
+import { pipelineAsync, logger, dateToUnixTimeSeconds } from '../utils.js'
 
 export interface GC_CONFIG_TYPE {
   gcCredentials?: {

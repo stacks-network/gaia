@@ -1,9 +1,9 @@
 
-import ECPairFactory, { ECPairInterface } from 'ecpair'
+import * as ecpair from 'ecpair'
 import * as ecc from 'tiny-secp256k1';
 import { ecPairToAddress } from 'blockstack'
 
-const ECPair = ECPairFactory(ecc);
+const ECPair = ecpair.ECPairFactory(ecc);
 
 export const testWIFs = [
   'L4kMoaVivcd1FMPPwRU9XT2PdKHPob3oo6YmgTBHrnBHMmo7GcCf',
@@ -16,11 +16,11 @@ export const testWIFs = [
   'L58yVu1P1GwHkV9jeuPSJYpSYoUgcHJRWzQpT1RRHQq6WX4vu6kh',
   'L4axr2vJzeb3JcsF2gRFApmBUscuEujcCCf335bnA4oTtGUKeLAc',
   'L1zYdjKVhU9yrzeptfdqsffGQ1GLp6ypdCCbBdLT2KdMDX5P2aLK']
-export const testPairs: ECPairInterface[] = testWIFs.map(x => ECPair.fromWIF(x))
+export const testPairs: ecpair.ECPairInterface[] = testWIFs.map(x => ECPair.fromWIF(x))
 export const testAddrs: string[] = testPairs.map(x => ecPairToAddress(x))
 
 export const createTestKeys = (count: number) => {
-  const testPairs: ECPairInterface[] = [...Array(count)].map(_ => ECPair.makeRandom());
+  const testPairs: ecpair.ECPairInterface[] = [...Array(count)].map(_ => ECPair.makeRandom());
   const testAddrs: string[] = testPairs.map(x => ecPairToAddress(x));
   return { testPairs, testAddrs };
 }

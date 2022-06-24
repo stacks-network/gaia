@@ -5,21 +5,21 @@ import { createHash } from 'crypto'
 import * as os from 'os'
 import * as path from 'path'
 import * as fs from 'fs'
-import { load as proxyquire } from 'proxyquire'
+import esmock from 'esmock'
 
-import { readStream } from '../../../src/server/utils'
-import { DriverModel, DriverConstructor, PerformDeleteArgs } from '../../../src/server/driverModel'
-import { ListFilesResult, PerformWriteArgs, WriteResult } from '../../../src/server/driverModel'
-import AzDriver from '../../../src/server/drivers/AzDriver'
-import S3Driver from '../../../src/server/drivers/S3Driver'
-import GcDriver from '../../../src/server/drivers/GcDriver'
-import DiskDriver from '../../../src/server/drivers/diskDriver'
+import { readStream } from '../../../src/server/utils.js'
+import { DriverModel, DriverConstructor, PerformDeleteArgs } from '../../../src/server/driverModel.js'
+import { ListFilesResult, PerformWriteArgs, WriteResult } from '../../../src/server/driverModel.js'
+import AzDriver from '../../../src/server/drivers/AzDriver.js'
+import S3Driver from '../../../src/server/drivers/S3Driver.js'
+import GcDriver from '../../../src/server/drivers/GcDriver.js'
+import DiskDriver from '../../../src/server/drivers/diskDriver.js'
 import {BlobServiceClient, BlockBlobUploadStreamOptions} from '@azure/storage-blob'
 import {getPagedAsyncIterator} from '@azure/core-paging'
 
 type DataMap = {key: string, data: string, etag: string}[];
 
-export const availableMockedDrivers: {[name: string]: () => {driverClass: DriverConstructor, dataMap: DataMap, config: any}} = {
+export const availableMockedDrivers: {[name: string]: () => Promise<{driverClass: DriverConstructor, dataMap: DataMap, config: any}>} = {
   az: () => makeMockedAzureDriver(),
   aws: () => makeMockedS3Driver(),
   gc: () => makeMockedGcDriver(),
@@ -27,7 +27,7 @@ export const availableMockedDrivers: {[name: string]: () => {driverClass: Driver
 };
 
 
-export function makeMockedAzureDriver() {
+export async function makeMockedAzureDriver() {
 
   let config = {
     "azCredentials": {
@@ -105,18 +105,19 @@ export function makeMockedAzureDriver() {
     getContainerClient = () => new ContainerClient()
   }
 
-  const driverClass = proxyquire('../../../src/server/drivers/AzDriver', {
+  const driverClass = await esmock('../../../src/server/drivers/AzDriver', {
     '@azure/storage-blob': {
       BlobServiceClient: BlobServiceClient,
       ContainerClient: ContainerClient,
       BlockBlobClient: BlockBlobClient
     }
-  }).default
+  })
+  console.log('driverClass', driverClass)
   return { driverClass, dataMap, config }
 }
 
 
-export function makeMockedS3Driver() {
+export async function makeMockedS3Driver() {
   let config : any = {
     "bucket": "spokes"
   }
@@ -197,13 +198,13 @@ export function makeMockedS3Driver() {
     }
   }
 
-  const driverClass = proxyquire('../../../src/server/drivers/S3Driver', {
+  const driverClass = await esmock('../../../src/server/drivers/S3Driver', {
     'aws-sdk/clients/s3': S3Class
-  }).default
+  })
   return { driverClass, dataMap, config }
 }
 
-export function makeMockedGcDriver() {
+export async function makeMockedGcDriver() {
   let config = {
     "bucket": "spokes"
   }
@@ -260,9 +261,9 @@ export function makeMockedGcDriver() {
     }
   }
 
-  const driverClass = proxyquire('../../../src/server/drivers/GcDriver', {
+  const driverClass = await esmock('../../../src/server/drivers/GcDriver', {
     '@google-cloud/storage': { Storage: StorageClass }
-  }).default
+  })
   return { driverClass, dataMap, config }
 }
 
@@ -300,7 +301,7 @@ export function makeMockedDiskDriver() {
   }
 
   const driverClass: DriverConstructor = DiskDriverWrapper
-  return {driverClass, dataMap, config}
+  return Promise.resolve({driverClass, dataMap, config})
 }
 
 class MockWriteStream extends Writable {

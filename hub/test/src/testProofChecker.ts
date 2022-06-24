@@ -1,5 +1,5 @@
-import test = require('tape-promise/tape')
-import { ProofChecker } from '../../src/server/ProofChecker'
+import test from 'tape-promise/tape.js'
+import { ProofChecker } from '../../src/server/ProofChecker.js'
 
 export function testProofChecker() {
 

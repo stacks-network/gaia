@@ -1,11 +1,11 @@
-import test = require('tape-promise/tape')
+import test from 'tape-promise/tape.js'
 import { TokenSigner } from 'jsontokens'
 
-import * as auth from '../../src/server/authentication'
-import * as errors from '../../src/server/errors'
+import * as auth from '../../src/server/authentication.js'
+import * as errors from '../../src/server/errors.js'
 
 
-import { testPairs, testAddrs} from './common'
+import { testPairs, testAddrs} from './common.js'
 import { ECPairInterface } from 'ecpair'
 
 export function testAuth() {

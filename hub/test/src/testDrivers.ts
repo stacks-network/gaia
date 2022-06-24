@@ -1,15 +1,15 @@
-import test = require('tape-promise/tape')
+import test from 'tape-promise/tape.js'
 import * as fetchMock from 'fetch-mock'
 import NodeFetch from 'node-fetch'
 
 import { Readable, PassThrough, ReadableOptions } from 'stream'
-import { DriverModel, DriverModelTestMethods } from '../../src/server/driverModel'
-import * as utils from '../../src/server/utils'
+import { DriverModel, DriverModelTestMethods } from '../../src/server/driverModel.js'
+import * as utils from '../../src/server/utils.js'
 
-import * as mockTestDrivers from './testDrivers/mockTestDrivers'
-import * as integrationTestDrivers from './testDrivers/integrationTestDrivers'
-import { BadPathError, DoesNotExist, ConflictError } from '../../src/server/errors'
-import { tryFor } from '../../src/server/utils'
+import * as mockTestDrivers from './testDrivers/mockTestDrivers.js'
+import * as integrationTestDrivers from './testDrivers/integrationTestDrivers.js'
+import { BadPathError, DoesNotExist, ConflictError } from '../../src/server/errors.js'
+import { tryFor } from '../../src/server/utils.js'
 
 export function addMockFetches(fetchLib: fetchMock.FetchMockSandbox, prefix: any, dataMap: {key: string, data: string}[]) {
   dataMap.forEach(item => {
@@ -728,11 +728,11 @@ class BrokenReadableStream extends Readable {
   }
 }
 
-function performDriverMockTests() {
+async function performDriverMockTests() {
   for (const name in mockTestDrivers.availableMockedDrivers) {
     const testName = `mock test for driver: ${name}`
     const mockTest = true
-    const { driverClass, dataMap, config } = mockTestDrivers.availableMockedDrivers[name]();
+    const { driverClass, dataMap, config } = await mockTestDrivers.availableMockedDrivers[name]();
     testDriver(testName, mockTest, dataMap, testConfig => new driverClass({...config, ...testConfig}))
   }
 }

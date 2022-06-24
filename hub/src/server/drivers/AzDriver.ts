@@ -5,13 +5,13 @@ import {
   BlockBlobUploadStreamOptions, BlobItem
 } from '@azure/storage-blob'
 import { AbortSignal } from '@azure/abort-controller'
-import { logger, dateToUnixTimeSeconds } from '../utils'
-import { BadPathError, InvalidInputError, DoesNotExist, ConflictError, PreconditionFailedError } from '../errors'
+import { logger, dateToUnixTimeSeconds } from '../utils.js'
+import { BadPathError, InvalidInputError, DoesNotExist, ConflictError, PreconditionFailedError } from '../errors.js'
 import { 
   PerformWriteArgs, WriteResult, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs,
   StatResult, PerformReadArgs, ReadResult, PerformListFilesArgs, ListFilesStatResult,
   ListFileStatResult, DriverStatics, DriverModel, DriverModelTestMethods
-} from '../driverModel'
+} from '../driverModel.js'
 import { Readable } from 'stream'
 
 export interface AZ_CONFIG_TYPE {

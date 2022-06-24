@@ -1,27 +1,27 @@
-import test = require('tape-promise/tape')
-import * as auth from '../../src/server/authentication'
+import test from 'tape-promise/tape.js'
+import * as auth from '../../src/server/authentication.js'
 import * as os from 'os'
 import * as fs from 'fs'
 import * as crypto from 'crypto'
-import request = require('supertest')
+import request from 'supertest'
 import { ecPairToAddress } from 'blockstack'
 
-import * as fetchMock from 'fetch-mock'
+import fetchMock from 'fetch-mock'
 import NodeFetch from 'node-fetch'
 
-import { makeHttpServer } from '../../src/server/http'
-import DiskDriver from '../../src/server/drivers/diskDriver'
-import { AZ_CONFIG_TYPE } from '../../src/server/drivers/AzDriver'
-import { addMockFetches } from './testDrivers'
-import { makeMockedAzureDriver } from './testDrivers/mockTestDrivers'
+import { makeHttpServer } from '../../src/server/http.js'
+import DiskDriver from '../../src/server/drivers/diskDriver.js'
+import { AZ_CONFIG_TYPE } from '../../src/server/drivers/AzDriver.js'
+import { addMockFetches } from './testDrivers.js'
+import { makeMockedAzureDriver } from './testDrivers/mockTestDrivers.js'
 
-import { testPairs, testAddrs } from './common'
-import InMemoryDriver from './testDrivers/InMemoryDriver'
-import { MockAuthTimestampCache } from './MockAuthTimestampCache'
-import { HubConfigInterface } from '../../src/server/config'
+import { testPairs, testAddrs } from './common.js'
+import InMemoryDriver from './testDrivers/InMemoryDriver.js'
+import { MockAuthTimestampCache } from './MockAuthTimestampCache.js'
+import { HubConfigInterface } from '../../src/server/config.js'
 import { PassThrough } from 'stream';
-import * as errors from '../../src/server/errors'
-import { timeout } from '../../src/server/utils'
+import * as errors from '../../src/server/errors.js'
+import { timeout } from '../../src/server/utils.js'
 
 const TEST_SERVER_NAME = 'test-server'
 const TEST_AUTH_CACHE_SIZE = 10
@@ -408,7 +408,7 @@ function testHttpDriverOption() {
 
 }
 
-function testHttpWithAzure() {
+async function testHttpWithAzure() {
   const azConfigPath = process.env.AZ_CONFIG_PATH
   let config : HubConfigInterface & AZ_CONFIG_TYPE = {
     'azCredentials': {
@@ -433,7 +433,7 @@ function testHttpWithAzure() {
 
   let dataMap: {key: string, data: string}[] = []
   if (mockTest) {
-    const mockedObj = makeMockedAzureDriver()
+    const mockedObj = await makeMockedAzureDriver()
     dataMap = mockedObj.dataMap
     config.driverClass = mockedObj.driverClass
   } else {
@@ -539,8 +539,8 @@ function testHttpWithAzure() {
   })
 }
 
-export function testHttp() {
-  testHttpWithAzure()
+export async function testHttp() {
+  await testHttpWithAzure()
   testHttpDriverOption()
   testHttpWithInMemoryDriver()
 }

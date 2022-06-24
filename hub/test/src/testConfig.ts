@@ -1,10 +1,13 @@
 
-import test = require('tape-promise/tape')
-import * as config from '../../src/server/config'
+import test from 'tape-promise/tape.js'
+import * as config from '../../src/server/config.js'
 import * as path from 'path'
+import * as url from 'url'
 
 
 export function testConfig() {
+  const __filename = url.fileURLToPath(import.meta.url)
+  const __dirname = path.dirname(__filename);
 
   const configDir = `${__dirname}/../data`
   const schemaFilePath = path.normalize(`${__dirname}/../../config-schema.json`)
