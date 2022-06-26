@@ -59,7 +59,7 @@ jobs:
 #          push: ${{ github.ref != 'refs/heads/master' || needs.semantic-release.outputs.new_release_version != '' }}
 
       - name: Build/Tag/Push Image - Dockerhub
-        uses: docker/build-push-action@v1
+        uses: docker/build-push-action@v3
         with:
           repository: ${{ env.IMAGE_NAME }}
           username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -70,4 +70,3 @@ jobs:
           add_git_labels: true
           # Only push if there's a new release on main branch, or if building a non-main branch
           push: ${{ github.ref != 'refs/heads/master' || needs.semantic-release.outputs.new_release_version != '' }}
-
