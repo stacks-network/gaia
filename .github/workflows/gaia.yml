@@ -42,7 +42,8 @@ jobs:
       IMAGE_NAME: blockstack/${{ github.workflow }}-${{ matrix.context }}
 
     steps:
-      - uses: actions/checkout@v2
+#      actions/checkout no longer required with new docker/build-push-action
+#      - uses: actions/checkout@v2
 
 #      - name: Build/Tag/Push Image - Quay
 #        uses: docker/build-push-action@v1
@@ -58,12 +59,24 @@ jobs:
 #          # Only push if there's a new release on main branch, or if building a non-main branch
 #          push: ${{ github.ref != 'refs/heads/master' || needs.semantic-release.outputs.new_release_version != '' }}
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Build/Tag/Push Image - Dockerhub
         uses: docker/build-push-action@v3
         with:
-          repository: ${{ env.IMAGE_NAME }}
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+ #         repository: ${{ env.IMAGE_NAME }}
+ #         username: ${{ secrets.DOCKERHUB_USERNAME }}
+ #         password: ${{ secrets.DOCKERHUB_PASSWORD }}
           path: ${{ matrix.context }}
           tags: ${{ needs.semantic-release.outputs.new_release_version }}
           tag_with_ref: true
