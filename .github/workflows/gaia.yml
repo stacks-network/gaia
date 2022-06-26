@@ -77,9 +77,10 @@ jobs:
  #         repository: ${{ env.IMAGE_NAME }}
  #         username: ${{ secrets.DOCKERHUB_USERNAME }}
  #         password: ${{ secrets.DOCKERHUB_PASSWORD }}
-          path: ${{ matrix.context }}
+ #         path: ${{ matrix.context }}
+          context: ${{ matrix.context }}
           tags: ${{ needs.semantic-release.outputs.new_release_version }}
-          tag_with_ref: true
-          add_git_labels: true
+#          tag_with_ref: true
+#          add_git_labels: true
           # Only push if there's a new release on main branch, or if building a non-main branch
           push: ${{ github.ref != 'refs/heads/master' || needs.semantic-release.outputs.new_release_version != '' }}
