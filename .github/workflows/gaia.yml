@@ -81,7 +81,7 @@ jobs:
         env:
           OUTPUT1: ${{ matrix.context }}
           OUTPUT2: ${{ needs.semantic-release.outputs.new_release_version }}
-          OUTPUT3:  ${{ github.ref }}
+          OUTPUT3: ${{ github.ref }}
           OUTPUT4: ${{ github.ref != 'refs/heads/master' || needs.semantic-release.outputs.new_release_version != '' }}
 
       - name: Build/Tag/Push Image - Dockerhub
