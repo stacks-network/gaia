@@ -71,6 +71,14 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
+      - name: Output running variables
+        shell: bash
+        run: |
+          echo "context: "
+          echo ${{ matrix.context }}
+          echo "tags: "
+          echo ${{ needs.semantic-release.outputs.new_release_version }}
+
       - name: Build/Tag/Push Image - Dockerhub
         uses: docker/build-push-action@v3
         with:
