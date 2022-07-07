@@ -76,9 +76,11 @@ jobs:
         run: |
           echo "context: $OUTPUT1"
           echo "tags: $OUTPUT2"
+          echo "Will push: $OUTPUT3"
         env:
           OUTPUT1: ${{ matrix.context }}
           OUTPUT2: ${{ needs.semantic-release.outputs.new_release_version }}
+          OUTPUT3: ${{ github.ref != 'refs/heads/master' || needs.semantic-release.outputs.new_release_version != '' }}
 
       - name: Build/Tag/Push Image - Dockerhub
         uses: docker/build-push-action@v3
