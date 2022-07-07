@@ -85,7 +85,7 @@ jobs:
           OUTPUT3: ${{ github.ref }} ":" ${{ github.ref }}
           OUTPUT4: ${{ github.ref != 'refs/heads/master' || needs.semantic-release.outputs.new_release_version != '' }}
 
-      - name: Build/Tag/Push Image - Dockerhub
+      - name: Build/Tag/Push Image - Dockerhub stacksnetwork
         uses: docker/build-push-action@v3
         with:
  #         repository: ${{ env.IMAGE_NAME }}
