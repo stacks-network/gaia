@@ -74,10 +74,11 @@ jobs:
       - name: Output running variables
         shell: bash
         run: |
-          echo "context: "
-          echo "${{ matrix.context }}"
-          echo "tags: "
-          echo "${{ needs.semantic-release.outputs.new_release_version }}"
+          echo "context: $OUTPUT1"
+          echo "tags: $OUTPUT2"
+        env:
+          OUTPUT1: ${{ matrix.context }}
+          OUTPUT2: ${{ needs.semantic-release.outputs.new_release_version }}
 
       - name: Build/Tag/Push Image - Dockerhub
         uses: docker/build-push-action@v3
