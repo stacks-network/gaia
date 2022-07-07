@@ -39,7 +39,8 @@ jobs:
       matrix:
         context: [hub, reader, admin]
     env:
-      IMAGE_NAME: blockstack/${{ github.workflow }}-${{ matrix.context }}
+      IMAGE_NAME_LEGACY: blockstack/${{ github.workflow }}-${{ matrix.context }}
+      IMAGE_NAME: stacksnetwork/${{ github.workflow }}-${{ matrix.context }}
 
     steps:
 #      actions/checkout no longer required with new docker/build-push-action
@@ -93,7 +94,7 @@ jobs:
  #         path: ${{ matrix.context }}
           context: ${{ matrix.context }}
           # tags now includes the repo name, so must be something like "tags: user/app:latest"
-          tags: ${{ needs.semantic-release.outputs.new_release_version }}
+          tags: ${{ env.IMAGE_NAME }}:${{ needs.semantic-release.outputs.new_release_version }}
 #          tag_with_ref: true
 #          add_git_labels: true
           # Only push if there's a new release on main branch, or if building a non-main branch
