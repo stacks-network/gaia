@@ -78,7 +78,7 @@ jobs:
           echo "context: $OUTPUT1"
           echo "tags: $OUTPUT2"
           echo "Github ref: $OUTPUT3"
-          echo "Will push: $OUTPUT4"
+          echo "Will push variable: $OUTPUT4"
         env:
           OUTPUT1: ${{ matrix.context }}
           OUTPUT2: ${{ needs.semantic-release.outputs.new_release_version }}
@@ -92,7 +92,7 @@ jobs:
  #         username: ${{ secrets.DOCKERHUB_USERNAME }}
  #         password: ${{ secrets.DOCKERHUB_PASSWORD }}
  #         path: ${{ matrix.context }}
-          context: ${{ matrix.context }}
+          context: "{{defaultContext}}:${{ matrix.context }}"
           # tags now includes the repo name, so must be something like "tags: user/app:latest"
           # tags: ${{ env.IMAGE_NAME }}:${{ needs.semantic-release.outputs.new_release_version }}
           tags: ${{ env.IMAGE_NAME }}:development
