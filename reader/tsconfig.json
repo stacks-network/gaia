@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
-    "module": "ESNext",
+    "module": "esnext",
     "esModuleInterop": true,
-    "target": "ESNext",
+    "target": "esnext",
     "moduleResolution": "Node",
     "outDir": "lib",
     "forceConsistentCasingInFileNames": true,
@@ -16,5 +16,6 @@
   "ts-node": {
     "esm": true
   },
-  "lib": ["esnext"]
+  "lib": ["esnext"],
+  "exclude": ["test/**"]
 }
