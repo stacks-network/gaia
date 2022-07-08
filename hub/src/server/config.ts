@@ -1,6 +1,6 @@
-import * as winston from 'winston'
-import * as fs from 'fs'
-import * as process from 'process'
+import winston from 'winston'
+import fs from 'fs'
+import process from 'process'
 import Ajv from 'ajv'
 
 import { getDriverClass, logger } from './utils.js'

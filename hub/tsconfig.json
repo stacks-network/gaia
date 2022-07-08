@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
-    "module": "ESNext",
+    "module": "esnext",
     "esModuleInterop": true,
-    "target": "ESNext",
+    "target": "esnext",
     "moduleResolution": "Node",
     "outDir": "lib",
     "forceConsistentCasingInFileNames": true,
@@ -11,10 +11,11 @@
     "strict": false,
     "noImplicitAny": false,
     "useUnknownInCatchVariables": false,
-    "inlineSourceMap": true
+    "inlineSourceMap": true,
   },
   "ts-node": {
     "esm": true
   },
-  "lib": ["esnext"]
+  "lib": ["esnext"],
+  "exclude": ["test/**", "__mocks__/**"]
 }
