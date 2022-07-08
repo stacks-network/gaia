@@ -11,9 +11,8 @@
     "build": "tsc",
     "lint": "eslint --ext .ts ./src -f unix",
     "lint:fix": "eslint --ext .ts ./src --fix",
-    "test:coverage": "cross-env NODE_ENV=test c8 ts-node test/test.ts",
+    "test:coverage": "cross-env NODE_ENV=test jest --coverage",
     "test": "run-p build lint test:coverage",
-    "test:build": "tsc -p ./test/tsconfig.json",
     "start": "node lib/index.js"
   },
   "bin": {
@@ -45,42 +44,34 @@
     "@types/cors": "^2.8.12",
     "@types/express": "^4.17.13",
     "@types/express-winston": "^4.0.0",
+    "@types/jest": "^28.1.3",
     "@types/node": "^18.0.0",
     "@types/tape": "^4.13.2",
     "@typescript-eslint/eslint-plugin": "^5.29.0",
     "@typescript-eslint/parser": "^5.29.0",
-    "c8": "^7.11.3",
     "cross-env": "^7.0.3",
     "eslint": "^8.18.0",
     "eslint-import-resolver-typescript": "^2.7.1",
     "eslint-plugin-import": "^2.26.0",
+    "jest": "^28.1.1",
     "npm-run-all": "^4.1.5",
     "source-map-support": "^0.5.21",
-    "tape": "^5.5.3",
+    "ts-jest": "^28.0.5",
     "ts-node": "^10.8.1",
     "typescript": "^4.7.4"
   },
   "homepage": "https://github.com/stacks-network/gaia",
-  "nyc": {
-    "cache": false,
-    "all": true,
-    "extension": [
-      ".ts"
-    ],
-    "include": [
-      "src/**/*.ts"
-    ],
-    "exclude": [
-      "**/*.d.ts"
-    ],
-    "require": [
-      "ts-node/register/transpile-only",
-      "source-map-support/register"
-    ],
-    "reporter": [
-      "text",
-      "lcov"
-    ]
+  "jest": {
+    "preset": "ts-jest",
+    "globals": {
+      "ts-jest": {
+        "useESM": true
+      }
+    },
+    "moduleNameMapper": {
+      "^(\\.{1,2}/.*)\\.js$": "$1"
+    },
+    "verbose": true
   },
   "type": "module"
 }
