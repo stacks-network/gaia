@@ -332,7 +332,7 @@ export class AdminAPI {
   }
 
   handleSetConfig(newConfig: any): Promise<{ status: any, statusCode: number }> {
-    const ajv = new Ajv()
+    const ajv = new Ajv({strict: false})
     const valid = ajv.validate(GAIA_CONFIG_SCHEMA, newConfig)
     if (!valid) {
       logger.error(`Failed to validate Gaia configuration: ${JSON.stringify(ajv.errors)}`)
