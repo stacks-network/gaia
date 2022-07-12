@@ -43,31 +43,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Notify slack start
-        if: success()
-        id: slack
-        env:
-          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-        uses: voxmedia/github-action-slack-notify-build@v1.1.2
-        with:
-          channel: devops-notify
-          status: STARTING
-          color: warning
-
-      - name: Build/Tag/Push Image - Quay
-        uses: docker/build-push-action@v1
-        with:
-          repository: ${{ env.IMAGE_NAME }}
-          username: ${{ secrets.QUAY_USERNAME }}
-          password: ${{ secrets.QUAY_PASSWORD }}
-          registry: quay.io
-          path: ${{ matrix.context }}
-          tags: ${{ needs.semantic-release.outputs.new_release_version }}
-          tag_with_ref: true
-          add_git_labels: true
-          # Only push if there's a new release on main branch, or if building a non-main branch
-          push: ${{ github.ref != 'refs/heads/master' || needs.semantic-release.outputs.new_release_version != '' }}
-
+    
       - name: Build/Tag/Push Image - Dockerhub
         uses: docker/build-push-action@v1
         with:
@@ -80,25 +56,3 @@ jobs:
           add_git_labels: true
           # Only push if there's a new release on main branch, or if building a non-main branch
           push: ${{ github.ref != 'refs/heads/master' || needs.semantic-release.outputs.new_release_version != '' }}
-
-      - name: Notify slack success
-        if: success()
-        env:
-          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-        uses: voxmedia/github-action-slack-notify-build@v1.1.2
-        with:
-          message_id: ${{ steps.slack.outputs.message_id }}
-          channel: devops-notify
-          status: SUCCESS
-          color: good
-
-      - name: Notify slack fail
-        if: failure()
-        env:
-          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-        uses: voxmedia/github-action-slack-notify-build@v1.1.2
-        with:
-          message_id: ${{ steps.slack.outputs.message_id }}
-          channel: devops-notify
-          status: FAILED
-          color: danger
