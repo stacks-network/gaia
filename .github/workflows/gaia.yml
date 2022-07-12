@@ -94,7 +94,7 @@ jobs:
         with:
           context: "{{defaultContext}}:${{ matrix.context }}"
           tags: ${{ env.IMAGE_NAME }}:${{ needs.semantic-release.outputs.new_release_version }}
-          push: ${{ github.ref != 'refs/heads/master' || needs.semantic-release.outputs.new_release_version != '' }}
+          push: ${{ needs.semantic-release.outputs.new_release_version != '' }}
 
 
       - name: Build/Tag/Push Image - Dockerhub blockstack - new release
@@ -102,4 +102,4 @@ jobs:
         with:
           context: "{{defaultContext}}:${{ matrix.context }}"
           tags: ${{ env.IMAGE_NAME_LEGACY }}:${{ needs.semantic-release.outputs.new_release_version }}
-          push: ${{ github.ref != 'refs/heads/master' || needs.semantic-release.outputs.new_release_version != '' }}
+          push: ${{ needs.semantic-release.outputs.new_release_version != '' }}
