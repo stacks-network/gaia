@@ -42,23 +42,6 @@ jobs:
       IMAGE_NAME: stacksnetwork/${{ github.workflow }}-${{ matrix.context }}
 
     steps:
-#      actions/checkout no longer required with new docker/build-push-action
-#      - uses: actions/checkout@v2
-
-#      - name: Build/Tag/Push Image - Quay
-#        uses: docker/build-push-action@v1
-#        with:
-#          repository: ${{ env.IMAGE_NAME }}
-#          username: ${{ secrets.QUAY_USERNAME }}
-#          password: ${{ secrets.QUAY_PASSWORD }}
-#          registry: quay.io
-#          path: ${{ matrix.context }}
-#          tags: ${{ needs.semantic-release.outputs.new_release_version }}
-#          tag_with_ref: true
-#          add_git_labels: true
-#          # Only push if there's a new release on main branch, or if building a non-main branch
-#          push: ${{ github.ref != 'refs/heads/master' || needs.semantic-release.outputs.new_release_version != '' }}
-
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
 
@@ -84,7 +67,7 @@ jobs:
           OUTPUT3: ${{ github.ref }} ":" ${{ github.ref }}
           OUTPUT4: ${{ github.ref != 'refs/heads/master' || needs.semantic-release.outputs.new_release_version != '' }}
 
-      - name: Build/Tag/Push Image - Dockerhub stacksnetwork
+      - name: Build/Tag/Push Image - Dockerhub stacksnetwork - latest-dev
         uses: docker/build-push-action@v3
         with:
  #         repository: ${{ env.IMAGE_NAME }}
@@ -94,10 +77,12 @@ jobs:
           context: "{{defaultContext}}:${{ matrix.context }}"
           # tags now includes the repo name, so must be something like "tags: user/app:latest"
           # tags: ${{ env.IMAGE_NAME }}:${{ needs.semantic-release.outputs.new_release_version }}
-          tags: ${{ env.IMAGE_NAME }}:development
+          tags: ${{ env.IMAGE_NAME }}:latest-dev
 #          tag_with_ref: true
 #          add_git_labels: true
           # Only push if there's a new release on main branch, or if building a non-main branch
           # push: ${{ github.ref != 'refs/heads/master' || needs.semantic-release.outputs.new_release_version != '' }}
           # Temporarily halt pushes
-          push: false
+          # push: false
+          # Only push as tag "latest-dev" when new code on main branch
+          push: ${{ github.ref = 'refs/heads/master' }}
