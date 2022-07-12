@@ -1,14 +1,14 @@
 
 
-import { validateAuthorizationHeader, getAuthenticationScopes, AuthScopeValues } from './authentication'
-import { ValidationError, DoesNotExist, PayloadTooLargeError, PreconditionFailedError } from './errors'
-import { ProofChecker } from './ProofChecker'
-import { AuthTimestampCache } from './revocations'
+import { validateAuthorizationHeader, getAuthenticationScopes, AuthScopeValues } from './authentication.js'
+import { ValidationError, DoesNotExist, PayloadTooLargeError, PreconditionFailedError } from './errors.js'
+import { ProofChecker } from './ProofChecker.js'
+import { AuthTimestampCache } from './revocations.js'
 
 import { Readable } from 'stream'
-import { DriverModel, PerformWriteArgs, WriteResult, PerformRenameArgs, PerformDeleteArgs, PerformListFilesArgs, ListFilesStatResult, ListFilesResult } from './driverModel'
-import { HubConfigInterface } from './config'
-import { logger, generateUniqueID, bytesToMegabytes, megabytesToBytes, monitorStreamProgress } from './utils'
+import { DriverModel, PerformWriteArgs, WriteResult, PerformRenameArgs, PerformDeleteArgs, PerformListFilesArgs, ListFilesStatResult, ListFilesResult } from './driverModel.js'
+import { HubConfigInterface } from './config.js'
+import { logger, generateUniqueID, bytesToMegabytes, megabytesToBytes, monitorStreamProgress } from './utils.js'
 
 export class HubServer {
   driver: DriverModel

@@ -5,13 +5,13 @@ import * as os from 'os'
 import * as path from 'path'
 import * as http from 'http'
 
-import { DriverModel, DriverConstructor } from '../../../src/server/driverModel'
-import AzDriver from '../../../src/server/drivers/AzDriver'
-import S3Driver from '../../../src/server/drivers/S3Driver'
-import GcDriver from '../../../src/server/drivers/GcDriver'
-import DiskDriver from '../../../src/server/drivers/diskDriver'
-import InMemoryDriver from './InMemoryDriver'
-import * as gaiaReader from '../../../../reader/src/http'
+import { DriverModel, DriverConstructor } from '../../../src/server/driverModel.js'
+import AzDriver from '../../../src/server/drivers/AzDriver.js'
+import S3Driver from '../../../src/server/drivers/S3Driver.js'
+import GcDriver from '../../../src/server/drivers/GcDriver.js'
+import DiskDriver from '../../../src/server/drivers/diskDriver.js'
+import InMemoryDriver from './InMemoryDriver.js'
+import * as gaiaReader from '../../../../reader/src/http.js'
 
 /**
  * Either a:
@@ -107,7 +107,7 @@ availableDrivers.diskSelfHosted = {
 
     const app = gaiaReader.makeHttpServer(<any>selfHostedConfig);
     const serverPromise = new Promise<http.Server>((res, rej) => {
-      const server = app.listen(0, 'localhost', err => err ? rej(err) : res(server));
+      const server = app.listen(0, 'localhost', () => res(server));
     });
 
     return new class SelfHostedDiskDriver extends DiskDriver { 
@@ -121,7 +121,7 @@ availableDrivers.diskSelfHosted = {
       async dispose() {
         await super.dispose();
         const server = await serverPromise;
-        await new Promise((res, rej) => server.close(err => err ? rej(err): res()));
+        await new Promise<void>((res, rej) => server.close(err => err ? rej(err): res()));
       }
     }(selfHostedConfig);
   }

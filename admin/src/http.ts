@@ -1,8 +1,8 @@
-import * as express from 'express'
-import * as expressWinston from 'express-winston'
-import * as cors from 'cors'
-import { AdminAPI } from './server'
-import { Config, logger } from './config'
+import express from 'express'
+import expressWinston from 'express-winston'
+import cors from 'cors'
+import { AdminAPI } from './server.js'
+import { Config, logger } from './config.js'
 
 
 function writeResponse(res: express.Response, data: any, statusCode: number) {
@@ -22,7 +22,7 @@ export function makeHttpServer(config: Config) {
   app.use(cors())
   
   app.post(/\/v1\/admin\/reload/, (req: express.Request, res: express.Response) => {
-    return server.checkAuthorization(req.headers['authorization'])
+    void server.checkAuthorization(req.headers['authorization'])
       .then((authResult) => {
         if (!authResult) {
           return { statusCode: 403, status: { error: 'forbidden' } }
@@ -34,7 +34,7 @@ export function makeHttpServer(config: Config) {
   })
 
   app.get(/\/v1\/admin\/config/, (req: express.Request, res: express.Response) => {
-    return server.checkAuthorization(req.headers['authorization'])
+    void server.checkAuthorization(req.headers['authorization'])
       .then((authResult) => {
         if (!authResult) {
           return { statusCode: 403, status: { error: 'forbidden' } }

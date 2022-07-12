@@ -1,11 +1,9 @@
-
-
-import * as LRUCache from 'lru-cache'
-import { DriverModel } from './driverModel'
+import LRUCache from 'lru-cache'
+import { DriverModel } from './driverModel.js'
 import fetch, { Response } from 'node-fetch'
-import { logger } from './utils'
+import { logger } from './utils.js'
 import { Readable } from 'stream'
-import * as errors from './errors'
+import * as errors from './errors.js'
 
 const AUTH_TIMESTAMP_FILE_NAME = 'authTimestamp'
 

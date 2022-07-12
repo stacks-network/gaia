@@ -1,10 +1,11 @@
 import { validateProofs, verifyProfileToken } from 'blockstack'
-import { logger } from './utils'
+import cheerio from 'cheerio'
+import { logger } from './utils.js'
 import fetch from 'node-fetch'
 
-import { NotEnoughProofError } from './errors'
-import { ProofCheckerConfigInterface } from './config'
-import { getTokenPayload } from './authentication'
+import { NotEnoughProofError } from './errors.js'
+import { ProofCheckerConfigInterface } from './config.js'
+import { getTokenPayload } from './authentication.js'
 
 export class ProofChecker {
   proofsRequired: number
@@ -41,7 +42,7 @@ export class ProofChecker {
     let validProofs
     try {
       const profile = await this.fetchProfile(address, readURL)
-      const proofs: any[] = await validateProofs(profile, address, undefined)
+      const proofs: any[] = await validateProofs(profile, address, cheerio)
       validProofs = proofs.filter(p => p.valid)
     } catch (error) {
       logger.error(error)

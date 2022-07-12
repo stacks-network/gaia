@@ -1,17 +1,21 @@
 {
   "compilerOptions": {
-      "target": "es2018",
-      "module": "commonjs",
-      "esModuleInterop": false,
-      "moduleResolution": "node",
-      "declaration": true,
-      "noImplicitAny": true,
-      "outDir": "lib",
-      "sourceMap": true,
-      "sourceRoot": ".",
-      "skipLibCheck": true
+    "module": "esnext",
+    "esModuleInterop": true,
+    "target": "esnext",
+    "moduleResolution": "Node",
+    "outDir": "lib",
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "isolatedModules": false,
+    "strict": false,
+    "noImplicitAny": false,
+    "useUnknownInCatchVariables": false,
+    "inlineSourceMap": true,
   },
-  "include": [
-    "src/**/*"
-  ]
+  "ts-node": {
+    "esm": true
+  },
+  "lib": ["esnext"],
+  "exclude": ["test/**", "__mocks__/**"]
 }

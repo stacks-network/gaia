@@ -1,5 +1,5 @@
-import { makeHttpServer } from './http'
-import { getConfig, logger } from './config'
+import { makeHttpServer } from './http.js'
+import { getConfig, logger } from './config.js'
 
 const conf = getConfig()
 const app = makeHttpServer(conf)

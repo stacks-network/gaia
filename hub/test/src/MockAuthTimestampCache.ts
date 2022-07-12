@@ -1,6 +1,6 @@
 
 
-import { AuthTimestampCache } from '../../src/server/revocations'
+import { AuthTimestampCache } from '../../src/server/revocations.js'
 
 export class MockAuthTimestampCache extends AuthTimestampCache {
   constructor() {
