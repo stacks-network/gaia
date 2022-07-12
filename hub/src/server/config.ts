@@ -1,15 +1,15 @@
-import * as winston from 'winston'
-import * as fs from 'fs'
-import * as process from 'process'
+import winston from 'winston'
+import fs from 'fs'
+import process from 'process'
 import Ajv from 'ajv'
 
-import { getDriverClass, logger } from './utils'
-import { DriverModel, DriverConstructor } from './driverModel'
+import { getDriverClass, logger } from './utils.js'
+import { DriverModel, DriverConstructor } from './driverModel.js'
 
-import { AZ_CONFIG_TYPE } from './drivers/AzDriver'
-import { DISK_CONFIG_TYPE } from './drivers/diskDriver'
-import { GC_CONFIG_TYPE } from './drivers/GcDriver'
-import { S3_CONFIG_TYPE } from './drivers/S3Driver'
+import { AZ_CONFIG_TYPE } from './drivers/AzDriver.js'
+import { DISK_CONFIG_TYPE } from './drivers/diskDriver.js'
+import { GC_CONFIG_TYPE } from './drivers/GcDriver.js'
+import { S3_CONFIG_TYPE } from './drivers/S3Driver.js'
 
 export type DriverName = 'aws' | 'azure' | 'disk' | 'google-cloud'
 

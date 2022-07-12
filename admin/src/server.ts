@@ -1,7 +1,7 @@
-import * as fs from 'fs'
-import * as childProcess from 'child_process'
-import * as Ajv from 'ajv'
-import { Config, logger } from './config'
+import fs from 'fs'
+import childProcess from 'child_process'
+import Ajv from 'ajv'
+import { Config, logger } from './config.js'
 
 function runSubprocess(
   cmd: string, 
@@ -332,7 +332,7 @@ export class AdminAPI {
   }
 
   handleSetConfig(newConfig: any): Promise<{ status: any, statusCode: number }> {
-    const ajv = new Ajv()
+    const ajv = new Ajv({strict: false})
     const valid = ajv.validate(GAIA_CONFIG_SCHEMA, newConfig)
     if (!valid) {
       logger.error(`Failed to validate Gaia configuration: ${JSON.stringify(ajv.errors)}`)

@@ -2,13 +2,13 @@ import * as stream from 'stream'
 import { customAlphabet } from 'nanoid'
 
 import { DriverConstructor, DriverStatics } from './driverModel'
-import S3Driver from './drivers/S3Driver'
-import AzDriver from './drivers/AzDriver'
-import GcDriver from './drivers/GcDriver'
-import DiskDriver from './drivers/diskDriver'
+import S3Driver from './drivers/S3Driver.js'
+import AzDriver from './drivers/AzDriver.js'
+import GcDriver from './drivers/GcDriver.js'
+import DiskDriver from './drivers/diskDriver.js'
 import { promisify } from 'util'
 import * as winston from 'winston'
-import { DriverName } from './config'
+import { DriverName } from './config.js'
 
 const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
 

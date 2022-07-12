@@ -1,8 +1,8 @@
-import * as express from 'express'
-import * as expressWinston from 'express-winston'
-import * as cors from 'cors'
-import { AdminAPI } from './server'
-import { Config, logger } from './config'
+import express from 'express'
+import expressWinston from 'express-winston'
+import cors from 'cors'
+import { AdminAPI } from './server.js'
+import { Config, logger } from './config.js'
 
 
 function writeResponse(res: express.Response, data: any, statusCode: number) {

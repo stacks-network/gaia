@@ -21,6 +21,15 @@ module.exports = {
     "node": true,
     "es6": true
   },
+  "settings": {
+    "import/resolver": {
+      "node": {
+        "paths": ["src"],
+        "extensions": [".js", ".ts", ".d.ts"]
+      },
+      "typescript": {}
+    },
+  },
   "rules": {
     "comma-dangle": ["error", "never"],
     "quotes": [2, "single"],
@@ -49,7 +58,7 @@ module.exports = {
       "ImportDeclaration": "first",
       "CallExpression": { "arguments": "first" }
     }],
-
+    "@typescript-eslint/no-object-literal-type-assertion": "off",
     "@typescript-eslint/explicit-member-accessibility": "off",
     "@typescript-eslint/explicit-function-return-type": "off",
     "@typescript-eslint/class-name-casing": "off",
@@ -59,7 +68,10 @@ module.exports = {
     "@typescript-eslint/no-angle-bracket-type-assertion": "off",
     "@typescript-eslint/prefer-interface": "off",
     "@typescript-eslint/no-use-before-define": "off",
-
+    "no-unused-vars": "off",
+    "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+    "@typescript-eslint/no-inferrable-types": "off",
+    
     "import/no-unresolved": "error",
     "import/no-unused-modules": "error",
     "import/no-duplicates": "error",
@@ -70,6 +82,11 @@ module.exports = {
     "@typescript-eslint/restrict-template-expressions": "off",
     "@typescript-eslint/no-unsafe-member-access": "off",
     "@typescript-eslint/no-unsafe-assignment": "off",
-    "@typescript-eslint/no-misused-promises": "off",
+    "@typescript-eslint/no-unsafe-argument": "off",
+    "@typescript-eslint/no-unsafe-return": "off",
+    "@typescript-eslint/no-unsafe-call": "off"
+  },
+  "globals": {
+    "BufferEncoding": true
   }
 };

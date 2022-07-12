@@ -1,15 +1,21 @@
 {
   "compilerOptions": {
-    "target": "es2018",
-    "module": "commonjs",
-    "moduleResolution": "node",
-    "declaration": true,
-    "noImplicitAny": true,
+    "module": "esnext",
+    "esModuleInterop": true,
+    "target": "esnext",
+    "moduleResolution": "Node",
     "outDir": "lib",
-    "sourceMap": true,
-    "sourceRoot": "."
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "isolatedModules": false,
+    "strict": false,
+    "noImplicitAny": false,
+    "useUnknownInCatchVariables": false,
+    "inlineSourceMap": true
   },
-  "include": [
-    "src/**/*"
-  ]
+  "ts-node": {
+    "esm": true
+  },
+  "lib": ["esnext"],
+  "exclude": ["test/**"]
 }

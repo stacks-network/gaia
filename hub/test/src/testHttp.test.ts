@@ -1,35 +1,33 @@
-import test = require('tape-promise/tape')
-import * as auth from '../../src/server/authentication'
+import * as auth from '../../src/server/authentication.js'
 import * as os from 'os'
 import * as fs from 'fs'
 import * as crypto from 'crypto'
-import request = require('supertest')
+import request from 'supertest'
 import { ecPairToAddress } from 'blockstack'
 
-import * as fetchMock from 'fetch-mock'
+import fetchMock from 'fetch-mock'
 import NodeFetch from 'node-fetch'
 
-import { makeHttpServer } from '../../src/server/http'
-import DiskDriver from '../../src/server/drivers/diskDriver'
-import { AZ_CONFIG_TYPE } from '../../src/server/drivers/AzDriver'
-import { addMockFetches } from './testDrivers'
-import { makeMockedAzureDriver } from './testDrivers/mockTestDrivers'
+import { makeHttpServer } from '../../src/server/http.js'
+import DiskDriver from '../../src/server/drivers/diskDriver.js'
+import { AZ_CONFIG_TYPE } from '../../src/server/drivers/AzDriver.js'
+import { addMockFetches } from './testDrivers.test.js'
+import { makeMockedAzureDriver } from './testDrivers/mockTestDrivers.js'
 
-import { testPairs, testAddrs } from './common'
-import InMemoryDriver from './testDrivers/InMemoryDriver'
-import { MockAuthTimestampCache } from './MockAuthTimestampCache'
-import { HubConfigInterface } from '../../src/server/config'
+import { testPairs, testAddrs } from './common.js'
+import InMemoryDriver from './testDrivers/InMemoryDriver.js'
+import { MockAuthTimestampCache } from './MockAuthTimestampCache.js'
+import { HubConfigInterface } from '../../src/server/config.js'
 import { PassThrough } from 'stream';
-import * as errors from '../../src/server/errors'
-import { timeout } from '../../src/server/utils'
+import * as errors from '../../src/server/errors.js'
+import { readStream, timeout } from '../../src/server/utils.js'
 
 const TEST_SERVER_NAME = 'test-server'
 const TEST_AUTH_CACHE_SIZE = 10
 
 
-export function testHttpWithInMemoryDriver() {
-
-  test('reject concurrent requests to same resource (InMemory driver)', async (t) => {
+describe('test http with InMemory driver', () => {
+  test('reject concurrent requests to same resource (InMemory driver)', async () => {
     const inMemoryDriver = await InMemoryDriver.spawn()
     try {
       const makeResult = makeHttpServer({ driverInstance: inMemoryDriver, serverName: TEST_SERVER_NAME, authTimestampCacheSize: TEST_AUTH_CACHE_SIZE, port: 0, driver: null })
@@ -47,7 +45,7 @@ export function testHttpWithInMemoryDriver() {
       let response = await request(app)
         .get('/hub_info/')
         .expect(200)
-    
+
       const challenge = JSON.parse(response.text).challenge_text
       const authPart = auth.V1Authentication.makeAuthPart(sk, challenge)
       const authorization = `bearer ${authPart}`
@@ -89,55 +87,52 @@ export function testHttpWithInMemoryDriver() {
         }
       })()
 
+      // Released middleware request resolves
       await Promise.all([reqPromise2, reqPromise1, reqPromise3, releaseRequests])
-      t.pass('Released middleware request resolves')
 
+      // First request (store) passes with no concurrent conflict
       await reqPromise1
-      t.pass('First request (store) passes with no concurrent conflict')
+      // Second request (store) fails with concurrent conflict
       await reqPromise2
-      t.pass('Second request (store) fails with concurrent conflict')
+      // Third request (delete) fails with concurrent conflict
       await reqPromise3
-      t.pass('Third request (delete) fails with concurrent conflict')
 
       inMemoryDriver.onWriteMiddleware.clear()
 
+      // Fourth request (store) passes with no concurrent conflict
       await request(app).post(`/store/${address}/helloWorld`)
         .set('Content-Type', 'application/octet-stream')
         .set('Authorization', authorization)
         .send(blob)
         .expect(202)
 
-      t.pass('Fourth request (store) passes with no concurrent conflict')
-
+      // Fifth request (delete) passes with no concurrent conflict
       await request(app).delete(`/delete/${address}/helloWorld`)
         .set('Content-Type', 'application/octet-stream')
         .set('Authorization', authorization)
         .send(blob)
         .expect(202)
 
-      t.pass('Fifth request (delete) passes with no concurrent conflict')
-
-      t.equals(asyncMutexScope.openedCount, 0, 'Should have no open mutexes when no requests are open')
-
+      // Should have no open mutexes when no requests are open
+      expect(asyncMutexScope.openedCount).toEqual(0)
     } finally {
-      inMemoryDriver.dispose()
+      await inMemoryDriver.dispose()
     }
   });
 
-
-
-  test('handle request (InMemory driver)', async (t) => {
+  test('handle request (InMemory driver)', async () => {
+    expect.assertions(7)
     const fetch = NodeFetch
     const inMemoryDriver = await InMemoryDriver.spawn()
     try {
-      const { app, server } = makeHttpServer({ 
-        driverInstance: inMemoryDriver, 
-        serverName: TEST_SERVER_NAME, 
-        authTimestampCacheSize: TEST_AUTH_CACHE_SIZE, 
-        port: 0, 
+      const { app, server } = makeHttpServer({
+        driverInstance: inMemoryDriver,
+        serverName: TEST_SERVER_NAME,
+        authTimestampCacheSize: TEST_AUTH_CACHE_SIZE,
+        port: 0,
         driver: null,
         // ~52 byte max limit
-        maxFileUploadSize: 0.00005 
+        maxFileUploadSize: 0.00005
       })
       const sk = testPairs[1]
       const fileContents = sk.toWIF()
@@ -157,7 +152,7 @@ export function testHttpWithInMemoryDriver() {
       const hubInfo = await request(app)
         .get('/hub_info/')
         .expect(200)
-    
+
       const challenge = JSON.parse(hubInfo.text).challenge_text
       const authPart = auth.V1Authentication.makeAuthPart(sk, challenge)
       const authorization = `bearer ${authPart}`
@@ -171,23 +166,29 @@ export function testHttpWithInMemoryDriver() {
 
       const url = JSON.parse(writeResponse.text).publicURL
       const etag = writeResponse.body.etag
-      t.ok(url, 'Must return URL')
+      // Must return URL
+      expect(url).toBeTruthy()
 
       const resp = await fetch(url)
       const text = await resp.text()
       const headerEtag = resp.headers.get('etag')
-      t.equal(text, fileContents, 'Contents returned must be correct')
-      t.equal(etag, crypto.createHash('md5').update(text).digest('hex'), 'Response headers should contain correct etag')
+      // Contents returned must be correct
+      expect(text).toEqual(fileContents)
+      // Response headers should contain correct etag
+      expect(etag).toEqual(crypto.createHash('md5').update(text).digest('hex'))
 
       const filesResponse = await request(app).post(listPath)
         .set('Content-Type', 'application/json')
         .set('Authorization', authorization)
         .expect(202)
-      
+
       const files = JSON.parse(filesResponse.text)
-      t.equal(files.entries.length, 1, 'Should return one file')
-      t.equal(files.entries[0], 'helloWorld', 'Should be helloworld')
-      t.ok(files.hasOwnProperty('page'), 'Response is missing a page')
+      // Should return one file
+      expect(files.entries.length).toEqual(1)
+      // Should be helloworld
+      expect(files.entries[0]).toEqual('helloWorld')
+      // Response is missing a page
+      expect(files.hasOwnProperty('page')).toBeTruthy()
 
       const updatedBlob = Buffer.from('new text')
       await request(app).post(path)
@@ -239,26 +240,27 @@ export function testHttpWithInMemoryDriver() {
         .send(blob)
         .expect(412)
 
+      // payload should have been detected as too large
       try {
         const largePayload = new PassThrough()
         largePayload.end('x'.repeat(1000))
         await server.handleRequest(address, 'helloWorld2', { 'content-type': 'application/octet-stream', 'content-length': '10', authorization: authorization}, largePayload);
-        t.fail('payload should have been detected as too large')
       } catch (err) {
-        t.throws(() => { throw err }, errors.PayloadTooLargeError, 'payload should have been detected as too large')
+        // payload should have been detected as too large
+        expect(() => { throw err }).toThrow(errors.PayloadTooLargeError)
       }
 
     } finally {
-      inMemoryDriver.dispose()
+      await inMemoryDriver.dispose()
     }
   })
 
-  test('handle revocation via POST', async (t) => {
+  test('handle revocation via POST', async () => {
     const inMemoryDriver = await InMemoryDriver.spawn()
     try {
-      const { app } = makeHttpServer({ 
-        driverInstance: inMemoryDriver, 
-        serverName: TEST_SERVER_NAME, 
+      const { app } = makeHttpServer({
+        driverInstance: inMemoryDriver,
+        serverName: TEST_SERVER_NAME,
         authTimestampCacheSize: TEST_AUTH_CACHE_SIZE,
         port: 0, driver: null
       })
@@ -309,14 +311,16 @@ export function testHttpWithInMemoryDriver() {
         .set('Authorization', authorization)
         .send({oldestValidTimestamp: (Date.now()/1000|0) + 3000})
         .expect(202)
-      t.equal(revokeResponse.body.status, 'success', 'Revoke POST request should have returned success status')
+      // Revoke POST request should have returned success status
+      expect(revokeResponse.body.status).toEqual('success')
 
       const failedRevokeResponse = await request(app)
         .post(`/revoke-all/${testAddrs[2]}`)
         .set('Authorization', authorization)
         .send({oldestValidTimestamp: (Date.now()/1000|0) + 3000})
         .expect(401)
-      t.equal(failedRevokeResponse.body.error, 'ValidationError', 'Revoke request should have returned correct error type')
+      // Revoke request should have returned correct error type
+      expect(failedRevokeResponse.body.error).toEqual('ValidationError')
 
       await request(app)
         .post(`/revoke-all/${testAddrs[2]}`)
@@ -341,74 +345,76 @@ export function testHttpWithInMemoryDriver() {
         .set('Authorization', authorization)
         .send(blob)
         .expect(401)
-      t.equal(failedStoreResponse.body.error, 'AuthTokenTimestampValidationError', 'Store request should have returned correct error type')
+      // Store request should have returned correct error type
+      expect(failedStoreResponse.body.error).toEqual('AuthTokenTimestampValidationError')
 
       const listPath = `/list-files/${address}`
       const failedFilesResponse = await request(app).post(listPath)
         .set('Content-Type', 'application/json')
         .set('Authorization', authorization)
         .expect(401)
-      t.equal(failedFilesResponse.body.error, 'AuthTokenTimestampValidationError', 'Store request should have returned correct error type')
+      // Store request should have returned correct error type
+      expect(failedFilesResponse.body.error).toEqual('AuthTokenTimestampValidationError')
 
       const failedDeleteResponse = await request(app).delete(deletePath)
         .set('Authorization', authorization)
         .send()
         .expect(401)
-      t.equal(failedDeleteResponse.body.error, 'AuthTokenTimestampValidationError', 'Delete request should have returned correct error type')
-
+      // Delete request should have returned correct error type
+      expect(failedDeleteResponse.body.error).toEqual('AuthTokenTimestampValidationError')
     } finally {
-      inMemoryDriver.dispose()
+      await inMemoryDriver.dispose()
     }
   })
+})
 
-}
 
-function testHttpDriverOption() {
-  test('makeHttpServer "driver" config', (t) => {
-    makeHttpServer({
-      driver: 'disk',
-      readURL: 'test/',
-      serverName: TEST_SERVER_NAME,
-      authTimestampCacheSize: TEST_AUTH_CACHE_SIZE,
-      diskSettings: {
-        storageRootDirectory: os.tmpdir()
-      },
-      port: 0
-    } as HubConfigInterface)
-    t.end()
+describe('test HTTP driver option', () => {
+  test('makeHttpServer "driver" config', () => {
+    expect(() => makeHttpServer({
+        driver: 'disk',
+        readURL: 'test/',
+        serverName: TEST_SERVER_NAME,
+        authTimestampCacheSize: TEST_AUTH_CACHE_SIZE,
+        diskSettings: {
+          storageRootDirectory: os.tmpdir()
+        },
+        port: 0
+    } as HubConfigInterface))
+      .not.toThrow()
   })
 
-  test('makeHttpServer "driverInstance" config', (t) => {
+  test('makeHttpServer "driverInstance" config', () => {
     const driver = new DiskDriver({
       readURL: 'test/',
       diskSettings: {
         storageRootDirectory: os.tmpdir()
       }
     })
-    makeHttpServer({
+    expect(() => makeHttpServer({
       driverInstance: driver,
       serverName: TEST_SERVER_NAME,
       authTimestampCacheSize: TEST_AUTH_CACHE_SIZE,
       port: 0,
       driver: null
-    })
-    t.end()
+    }))
+      .not.toThrow()
   })
 
-  test('makeHttpServer missing driver config', (t) => {
-    t.throws(() => makeHttpServer({
-      serverName: TEST_SERVER_NAME, 
+  test('makeHttpServer missing driver config', () => {
+    expect(() => makeHttpServer({
+      serverName: TEST_SERVER_NAME,
       authTimestampCacheSize: TEST_AUTH_CACHE_SIZE,
       port: 0,
       driver: null
-    }), 
-      Error, 'Should fail to create http server when no driver config is specified')
-    t.end()
+    }))
+      .toThrow(Error)
   })
+})
 
-}
+jest.mock('@azure/storage-blob')
 
-function testHttpWithAzure() {
+describe('test HTTP with Azure', () => {
   const azConfigPath = process.env.AZ_CONFIG_PATH
   let config : HubConfigInterface & AZ_CONFIG_TYPE = {
     'azCredentials': {
@@ -440,8 +446,7 @@ function testHttpWithAzure() {
 
   }
 
-  // TODO: run this test with all configured drivers
-  test('auth failure', (t) => {
+  test('auth failure', () => {
     let { app, server } = makeHttpServer(config)
     server.authTimestampCache = new MockAuthTimestampCache()
     let sk = testPairs[1]
@@ -471,14 +476,19 @@ function testHttpWithAzure() {
       })
       .then((response) => {
         let json = JSON.parse(response.text)
-        t.ok(json, 'Must return json')
-        console.log(json)
+        // Must return json
+        expect(json).toBeTruthy()
+        // console.log(json)
       })
-      .catch((err) => t.false(true, `Unexpected err: ${err}`))
-      .then(() => { fetchMock.restore(); t.end() })
+      .catch((err) => {
+        // Unexpected err
+        expect(true).toBeFalsy()
+        // console.log(`Unexpected err: ${err}`)
+      })
+      .then(() => { fetchMock.restore(); })
   })
 
-  test('handle request', (t) => {
+  test('handle request', () => {
     let fetch = fetchMock.sandbox()
     let { app, server } = makeHttpServer(config)
     server.authTimestampCache = new MockAuthTimestampCache()
@@ -514,13 +524,20 @@ function testHttpWithAzure() {
         }
 
         let url = JSON.parse(response.text).publicURL
-        t.ok(url, 'Must return URL')
-        console.log(url)
+        // Must return URL
+        expect(url).toBeTruthy()
+        // console.log(url)
         fetch(url)
           .then(resp => resp.text())
-          .then(text => t.equal(text, fileContents, 'Contents returned must be correct'))
+          .then(text => {
+            // Contents returned must be correct
+            expect(text).toEqual(fileContents)
+          })
       })
-      .catch((err: any) => t.false(true, `Unexpected err: ${err}`))
+      .catch((err: any) => {
+        // Unexpected err: ${err}
+        expect(true).toBeFalsy()
+      })
       .then(() => request(app).post(listPath)
             .set('Content-Type', 'application/json')
             .set('Authorization', authorizationHeader)
@@ -528,19 +545,15 @@ function testHttpWithAzure() {
       )
       .then((filesResponse) => {
         const files = JSON.parse(filesResponse.text)
-        t.equal(files.entries.length, 1, 'Should return one file')
-        t.equal(files.entries[0], 'helloWorld', 'Should be helloworld')
-        t.ok(files.hasOwnProperty('page'), 'Response is missing a page')
+        // Should return one file
+        expect(files.entries.length).toEqual(1)
+        // Should be helloworld
+        expect(files.entries[0]).toEqual('helloWorld')
+        // Response is missing a page
+        expect(files.hasOwnProperty('page')).toBeTruthy()
       })
       .then(() => {
         fetch.restore()
-        t.end()
       })
   })
-}
-
-export function testHttp() {
-  testHttpWithAzure()
-  testHttpDriverOption()
-  testHttpWithInMemoryDriver()
-}
+})

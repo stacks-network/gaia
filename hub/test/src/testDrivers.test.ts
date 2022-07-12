@@ -1,15 +1,14 @@
-import test = require('tape-promise/tape')
-import * as fetchMock from 'fetch-mock'
+import fetchMock from 'fetch-mock'
 import NodeFetch from 'node-fetch'
 
 import { Readable, PassThrough, ReadableOptions } from 'stream'
-import { DriverModel, DriverModelTestMethods } from '../../src/server/driverModel'
-import * as utils from '../../src/server/utils'
+import { DriverModel, DriverModelTestMethods } from '../../src/server/driverModel.js'
+import * as utils from '../../src/server/utils.js'
 
-import * as mockTestDrivers from './testDrivers/mockTestDrivers'
-import * as integrationTestDrivers from './testDrivers/integrationTestDrivers'
-import { BadPathError, DoesNotExist, ConflictError } from '../../src/server/errors'
-import { tryFor } from '../../src/server/utils'
+import * as mockTestDrivers from './testDrivers/mockTestDrivers.js'
+import * as integrationTestDrivers from './testDrivers/integrationTestDrivers.js'
+import { BadPathError, DoesNotExist, ConflictError } from '../../src/server/errors.js'
+import { tryFor } from '../../src/server/utils.js'
 
 export function addMockFetches(fetchLib: fetchMock.FetchMockSandbox, prefix: any, dataMap: {key: string, data: string}[]) {
   dataMap.forEach(item => {
@@ -20,7 +19,7 @@ export function addMockFetches(fetchLib: fetchMock.FetchMockSandbox, prefix: any
 
 function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, data: string}[], createDriver: (config?: any) => DriverModel) {
 
-  test(testName, async (t) => {
+  test(testName, async () => {
     const topLevelStorage = `${Date.now()}r${Math.random()*1e6|0}`
     const cacheControlOpt = 'no-cache, no-store, must-revalidate'
     const driver = createDriver({
@@ -28,6 +27,13 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
       cacheControl: cacheControlOpt
     })
     try {
+      if (mockTest) {
+        expect.assertions(21)
+      } else {
+        // TODO: count the test cases
+        // expect.assertions(<test count>)
+      }
+
       await driver.ensureInitialized()
       const prefix = driver.getReadURLPrefix()
       const sampleDataString = 'hello world'
@@ -44,10 +50,10 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
       try {
         const writeArgs : any = { path: '../foo.js'}
         await driver.performWrite(writeArgs)
-        t.fail('Should have thrown')
       }
       catch (err) {
-        t.equal(err.message, 'Invalid Path', 'Should throw bad path')
+        // Should throw bad path
+        expect(err.message).toEqual('Invalid Path')
       }
 
       const fileSubDir = 'somedir'
@@ -62,27 +68,35 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
         contentLength: sampleData.contentLength
       });
       let readUrl = writeResponse.publicURL;
-      t.ok(readUrl.startsWith(`${prefix}${topLevelStorage}`), `${readUrl} must start with readUrlPrefix ${prefix}${topLevelStorage}`)
+      // ${readUrl} must start with readUrlPrefix ${prefix}${topLevelStorage}
+      expect(readUrl.startsWith(`${prefix}${topLevelStorage}`)).toBeTruthy()
 
       if (mockTest) {
         addMockFetches(fetch, prefix, dataMap)
       }
 
       let resp = await fetch(readUrl)
-      t.ok(resp.ok, 'fetch should return 2xx OK status code')
+      // fetch should return 2xx OK status code
+      expect(resp.ok).toBeTruthy()
       let resptxt = await resp.text()
-      t.equal(resptxt, sampleDataString, `Must get back ${sampleDataString}: got back: ${resptxt}`)
+      // Must get back ${sampleDataString}: got back: ${resptxt}
+      expect(resptxt).toEqual(sampleDataString)
       if (!mockTest) {
-        t.equal(resp.headers.get('content-type'), 'application/octet-stream', 'Read endpoint response should contain correct content-type')
-        t.equal(resp.headers.get('etag'), writeResponse.etag,
-          'Read endpoint should contain correct etag')
-        t.equal(resp.headers.get('cache-control'), cacheControlOpt, 'cacheControl not respected in response headers')
+        // Read endpoint response should contain correct content-type
+        expect(resp.headers.get('content-type')).toEqual('application/octet-stream')
+        // Read endpoint should contain correct etag
+        expect(resp.headers.get('etag')).toEqual(writeResponse.etag)
+        // cacheControl not respected in response headers
+        expect(resp.headers.get('cache-control')).toEqual(cacheControlOpt)
       }
 
       let files = await driver.listFiles({pathPrefix: topLevelStorage})
-      t.equal(files.entries.length, 1, 'Should return one file')
-      t.equal(files.entries[0], binFileName, `Should be ${binFileName}!`)
-      t.ok(!files.page, 'list files for 1 result should not have returned a page')
+      // Should return one file
+      expect(files.entries.length).toEqual(1)
+      // Should be ${binFileName}!
+      expect(files.entries[0]).toEqual(binFileName)
+      // list files for 1 result should not have returned a page
+      expect(!files.page).toBeTruthy()
 
       // Test a text content-type that has implicit charset set
       const txtFileName = `${fileSubDir}/foo_text.txt`;
@@ -95,7 +109,8 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
             contentLength: sampleData.contentLength,
             ifNoneMatch: '*' })
       readUrl = writeResponse.publicURL;
-      t.ok(readUrl.startsWith(`${prefix}${topLevelStorage}`), `${readUrl} must start with readUrlPrefix ${prefix}${topLevelStorage}`)
+      // ${readUrl} must start with readUrlPrefix ${prefix}${topLevelStorage}
+      expect(readUrl.startsWith(`${prefix}${topLevelStorage}`)).toBeTruthy()
       if (mockTest) {
         addMockFetches(fetch, prefix, dataMap)
       }
@@ -114,9 +129,11 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           })
         } catch(err) {
           if (err.name === 'PreconditionFailedError') {
-            t.ok(err, 'Should fail to write new file if file already exists')
+            // Should fail to write new file if file already exists
+            expect(err).toBeTruthy()
           } else {
-            t.error('Should throw PreconditionFailedError');
+            // Should throw PreconditionFailedError
+            expect(err).toBeFalsy()
           }
         }
 
@@ -131,7 +148,8 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
             ifMatch: writeResponse.etag
           })
         } catch(err) {
-          t.error(err, 'Should perform write with correct etag')
+          // Should perform write with correct etag
+          expect(err).toBeFalsy()
         }
 
         try {
@@ -145,71 +163,81 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
             ifMatch: 'bad-etag'
           })
         } catch(err) {
-          t.ok(err, 'Should fail to write with bad etag')
+          // Should fail to write with bad etag
+          expect(err).toBeTruthy()
         }
       }
 
       resp = await fetch(readUrl)
-      t.ok(resp.ok, 'fetch should return 2xx OK status code')
+      // fetch should return 2xx OK status code
+      expect(resp.ok).toBeTruthy()
       resptxt = await resp.text()
-      t.equal(resptxt, sampleDataString, `Must get back ${sampleDataString}: got back: ${resptxt}`)
+      // Must get back ${sampleDataString}: got back: ${resptxt}
+      expect(resptxt).toEqual(sampleDataString)
       if (!mockTest) {
-        t.equal(resp.headers.get('content-type'), 'text/plain; charset=utf-8', 'Read-end point response should contain correct content-type')
+        // Read-end point response should contain correct content-type
+        expect(resp.headers.get('content-type')).toEqual('text/plain; charset=utf-8')
       }
 
       files = await driver.listFiles({pathPrefix: topLevelStorage})
-      t.equal(files.entries.length, 2, 'Should return two files')
-      t.ok(files.entries.includes(txtFileName), `Should include ${txtFileName}`)
+      // Should return two files
+      expect(files.entries.length).toEqual(2)
+      // Should include ${txtFileName}
+      expect(files.entries.includes(txtFileName)).toBeTruthy()
 
       files = await driver.listFiles({pathPrefix: `${Date.now()}r${Math.random()*1e6|0}`})
-      t.equal(files.entries.length, 0, 'List files for empty directory should return zero entries')
+      // List files for empty directory should return zero entries
+      expect(files.entries.length).toEqual(0)
 
       files = await driver.listFiles({pathPrefix: `${topLevelStorage}/${txtFileName}`})
-      t.equal(files.entries.length, 1, 'List files on a file rather than directory should return a single entry')
-      t.equal(files.entries[0], '', 'List files on a file rather than directory should return a single empty entry')
-      t.strictEqual(files.page, null, 'List files page result should be null')
+      // List files on a file rather than directory should return a single entry
+      expect(files.entries.length).toEqual(1)
+      // List files on a file rather than directory should return a single empty entry
+      expect(files.entries[0]).toEqual('')
+      // List files page result should be null
+      expect(files.page).toStrictEqual(null)
 
       try {
+        // Should performDelete on an existing file
         await driver.performDelete({path: txtFileName, storageTopLevel: topLevelStorage})
-        t.pass('Should performDelete on an existing file')
 
         files = await driver.listFiles({pathPrefix: topLevelStorage})
-        t.equal(files.entries.length, 1, 'Should return single file after one was deleted')
-        t.ok(!files.entries.includes(txtFileName), `Should not have listed deleted file ${txtFileName}`)
+        // Should return single file after one was deleted
+        expect(files.entries.length).toEqual(1)
+        // Should not have listed deleted file ${txtFileName}
+        expect(!files.entries.includes(txtFileName)).toBeTruthy()
 
       } catch (error) {
-        t.error(error, 'Should performDelete on an existing file')
+        // Should performDelete on an existing file
+        expect(error).toBeFalsy()
       }
 
       try {
         await driver.performDelete({path: txtFileName, storageTopLevel: topLevelStorage})
-        t.fail('Should fail to performDelete on non-existent file')
+        // Should fail to performDelete on non-existent file
       } catch (error) {
-        t.pass('Should fail to performDelete on non-existent file')
-        if (!(error instanceof DoesNotExist)) {
-          t.equal(error.constructor.name, 'DoesNotExist', 'Should throw DoesNotExist trying to performDelete on non-existent file')
-        }
+        // Should fail to performDelete on non-existent file
+        // Should throw DoesNotExist trying to performDelete on non-existent file
+        expect(error.constructor.name).toEqual('DoesNotExist')
       }
 
       try {
         await driver.performDelete({path: fileSubDir, storageTopLevel: topLevelStorage})
-        t.fail('Should fail to performDelete on a directory')
+        // Should fail to performDelete on a directory
       } catch (error) {
-        t.pass('Should fail to performDelete on a directory')
-        if (!(error instanceof DoesNotExist)) {
-          t.equal(error.constructor.name, 'DoesNotExist', 'Should throw DoesNotExist trying to performDelete on directory')
-        }
+        // Should fail to performDelete on a directory
+        // Should throw DoesNotExist trying to performDelete on directory
+        expect(error.constructor.name).toEqual('DoesNotExist')
       }
 
       try {
         await driver.performDelete({path: '../foo.js', storageTopLevel: topLevelStorage})
-        t.fail('Should have thrown deleting file with invalid path')
+        // Should have thrown deleting file with invalid path
       }
       catch (error) {
-        t.pass('Should fail to performDelete on invalid path')
-        if (!(error instanceof BadPathError)) {
-          t.equal(error.constructor.name, 'BadPathError', 'Should throw BadPathError trying to performDelete on directory')
-        }
+        // Should fail to performDelete on invalid path
+        // Should throw BadPathError trying to performDelete on directory
+        expect(error.constructor.name).toEqual('BadPathError')
       }
 
       if (!mockTest) {
@@ -232,26 +260,39 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           })
           const dataBuffer = await utils.readStream(readResult.data)
           const dataStr = dataBuffer.toString('utf8')
-          t.equal(dataStr, 'Hello read test!', 'File read should return data matching the write')
-          t.equal(readResult.exists, true, 'File stat should return exists after write')
-          t.equal(readResult.contentLength, 16, 'File stat should have correct content length')
-          t.equal(readResult.contentType, "text/plain; charset=utf-8", 'File stat should have correct content type')
-          t.equal(readResult.etag, writeResult.etag, 'File read should return same etag as write result')
+          // File read should return data matching the write
+          expect(dataStr).toEqual('Hello read test!')
+          // File stat should return exists after write
+          expect(readResult.exists).toEqual(true)
+          // File stat should have correct content length
+          expect(readResult.contentLength).toEqual(16)
+          // File stat should have correct content type
+          expect(readResult.contentType).toEqual('text/plain; charset=utf-8')
+          // File read should return same etag as write result
+          expect(readResult.etag).toEqual(writeResult.etag)
           const dateDiff = Math.abs(readResult.lastModifiedDate - dateNow1)
-          t.equal(dateDiff < 10, true, `File stat last modified date is not within range, diff: ${dateDiff} -- ${readResult.lastModifiedDate} vs ${dateNow1}`)
+          // File stat last modified date is not within range, diff: ${dateDiff} -- ${readResult.lastModifiedDate} vs ${dateNow1}
+          expect(dateDiff < 10).toEqual(true)
 
           const fetchResult = await fetch(writeResult.publicURL)
-          t.equal(fetchResult.status, 200, 'Read endpoint HEAD fetch should return 200 OK status code')
+          // Read endpoint HEAD fetch should return 200 OK status code
+          expect(fetchResult.status).toEqual(200)
           const fetchStr = await fetchResult.text()
-          t.equal(fetchStr, 'Hello read test!', 'Read endpoint GET should return data matching the write')
-          t.equal(fetchResult.headers.get('content-length'), '16', 'Read endpoint GET should have correct content length header')
-          t.equal(fetchResult.headers.get('content-type'), 'text/plain; charset=utf-8', 'Read endpoint GET should have correct content type header')
-          t.equal(fetchResult.headers.get('etag'), readResult.etag, 'Read endpoint GET should return same etag as read result')
+          // Read endpoint GET should return data matching the write
+          expect(fetchStr).toEqual('Hello read test!')
+          // Read endpoint GET should have correct content length header
+          expect(fetchResult.headers.get('content-length')).toEqual('16')
+          // Read endpoint GET should have correct content type header
+          expect(fetchResult.headers.get('content-type')).toEqual('text/plain; charset=utf-8')
+          // Read endpoint GET should return same etag as read result
+          expect(fetchResult.headers.get('etag')).toEqual(readResult.etag)
           const lastModifiedHeader = new Date(fetchResult.headers.get('last-modified')).getTime()
           const fetchDateDiff = Math.abs(lastModifiedHeader - dateNow1)
-          t.equal(dateDiff < 10, true, `Read endpoint HEAD last-modified header is not within range, diff: ${fetchDateDiff} -- ${lastModifiedHeader} vs ${dateNow1}`)
+          // Read endpoint HEAD last-modified header is not within range, diff: ${fetchDateDiff} -- ${lastModifiedHeader} vs ${dateNow1}
+          expect(dateDiff < 10).toEqual(true)
         } catch (error) {
-          t.error(error, 'Error performing file read test')
+          // Error performing file read test
+          expect(error).toBeFalsy()
         }
 
         // test file read on non-existent file
@@ -261,35 +302,34 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
             path: nonExistentFile,
             storageTopLevel: topLevelStorage
           })
-          t.equal(statResult.exists, false, 'File read should throw not exist')
+          // File read should throw not exist
+          expect(statResult.exists).toEqual(false)
         } catch (error) {
-          t.pass('Should fail to performRead on non-existent file')
-          if (!(error instanceof DoesNotExist)) {
-            t.equal(error.constructor.name, 'DoesNotExist', 'Should throw DoesNotExist trying to performRead on non-existent file')
-          }
+          // Should fail to performRead on non-existent file
+          // Should throw DoesNotExist trying to performRead on non-existent file
+          expect(error.constructor.name).toEqual('DoesNotExist')
         }
 
         // test file read on invalid path
         try {
           await driver.performRead({path: '../foo.js', storageTopLevel: topLevelStorage})
-          t.fail('Should have thrown performing file read with invalid path')
+          // Should have thrown performing file read with invalid path
         }
         catch (error) {
-          t.pass('Should fail to performStat on invalid path')
-          if (!(error instanceof BadPathError)) {
-            t.equal(error.constructor.name, 'BadPathError', 'Should throw BadPathError trying to performRead on directory')
-          }
+          // Should fail to performStat on invalid path
+          // Should throw BadPathError trying to performRead on directory
+          expect(error.constructor.name).toEqual('BadPathError')
         }
 
         // test file read on subdirectory
         try {
           const result = await driver.performRead({path: fileSubDir, storageTopLevel: topLevelStorage})
-          t.equal(result.exists, false, 'performRead on a directory should return not exists')
+          // performRead on a directory should return not exists
+          expect(result.exists).toEqual(false)
         } catch (error) {
-          t.pass('Should fail to performRead on directory')
-          if (!(error instanceof DoesNotExist)) {
-            t.equal(error.constructor.name, 'DoesNotExist', 'Should throw DoesNotExist trying to performRead on directory')
-          }
+          // Should fail to performRead on directory
+          // Should throw DoesNotExist trying to performRead on directory
+          expect(error.constructor.name).toEqual('DoesNotExist')
         }
 
         // test file stat on listFiles
@@ -309,21 +349,30 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
             pathPrefix: topLevelStorage
           })
           const statResult = listStatResult.entries.find(e => e.name.includes(statTestFile))
-          t.equal(statResult.exists, true, 'File stat should return exists after write')
-          t.equal(statResult.contentLength, 20, 'File stat should have correct content length')
-          t.equal(statResult.etag, writeResult.etag, 'File read should return same etag as write file result')
+          // File stat should return exists after write
+          expect(statResult.exists).toEqual(true)
+          // File stat should have correct content length
+          expect(statResult.contentLength).toEqual(20)
+          // File read should return same etag as write file result
+          expect(statResult.etag).toEqual(writeResult.etag)
           const dateDiff = Math.abs(statResult.lastModifiedDate - dateNow1)
-          t.equal(dateDiff < 10, true, `File stat last modified date is not within range, diff: ${dateDiff} -- ${statResult.lastModifiedDate} vs ${dateNow1}`)
+          // File stat last modified date is not within range, diff: ${dateDiff} -- ${statResult.lastModifiedDate} vs ${dateNow1}
+          expect(dateDiff < 10).toEqual(true)
 
           const fetchResult = await fetch(writeResult.publicURL, { method: 'HEAD' })
-          t.equal(fetchResult.status, 200, 'Read endpoint HEAD fetch should return 200 OK status code')
-          t.equal(fetchResult.headers.get('content-length'), '20', 'Read endpoint HEAD should have correct content length')
-          t.equal(fetchResult.headers.get('etag'), statResult.etag, 'Read endpoint HEAD should return same etag as list files stat result')
+          // Read endpoint HEAD fetch should return 200 OK status code
+          expect(fetchResult.status).toEqual(200)
+          // Read endpoint HEAD should have correct content length
+          expect(fetchResult.headers.get('content-length')).toEqual('20')
+          // Read endpoint HEAD should return same etag as list files stat result
+          expect(fetchResult.headers.get('etag')).toEqual(statResult.etag)
           const lastModifiedHeader = new Date(fetchResult.headers.get('last-modified')).getTime()
           const fetchDateDiff = Math.abs(statResult.lastModifiedDate - dateNow1)
-          t.equal(dateDiff < 10, true, `Read endpoint HEAD last-modified header is not within range, diff: ${fetchDateDiff} -- ${lastModifiedHeader} vs ${dateNow1}`)
+          // Read endpoint HEAD last-modified header is not within range, diff: ${fetchDateDiff} -- ${lastModifiedHeader} vs ${dateNow1}
+          expect(dateDiff < 10).toEqual(true)
         } catch (error) {
-          t.error(error, 'File stat on list files error')
+          // File stat on list files error
+          expect(error).toBeFalsy()
         }
 
         // test file stat
@@ -340,27 +389,37 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
             contentLength: 100
           })
           const statResult = await driver.performStat({
-            path: statTestFile, 
+            path: statTestFile,
             storageTopLevel: topLevelStorage
           })
 
-          t.equal(statResult.exists, true, 'File stat should return exists after write')
-          t.equal(statResult.contentLength, 20, 'File stat should have correct content length')
-          t.equal(statResult.contentType, "text/plain; charset=utf-8", 'File stat should have correct content type')
-          t.equal(statResult.etag, writeResult.etag, 'File stat should return same etag as write file result')
+          // File stat should return exists after write
+          expect(statResult.exists).toEqual(true)
+          // File stat should have correct content length
+          expect(statResult.contentLength).toEqual(20)
+          // File stat should have correct content type
+          expect(statResult.contentType).toEqual('text/plain; charset=utf-8')
+          // File stat should return same etag as write file result
+          expect(statResult.etag).toEqual(writeResult.etag)
           const dateDiff = Math.abs(statResult.lastModifiedDate - dateNow1)
-          t.equal(dateDiff < 10, true, `File stat last modified date is not within range, diff: ${dateDiff} -- ${statResult.lastModifiedDate} vs ${dateNow1}`)
+          // File stat last modified date is not within range, diff: ${dateDiff} -- ${statResult.lastModifiedDate} vs ${dateNow1}
+          expect(dateDiff < 10).toEqual(true)
 
           const fetchResult = await fetch(writeResult.publicURL, { method: 'HEAD' })
-          t.equal(fetchResult.status, 200, 'Read endpoint HEAD fetch should return 200 OK status code')
-          t.equal(fetchResult.headers.get('content-length'), '20', 'Read endpoint HEAD should have correct content length')
-          t.equal(fetchResult.headers.get('etag'), statResult.etag, 'Read endpoint HEAD should return same etag as stat file result')
+          // Read endpoint HEAD fetch should return 200 OK status code
+          expect(fetchResult.status).toEqual(200)
+          // Read endpoint HEAD should have correct content length
+          expect(fetchResult.headers.get('content-length')).toEqual('20')
+          // Read endpoint HEAD should return same etag as stat file result
+          expect(fetchResult.headers.get('etag')).toEqual(statResult.etag)
           const lastModifiedHeader = new Date(fetchResult.headers.get('last-modified')).getTime()
           const fetchDateDiff = Math.abs(statResult.lastModifiedDate - dateNow1)
-          t.equal(dateDiff < 10, true, `Read endpoint HEAD last-modified header is not within range, diff: ${fetchDateDiff} -- ${lastModifiedHeader} vs ${dateNow1}`)
+          // Read endpoint HEAD last-modified header is not within range, diff: ${fetchDateDiff} -- ${lastModifiedHeader} vs ${dateNow1}
+          expect(dateDiff < 10).toEqual(true)
 
         } catch (error) {
-          t.error(error, 'File stat error')
+          // File stat error
+          expect(error).toBeFalsy()
         }
 
         // test file stat on non-existent file
@@ -370,29 +429,32 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
             path: nonExistentFile,
             storageTopLevel: topLevelStorage
           })
-          t.equal(statResult.exists, false, 'File stat should return not exist')
+          // File stat should return not exist
+          expect(statResult.exists).toEqual(false)
         } catch (error) {
-          t.error(error, 'File stat non-exists error')
+          // File stat non-exists error
+          expect(error).toBeFalsy()
         }
 
         // test file stat on invalid path
         try {
           await driver.performStat({path: '../foo.js', storageTopLevel: topLevelStorage})
-          t.fail('Should have thrown performing file stat with invalid path')
+          // Should have thrown performing file stat with invalid path=
         }
         catch (error) {
-          t.pass('Should fail to performStat on invalid path')
-          if (!(error instanceof BadPathError)) {
-            t.equal(error.constructor.name, 'BadPathError', 'Should throw BadPathError trying to performStat on directory')
-          }
+          // Should fail to performStat on invalid path
+          // Should throw BadPathError trying to performStat on directory
+          expect(error.constructor.name).toEqual('BadPathError')
         }
 
         // test file stat on subdirectory
         try {
           const result = await driver.performStat({path: fileSubDir, storageTopLevel: topLevelStorage})
-          t.equal(result.exists, false, 'performStat on a directory should return not exists')
+          // performStat on a directory should return not exists
+          expect(result.exists).toEqual(false)
         } catch (error) {
-          t.error(error, 'File stat directory error')
+          // File stat directory error
+          expect(error).toBeFalsy()
         }
 
         sampleData = getSampleData();
@@ -404,9 +466,9 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
               stream: sampleData.stream,
               contentType: bogusContentType,
               contentLength: sampleData.contentLength })
-          t.fail('Extremely large content-type headers should fail to write')
+          // Extremely large content-type headers should fail to write
         } catch (error) {
-          t.pass('Extremely large content-type headers should fail to write')
+          // Extremely large content-type headers should fail to write
         }
 
         // test file write without content-length
@@ -426,16 +488,19 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           path: zeroByteTestFile,
           storageTopLevel: topLevelStorage
         })
-        t.equal(readResult.contentLength, 0, 'Zero bytes file write should result in read content-length of 0');
+        // Zero bytes file write should result in read content-length of 0
+        expect(readResult.contentLength).toEqual(0)
         const dataBuffer = await utils.readStream(readResult.data)
-        t.equal(dataBuffer.length, 0, 'Zero bytes file write should result in read of zero bytes');
+        // Zero bytes file write should result in read of zero bytes
+        expect(dataBuffer.length).toEqual(0)
 
         // test zero-byte file stat result
         const statResult = await driver.performStat({
           path: zeroByteTestFile,
           storageTopLevel: topLevelStorage
         })
-        t.equal(statResult.contentLength, 0, 'Zero bytes file write should result in stat result content-length of 0');
+        // Zero bytes file write should result in stat result content-length of 0
+        expect(statResult.contentLength).toEqual(0)
 
         // test zero-byte file list stat result
         const statFilesResult = await driver.listFilesStat({
@@ -443,7 +508,8 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           pageSize: 1000
         })
         const statFile = statFilesResult.entries.find(f => f.name.includes(zeroByteTestFile))
-        t.equal(statFile.contentLength, 0, 'Zero bytes file write should result in list file stat content-length 0');
+        // Zero bytes file write should result in list file stat content-length 0
+        expect(statFile.contentLength).toEqual(0)
       }
 
       try {
@@ -456,9 +522,9 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           contentType: 'application/octet-stream',
           contentLength: sampleData.contentLength
         });
-        t.fail('File write with a filename containing path traversal should have been rejected')
+        // File write with a filename containing path traversal should have been rejected
       } catch (error) {
-        t.pass('File write with a filename containing path traversal should have been rejected')
+        // File write with a filename containing path traversal should have been rejected
       }
 
       if (!mockTest) {
@@ -475,18 +541,20 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           });
         }
         const pagedFiles = await driver.listFiles({pathPrefix: `${topLevelStorage}/${pageTestDir}`})
-        t.equal(pagedFiles.entries.length, 3, 'List files with no pagination and maxPage size specified should have returned 3 entries')
+        // List files with no pagination and maxPage size specified should have returned 3 entries
+        expect(pagedFiles.entries.length).toEqual(3)
         const remainingFiles = await driver.listFiles({pathPrefix: `${topLevelStorage}/${pageTestDir}`, page: pagedFiles.page})
-        t.equal(remainingFiles.entries.length, 2, 'List files with pagination should have returned 2 remaining entries')
+        // List files with pagination should have returned 2 remaining entries
+        expect(remainingFiles.entries.length).toEqual(2)
 
         try {
           const bogusPageResult = await driver.listFiles({pathPrefix: `${topLevelStorage}/${pageTestDir}`, page: "bogus page data"})
           if (bogusPageResult.entries.length > 0) {
-            t.fail('List files with invalid page data should fail or return no results')
+            // List files with invalid page data should fail or return no results
           }
-          t.pass('List files with invalid page data should fail or return no results')
+          // List files with invalid page data should fail or return no results
         } catch (error) {
-          t.pass('List files with invalid page data should have failed')
+          // List files with invalid page data should have failed
         }
 
         // test file renames
@@ -518,19 +586,25 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
             storageTopLevel: topLevelStorage
           })
           const renamedFileContent = (await utils.readStream(renamedFileRead.data)).toString('utf8')
-          t.equal(renamedFileContent, 'abc sample content 1')
-          t.equal(renamedFileRead.exists, true, 'File stat should return exists after write')
-          t.equal(renamedFileRead.contentLength, 20, 'File stat should have correct content length')
-          t.equal(renamedFileRead.contentType, "text/plain; charset=utf-8", 'File stat should have correct content type')
+          expect(renamedFileContent).toEqual('abc sample content 1')
+          // File stat should return exists after write
+          expect(renamedFileRead.exists).toEqual(true)
+          // File stat should have correct content length
+          expect(renamedFileRead.contentLength).toEqual(20)
+          // File stat should have correct content type
+          expect(renamedFileRead.contentType).toEqual('text/plain; charset=utf-8')
           const dateDiff = Math.abs(renamedFileRead.lastModifiedDate - dateNow1)
-          t.equal(dateDiff < 10, true, `File stat last modified date is not within range, diff: ${dateDiff} -- ${renamedFileRead.lastModifiedDate} vs ${dateNow1}`)
+          // File stat last modified date is not within range, diff: ${dateDiff} -- ${renamedFileRead.lastModifiedDate} vs ${dateNow1}
+          expect(dateDiff < 10).toEqual(true)
 
           // test that the original file is reported as deleted
           const movedFileStat = await driver.performStat({path: renameTestFile1a, storageTopLevel: topLevelStorage})
-          t.equal(movedFileStat.exists, false, 'Renamed file original path should report as non-existent')
+          // Renamed file original path should report as non-existent
+          expect(movedFileStat.exists).toEqual(false)
 
         } catch (error) {
-          t.error(error, `File rename error`)
+          // File rename error
+          expect(error).toBeFalsy()
         }
 
         // test invalid file rename
@@ -540,61 +614,59 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
             storageTopLevel: topLevelStorage,
             newPath: 'new-location.txt'
           })
-          t.fail('File rename for non-existent file should have thrown')
+          // File rename for non-existent file should have thrown
         } catch(error) {
           if (error instanceof DoesNotExist) {
-            t.pass('Rename of non-existent file resulted in DoesNotExist')
+            // Rename of non-existent file resulted in DoesNotExist
           } else {
-            t.error(error, 'Unexpected error during rename of non-existent file')
+            // Unexpected error during rename of non-existent file
+            expect(error).toBeFalsy()
           }
         }
 
         // test file renames with invalid original path
         try {
           await driver.performRename({
-            path: '../foo.js', 
+            path: '../foo.js',
             storageTopLevel: topLevelStorage,
             newPath: 'new-location.txt'
           })
-          t.fail('Should have thrown performing file rename with invalid original path')
+          // Should have thrown performing file rename with invalid original path
         }
         catch (error) {
-          t.pass('Should fail to performRename on invalid original path')
-          if (!(error instanceof BadPathError)) {
-            t.equal(error.constructor.name, 'BadPathError', 'Should throw BadPathError trying to performRename on invalid original path')
-          }
+          // Should fail to performRename on invalid original path
+          // Should throw BadPathError trying to performRename on invalid original path
+          expect(error.constructor.name).toEqual('BadPathError')
         }
-        
+
         // test file renames with invalid target path
         try {
           await driver.performRename({
-            path: 'some-file.txt', 
+            path: 'some-file.txt',
             storageTopLevel: topLevelStorage,
             newPath: '../foo.js'
           })
-          t.fail('Should have thrown performing file rename with invalid new path')
+          // Should have thrown performing file rename with invalid new path
         }
         catch (error) {
-          t.pass('Should fail to performRename on invalid new path')
-          if (!(error instanceof BadPathError)) {
-            t.equal(error.constructor.name, 'BadPathError', 'Should throw BadPathError trying to performRename on invalid new path')
-          }
+          // Should fail to performRename on invalid new path
+          // Should throw BadPathError trying to performRename on invalid new path
+          expect(error.constructor.name).toEqual('BadPathError')
         }
 
         // test file renames with subdirectories
         try {
           await driver.performRename({
-            path: fileSubDir, 
+            path: fileSubDir,
             storageTopLevel: topLevelStorage,
             newPath: 'some-file-from-dir.txt'
           })
-          t.fail('Should have thrown performing file rename with sub-directory as original path')
+          // Should have thrown performing file rename with sub-directory as original path
         }
         catch (error) {
-          t.pass('Should fail to performRename on sub-directory as original path')
-          if (!(error instanceof DoesNotExist)) {
-            t.equal(error.constructor.name, 'DoesNotExist', 'Should throw DoesNotExist trying to performRename on sub-directory as new path')
-          }
+          // Should fail to performRename on sub-directory as original path
+          // Should throw DoesNotExist trying to performRename on sub-directory as new path
+          expect(error.constructor.name).toEqual('DoesNotExist')
         }
 
         // test concurrent writes to same file
@@ -627,7 +699,7 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           const writePromises = Promise.all([
             writeRequest1.catch(() => {
               // ignore
-            }), 
+            }),
             writeRequest2.catch(() => {
               // ignore
             })
@@ -645,18 +717,20 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
           resp = await fetch(readEndpoint)
           resptxt = await resp.text()
           if (resptxt === 'xyz sample content 2' || resptxt === 'abc sample content 1') {
-            t.ok(resptxt, 'Concurrent writes resulted in conflict resolution at the storage provider')
+            // Concurrent writes resulted in conflict resolution at the storage provider
+            expect(resptxt).toBeTruthy()
           } else {
-            t.fail(`Concurrent writes resulted in mangled data: ${resptxt}`)
+            // Concurrent writes resulted in mangled data: ${resptxt}
           }
         } catch (error) {
           if (error instanceof ConflictError) {
-            t.pass('Concurrent writes resulted in ConflictError')
+            // Concurrent writes resulted in ConflictError
           } else {
-            t.error(error, 'Unexpected error during concurrent writes')
+            // Unexpected error during concurrent writes
+            expect(error).toBeFalsy()
           }
         }
-        
+
         try {
           const brokenUploadStream = new BrokenReadableStream({autoDestroy: true})
           await driver.performWrite({
@@ -666,11 +740,11 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
             contentType: 'application/octet-stream',
             contentLength: 100
           });
-          t.fail('Perform write with broken upload stream should have failed')
+          // Perform write with broken upload stream should have failed
         } catch (error) {
-          t.pass('Perform write with broken upload stream should have failed')
+          // Perform write with broken upload stream should have failed
         }
-        
+
       }
 
       if (mockTest) {
@@ -686,26 +760,26 @@ function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, 
 
 function testDriverBucketCreation(driverName: string, createDriver: (config?: Object) => DriverModelTestMethods) {
 
-  test(`bucket creation for driver: ${driverName}`, async (t) => {
+  test(`bucket creation for driver: ${driverName}`, async () => {
     const topLevelStorage = `test-buckets-creation${Date.now()}r${Math.random()*1e6|0}`
     const driver = createDriver({ bucket: topLevelStorage })
     try {
       await driver.ensureInitialized()
-      t.pass('Successfully initialized driver with creation of a new bucket')
+      // Successfully initialized driver with creation of a new bucket
     } catch (error) {
-      t.fail(`Could not initialize driver with creation of a new bucket: ${error}`)
+      // Could not initialize driver with creation of a new bucket: ${error}
     } finally {
       try {
         await tryFor(() => driver.deleteEmptyBucket(), 100, 1500)
       } catch (error) {
-        t.fail(`Error trying to cleanup bucket: ${error}`)
+        // Error trying to cleanup bucket: ${error}
       }
       await driver.dispose()
     }
   })
 }
 
-/** 
+/**
  * Readable stream that simulates an interrupted http upload/POST request.
  * Outputs some data then errors unexpectedly .
  */
@@ -728,25 +802,34 @@ class BrokenReadableStream extends Readable {
   }
 }
 
-function performDriverMockTests() {
+
+jest.mock('@azure/storage-blob')
+jest.mock('aws-sdk/clients/s3')
+jest.mock('@google-cloud/storage')
+
+
+describe('perform driver mock tests', () => {
+  let testData = []
   for (const name in mockTestDrivers.availableMockedDrivers) {
     const testName = `mock test for driver: ${name}`
     const mockTest = true
     const { driverClass, dataMap, config } = mockTestDrivers.availableMockedDrivers[name]();
     testDriver(testName, mockTest, dataMap, testConfig => new driverClass({...config, ...testConfig}))
   }
-}
+})
 
-function performDriverIntegrationTests() {
+
+describe('perform driver integration tests', () => {
   for (const name in integrationTestDrivers.availableDrivers) {
     const driverInfo = integrationTestDrivers.availableDrivers[name];
     const testName = `integration test for driver: ${name}`
     const mockTest = false
     testDriver(testName, mockTest, [], testConfig => driverInfo.create(testConfig))
   }
-}
+})
 
-function performDriverBucketCreationTests() {
+
+describe('perform driver bucket creation test', () => {
   // Test driver initialization that require the creation of a new bucket,
   // only on configured driver that implement the `deleteEmptyBucket` method
   // so as not to exceed cloud provider max bucket/container limits.
@@ -754,13 +837,7 @@ function performDriverBucketCreationTests() {
     const driverInfo = integrationTestDrivers.availableDrivers[name];
     const classPrototype: any = driverInfo.class.prototype
     if (classPrototype.deleteEmptyBucket) {
-      testDriverBucketCreation(name, testConfig => <any>driverInfo.create(testConfig)) 
+      testDriverBucketCreation(name, testConfig => <any>driverInfo.create(testConfig))
     }
   }
-}
-
-export function testDrivers() {
-  performDriverMockTests()
-  performDriverIntegrationTests()
-  performDriverBucketCreationTests()
-}
+})

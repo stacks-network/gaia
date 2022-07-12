@@ -21,6 +21,15 @@ module.exports = {
     "node": true,
     "es6": true
   },
+  "settings": {
+    "import/resolver": {
+      "node": {
+        "paths": ["src"],
+        "extensions": [".js", ".ts", ".d.ts"]
+      },
+      "typescript": {}
+    },
+  },
   "rules": {
     "comma-dangle": ["error", "never"],
     "quotes": [2, "single"],

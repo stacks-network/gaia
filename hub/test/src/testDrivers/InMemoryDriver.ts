@@ -1,12 +1,10 @@
-
-
-import { readStream, dateToUnixTimeSeconds } from '../../../src/server/utils'
+import { readStream, dateToUnixTimeSeconds } from '../../../src/server/utils.js'
 import { Server } from 'http'
 import * as crypto from 'crypto'
-import * as express from 'express'
-import { DriverModel, DriverStatics, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult, PerformReadArgs, ReadResult, PerformListFilesArgs, ListFilesStatResult, ListFileStatResult } from '../../../src/server/driverModel'
-import { ListFilesResult, PerformWriteArgs } from '../../../src/server/driverModel'
-import { BadPathError, InvalidInputError, DoesNotExist, ConflictError } from '../../../src/server/errors'
+import express from 'express'
+import { DriverModel, DriverStatics, PerformDeleteArgs, PerformRenameArgs, PerformStatArgs, StatResult, PerformReadArgs, ReadResult, PerformListFilesArgs, ListFilesStatResult, ListFileStatResult } from '../../../src/server/driverModel.js'
+import { ListFilesResult, PerformWriteArgs } from '../../../src/server/driverModel.js'
+import { BadPathError, InvalidInputError, DoesNotExist, ConflictError } from '../../../src/server/errors.js'
 import { PassThrough } from 'stream';
 
 export class InMemoryDriver implements DriverModel {

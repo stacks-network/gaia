@@ -1,14 +1,14 @@
-import * as express from 'express'
+import express from 'express'
 import * as expressWinston from 'express-winston'
-import * as cors from 'cors'
+import cors from 'cors'
 
-import { ProofChecker } from './ProofChecker'
-import { getChallengeText, LATEST_AUTH_VERSION } from './authentication'
-import { HubServer } from './server'
-import { getDriverClass, logger, AsyncMutexScope } from './utils'
-import { DriverModel } from './driverModel'
-import * as errors from './errors'
-import { HubConfigInterface } from './config'
+import { ProofChecker } from './ProofChecker.js'
+import { getChallengeText, LATEST_AUTH_VERSION } from './authentication.js'
+import { HubServer } from './server.js'
+import { getDriverClass, logger, AsyncMutexScope } from './utils.js'
+import { DriverModel } from './driverModel.js'
+import * as errors from './errors.js'
+import { HubConfigInterface } from './config.js'
 
 function writeResponse(res: express.Response, data: any, statusCode: number) {
   res.writeHead(statusCode, {'Content-Type' : 'application/json'})
