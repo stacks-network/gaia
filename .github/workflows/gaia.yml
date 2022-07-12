@@ -66,7 +66,7 @@ jobs:
           OUTPUT1: ${{ matrix.context }}
           OUTPUT2: ${{ needs.semantic-release.outputs.new_release_version }}
           OUTPUT3: ${{ github.ref }} ":" ${{ github.ref }}
-          OUTPUT4: ${{ github.ref != 'refs/heads/master' || needs.semantic-release.outputs.new_release_version != '' }}
+          OUTPUT4: ${{ needs.semantic-release.outputs.new_release_version != '' }}
           OUTPUT5: ${{ github.ref == 'refs/heads/master' }}
 
       - name: Build/Tag/Push Image - Dockerhub stacksnetwork - latest-dev
