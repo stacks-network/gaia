@@ -38,20 +38,66 @@ jobs:
       matrix:
         context: [hub, reader, admin]
     env:
-      IMAGE_NAME: blockstack/${{ github.workflow }}-${{ matrix.context }}
+      IMAGE_NAME_LEGACY: blockstack/${{ github.workflow }}-${{ matrix.context }}
+      IMAGE_NAME: stacksnetwork/${{ github.workflow }}-${{ matrix.context }}
 
     steps:
-      - uses: actions/checkout@v2
+#      actions/checkout no longer required with new docker/build-push-action
+#      - uses: actions/checkout@v2
 
-      - name: Build/Tag/Push Image - Dockerhub
-        uses: docker/build-push-action@v1
+#      - name: Build/Tag/Push Image - Quay
+#        uses: docker/build-push-action@v1
+#        with:
+#          repository: ${{ env.IMAGE_NAME }}
+#          username: ${{ secrets.QUAY_USERNAME }}
+#          password: ${{ secrets.QUAY_PASSWORD }}
+#          registry: quay.io
+#          path: ${{ matrix.context }}
+#          tags: ${{ needs.semantic-release.outputs.new_release_version }}
+#          tag_with_ref: true
+#          add_git_labels: true
+#          # Only push if there's a new release on main branch, or if building a non-main branch
+#          push: ${{ github.ref != 'refs/heads/master' || needs.semantic-release.outputs.new_release_version != '' }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
         with:
-          repository: ${{ env.IMAGE_NAME }}
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
-          path: ${{ matrix.context }}
-          tags: ${{ needs.semantic-release.outputs.new_release_version }}
-          tag_with_ref: true
-          add_git_labels: true
+
+      - name: Output running variables
+        shell: bash
+        run: |
+          echo "context: $OUTPUT1"
+          echo "tags: $OUTPUT2"
+          echo "Github ref: $OUTPUT3"
+          echo "Will push variable: $OUTPUT4"
+        env:
+          OUTPUT1: ${{ matrix.context }}
+          OUTPUT2: ${{ needs.semantic-release.outputs.new_release_version }}
+          OUTPUT3: ${{ github.ref }} ":" ${{ github.ref }}
+          OUTPUT4: ${{ github.ref != 'refs/heads/master' || needs.semantic-release.outputs.new_release_version != '' }}
+
+      - name: Build/Tag/Push Image - Dockerhub stacksnetwork
+        uses: docker/build-push-action@v3
+        with:
+ #         repository: ${{ env.IMAGE_NAME }}
+ #         username: ${{ secrets.DOCKERHUB_USERNAME }}
+ #         password: ${{ secrets.DOCKERHUB_PASSWORD }}
+ #         path: ${{ matrix.context }}
+          context: "{{defaultContext}}:${{ matrix.context }}"
+          # tags now includes the repo name, so must be something like "tags: user/app:latest"
+          # tags: ${{ env.IMAGE_NAME }}:${{ needs.semantic-release.outputs.new_release_version }}
+          tags: ${{ env.IMAGE_NAME }}:development
+#          tag_with_ref: true
+#          add_git_labels: true
           # Only push if there's a new release on main branch, or if building a non-main branch
-          push: ${{ github.ref != 'refs/heads/master' || needs.semantic-release.outputs.new_release_version != '' }}
+          # push: ${{ github.ref != 'refs/heads/master' || needs.semantic-release.outputs.new_release_version != '' }}
+          # Temporarily halt pushes
+          push: false
