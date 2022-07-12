@@ -1,12 +1,12 @@
-import * as S3 from 'aws-sdk/clients/s3'
+import S3 from 'aws-sdk/clients/s3'
 
-import { BadPathError, InvalidInputError, DoesNotExist } from '../errors'
+import { BadPathError, InvalidInputError, DoesNotExist } from '../errors.js'
 import { 
   ListFilesResult, PerformWriteArgs, WriteResult, PerformDeleteArgs, PerformRenameArgs,
   PerformStatArgs, StatResult, PerformReadArgs, ReadResult, PerformListFilesArgs,
   ListFilesStatResult, ListFileStatResult, DriverStatics, DriverModel, DriverModelTestMethods 
-} from '../driverModel'
-import { timeout, logger, dateToUnixTimeSeconds } from '../utils'
+} from '../driverModel.js'
+import { timeout, logger, dateToUnixTimeSeconds } from '../utils.js'
 
 export interface S3_CONFIG_TYPE {
   awsCredentials: {
@@ -28,7 +28,7 @@ class S3Driver implements DriverModel, DriverModelTestMethods {
   cacheControl?: string
   initPromise: Promise<void>
 
-  supportsETagMatching = false;
+  supportsETagMatching = false
 
   static getConfigInformation() {
     const envVars: any = {}

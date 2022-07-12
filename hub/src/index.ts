@@ -26,7 +26,7 @@ if (conf.enableHttps === HttpsOption.acme) {
   // Start Express app server using ACME with greenlock-express middleware.
   logger.warn('Setting up https server with ACME')
   const server = acme.createGlx(app, conf.acmeConfig)
-  server.listen(conf.port, conf.httpsPort, () => logHttpListen(), () => logHttpsListen())
+  void server.listen(conf.port, conf.httpsPort, () => logHttpListen(), () => logHttpsListen())
 } else if (conf.enableHttps === HttpsOption.cert_files) {
   logger.warn('Setting up https server with provided cert files')
   // Start Express app server with Node.js `https` and `http` modules.

@@ -1,6 +1,6 @@
 import { createLogger, transports, Logger, format } from 'winston'
-import * as fs from 'fs'
-import * as process from 'process'
+import fs from 'fs'
+import process from 'process'
 import { ConsoleTransportOptions } from 'winston/lib/winston/transports'
 
 

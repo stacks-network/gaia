@@ -1,10 +1,10 @@
-import * as express from 'express'
-import * as expressWinston from 'express-winston'
-import * as cors from 'cors'
+import express from 'express'
+import expressWinston from 'express-winston'
+import cors from 'cors'
 import { promisify } from 'util'
 import { pipeline } from 'stream'
-import { Config, logger } from './config'
-import { GaiaDiskReader } from './server'
+import { Config, logger } from './config.js'
+import { GaiaDiskReader } from './server.js'
 
 const pipelineAsync = promisify(pipeline)
 

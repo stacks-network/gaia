@@ -8,54 +8,55 @@
     "node": ">=12"
   },
   "dependencies": {
-    "@azure/storage-blob": "^10.5.0",
-    "@google-cloud/storage": "^4.3.1",
-    "ajv": "^6.10.2",
-    "aws-sdk": "^2.534.0",
-    "bitcoinjs-lib": "^5.1.6",
-    "blockstack": "^19.3.0",
-    "body-parser": "^1.19.0",
+    "@azure/storage-blob": "^12.11.0",
+    "@google-cloud/storage": "^6.2.2",
+    "ajv": "^8.11.0",
+    "aws-sdk": "^2.1171.0",
+    "bitcoinjs-lib": "^6.0.1",
+    "blockstack": "^21.1.1",
+    "body-parser": "^1.20.0",
+    "cheerio": "^1.0.0-rc.12",
     "cors": "^2.8.5",
-    "express": "^4.17.1",
-    "express-winston": "^3.3.0",
-    "fs-extra": "^8.1.0",
-    "greenlock-express": "^2.7.17",
-    "greenlock-store-fs": "^3.0.2",
-    "jsontokens": "^2.0.2",
-    "lru-cache": "^5.1.1",
-    "nanoid": "^2.1.11",
+    "ecpair": "^2.0.1",
+    "express": "^4.18.1",
+    "express-winston": "^4.2.0",
+    "fs-extra": "^10.1.0",
+    "greenlock-express": "^4.0.3",
+    "greenlock-store-fs": "^3.2.2",
+    "jsontokens": "^3.1.1",
+    "lru-cache": "^7.12.0",
+    "nanoid": "^3.3.4",
     "node-fetch": "^2.6.1",
-    "winston": "^3.2.1"
+    "tiny-secp256k1": "^2.2.1",
+    "winston": "^3.8.1"
   },
   "devDependencies": {
-    "@types/cors": "^2.8.6",
-    "@types/express": "^4.17.1",
-    "@types/express-winston": "^3.0.4",
-    "@types/fetch-mock": "^7.3.1",
-    "@types/fs-extra": "^8.0.0",
-    "@types/lru-cache": "^5.1.0",
-    "@types/nanoid": "^2.0.0",
-    "@types/node": "^12.12.26",
-    "@types/node-fetch": "^2.5.4",
-    "@types/proxyquire": "^1.3.28",
-    "@types/supertest": "^2.0.8",
-    "@types/tape": "^4.2.34",
-    "@typescript-eslint/eslint-plugin": "^2.19.0",
-    "@typescript-eslint/parser": "^2.19.0",
-    "cross-env": "^7.0.0",
-    "eslint": "^7.32.0",
-    "eslint-plugin-import": "^2.20.1",
-    "fetch-mock": "^7.3.9",
+    "@types/cors": "^2.8.12",
+    "@types/express": "^4.17.13",
+    "@types/express-winston": "^4.0.0",
+    "@types/fetch-mock": "^7.3.5",
+    "@types/fs-extra": "^9.0.13",
+    "@types/jest": "^28.1.4",
+    "@types/nanoid": "^3.0.0",
+    "@types/node": "^18.0.3",
+    "@types/node-fetch": "^2.6.2",
+    "@types/supertest": "^2.0.12",
+    "@types/tape": "^4.13.2",
+    "@typescript-eslint/eslint-plugin": "^5.30.5",
+    "@typescript-eslint/parser": "^5.30.5",
+    "cross-env": "^7.0.3",
+    "eslint": "^8.19.0",
+    "eslint-import-resolver-typescript": "^3.2.5",
+    "eslint-plugin-import": "^2.26.0",
+    "fetch-mock": "^9.11.0",
+    "jest": "^28.1.2",
     "npm-run-all": "^4.1.5",
-    "nyc": "^15.0.0",
-    "proxyquire": "^2.1.3",
-    "source-map-support": "^0.5.16",
-    "supertest": "^4.0.2",
-    "tape": "^4.13.0",
-    "tape-promise": "^4.0.0",
-    "ts-node": "^8.6.2",
-    "typescript": "^3.7.5",
-    "typescript-json-schema": "^0.42.0"
+    "source-map-support": "^0.5.21",
+    "supertest": "^6.2.4",
+    "ts-jest": "^28.0.5",
+    "ts-node": "^10.8.2",
+    "typescript": "^4.7.4",
+    "typescript-json-schema": "^0.54.0"
   },
   "bin": {
     "blockstack-gaia-hub": "./cmd/index.js"
@@ -67,8 +68,7 @@
     "build:schema": "typescript-json-schema tsconfig.json HubConfig --required --noExtraProps --refs=false -o config-schema.json",
     "lint": "eslint --ext .ts ./src -f unix",
     "lint:fix": "eslint --ext .ts ./src --fix",
-    "test:build": "tsc -p ./test/tsconfig.json",
-    "test:coverage": "cross-env NODE_ENV=test LOCAL_DRIVER_CONFIG_TEST_DATA=configs/drivers.json nyc node ./test/src/index.ts",
+    "test:coverage": "cross-env NODE_ENV=test LOCAL_DRIVER_CONFIG_TEST_DATA=configs/drivers.json jest --coverage",
     "test": "npm-run-all build --parallel lint test:coverage",
     "start": "node lib/index.js"
   },
@@ -81,25 +81,18 @@
     "Jack Zampolin (jack@blockstack.com)",
     "Jude Nelson (jude@blockstack.com)"
   ],
-  "nyc": {
-    "cache": false,
-    "all": true,
-    "extension": [
-      ".ts"
-    ],
-    "include": [
-      "src/**/*.ts"
-    ],
-    "exclude": [
-      "**/*.d.ts"
-    ],
-    "require": [
-      "ts-node/register/transpile-only",
-      "source-map-support/register"
-    ],
-    "reporter": [
-      "text",
-      "lcov"
-    ]
-  }
+  "jest": {
+    "preset": "ts-jest",
+    "globals": {
+      "ts-jest": {
+        "useESM": true
+      }
+    },
+    "moduleNameMapper": {
+      "^(\\.{1,2}/.*)\\.js$": "$1"
+    },
+    "testTimeout": 30000,
+    "verbose": true
+  },
+  "type": "module"
 }
