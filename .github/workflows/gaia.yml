@@ -8,6 +8,7 @@ on:
     paths-ignore:
       - '**/CHANGELOG.md'
   pull_request:
+  workflow_dispatch: 
 
 jobs:          
   semantic-release:
@@ -30,7 +31,6 @@ jobs:
             @semantic-release/changelog
             @semantic-release/git
             semantic-release-slack-bot
-
   build-publish:
     runs-on: ubuntu-latest
     needs: semantic-release
@@ -43,7 +43,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-    
       - name: Build/Tag/Push Image - Dockerhub
         uses: docker/build-push-action@v1
         with:
