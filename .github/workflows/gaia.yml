@@ -85,4 +85,4 @@ jobs:
           # Temporarily halt pushes
           # push: false
           # Only push as tag "latest-dev" when new code on main branch
-          push: ${{ github.ref = 'refs/heads/master' }}
+          push: ${{ github.ref == 'refs/heads/master' }}
