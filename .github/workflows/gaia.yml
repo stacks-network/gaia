@@ -60,12 +60,14 @@ jobs:
           echo "context: $OUTPUT1"
           echo "tags: $OUTPUT2"
           echo "Github ref: $OUTPUT3"
-          echo "Will push variable: $OUTPUT4"
+          echo "Will release push variable: $OUTPUT4"
+          echo "Will latest-dev push variable: $OUTPUT5"
         env:
           OUTPUT1: ${{ matrix.context }}
           OUTPUT2: ${{ needs.semantic-release.outputs.new_release_version }}
           OUTPUT3: ${{ github.ref }} ":" ${{ github.ref }}
-          OUTPUT4: ${{ github.ref != 'refs/heads/master' || needs.semantic-release.outputs.new_release_version != '' }}
+          OUTPUT4: ${{ needs.semantic-release.outputs.new_release_version != '' }}
+          OUTPUT5: ${{ github.ref == 'refs/heads/master' }}
 
       - name: Build/Tag/Push Image - Dockerhub stacksnetwork - latest-dev
         uses: docker/build-push-action@v3
@@ -86,3 +88,12 @@ jobs:
           # push: false
           # Only push as tag "latest-dev" when new code on main branch
           push: ${{ github.ref == 'refs/heads/master' }}
+
+      - name: Build/Tag/Push Image - Dockerhub stacksnetwork - new release
+        uses: docker/build-push-action@v3
+        if: ${{ needs.semantic-release.outputs.new_release_version != '' }}
+        with:
+          context: "{{defaultContext}}:${{ matrix.context }}"
+          tags: ${{ env.IMAGE_NAME }}:${{ needs.semantic-release.outputs.new_release_version }},latest
+          push: ${{ needs.semantic-release.outputs.new_release_version != '' }}
+          
