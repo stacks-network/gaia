@@ -94,14 +94,6 @@ jobs:
         if: ${{ needs.semantic-release.outputs.new_release_version != '' }}
         with:
           context: "{{defaultContext}}:${{ matrix.context }}"
-          tags: ${{ env.IMAGE_NAME }}:${{ needs.semantic-release.outputs.new_release_version }}
+          tags: ${{ env.IMAGE_NAME }}:${{ needs.semantic-release.outputs.new_release_version }},latest
           push: ${{ needs.semantic-release.outputs.new_release_version != '' }}
-
-
-      - name: Build/Tag/Push Image - Dockerhub blockstack - new release
-        uses: docker/build-push-action@v3
-        if: ${{ needs.semantic-release.outputs.new_release_version != '' }}
-        with:
-          context: "{{defaultContext}}:${{ matrix.context }}"
-          tags: ${{ env.IMAGE_NAME_LEGACY }}:${{ needs.semantic-release.outputs.new_release_version }}
-          push: ${{ needs.semantic-release.outputs.new_release_version != '' }}
+          
