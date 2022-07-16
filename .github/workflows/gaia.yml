@@ -63,41 +63,30 @@ jobs:
           echo "Will release push variable: $OUTPUT4"
           echo "Will latest-dev push variable: $OUTPUT5"
           echo "Is this version tagged: $OUTPUT6"
-          echo "OUTPUT7: $OUTPUT7"
         env:
           OUTPUT1: ${{ matrix.context }}
           OUTPUT2: ${{ needs.semantic-release.outputs.new_release_version }}
           OUTPUT3: ${{ github.ref }}
           OUTPUT4: ${{ needs.semantic-release.outputs.new_release_version != '' }}
           OUTPUT5: ${{ github.ref == 'refs/heads/master' }}
-          OUTPUT6: ${{ github.ref ==  'refs/tags/v**'}}
-          OUTPUT7: ${{ startsWith( github.ref, 'refs/tags/v') }}
- #         OUTPUT7: ${{ startsWith( github.ref, 'refs/') }}
+          OUTPUT6: ${{ startsWith( github.ref, 'refs/tags/v') }}
+
       - name: Build/Tag/Push Image - Dockerhub stacksnetwork - latest-dev
         uses: docker/build-push-action@v3
         with:
- #         repository: ${{ env.IMAGE_NAME }}
- #         username: ${{ secrets.DOCKERHUB_USERNAME }}
- #         password: ${{ secrets.DOCKERHUB_PASSWORD }}
  #         path: ${{ matrix.context }}
           context: "{{defaultContext}}:${{ matrix.context }}"
           # tags now includes the repo name, so must be something like "tags: user/app:latest"
           # tags: ${{ env.IMAGE_NAME }}:${{ needs.semantic-release.outputs.new_release_version }}
           tags: ${{ env.IMAGE_NAME }}:latest-dev
-#          tag_with_ref: true
-#          add_git_labels: true
-          # Only push if there's a new release on main branch, or if building a non-main branch
-          # push: ${{ github.ref != 'refs/heads/master' || needs.semantic-release.outputs.new_release_version != '' }}
-          # Temporarily halt pushes
-          # push: false
           # Only push as tag "latest-dev" when new code on main branch
           push: ${{ github.ref == 'refs/heads/master' }}
 
       - name: Build/Tag/Push Image - Dockerhub stacksnetwork - new release
         uses: docker/build-push-action@v3
-        if: ${{ needs.semantic-release.outputs.new_release_version != '' }}
+        if: ${{ startsWith( github.ref, 'refs/tags/v') }}
         with:
           context: "{{defaultContext}}:${{ matrix.context }}"
-          tags: ${{ env.IMAGE_NAME }}:${{ needs.semantic-release.outputs.new_release_version }},latest
+          tags: ${{ env.IMAGE_NAME }}:${{ github.ref }},latest
           push: ${{ needs.semantic-release.outputs.new_release_version != '' }}
           
