@@ -62,12 +62,14 @@ jobs:
           echo "Github ref: $OUTPUT3"
           echo "Will release push variable: $OUTPUT4"
           echo "Will latest-dev push variable: $OUTPUT5"
+          echo "Is this version tagged: $OUTPUT6"
         env:
           OUTPUT1: ${{ matrix.context }}
           OUTPUT2: ${{ needs.semantic-release.outputs.new_release_version }}
-          OUTPUT3: ${{ github.ref }} ":" ${{ github.ref }}
+          OUTPUT3: ${{ github.ref }}
           OUTPUT4: ${{ needs.semantic-release.outputs.new_release_version != '' }}
           OUTPUT5: ${{ github.ref == 'refs/heads/master' }}
+          OUTPUT6: ${{ github.ref == 'refs/tags/v**' }}
 
       - name: Build/Tag/Push Image - Dockerhub stacksnetwork - latest-dev
         uses: docker/build-push-action@v3
