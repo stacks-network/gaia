@@ -10,6 +10,7 @@ import * as integrationTestDrivers from './testDrivers/integrationTestDrivers.js
 import { BadPathError, DoesNotExist, ConflictError } from '../../src/server/errors.js'
 import { tryFor } from '../../src/server/utils.js'
 
+
 export function addMockFetches(fetchLib: fetchMock.FetchMockSandbox, prefix: any, dataMap: {key: string, data: string}[]) {
   dataMap.forEach(item => {
     fetchLib.get(`${prefix}${item.key}`, item.data, { overwriteRoutes: true })
@@ -804,7 +805,13 @@ class BrokenReadableStream extends Readable {
 
 
 jest.mock('@azure/storage-blob')
-jest.mock('aws-sdk/clients/s3')
+jest.mock('aws-sdk/clients/s3.js', () => {
+  const mockedModule = jest.requireActual('../../__mocks__/aws-sdk/clients/s3.js')
+  return {
+    __esModule: true,
+    ...mockedModule
+  }
+})
 jest.mock('@google-cloud/storage')
 
 
