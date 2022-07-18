@@ -68,7 +68,7 @@
     "build:schema": "typescript-json-schema tsconfig.json HubConfig --required --noExtraProps --refs=false -o config-schema.json",
     "lint": "eslint --ext .ts ./src -f unix",
     "lint:fix": "eslint --ext .ts ./src --fix",
-    "test:coverage": "cross-env NODE_ENV=test LOCAL_DRIVER_CONFIG_TEST_DATA=configs/drivers.json jest --coverage",
+    "test:coverage": "cross-env NODE_ENV=test LOCAL_DRIVER_CONFIG_TEST_DATA=configs/drivers.json NODE_OPTIONS=--experimental-vm-modules jest --coverage",
     "test": "npm-run-all build --parallel lint test:coverage",
     "start": "node lib/index.js"
   },

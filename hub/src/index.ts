@@ -1,10 +1,14 @@
 import * as path from 'path'
-import { makeHttpServer } from './server/http'
-import { getConfig, validateConfigSchema, HttpsOption } from './server/config'
-import { logger } from './server/utils'
+import {fileURLToPath} from 'url'
+import { makeHttpServer } from './server/http.js'
+import { getConfig, validateConfigSchema, HttpsOption } from './server/config.js'
+import { logger } from './server/utils.js'
 import * as http from 'http'
-import * as tlsServer from './server/tlsServer'
-import * as acme from './server/acmeClient'
+import * as tlsServer from './server/tlsServer.js'
+import * as acme from './server/acmeClient.js'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 const appRootDir = path.dirname(path.resolve(__dirname))
 const schemaFilePath = path.join(appRootDir, 'config-schema.json')

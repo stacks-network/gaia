@@ -368,7 +368,6 @@ describe('test http with InMemory driver', () => {
   })
 })
 
-
 describe('test HTTP driver option', () => {
   test('makeHttpServer "driver" config', () => {
     expect(() => makeHttpServer({
@@ -413,6 +412,13 @@ describe('test HTTP driver option', () => {
 })
 
 jest.mock('@azure/storage-blob')
+jest.mock('aws-sdk/clients/s3.js', () => {
+  const mockedModule = jest.requireActual('../../__mocks__/aws-sdk/clients/s3.js')
+  return {
+    __esModule: true,
+    ...mockedModule
+  }
+})
 
 describe('test HTTP with Azure', () => {
   const azConfigPath = process.env.AZ_CONFIG_PATH
