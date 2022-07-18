@@ -1,5 +1,5 @@
 import * as path from 'path'
-import {fileURLToPath} from 'url'
+import { fileURLToPath } from 'url'
 import { makeHttpServer } from './server/http.js'
 import { getConfig, validateConfigSchema, HttpsOption } from './server/config.js'
 import { logger } from './server/utils.js'
