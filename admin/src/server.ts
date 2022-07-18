@@ -1,7 +1,10 @@
 import fs from 'fs'
+import path from 'path'
 import childProcess from 'child_process'
 import Ajv from 'ajv'
 import { Config, logger } from './config.js'
+import toml from 'toml'
+import json2toml from 'json2toml'
 
 function runSubprocess(
   cmd: string, 
@@ -67,6 +70,31 @@ function runSubprocess(
   })
 }
 
+function readConfigFile(configFilePath: string): any {
+  const configData = fs.readFileSync(configFilePath).toString()
+  let config
+  if (configFilePath.match(/\.json$/i)) {
+    config = JSON.parse(configData)
+  } else if (configFilePath.match(/\.toml$/i)) {
+    config = Object.assign({}, toml.parse(configData))
+  } else {
+    config = JSON.parse(configData)
+  }
+  return config
+}
+
+function writeConfigFile(configFilePath: string, config: any) {
+  let configData
+  if (configFilePath.match(/\.json$/i)) {
+    configData = JSON.stringify(config, null, 2)
+  } else if (configFilePath.match(/\.toml$/i)) {
+    configData = json2toml(config, { indent: 2, newlineAfterSection: true })
+  } else {
+    configData = JSON.stringify(config, null, 2)
+  }
+  fs.writeFileSync(configFilePath, configData)
+}
+
 // Atomically modify the config file.
 // The Gaia config file is a set of key/value pairs, where each top-level key is one aspect
 // of its configuration.  THis method "patches" the set of key/value pairs with `newFields`.
@@ -85,28 +113,21 @@ export function patchConfigFile(configFilePath: string, newFields: {[key: string
     throw new Error('Config file does not exist or cannot be read/written')
   }
 
-  let configData
   let config
 
   try {
-    configData = fs.readFileSync(configFilePath).toString()
+    config = readConfigFile(configFilePath)
   } catch (e) {
     logger.error(`Failed to read config file: ${e.message}`)
     throw new Error('Failed to read config file')
   }
 
-  try {
-    config = JSON.parse(configData)
-  } catch (e) {
-    logger.error(`Failed to parse config file: ${e.message}`)
-    throw new Error('Failed to parse config file')
-  }
-
   config = Object.assign(config, newFields)
-  const tmpConfigPath = `${configFilePath}.new`
+  // const tmpConfigPath = `${configFilePath}.new`
+  const tmpConfigPath = path.join(path.dirname(configFilePath), `new.${path.basename(configFilePath)}`)
 
   try {
-    fs.writeFileSync(tmpConfigPath, JSON.stringify(config, null, 2))
+    writeConfigFile(tmpConfigPath, config)
   } catch (e) {
     logger.error(`Failed to write config file: ${e.message}`)
     throw new Error('Failed to write new config file')
@@ -134,22 +155,14 @@ export function readConfigFileSections(configFilePath: string, fields: string | 
     throw new Error('Config file does not exist or cannot be read')
   }
 
-  let configData
   let config
   const ret: {[key: string]: any} = {}
 
   try {
-    configData = fs.readFileSync(configFilePath).toString()
+    config = readConfigFile(configFilePath)
   } catch (e) {
     logger.error(`Failed to read config file: ${e.message}`)
     throw new Error('Failed to read config file')
-  }
-
-  try {
-    config = JSON.parse(configData)
-  } catch (e) {
-    logger.error(`Failed to parse config file: ${e.message}`)
-    throw new Error('Failed to parse config file')
   }
 
   if (typeof fields === 'string') {

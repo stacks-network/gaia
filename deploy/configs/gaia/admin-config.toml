@@ -1,0 +1,21 @@
+port = 8009
+apiKeys = [ "hello" ]
+
+[argsTransport]
+level = "debug"
+handleExceptions = true
+timestamp = true
+stringify = true
+colorize = true
+json = true
+
+[gaiaSettings]
+configPath = "/tmp/hub/config.json"
+
+[reloadSettings]
+command = "/bin/sh"
+argv = [ "-c", "docker restart docker_hub_1 &" ]
+env = { }
+setuid = 1000
+setgid = 1000
+

@@ -125,6 +125,31 @@ test('load-from-js + override driver default', () => {
   process.env.CONFIG_PATH = configOriginal
 })
 
+test('load-from-toml + use driver default', () => {
+  const configOriginal = process.env.CONFIG_PATH
+  process.env.CONFIG_PATH = `${configDir}/config.0.toml`
+
+  const configResult = config.getConfig()
+  const configExpected = Object.assign({}, config.getConfigDefaults(), { driver: 'azure' },
+    { azCredentials: { accountName: undefined,
+        accountKey: undefined }})
+
+  expect(configResult).toEqual(configExpected)
+  process.env.CONFIG_PATH = configOriginal
+})
+
+test('load-from-toml + override driver default', () => {
+  const configOriginal = process.env.CONFIG_PATH
+  process.env.CONFIG_PATH = `${configDir}/config.1.toml`
+
+  const configResult = config.getConfig()
+  const configExpected = Object.assign({}, config.getConfigDefaults(), {driver: 'azure'},
+    {azCredentials: {accountName: 'pancakes', accountKey: undefined}})
+
+  expect(configResult).toEqual(configExpected)
+  process.env.CONFIG_PATH = configOriginal
+})
+
 test('load-from-js + override driver default + override with env vars', () => {
   let configOriginal;
   let configResult;
