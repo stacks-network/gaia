@@ -1,4 +1,4 @@
-import S3 from 'aws-sdk/clients/s3'
+import S3 from 'aws-sdk/clients/s3.js'
 
 import { BadPathError, InvalidInputError, DoesNotExist } from '../errors.js'
 import { 
