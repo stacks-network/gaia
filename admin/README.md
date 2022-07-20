@@ -45,6 +45,8 @@ it needs to know the following:
 Here is a sample config file for a Gaia hub config located [here](https://github.com/stacks-network/gaia/blob/master/deploy/configs/gaia/admin-config.json) with a single API key "`hello`".  The reload
 command is set to restart the docker container `docker_hub_1`.  You should tailor this to your deployment.
 
+**JSON**
+
 ```bash
 {
   "argsTransport": {
@@ -71,6 +73,30 @@ command is set to restart the docker container `docker_hub_1`.  You should tailo
     "setgid": 1000
   }
 }
+```
+
+**TOML**
+
+```bash
+port = 8009
+apiKeys = [ ]
+
+[argsTransport]
+level = "debug"
+handleExceptions = true
+timestamp = true
+colorize = true
+json = true
+
+[gaiaSettings]
+configPath = "/tmp/gaia-config.json"
+
+[reloadSettings]
+command = ""
+argv = [ ]
+env = { }
+setuid = 1000
+setgid = 1000
 ```
 
 In the following usage examples, we assume that the Gaia admin service runs on

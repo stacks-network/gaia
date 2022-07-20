@@ -203,7 +203,7 @@ the end-to-end principle to guide this design decision.
 
 ## Configuration files
 
-A configuration JSON file should be stored either in the top-level directory
+A configuration TOML/JSON file should be stored either in the top-level directory
 of the hub server, or a file location may be specified in the environment
 variable `CONFIG_PATH`.
 
@@ -237,7 +237,7 @@ In order to limit the users that may interact with such a hub to users
 who provide social proofs of identity, we support an execution mode
 where the hub checks that a user's profile.json object contains
 _social proofs_ in order to be able to write to other locations. This
-can be configured via the `config.json`.
+can be configured via the `config.json` or `config.toml`.
 
 # Driver model
 
