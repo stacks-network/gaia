@@ -11,7 +11,7 @@ interface ACMEConfig {
   version?: string;
 }
 
-enum ArgsTransportEnum {
+export enum ArgsTransportEnum {
   DEBUG = "debug",
   ERROR = "error",
   VERBOSE = "verbose",
@@ -26,7 +26,7 @@ interface ArgsTranport {
   timestamp: boolean;
 }
 
-enum Drivers {
+export enum Drivers {
   AWS = "aws",
   AZURE = "azure",
   DISK = "disk",
@@ -65,7 +65,7 @@ interface ProofsConfig {
   proofsRequired: string;
 }
 
-enum EnableHTTPS {
+export enum EnableHTTPS {
   ACME = "acme",
   CERT_FILES = "cert_files",
 }
@@ -86,9 +86,9 @@ interface Whitelist {
   items: string[];
 }
 
-interface Config {
-  drivers: Drivers;
-  port: string;
+export interface Config {
+  driver: Drivers;
+  port: number;
   acmeConfig?: ACMEConfig;
   argsTransport?: ArgsTranport;
   authTimestampCacheSize?: string;
@@ -99,9 +99,9 @@ interface Config {
   bucket?: string;
   cacheControl?: string;
   enableHttps?: EnableHTTPS;
-  httpsPort?: string;
-  maxFileUploadSize?: string;
-  pageSize?: string;
+  httpsPort?: number;
+  maxFileUploadSize?: number;
+  pageSize?: number;
   proofsConfig?: ProofsConfig;
   readUrl?: string;
   requireCorrectHubUrl?: boolean;
@@ -118,5 +118,13 @@ export default class Configuration {
     this.config = config;
   }
 
-  exportToTOML() {}
+  exportToTOML(): Blob {
+    const config = `port = ${this.config.port}
+driver = ${this.config.driver}
+    `;
+
+    return new Blob([config], {
+      type: "text/plain",
+    });
+  }
 }
