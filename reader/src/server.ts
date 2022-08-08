@@ -1,6 +1,7 @@
 import path from 'path'
 import fs from 'fs-extra'
-import { DiskReaderConfig } from './config.js'
+import { ReaderConfigInterface } from './config.js'
+import { DriverModel } from "./driverModel";
 
 const METADATA_DIRNAME = '.gaia-metadata'
 
@@ -15,9 +16,9 @@ export type GetFileInfo = {
 
 export class GaiaDiskReader {
 
-  config: DiskReaderConfig
+  config: ReaderConfigInterface
 
-  constructor(config: DiskReaderConfig) {
+  constructor(config: ReaderConfigInterface) {
     this.config = config
 
     // Ensure the configured storage directory exists
@@ -60,7 +61,7 @@ export class GaiaDiskReader {
       if (openFileStream) {
         readStream = fs.createReadStream(filePath)
       }
-      return { 
+      return {
         exists: true, 
         lastModified: stat.mtime, 
         contentLength: stat.size, 
@@ -74,5 +75,22 @@ export class GaiaDiskReader {
       }
       throw error
     }
+  }
+}
+
+export class ReaderServer {
+  driver: DriverModel
+  config: ReaderConfigInterface
+
+  constructor(driver: DriverModel, config: ReaderConfigInterface) {
+    this.driver = driver
+    this.config = config
+  }
+
+  async handleGet(topLevelDir: string, filename: string, openFileStream: boolean): Promise<GetFileInfo> {
+    const statResult = await this.driver.performStat({
+      path: filename,
+      storageTopLevel: topLevelDir
+    })
   }
 }

@@ -10,8 +10,9 @@ import { AZ_CONFIG_TYPE } from './drivers/AzDriver.js'
 import { DISK_CONFIG_TYPE } from './drivers/diskDriver.js'
 import { GC_CONFIG_TYPE } from './drivers/GcDriver.js'
 import { S3_CONFIG_TYPE } from './drivers/S3Driver.js'
+import { IPFS_CONFIG_TYPE } from './drivers/IpfsDriver.js'
 
-export type DriverName = 'aws' | 'azure' | 'disk' | 'google-cloud'
+export type DriverName = 'aws' | 'azure' | 'disk' | 'google-cloud' | 'ipfs'
 
 export type LogLevel = 'error' | 'warn' | 'info' | 'verbose' | 'debug'
 
@@ -162,12 +163,17 @@ export class HubConfig {
   /**
    * Required if `driver` is `azure`
    */
-  azCredentials?: SubType<AZ_CONFIG_TYPE, 'azCredentials'>
+    azCredentials?: SubType<AZ_CONFIG_TYPE, 'azCredentials'>
 
   /**
    * Required if `driver` is `disk`
    */
   diskSettings?: SubType<DISK_CONFIG_TYPE, 'diskSettings'>
+
+  /**
+   * Required if `driver` is `ipfs`
+   */
+  ipfsSettings?: SubType<IPFS_CONFIG_TYPE, 'ipfsSettings'>
 
   /**
    * Required if `driver` is `google-cloud`

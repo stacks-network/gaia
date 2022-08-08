@@ -1,4 +1,5 @@
 import * as stream from 'stream'
+import * as winston from 'winston'
 import { customAlphabet } from 'nanoid'
 
 import { DriverConstructor, DriverStatics } from './driverModel'
@@ -6,8 +7,8 @@ import S3Driver from './drivers/S3Driver.js'
 import AzDriver from './drivers/AzDriver.js'
 import GcDriver from './drivers/GcDriver.js'
 import DiskDriver from './drivers/diskDriver.js'
+import IpfsDriver from './drivers/IpfsDriver.js'
 import { promisify } from 'util'
-import * as winston from 'winston'
 import { DriverName } from './config.js'
 
 const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
@@ -34,6 +35,8 @@ export function getDriverClass(driver: DriverName): DriverConstructor & DriverSt
     return DiskDriver
   } else if (driver === 'google-cloud') {
     return GcDriver
+  } else if (driver === 'ipfs') {
+    return IpfsDriver
   } else {
     throw new Error(`Failed to load driver: driver was set to ${driver}`)
   }
