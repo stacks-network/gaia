@@ -26,6 +26,8 @@ This should install `blockstack-gaia-reader` to your `$PATH`.
 To use, first create a configuration file that indiciates (1) what port to
 bind on, and (2) where to load the files the Gaia hub stored.  Example:
 
+**JSON**
+
 ```
 $ cat /etc/gaia-reader.conf
 {
@@ -34,6 +36,16 @@ $ cat /etc/gaia-reader.conf
       "storageRootDirectory": "/var/gaia/disk"
    }
 }
+```
+
+**TOML**
+
+```
+$ cat /etc/gaia-reader.conf
+port = 4001
+
+[diskSettings]
+storageRootDirectory = "/var/gaia/disk"
 ```
 
 Then, run the Gaia hub reader with the config file:
