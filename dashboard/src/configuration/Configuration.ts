@@ -89,6 +89,14 @@ interface Whitelist {
 export interface Config {
   driver: Drivers;
   port: number;
+  bucket?: string;
+  httpsPort?: number;
+  cacheControl?: string;
+  maxFileUploadSize?: number;
+  pageSize?: number;
+  readUrl?: string;
+  requireCorrectHubUrl?: boolean;
+  serverName?: string;
   acmeConfig?: ACMEConfig;
   argsTransport?: ArgsTranport;
   authTimestampCacheSize?: string;
@@ -96,31 +104,38 @@ export interface Config {
   azCredentials?: AZCredentials;
   gcCredentials?: GCCredentials;
   diskSettings?: DiskSettings;
-  bucket?: string;
-  cacheControl?: string;
   enableHttps?: EnableHTTPS;
-  httpsPort?: number;
-  maxFileUploadSize?: number;
-  pageSize?: number;
   proofsConfig?: ProofsConfig;
-  readUrl?: string;
-  requireCorrectHubUrl?: boolean;
-  serverName?: string;
   tlsCertConfig?: TLSCertConfig;
   validHubUrls?: ValidHubUrls;
   whitelist?: Whitelist;
 }
 
 export default class Configuration {
-  config: Config;
+  config: Config | undefined = undefined;
 
-  constructor(config: Config) {
-    this.config = config;
+  private static _instance: Configuration;
+
+  private constructor() {}
+
+  public static get Instance() {
+    return this._instance || (this._instance = new this());
   }
 
-  exportToTOML(): Blob {
-    const config = `port = ${this.config.port}
-driver = ${this.config.driver}
+  public static set config(config: Config) {
+    if (this._instance.config === undefined) {
+      this._instance.config = config;
+    } else {
+      this._instance.config = {
+        ...this._instance.config,
+        ...config,
+      };
+    }
+  }
+
+  static exportToTOML(): Blob {
+    const config = `port = ${this._instance.config?.port}
+driver = ${this._instance.config?.driver}
     `;
 
     return new Blob([config], {
