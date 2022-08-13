@@ -6,12 +6,13 @@ interface ACMEConfig {
   communityMember?: boolean;
   configDir?: string;
   debug?: boolean;
+  server?: string;
   servername?: string;
   telemetry?: boolean;
   version?: string;
 }
 
-export enum ArgsTransportEnum {
+export enum ArgsTransportLevel {
   DEBUG = "debug",
   ERROR = "error",
   VERBOSE = "verbose",
@@ -22,7 +23,7 @@ interface ArgsTranport {
   colorize: boolean;
   handleExceptions: boolean;
   json: boolean;
-  level: ArgsTransportEnum;
+  level: ArgsTransportLevel;
   timestamp: boolean;
 }
 
@@ -114,28 +115,13 @@ export interface Config {
 export default class Configuration {
   config: Config | undefined = undefined;
 
-  private static _instance: Configuration;
-
-  private constructor() {}
-
-  public static get Instance() {
-    return this._instance || (this._instance = new this());
+  private constructor(config: Config) {
+    this.config = config;
   }
 
-  public static set config(config: Config) {
-    if (this._instance.config === undefined) {
-      this._instance.config = config;
-    } else {
-      this._instance.config = {
-        ...this._instance.config,
-        ...config,
-      };
-    }
-  }
-
-  static exportToTOML(): Blob {
-    const config = `port = ${this._instance.config?.port}
-driver = ${this._instance.config?.driver}
+  exportToTOML(): Blob {
+    const config = `port = ${this.config?.port}
+driver = ${this.config?.driver}
     `;
 
     return new Blob([config], {

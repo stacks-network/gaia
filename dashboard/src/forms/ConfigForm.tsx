@@ -1,4 +1,4 @@
-import { TextField, TextareaAutosize, Checkbox, FormControl, InputLabel, Select, MenuItem } from "@mui/material";
+import { TextField, Checkbox, FormControl, Select, MenuItem } from "@mui/material";
 import React from "react";
 import { useForm } from "react-hook-form";
 import { Config } from "../configuration/Configuration";
@@ -7,7 +7,6 @@ import styled from "styled-components";
 export enum FieldType {
     CHECKBOX,
     INPUT,
-    TEXTAREA,
     DROPDOWN,
     HEADLINE,
 }
@@ -22,6 +21,7 @@ export enum FieldName {
     ACME_CONFIG_EMAIL = "acmeConfig.email",
     ACME_CONFIG_SECURITY_UPDATES = "acmeConfig.securityUpdates",
     ACME_CONFIG_SERVERNAME = "acmeConfig.servername",
+    ACME_CONFIG_SERVER = "acmeConfig.server",
     ACME_CONFIG_TELEMETRY = "acmeConfig.telemetry",
     ACME_CONFIG_VERSION = "acmeConfig.version",
     ARGS_TRANSPORT = "argsTransport",
@@ -88,12 +88,7 @@ interface ConfigFormProps {
 }
 
 const ConfigForm: React.FC<ConfigFormProps> = ({ fields }) => {
-    const {
-        register,
-        setValue,
-        handleSubmit,
-        formState: { errors },
-    } = useForm<Config>();
+    const { register, handleSubmit } = useForm<Config>();
 
     const onSubmit = handleSubmit((data) => console.log(data));
 
@@ -104,11 +99,21 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ fields }) => {
 
                 if (field.type === FieldType.INPUT) {
                     return (
-                        <TextField required={field.required} defaultValue={"Type here"} {...register(field.name)} variant={"outlined"}></TextField>
+                        <Container key={field.name}>
+                            <LabelHeadline>{headline}</LabelHeadline>
+                            <Description htmlFor={`${field.name}_input`}>{field.description}</Description>
+                            <CustomTextField
+                                id={`${field.name}_input`}
+                                required={field.required}
+                                label={"Type here"}
+                                {...register(field.name)}
+                                variant={"outlined"}
+                            />
+                        </Container>
                     );
                 } else if (field.type === FieldType.CHECKBOX) {
                     return (
-                        <FormInputContainer>
+                        <FormInputContainer key={field.name}>
                             <LabelHeadline>{headline}</LabelHeadline>
                             <FormInputBody>
                                 <Checkbox id={`${field.name}_checkbox`} required={field.required} {...register(field.name)} />
@@ -117,7 +122,29 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ fields }) => {
                         </FormInputContainer>
                     );
                 } else if (field.type === FieldType.HEADLINE) {
-                    return <Headline>{headline}</Headline>;
+                    return (
+                        <Container key={field.name}>
+                            <Headline>{headline}</Headline>
+                            <Description>{field.description}</Description>
+                        </Container>
+                    );
+                } else if (field.type === FieldType.DROPDOWN) {
+                    return (
+                        <Container key={field.name}>
+                            <LabelHeadline>{headline}</LabelHeadline>
+                            <FormControl key={field.name} fullWidth>
+                                <Select labelId={`${field.name}_dropdown`} {...register(field.name)} defaultValue="debug">
+                                    {field.values?.map((val) => (
+                                        <MenuItem key={val} value={val}>
+                                            {val}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Container>
+                    );
+                } else {
+                    return <></>;
                 }
             })}
             <button type="submit">Click me!</button>
@@ -131,17 +158,27 @@ const Form = styled.form`
     grid-column: 6 / span 12;
 `;
 
+const Container = styled.div`
+    margin: 20px 0;
+`;
+
+const CustomTextField = styled(TextField)`
+    width: 100%;
+    margin: 20px 0 !important;
+`;
+
 const FormInputContainer = styled.div`
     display: flex;
     flex-direction: column;
     background: ${({ theme }) => theme.palette.grey};
     padding: 40px 30px;
+    margin: 20px 0;
 `;
 
 const FormInputBody = styled.span`
     display: flex;
+    align-items: center;
     flex-direction: row;
-    justify-content: space-between;
 `;
 
 const LabelHeadline = styled.h2`
