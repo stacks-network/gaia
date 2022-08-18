@@ -47,6 +47,7 @@
     ]
   },
   "devDependencies": {
+    "@hookform/error-message": "^2.0.0",
     "@types/styled-components": "^5.1.26",
     "gh-pages": "^4.0.0"
   }

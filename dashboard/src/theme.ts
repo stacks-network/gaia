@@ -17,12 +17,15 @@ interface Palette {
   black: string;
   grey: string;
   main: string;
+  yellow: string;
+  darkGrey: string;
 }
 
 interface Fonts {
   headline: {
     main: FlattenInterpolation<ThemeProps<unknown>>;
     label: FlattenInterpolation<ThemeProps<unknown>>;
+    section: FlattenInterpolation<ThemeProps<unknown>>;
   };
   paragraph: FlattenInterpolation<ThemeProps<unknown>>;
 }
@@ -47,17 +50,24 @@ const theme: Theme = {
     black: "#000000",
     grey: "#F8F8F8",
     main: "#27277A",
+    yellow: "#FFD99C",
+    darkGrey: "#c0bcbc",
   },
   fonts: {
     headline: {
       main: css`
-        font-size: 50px;
-        line-height: 55px;
+        font-size: 38px;
+        line-height: 45px;
         font-weight: 700;
       `,
       label: css`
         font-size: 20px;
         line-height: 22px;
+      `,
+      section: css`
+        font-size: 50px;
+        line-height: 55px;
+        font-weight: 700;
       `,
     },
     paragraph: css`

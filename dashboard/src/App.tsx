@@ -1,14 +1,14 @@
 import React from "react";
 import logo from "./logo.svg";
 import "./App.css";
-import Admin from "./forms/Admin";
+import Form from "./forms/Form";
 import styled from "styled-components";
 
 function App() {
     return (
         <div className="App">
             <Grid>
-                <Admin />
+                <Form />
             </Grid>
         </div>
     );
