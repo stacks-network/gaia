@@ -1,5 +1,6 @@
 import { createLogger, transports, Logger, format } from 'winston'
 import fs from 'fs'
+import toml from 'toml'
 import process from 'process'
 
 import { DriverModel, DriverConstructor } from './driverModel.js'
@@ -96,11 +97,28 @@ const configDefaults: ReaderConfig = {
 
 export const logger: Logger = createLogger()
 
+function getConfigJSON(configPath: string) {
+  let configJSON
+  try {
+    const fileContent = fs.readFileSync(configPath, { encoding: 'utf8' })
+    if (configPath.match(/\.json$/i)) {
+      configJSON = JSON.parse(fileContent)
+    } else if (configPath.match(/\.toml$/i)) {
+      configJSON = toml.parse(fileContent)
+    } else {
+      configJSON = {}
+    }
+  } catch (err) {
+    configJSON = {}
+  }
+  return configJSON
+}
+
 export function getConfig() {
   const configPath = process.env.CONFIG_PATH || process.argv[2] || './config.json'
   let config: ReaderConfig
   try {
-    config = { ...configDefaults, ...JSON.parse(fs.readFileSync(configPath).toString()) }
+    config = { ...configDefaults, ...configJSON }
   } catch (e) {
     console.error(`Failed to read config: ${e}`)
     config = { ...configDefaults }
