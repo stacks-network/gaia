@@ -1,5 +1,6 @@
 import winston from 'winston'
 import fs from 'fs'
+import toml from 'toml'
 import process from 'process'
 import Ajv from 'ajv'
 
@@ -10,8 +11,9 @@ import { AZ_CONFIG_TYPE } from './drivers/AzDriver.js'
 import { DISK_CONFIG_TYPE } from './drivers/diskDriver.js'
 import { GC_CONFIG_TYPE } from './drivers/GcDriver.js'
 import { S3_CONFIG_TYPE } from './drivers/S3Driver.js'
+import { IPFS_CONFIG_TYPE } from './drivers/IpfsDriver.js'
 
-export type DriverName = 'aws' | 'azure' | 'disk' | 'google-cloud'
+export type DriverName = 'aws' | 'azure' | 'disk' | 'google-cloud' | 'ipfs'
 
 export type LogLevel = 'error' | 'warn' | 'info' | 'verbose' | 'debug'
 
@@ -162,12 +164,17 @@ export class HubConfig {
   /**
    * Required if `driver` is `azure`
    */
-  azCredentials?: SubType<AZ_CONFIG_TYPE, 'azCredentials'>
+    azCredentials?: SubType<AZ_CONFIG_TYPE, 'azCredentials'>
 
   /**
    * Required if `driver` is `disk`
    */
   diskSettings?: SubType<DISK_CONFIG_TYPE, 'diskSettings'>
+
+  /**
+   * Required if `driver` is `ipfs`
+   */
+  ipfsSettings?: SubType<IPFS_CONFIG_TYPE, 'ipfsSettings'>
 
   /**
    * Required if `driver` is `google-cloud`
@@ -317,6 +324,23 @@ const globalEnvVars: EnvVarObj = {
   }
 }
 
+function getConfigJSON(configPath: string) {
+  let configJSON
+  try {
+    const fileContent = fs.readFileSync(configPath, { encoding: 'utf8' })
+    if (configPath.match(/\.json$/i)) {
+      configJSON = JSON.parse(fileContent)
+    } else if (configPath.match(/\.toml$/i)) {
+      configJSON = toml.parse(fileContent)
+    } else {
+      configJSON = {}
+    }
+  } catch (err) {
+    configJSON = {}
+  }
+  return configJSON
+}
+
 function getConfigEnv(envVars: EnvVarObj) {
   const configEnv: Record<string, any> = {}
 
@@ -458,13 +482,8 @@ export function validateConfigSchema(
 }
 
 export function getConfig() {
-  const configPath = process.env.CONFIG_PATH || process.argv[2] || './config.json'
-  let configJSON
-  try {
-    configJSON = JSON.parse(fs.readFileSync(configPath, { encoding: 'utf8' }))
-  } catch (err) {
-    configJSON = {}
-  }
+  const configPath = process.env.CONFIG_PATH || process.argv[2] || './config.toml'
+  const configJSON = getConfigJSON(configPath)
 
   if (configJSON.servername) {
     if (!configJSON.serverName) {

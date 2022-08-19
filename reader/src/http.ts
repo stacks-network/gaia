@@ -3,14 +3,32 @@ import expressWinston from 'express-winston'
 import cors from 'cors'
 import { promisify } from 'util'
 import { pipeline } from 'stream'
-import { Config, logger } from './config.js'
-import { GaiaDiskReader } from './server.js'
+import { ReaderConfigInterface, logger } from './config.js'
+import {GaiaDiskReader, ReaderServer} from './server.js'
+import { DriverModel } from './driverModel.js'
+import { getDriverClass } from './utils.js'
 
 const pipelineAsync = promisify(pipeline)
 
-export function makeHttpServer(config: Config) {
-  const app = express()
-  const server = new GaiaDiskReader(config)
+export function makeHttpServer(config: ReaderConfigInterface) {
+  const app: express.Application = express()
+
+  // Handle driver configuration
+  let driver: DriverModel
+
+  if (config.driverInstance) {
+    driver = config.driverInstance
+  } else if (config.driverClass) {
+    driver = new config.driverClass(config)
+  } else if (config.driver) {
+    const driverClass = getDriverClass(config.driver)
+    driver = new driverClass(config)
+  } else {
+    throw new Error('Driver option not configured')
+  }
+
+  // const server = new GaiaDiskReader(config)
+  const server = new ReaderServer(driver, config)
 
   app.use(expressWinston.logger({
     winstonInstance: logger
@@ -31,6 +49,7 @@ export function makeHttpServer(config: Config) {
       let filename = req.params[1]
       if (filename.endsWith('/')) {
         filename = filename.substring(0, filename.length - 1)
+      }
       }
       const address = req.params[0]
 
@@ -69,4 +88,3 @@ export function makeHttpServer(config: Config) {
 
   return app
 }
-

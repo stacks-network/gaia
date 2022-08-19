@@ -158,7 +158,8 @@
                 "aws",
                 "azure",
                 "disk",
-                "google-cloud"
+                "google-cloud",
+                "ipfs"
             ],
             "type": "string"
         },
@@ -204,6 +205,19 @@
             "maximum": 65535,
             "minimum": 0,
             "type": "integer"
+        },
+        "ipfsSettings": {
+            "additionalProperties": false,
+            "description": "Required if `driver` is `ipfs`",
+            "properties": {
+                "apiAddress": {
+                    "type": "string"
+                },
+                "storageRootDirectory": {
+                    "type": "string"
+                }
+            },
+            "type": "object"
         },
         "maxFileUploadSize": {
             "default": 20,
