@@ -5,12 +5,19 @@ import App from "./App";
 import reportWebVitals from "./reportWebVitals";
 import { ThemeProvider } from "styled-components";
 import theme from "./theme";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import Landing from "./forms/Landing";
 
 const root = ReactDOM.createRoot(document.getElementById("root") as HTMLElement);
 root.render(
     <React.StrictMode>
         <ThemeProvider theme={theme}>
-            <App />
+            <BrowserRouter>
+                <Routes>
+                    <Route index element={<Landing />} />
+                    <Route path="/configurator" element={<App />} />
+                </Routes>
+            </BrowserRouter>
         </ThemeProvider>
     </React.StrictMode>,
 );

@@ -29,3 +29,7 @@ export const Description = styled.label`
     margin: 0;
     ${({ theme }) => theme.fonts.paragraph};
 `;
+
+export const Error = styled.span`
+    padding-left: 10px;
+`;

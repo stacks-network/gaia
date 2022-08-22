@@ -1,4 +1,4 @@
-import { Container, LabelHeadline } from "./common.styled";
+import { Container, Error, FormInputBody, LabelHeadline } from "./common.styled";
 import { FormControl, MenuItem, Select } from "@mui/material";
 import { FormFieldProps } from "../types/FormFieldProps";
 import { ErrorMessage } from "@hookform/error-message";
@@ -11,7 +11,10 @@ interface DropdownProps {
 const Dropdown: React.FC<FormFieldProps & DropdownProps> = ({ headline, field, handleDependantFields, errors, register, setCurrentDriver }) => {
     return (
         <Container>
-            <LabelHeadline>{headline}</LabelHeadline>
+            <FormInputBody>
+                <LabelHeadline>{headline}</LabelHeadline>
+                <ErrorMessage errors={errors} name={field.name} render={() => <Error>This Field is required</Error>} />
+            </FormInputBody>{" "}
             <ErrorMessage errors={errors} name={field.name} render={() => <p>This Field is required</p>} />
             <FormControl fullWidth>
                 <Select

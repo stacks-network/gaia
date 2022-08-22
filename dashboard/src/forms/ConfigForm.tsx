@@ -42,7 +42,6 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ sections }) => {
         formState: { errors },
     } = useForm<Config>();
 
-    const onSubmit = handleSubmit((data) => console.log(data));
     const [currentDriver, setCurrentDriver] = React.useState<string>(Drivers.AWS);
     const [currentSection, setCurrentSection] = React.useState<number>(0);
     const [formHeight, setFormHeight] = React.useState<number>(0);
@@ -61,6 +60,12 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ sections }) => {
 
         return false;
     };
+
+    const onSubmit = handleSubmit((data) => {
+        window.scrollTo({ top: 0 });
+        setFormHeight(getSectionHeight(currentSection + 1));
+        setCurrentSection(currentSection + 1);
+    });
 
     const getHeadline = (name: string): string => {
         if (name.includes(".")) {
@@ -124,15 +129,31 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ sections }) => {
         return section!.scrollHeight + 100;
     };
 
+    const handleButtonSubmit = (): void => {
+        const form = document.getElementById(`section_${currentSection}`) as HTMLFormElement;
+        console.log(form);
+        if (form) {
+            if (typeof form.requestSubmit === "function") {
+                form.requestSubmit();
+            } else {
+                form.dispatchEvent(new Event("submit", { cancelable: true }));
+            }
+        }
+    };
+
     React.useEffect(() => {
         setFormHeight(getSectionHeight());
-    }, []);
+    }, [currentDriver]);
 
     return (
-        <Form onSubmit={onSubmit} id="form" style={{ height: formHeight }}>
+        <Container style={{ height: formHeight }} id="form">
             {sections.sections?.map(({ sectionFields, sectionName }, index) => {
                 return (
                     <Section
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            onSubmit();
+                        }}
                         key={`${index}__${sectionName?.name}`}
                         className={currentSection === index ? "active" : currentSection > index ? "prev" : "next"}
                         id={`section_${index}`}
@@ -150,8 +171,6 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ sections }) => {
                     </Section>
                 );
             })}
-
-            <button type="submit">Click me!</button>
             <Buttons>
                 <Button
                     variant="contained"
@@ -164,25 +183,17 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ sections }) => {
                 >
                     Back
                 </Button>
-                <Button
-                    variant="contained"
-                    disabled={currentSection === sections.sections!.length - 1}
-                    onClick={() => {
-                        window.scrollTo({ top: 0 });
-                        setFormHeight(getSectionHeight(currentSection + 1));
-                        setCurrentSection(currentSection + 1);
-                    }}
-                >
+                <Button variant="contained" disabled={currentSection === sections.sections!.length - 1} onClick={handleButtonSubmit}>
                     Next
                 </Button>
             </Buttons>
-        </Form>
+        </Container>
     );
 };
 
 export default ConfigForm;
 
-const Form = styled.form`
+const Container = styled.div`
     grid-column: 1 / span 24;
     overflow: hidden;
     width: 100%;
@@ -206,7 +217,7 @@ const Buttons = styled.div`
     button {
         height: 45px;
         width: 100px;
-        margin: 0 10%;
+        margin: 0 20%;
         :not(:disabled) {
             background-color: ${({ theme }) => theme.palette.main} !important;
         }
@@ -217,11 +228,11 @@ const Buttons = styled.div`
     }
 `;
 
-const Section = styled.div`
+const Section = styled.form`
     transition: 1.5s ease transform;
     top: 0;
     position: absolute;
-    width: 80%;
+    width: 60%;
 
     &.active {
         transform: translateX(0);
