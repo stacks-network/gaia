@@ -7,6 +7,7 @@ import { Button } from "@mui/material";
 const Infobox: React.FC = () => {
     const [menuOpen, setMenuOpen] = React.useState<boolean>(false);
     const [infoContent, setInfoContent] = React.useState<string>("");
+    const [copied, setCopied] = React.useState<boolean>(false);
     const COLLAPSE_CLASS = "collapse";
 
     const toggleConfig = () => {
@@ -35,6 +36,14 @@ const Infobox: React.FC = () => {
         }
     };
 
+    const copyToClipboard = () => {
+        window.navigator.clipboard.writeText(infoContent);
+        setCopied(true);
+        setTimeout(() => {
+            setCopied(false);
+        }, 5000);
+    };
+
     return (
         <Container>
             <Info id="gaia-menu-info">
@@ -42,7 +51,9 @@ const Infobox: React.FC = () => {
                     <InfoHeadline>Your Gaia Hub Configuration</InfoHeadline>
                     <pre>{infoContent}</pre>
                     <Buttons>
-                        <Button variant="contained">Copy</Button>
+                        <Button variant="contained" className={`${copied ? "copied" : ""}`} onClick={copyToClipboard}>
+                            {copied ? "Copied" : "Copy"}
+                        </Button>
                         <Button variant="contained">Download</Button>
                     </Buttons>
                 </InfoContent>
@@ -122,6 +133,10 @@ const Buttons = styled.div`
         :disabled {
             background-color: ${({ theme }) => theme.palette.darkGrey} !important;
         }
+
+        &.copied {
+            background-color: ${({ theme }) => theme.palette.success} !important;
+        }
     }
 `;
 
@@ -163,11 +178,13 @@ const MenuButton = styled.button`
 `;
 
 const GaiaMenu = styled(MenuIcon)`
+    cursor: pointer;
     font-size: 40px !important;
     color: ${({ theme }) => theme.palette.main} !important;
 `;
 
 const GaiaClose = styled(CloseIcon)`
+    cursor: pointer;
     font-size: 40px !important;
     color: ${({ theme }) => theme.palette.main} !important;
 `;

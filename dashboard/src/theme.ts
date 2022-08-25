@@ -1,9 +1,4 @@
-import {
-  css,
-  FlattenInterpolation,
-  SimpleInterpolation,
-  ThemeProps,
-} from "styled-components/macro";
+import { css, FlattenInterpolation, ThemeProps } from "styled-components/macro";
 
 interface Breakpoints {
   sm: number;
@@ -20,6 +15,7 @@ interface Palette {
   yellow: string;
   darkGrey: string;
   infoBackground: string;
+  success: string;
 }
 
 interface Fonts {
@@ -54,6 +50,7 @@ const theme: Theme = {
     yellow: "#FFD99C",
     darkGrey: "#c0bcbc",
     infoBackground: "#F3F3FE",
+    success: "#4BB543",
   },
   fonts: {
     headline: {
