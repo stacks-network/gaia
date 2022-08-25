@@ -62,6 +62,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ sections }) => {
     };
 
     const onSubmit = handleSubmit((data) => {
+        window.localStorage.setItem("config", JSON.stringify(data, null, 2));
         window.scrollTo({ top: 0 });
         setFormHeight(getSectionHeight(currentSection + 1));
         setCurrentSection(currentSection + 1);
@@ -126,7 +127,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ sections }) => {
     const getSectionHeight = (index: number = 0): number => {
         const section = document.getElementById(`section_${index}`);
 
-        return section!.scrollHeight + 100;
+        return section!.scrollHeight + 50;
     };
 
     const handleButtonSubmit = (): void => {
@@ -168,25 +169,25 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ sections }) => {
 
                             return getFormField(field);
                         })}
+                        <Buttons>
+                            <Button
+                                variant="contained"
+                                disabled={currentSection === 0}
+                                onClick={() => {
+                                    window.scrollTo({ top: 0 });
+                                    setFormHeight(getSectionHeight(currentSection - 1));
+                                    setCurrentSection(currentSection - 1);
+                                }}
+                            >
+                                Back
+                            </Button>
+                            <Button variant="contained" disabled={currentSection === sections.sections!.length - 1} onClick={handleButtonSubmit}>
+                                Next
+                            </Button>
+                        </Buttons>
                     </Section>
                 );
             })}
-            <Buttons>
-                <Button
-                    variant="contained"
-                    disabled={currentSection === 0}
-                    onClick={() => {
-                        window.scrollTo({ top: 0 });
-                        setFormHeight(getSectionHeight(currentSection - 1));
-                        setCurrentSection(currentSection - 1);
-                    }}
-                >
-                    Back
-                </Button>
-                <Button variant="contained" disabled={currentSection === sections.sections!.length - 1} onClick={handleButtonSubmit}>
-                    Next
-                </Button>
-            </Buttons>
         </Container>
     );
 };
@@ -194,6 +195,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ sections }) => {
 export default ConfigForm;
 
 const Container = styled.div`
+    transition: all 1s ease;
     grid-column: 1 / span 24;
     overflow: hidden;
     width: 100%;
@@ -201,23 +203,20 @@ const Container = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
+    z-index: 50;
 `;
 
 const Buttons = styled.div`
-    position: fixed;
-    bottom: 0;
     display: flex;
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
     width: 100%;
-    background-color: ${({ theme }) => theme.palette.yellow} !important;
-    height: 100px;
+    height: 70px;
 
     button {
         height: 45px;
         width: 100px;
-        margin: 0 20%;
         :not(:disabled) {
             background-color: ${({ theme }) => theme.palette.main} !important;
         }
@@ -231,7 +230,6 @@ const Buttons = styled.div`
 const Section = styled.form`
     transition: 1.5s ease transform;
     top: 0;
-    position: absolute;
     width: 60%;
 
     &.active {

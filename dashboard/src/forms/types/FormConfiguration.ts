@@ -1,4 +1,4 @@
-import { ArgsTransportLevel, Drivers } from "../../configuration/Configuration";
+import { Drivers } from "../../configuration/Configuration";
 import { Field, FieldType } from "../ConfigForm";
 import { FieldName } from "./Fieldnames";
 
@@ -212,38 +212,6 @@ export const config: FormConfiguration = {
           name: FieldName.ACME_CONFIG_VERSION,
           description:
             "The ACME version to use. `v02`/`draft-12` is for Let's Encrypt v2 otherwise known as ACME draft 12.",
-        },
-      ],
-    },
-    {
-      sectionName: {
-        name: FieldName.ARGS_TRANSPORT,
-        type: FieldType.HEADLINE,
-      },
-      sectionFields: [
-        {
-          type: FieldType.CHECKBOX,
-          name: FieldName.ARGS_TRANSPORT_COLORIZE,
-        },
-        {
-          type: FieldType.CHECKBOX,
-          name: FieldName.ARGS_TRANSPORT_HANDLE_EXCEPTION,
-        },
-        {
-          type: FieldType.CHECKBOX,
-          name: FieldName.ARGS_TRANSPORT_JSON,
-        },
-        {
-          type: FieldType.DROPDOWN,
-          name: FieldName.ARGS_TRANSPORT_LEVEL,
-          values: Object.keys(ArgsTransportLevel).map(
-            (key: string) =>
-              ArgsTransportLevel[key as keyof typeof ArgsTransportLevel]
-          ),
-        },
-        {
-          type: FieldType.CHECKBOX,
-          name: FieldName.ARGS_TRANSPORT_TIMESTAMP,
         },
       ],
     },

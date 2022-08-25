@@ -19,6 +19,7 @@ interface Palette {
   main: string;
   yellow: string;
   darkGrey: string;
+  infoBackground: string;
 }
 
 interface Fonts {
@@ -52,6 +53,7 @@ const theme: Theme = {
     main: "#27277A",
     yellow: "#FFD99C",
     darkGrey: "#c0bcbc",
+    infoBackground: "#F3F3FE",
   },
   fonts: {
     headline: {
