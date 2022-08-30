@@ -42,7 +42,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ sections }) => {
         formState: { errors },
     } = useForm<Config>();
 
-    const [currentDriver, setCurrentDriver] = React.useState<string>(Drivers.AWS);
+    const [currentDriver, setCurrentDriver] = React.useState<Drivers>(Drivers.AWS);
     const [currentSection, setCurrentSection] = React.useState<number>(0);
     const [formHeight, setFormHeight] = React.useState<number>(0);
 
@@ -92,6 +92,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ sections }) => {
                     errors={errors}
                     headline={headline}
                     register={register}
+                    currentDriver={currentDriver}
                 />
             );
         } else if (field.type === FieldType.CHECKBOX) {
@@ -128,18 +129,6 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ sections }) => {
         const section = document.getElementById(`section_${index}`);
 
         return section!.scrollHeight + 50;
-    };
-
-    const handleButtonSubmit = (): void => {
-        const form = document.getElementById(`section_${currentSection}`) as HTMLFormElement;
-        console.log(form);
-        if (form) {
-            if (typeof form.requestSubmit === "function") {
-                form.requestSubmit();
-            } else {
-                form.dispatchEvent(new Event("submit", { cancelable: true }));
-            }
-        }
     };
 
     React.useEffect(() => {
@@ -181,7 +170,12 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ sections }) => {
                             >
                                 Back
                             </Button>
-                            <Button variant="contained" disabled={currentSection === sections.sections!.length - 1} onClick={handleButtonSubmit}>
+                            <Button
+                                variant="contained"
+                                disabled={currentSection === sections.sections!.length - 1}
+                                type="submit"
+                                form={`section_${index}`}
+                            >
                                 Next
                             </Button>
                         </Buttons>
@@ -231,6 +225,7 @@ const Section = styled.form`
     transition: 1.5s ease transform;
     top: 0;
     width: 60%;
+    position: absolute;
 
     &.active {
         transform: translateX(0);

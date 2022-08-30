@@ -1,5 +1,5 @@
 import { DeepRequired, FieldErrorsImpl } from "react-hook-form";
-import { Config } from "../../configuration/Configuration";
+import { Config, Drivers } from "../../configuration/Configuration";
 import { Field } from "../ConfigForm";
 
 export interface FormFieldProps {
@@ -8,4 +8,5 @@ export interface FormFieldProps {
   errors: FieldErrorsImpl<DeepRequired<Config>>;
   handleDependantFields: Function;
   register: Function;
+  currentDriver?: Drivers;
 }
