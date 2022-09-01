@@ -1,6 +1,6 @@
 import React from "react";
 import { useForm } from "react-hook-form";
-import { Config, Drivers } from "configuration/Configuration";
+import { Config, ConfigurationFormat, Drivers } from "configuration/Configuration";
 import styled from "styled-components";
 import { FieldName } from "./types/Fieldnames";
 import { FormConfiguration } from "forms/types/FormConfiguration";
@@ -10,7 +10,9 @@ import Headline from "forms/common/Headline";
 import Dropdown from "forms/common/Dropdown";
 import { Button } from "@mui/material";
 import { Module } from "forms/types/FormFieldProps";
-import { useAppSelector, useAppDispatch } from "redux/hooks";
+import { useAppDispatch, useAppSelector } from "redux/hooks";
+import { setConfiguration, setModule } from "redux/hooks/dashboard/dashboardSlice";
+import { useConfiguration } from "./customHook/configuration";
 
 export enum FieldType {
     CHECKBOX,
@@ -39,14 +41,17 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ sections }) => {
     const {
         register,
         getValues,
-        watch,
         handleSubmit,
+        unregister,
         formState: { errors },
     } = useForm<Config>();
 
     const [currentDriver, setCurrentDriver] = React.useState<Drivers>(Drivers.AWS);
     const [currentSection, setCurrentSection] = React.useState<number>(0);
     const [activeModule, setActiveModule] = React.useState<number>(0);
+    const fileFormat = useAppSelector((state) => state.dashboard.format);
+    const dispatch = useAppDispatch();
+    const configuration = useConfiguration();
 
     const handleDependantFields = (dependsOn: FieldName[]): boolean => {
         for (let i = 0; i < dependsOn.length; i++) {
@@ -64,7 +69,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ sections }) => {
     };
 
     const onSubmit = handleSubmit((data) => {
-        window.localStorage.setItem("config", JSON.stringify(data, null, 2));
+        dispatch(setConfiguration(data));
         window.scrollTo({ top: 0 });
         setCurrentSection(currentSection + 1);
     });
@@ -128,9 +133,29 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ sections }) => {
 
     const onButtonClick = (button: number, module: Module) => {
         setActiveModule(button);
-        window.localStorage.setItem("module", module);
+        dispatch(setModule(module));
         window.localStorage.setItem("config", "");
         setCurrentSection(0);
+    };
+
+    const downloadFile = () => {
+        const anchor = window.document.createElement("a");
+        let blob = configuration?.exportToTOML();
+
+        if (fileFormat === ConfigurationFormat.JSON) {
+            blob = configuration?.exportToJSON();
+        }
+
+        if (!blob) {
+            return;
+        }
+
+        anchor.href = window.URL.createObjectURL(blob);
+        anchor.download = `${module}_configuration.${fileFormat.toLowerCase()}`;
+        document.body.appendChild(anchor);
+        anchor.click();
+        document.body.removeChild(anchor);
+        window.URL.revokeObjectURL(anchor.href);
     };
 
     return (
@@ -159,9 +184,11 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ sections }) => {
                     >
                         <SectionHeadline>{sectionName ? sectionName.name : "General Settings"}</SectionHeadline>
                         {sectionFields.map((field) => {
-                            field.dependsOn?.forEach((item) => watch(item));
-
                             if (field.driverConfig && field.driverConfig !== currentDriver) {
+                                if (getValues(field.name)) {
+                                    unregister(field.name);
+                                }
+
                                 return <></>;
                             }
 
@@ -178,14 +205,20 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ sections }) => {
                             >
                                 Back
                             </Button>
-                            <Button
-                                variant="contained"
-                                disabled={currentSection === sections.sections!.length - 1}
-                                type="submit"
-                                form={`section_${index}`}
-                            >
-                                Next
-                            </Button>
+                            {currentSection < sections.sections!.length - 1 ? (
+                                <Button
+                                    variant="contained"
+                                    disabled={currentSection === sections.sections!.length - 1}
+                                    type="submit"
+                                    form={`section_${index}`}
+                                >
+                                    Next
+                                </Button>
+                            ) : (
+                                <Button onClick={() => downloadFile()} variant="contained" type="submit" form={`section_${index}`}>
+                                    Download
+                                </Button>
+                            )}
                         </Buttons>
                     </Section>
                 );

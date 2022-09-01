@@ -111,6 +111,37 @@ export const config: FormConfiguration = {
       ],
     },
     {
+      sectionFields: [
+        {
+          type: FieldType.CHECKBOX,
+          name: FieldName.REQUIRE_CORRECT_HUB_URL,
+        },
+        {
+          type: FieldType.HEADLINE,
+          name: FieldName.VALID_HUB_URLS,
+          dependsOn: [FieldName.REQUIRE_CORRECT_HUB_URL],
+          description:
+            "If `requireCorrectHubUrl` is true then the hub specified in an auth payload can also be\ncontained within in array.",
+        },
+        {
+          type: FieldType.INPUT,
+          name: FieldName.VALID_HUB_URLS_ITEMS,
+        },
+        {
+          type: FieldType.HEADLINE,
+          name: FieldName.WHITELIST,
+          description:
+            "List of ID addresses allowed to use this hub. Specifying this makes the hub private \nand only accessible to the specified addresses. Leaving this unspecified makes the hub \npublicly usable by any ID.",
+        },
+        {
+          type: FieldType.INPUT,
+          name: FieldName.WHITELIST_ITEMS,
+        },
+      ],
+    },
+
+    /*
+    {
       sectionName: {
         name: FieldName.ACME_CONFIG,
         type: FieldType.HEADLINE,
@@ -215,6 +246,46 @@ export const config: FormConfiguration = {
         },
       ],
     },
+    {
+      sectionName: {
+        name: FieldName.ARGS_TRANSPORT,
+        type: FieldType.HEADLINE,
+      },
+      sectionFields: [
+        {
+          type: FieldType.HEADLINE,
+          name: FieldName.ARGS_TRANSPORT,
+        },
+        {
+          type: FieldType.CHECKBOX,
+          name: FieldName.ARGS_TRANSPORT_COLORIZE,
+        },
+        {
+          type: FieldType.CHECKBOX,
+          name: FieldName.ARGS_TRANSPORT_HANDLE_EXCEPTION,
+        },
+        {
+          type: FieldType.CHECKBOX,
+          name: FieldName.ARGS_TRANSPORT_JSON,
+        },
+        {
+          type: FieldType.DROPDOWN,
+          name: FieldName.ARGS_TRANSPORT_LEVEL,
+          values: Object.keys(ArgsTransportLevel).map(
+            (key: string) =>
+              ArgsTransportLevel[key as keyof typeof ArgsTransportLevel]
+          ),
+        },
+        {
+          type: FieldType.CHECKBOX,
+          name: FieldName.ARGS_TRANSPORT_TIMESTAMP,
+        },
+        {
+          type: FieldType.INPUT,
+          name: FieldName.AUTH_TIMESTAMP_CACHE_SIZE,
+        },
+      ],
+      */
   ],
 };
 

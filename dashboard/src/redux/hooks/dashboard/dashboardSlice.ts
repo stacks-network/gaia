@@ -1,18 +1,22 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import Configuration from "../../../configuration/Configuration";
-import { Module } from "../../../forms/types/FormFieldProps";
-import type { RootState } from "../../store";
+import Configuration, {
+  ConfigurationFormat,
+} from "configuration/Configuration";
+import { Module } from "forms/types/FormFieldProps";
+import type { RootState } from "redux/store";
 
 // Define a type for the slice state
 interface DashboardState {
   module: Module;
-  configuration: Configuration | undefined;
+  configuration: Configuration | Object | undefined;
+  format: ConfigurationFormat;
 }
 
 // Define the initial state using that type
 const initialState: DashboardState = {
   module: Module.HUB,
   configuration: undefined,
+  format: ConfigurationFormat.TOML,
 };
 
 export const dashboardSlice = createSlice({
@@ -23,12 +27,20 @@ export const dashboardSlice = createSlice({
       state.module = action.payload;
     },
     setConfiguration: (state, action: PayloadAction<any>) => {
-      Object.assign(action.payload, state.configuration);
+      state.configuration = Object.assign(action.payload, state.configuration);
+      window.localStorage.setItem(
+        "config",
+        JSON.stringify(state.configuration)
+      );
+    },
+    setFileFormat: (state, action: PayloadAction<ConfigurationFormat>) => {
+      state.format = action.payload;
     },
   },
 });
 
-export const { setModule, setConfiguration } = dashboardSlice.actions;
+export const { setModule, setConfiguration, setFileFormat } =
+  dashboardSlice.actions;
 
 export const selectModule = (state: RootState) => state.dashboard.module;
 export const selectConfiguration = (state: RootState) =>

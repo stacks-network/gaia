@@ -3,29 +3,30 @@ import React from "react";
 import MenuIcon from "@mui/icons-material/Menu";
 import CloseIcon from "@mui/icons-material/Close";
 import { Button, SelectChangeEvent } from "@mui/material";
-import Configuration, { Config, ConfigurationFormat } from "../../configuration/Configuration";
+import { ConfigurationFormat } from "../../configuration/Configuration";
 import { MenuItem, Select } from "@mui/material";
+import { useAppSelector, useAppDispatch } from "redux/hooks";
+import { setFileFormat } from "redux/hooks/dashboard/dashboardSlice";
+import { useConfiguration } from "forms/customHook/configuration";
 
 const Infobox: React.FC = () => {
     const [menuOpen, setMenuOpen] = React.useState<boolean>(false);
-    const [configuration, setConfiguration] = React.useState<Configuration>();
     const [copied, setCopied] = React.useState<boolean>(false);
     const [infoContent, setInfoContent] = React.useState<string>("");
-    const [fileFormat, setFileFormat] = React.useState<ConfigurationFormat>(ConfigurationFormat.TOML);
     const COLLAPSE_CLASS = "collapse";
+    const module = useAppSelector((state) => state.dashboard.module);
+    const fileFormat = useAppSelector((state) => state.dashboard.format);
+    const dispatch = useAppDispatch();
+    const configuration = useConfiguration();
 
     const toggleConfig = () => {
-        const config = window.localStorage.getItem("config");
-
-        if (config && config.length > 0) {
-            const conf = new Configuration(JSON.parse(config) as Config);
-            setConfiguration(conf);
-            const tomlConfig = conf?.toTOML();
-            if (tomlConfig) {
-                setInfoContent(tomlConfig);
+        if (configuration?.config) {
+            if (fileFormat === ConfigurationFormat.JSON) {
+                setInfoContent(JSON.stringify(configuration.config));
+            } else {
+                setInfoContent(configuration.toTOML());
             }
         }
-
         const form = document.getElementById("form");
         const button = document.getElementById("gaia-menu-button");
         const info = document.getElementById("gaia-menu-info");
@@ -65,27 +66,20 @@ const Infobox: React.FC = () => {
     const handleDropdown = (event: SelectChangeEvent<ConfigurationFormat>) => {
         if (event.target.value === ConfigurationFormat.JSON) {
             setInfoContent(JSON.stringify(configuration?.config, null, 2));
-            setFileFormat(ConfigurationFormat.JSON);
+            dispatch(setFileFormat(ConfigurationFormat.JSON));
         } else {
             handleToTOML();
-            setFileFormat(ConfigurationFormat.TOML);
+            dispatch(setFileFormat(ConfigurationFormat.TOML));
         }
     };
 
     const downloadFile = () => {
-        let module = window.localStorage.get("module");
         const anchor = window.document.createElement("a");
-        if (!module) {
-            module = "hub";
-        }
-
         let blob = configuration?.exportToTOML();
 
         if (fileFormat === ConfigurationFormat.JSON) {
             blob = configuration?.exportToJSON();
         }
-
-        console.log(blob);
 
         if (!blob) {
             return;
