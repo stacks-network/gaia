@@ -13,6 +13,7 @@
     "express": "^4.18.1",
     "express-winston": "^4.2.0",
     "fs-extra": "^10.1.0",
+    "ipfs-http-client": "^57.0.3",
     "node-fetch": "^3.2.6",
     "toml": "^3.0.0",
     "winston": "^3.8.1"

@@ -49,7 +49,7 @@ export class HubServer {
     const signingAddress = validateAuthorizationHeader(requestHeaders.authorization,
                                                        this.serverName, address,
                                                        this.requireCorrectHubUrl,
-                                                       this.validHubUrls, 
+                                                       this.validHubUrls,
                                                        oldestValidTokenTimestamp)
 
     if (this.whitelist && !(this.whitelist.includes(signingAddress))) {
@@ -121,7 +121,7 @@ export class HubServer {
     const historicalPath = `${filePathPrefix}${historicalName}`
     return historicalPath
   }
-  
+
   isHistoricalFile(filePath: string) {
     const fileName = this.getFileName(filePath)
     const isHistoricalFile = fileName.startsWith('.history.')
@@ -157,7 +157,7 @@ export class HubServer {
 
     await this.proofChecker.checkProofs(address, path, this.getReadURLPrefix())
 
-    if (isArchivalRestricted){
+    if (isArchivalRestricted) {
       // if archival restricted then just rename the canonical file to the historical file
       const historicalPath = this.getHistoricalFileName(path)
       const renameCommand: PerformRenameArgs = {
@@ -186,15 +186,16 @@ export class HubServer {
     },
     stream: Readable
   ): Promise<WriteResult> {
+    // needed to be resolved
+    // const oldestValidTokenTimestamp = await this.authTimestampCache.getAuthTimestamp(address)
+    const oldestValidTokenTimestamp = 0
 
-    const oldestValidTokenTimestamp = await this.authTimestampCache.getAuthTimestamp(address)
     this.validate(address, requestHeaders, oldestValidTokenTimestamp)
     let contentType = requestHeaders['content-type']
 
     if (contentType === null || contentType === undefined) {
       contentType = 'application/octet-stream'
     }
-
     // can the caller write? if so, in what paths?
     const scopes = getAuthenticationScopes(requestHeaders.authorization)
     const isArchivalRestricted = this.checkArchivalRestrictions(address, path, scopes)
@@ -227,7 +228,6 @@ export class HubServer {
     if (ifNoneMatchTag && ifNoneMatchTag !== '*') {
       throw new PreconditionFailedError('Misuse of the if-none-match header. Expected to be * on write requests.')
     }
-
     // handle etag matching if not supported at the driver level
     if (!this.driver.supportsETagMatching) {
       // allow overwrites if tag is wildcard 
@@ -255,6 +255,7 @@ export class HubServer {
       }
     }
 
+
     await this.proofChecker.checkProofs(address, path, this.getReadURLPrefix())
 
     const contentLengthHeader = requestHeaders['content-length'] as string
@@ -263,7 +264,7 @@ export class HubServer {
 
     // If a valid content-length is specified check to immediately return error
     if (isLengthFinite && contentLengthBytes > this.maxFileUploadSizeBytes) {
-      const errMsg = `Max file upload size is ${this.maxFileUploadSizeMB} megabytes. ` + 
+      const errMsg = `Max file upload size is ${this.maxFileUploadSizeMB} megabytes. ` +
         `Rejected Content-Length of ${bytesToMegabytes(contentLengthBytes, 4)} megabytes`
       logger.warn(`${errMsg}, address: ${address}`)
       throw new PayloadTooLargeError(errMsg)
@@ -281,7 +282,7 @@ export class HubServer {
         if (error instanceof DoesNotExist) {
           // ignore
           logger.debug(
-            '404 on putFileArchival rename attempt -- usually this is okay and ' + 
+            '404 on putFileArchival rename attempt -- usually this is okay and ' +
             'only indicates that this is the first time the file was written: ' +
             `${address}/${path}`
           )
@@ -295,13 +296,13 @@ export class HubServer {
 
     // Use the client reported content-length if available, otheriwse fallback to the
     // max configured length.
-    const maxContentLength = Number.isFinite(contentLengthBytes) && contentLengthBytes > 0 
+    const maxContentLength = Number.isFinite(contentLengthBytes) && contentLengthBytes > 0
       ? contentLengthBytes : this.maxFileUploadSizeBytes
-    
+
     // Create a PassThrough stream to monitor streaming chunk sizes. 
     const { monitoredStream, pipelinePromise } = monitorStreamProgress(stream, totalBytes => {
       if (totalBytes > maxContentLength) {
-        const errMsg = `Max file upload size is ${this.maxFileUploadSizeMB} megabytes. ` + 
+        const errMsg = `Max file upload size is ${this.maxFileUploadSizeMB} megabytes. ` +
           `Rejected POST body stream of ${bytesToMegabytes(totalBytes, 4)} megabytes`
         // Log error -- this situation is indicative of a malformed client request
         // where the reported Content-Size is less than the upload size. 
@@ -331,14 +332,14 @@ export class HubServer {
     const readURLPrefix = this.getReadURLPrefix()
     if (readURLPrefix !== driverPrefix && readURL.startsWith(driverPrefix)) {
       const postFix = readURL.slice(driverPrefix.length)
-      return { 
+      return {
         publicURL: `${readURLPrefix}${postFix}`,
         etag: writeResponse.etag
       }
     }
     return writeResponse
   }
-  
+
   isArchivalRestricted(scopes: AuthScopeValues) {
     return scopes.writeArchivalPaths.length > 0 || scopes.writeArchivalPrefixes.length > 0
   }

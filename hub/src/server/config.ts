@@ -19,7 +19,7 @@ export type LogLevel = 'error' | 'warn' | 'info' | 'verbose' | 'debug'
 
 export const enum HttpsOption {
   cert_files = 'cert_files',
-  acme = 'acme' 
+  acme = 'acme'
 }
 
 export interface LoggingConfigInterface {
@@ -35,14 +35,14 @@ class LoggingConfig implements LoggingConfigInterface {
   /**
    * @default warn
    */
-  level? = 'warn' as LogLevel
-  handleExceptions? = true
-  timestamp? = true
-  colorize? = true
-  json? = false
+  level?= 'warn' as LogLevel
+  handleExceptions?= true
+  timestamp?= true
+  colorize?= true
+  json?= false
 }
 
-export interface ProofCheckerConfigInterface { 
+export interface ProofCheckerConfigInterface {
   proofsRequired?: number;
 }
 
@@ -51,7 +51,7 @@ class ProofCheckerConfig implements ProofCheckerConfigInterface {
   /**
    * @TJS-type integer
    */
-  proofsRequired? = 0
+  proofsRequired?= 0
 }
 
 export interface AcmeConfigInterface {
@@ -164,7 +164,7 @@ export class HubConfig {
   /**
    * Required if `driver` is `azure`
    */
-    azCredentials?: SubType<AZ_CONFIG_TYPE, 'azCredentials'>
+  azCredentials?: SubType<AZ_CONFIG_TYPE, 'azCredentials'>
 
   /**
    * Required if `driver` is `disk`
@@ -186,22 +186,22 @@ export class HubConfig {
    */
   awsCredentials?: SubType<S3_CONFIG_TYPE, 'awsCredentials'>
 
-  argsTransport? = new LoggingConfig()
-  proofsConfig? = new ProofCheckerConfig()
-  requireCorrectHubUrl? = false
+  argsTransport?= new LoggingConfig()
+  proofsConfig?= new ProofCheckerConfig()
+  requireCorrectHubUrl?= false
   /**
    * Domain name used for auth/signing challenges. 
    * If `requireCorrectHubUrl` is true then this must match the hub url in an auth payload. 
    */
-  serverName? = 'gaia-0'
-  bucket? = 'hub'
+  serverName?= 'gaia-0'
+  bucket?= 'hub'
   /**
    * @minimum 1
    * @maximum 4096
    * @TJS-type integer
    */
-  pageSize? = 100
-  cacheControl? = 'no-cache'
+  pageSize?= 100
+  cacheControl?= 'no-cache'
   /**
    * The maximum allowed POST body size in megabytes. 
    * The content-size header is checked, and the POST body stream 
@@ -209,11 +209,11 @@ export class HubConfig {
    * [Recommended] Minimum 100KB (or approximately 0.1MB)
    * @minimum 0.1
    */
-  maxFileUploadSize? = 20
+  maxFileUploadSize?= 20
   /**
    * @TJS-type integer
    */
-  authTimestampCacheSize? = 50000
+  authTimestampCacheSize?= 50000
 
   driver = undefined as DriverName
 
@@ -231,14 +231,14 @@ export class HubConfig {
    * @maximum 65535
    * @TJS-type integer
    */
-  httpsPort? = 443
+  httpsPort?= 443
 
   /**
    * Disabled by default. 
    * If set to `cert_files` then `tlsCertConfig` must be set. 
    * If set to `acme` then `acmeConfig` must be set. 
    */
-  enableHttps? = undefined as HttpsOption
+  enableHttps?= undefined as HttpsOption
 
   /**
    * Options for Automatic Certificate Management Environment client. 
@@ -287,14 +287,14 @@ export class HubConfig {
 
 }
 
-type EnvVarTypeInfo = [string, 'list' | 'int' | 'boolean' ]
+type EnvVarTypeInfo = [string, 'list' | 'int' | 'boolean']
 type EnvVarType = string | EnvVarTypeInfo
 type EnvVarProp = EnvVarType | EnvVarObj
 interface EnvVarObj {
   [key: string]: EnvVarProp
 }
 
-const globalEnvVars: EnvVarObj = { 
+const globalEnvVars: EnvVarObj = {
   whitelist: ['GAIA_WHITELIST', 'list'],
   readURL: 'GAIA_READ_URL',
   driver: 'GAIA_DRIVER',
@@ -336,6 +336,7 @@ function getConfigJSON(configPath: string) {
       configJSON = {}
     }
   } catch (err) {
+    console.log('err: ', err)
     configJSON = {}
   }
   return configJSON
@@ -350,7 +351,7 @@ function getConfigEnv(envVars: EnvVarObj) {
 
   const detectedEnvVars: string[] = []
 
-  function populateObj(getTarget: () => Record<string, any>, envVarProp: EnvVarObj){
+  function populateObj(getTarget: () => Record<string, any>, envVarProp: EnvVarObj) {
     for (const [name, value] of Object.entries(envVarProp)) {
       if (typeof value === 'string') {
         if (process.env[value]) {
@@ -445,11 +446,11 @@ export function getConfigDefaults(): HubConfigInterface {
   removeEmptyOrUndefined(configDefaults)
 
   return configDefaults
-} 
+}
 
 export function validateConfigSchema(
-  schemaFilePath: string, 
-  configObj: any, 
+  schemaFilePath: string,
+  configObj: any,
   warnCallback: (msg: string) => void = (msg => console.error(msg))
 ) {
   try {

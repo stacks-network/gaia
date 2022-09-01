@@ -1,4 +1,4 @@
-import {Readable} from "stream";
+import { Readable } from 'stream'
 
 export interface PerformStatArgs {
   path: string;
@@ -12,15 +12,16 @@ export interface PerformReadArgs {
 
 export interface StatResult {
   exists: boolean;
-  lastModifiedDate: number;
-  etag: string;
-  contentLength: number;
-  contentType: string;
+  lastModifiedDate?: number;
+  etag?: string;
+  contentLength?: number;
+  contentType?: string;
 }
 
 export interface ReadResult extends StatResult {
   data: Readable;
-  exists: true
+  exists: true;
+  lastModified: Date
 }
 
 export interface DriverModel {
@@ -29,5 +30,5 @@ export interface DriverModel {
 }
 
 export interface DriverConstructor {
-  new (config: any): DriverModel;
+  new(config: any): DriverModel;
 }

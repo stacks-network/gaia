@@ -25,11 +25,11 @@ class LoggingConfig implements LoggingConfigInterface {
   /**
    * @default warn
    */
-  level? = 'warn' as LogLevel
-  handleExceptions? = true
-  timestamp? = true
-  colorize? = true
-  json? = false
+  level?= 'warn' as LogLevel
+  handleExceptions?= true
+  timestamp?= true
+  colorize?= true
+  json?= false
 }
 
 type SubType<T, K extends keyof T> = K extends keyof T ? T[K] : never;
@@ -48,7 +48,7 @@ export class ReaderConfig {
    */
   ipfsSettings?: SubType<IPFS_CONFIG_TYPE, 'ipfsSettings'>
 
-  argsTransport? = new LoggingConfig()
+  argsTransport?= new LoggingConfig()
   regtest = false
   testnet = false
 
@@ -60,7 +60,7 @@ export class ReaderConfig {
    * @TJS-type integer
    */
   port = 8008
-  cacheControl? = 'no-cache'
+  cacheControl?= 'no-cache'
 
   /**
    * Only used in tests
@@ -116,6 +116,7 @@ function getConfigJSON(configPath: string) {
 
 export function getConfig() {
   const configPath = process.env.CONFIG_PATH || process.argv[2] || './config.json'
+  const configJSON = getConfigJSON(configPath)
   let config: ReaderConfig
   try {
     config = { ...configDefaults, ...configJSON }

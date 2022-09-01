@@ -4,7 +4,7 @@ import cors from 'cors'
 import { promisify } from 'util'
 import { pipeline } from 'stream'
 import { ReaderConfigInterface, logger } from './config.js'
-import {GaiaDiskReader, ReaderServer} from './server.js'
+import { GaiaDiskReader, ReaderServer } from './server.js'
 import { DriverModel } from './driverModel.js'
 import { getDriverClass } from './utils.js'
 
@@ -12,10 +12,8 @@ const pipelineAsync = promisify(pipeline)
 
 export function makeHttpServer(config: ReaderConfigInterface) {
   const app: express.Application = express()
-
   // Handle driver configuration
   let driver: DriverModel
-
   if (config.driverInstance) {
     driver = config.driverInstance
   } else if (config.driverClass) {
@@ -26,8 +24,6 @@ export function makeHttpServer(config: ReaderConfigInterface) {
   } else {
     throw new Error('Driver option not configured')
   }
-
-  // const server = new GaiaDiskReader(config)
   const server = new ReaderServer(driver, config)
 
   app.use(expressWinston.logger({
@@ -35,9 +31,9 @@ export function makeHttpServer(config: ReaderConfigInterface) {
   }))
 
   app.use(cors({
-    origin: '*', 
+    origin: '*',
     // Set the Access-Control-Max-Age header to 24 hours.
-    maxAge: 86400, 
+    maxAge: 86400,
     methods: 'GET,HEAD,OPTIONS',
     // Expose ETag http response header to client
     // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Expose-Headers
@@ -50,7 +46,6 @@ export function makeHttpServer(config: ReaderConfigInterface) {
       if (filename.endsWith('/')) {
         filename = filename.substring(0, filename.length - 1)
       }
-      }
       const address = req.params[0]
 
       if (config.cacheControl) {
@@ -58,7 +53,6 @@ export function makeHttpServer(config: ReaderConfigInterface) {
       }
 
       const isGetRequest = req.method === 'GET'
-
       const fileInfo = await server.handleGet(address, filename, isGetRequest)
 
       if (!fileInfo.exists) {
@@ -73,10 +67,10 @@ export function makeHttpServer(config: ReaderConfigInterface) {
       })
 
       if (isGetRequest) {
-        await pipelineAsync(fileInfo.fileReadStream, res)
+        await pipelineAsync(fileInfo.data, res)
       }
       res.end()
-    } catch(err) {
+    } catch (err) {
       logger.error(err)
       return res.status(400).send('Could not return file')
     }

@@ -56,14 +56,14 @@ class IpfsDriver implements DriverModel {
     }
   }
 
-  constructor (config: IPFS_CONFIG_TYPE) {
+  constructor(config: IPFS_CONFIG_TYPE) {
     if (!config.readURL) {
       throw new Error('Config is missing readURL')
     }
     if (!config.ipfsSettings.storageRootDirectory) {
       throw new Error('Config is missing storageRootDirectory')
     }
-    if (config.bucket) {
+    if (!config.bucket) {
       logger.warn(`The disk driver does not use the "config.bucket" variable. It is set to ${config.bucket}`)
     }
     this.client = create({ url: config.ipfsSettings.apiAddress })
@@ -96,7 +96,7 @@ class IpfsDriver implements DriverModel {
     return true
   }
 
-  getReadURLPrefix () {
+  getReadURLPrefix() {
     return this.readURL
   }
 
@@ -176,7 +176,7 @@ class IpfsDriver implements DriverModel {
         // All the cloud drivers return a single empty entry in this situation
         return { entries: [''], page: null }
       }
-    } catch(e) {
+    } catch (e) {
       throw new Error('Invalid arguments: invalid page or not a directory')
     }
 
@@ -192,7 +192,7 @@ class IpfsDriver implements DriverModel {
     const filePathResult = await this.listFilesInternal(args)
     const fileStats: ListFileStatResult[] = []
     for (const file of filePathResult.entries) {
-      const fileStat = await this.performStat({storageTopLevel: args.pathPrefix, path: file})
+      const fileStat = await this.performStat({ storageTopLevel: args.pathPrefix, path: file })
       fileStats.push({
         ...fileStat,
         name: file,
@@ -205,7 +205,7 @@ class IpfsDriver implements DriverModel {
     }
   }
 
-  getFullFilePathInfo(args: {storageTopLevel: string, path: string} ) {
+  getFullFilePathInfo(args: { storageTopLevel: string, path: string }) {
     if (!args.storageTopLevel) {
       throw new BadPathError('Invalid Path')
     }
