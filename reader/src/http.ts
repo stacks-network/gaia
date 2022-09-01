@@ -4,7 +4,7 @@ import cors from 'cors'
 import { promisify } from 'util'
 import { pipeline } from 'stream'
 import { ReaderConfigInterface, logger } from './config.js'
-import { GaiaDiskReader, ReaderServer } from './server.js'
+import { ReaderServer } from './server.js'
 import { DriverModel } from './driverModel.js'
 import { getDriverClass } from './utils.js'
 
@@ -52,8 +52,13 @@ export function makeHttpServer(config: ReaderConfigInterface) {
         res.set('Cache-Control', config.cacheControl)
       }
 
-      const isGetRequest = req.method === 'GET'
-      const fileInfo = await server.handleGet(address, filename, isGetRequest)
+      /**
+       * for now only GET request is available. so will slash the next line of code and handleGet method 3rd arg
+       */
+      // const isGetRequest = req.method === 'GET'
+      // const fileInfo = await server.handleGet(address, filename, isGetRequest)
+      const fileInfo = await server.handleGet(address, filename)
+
 
       if (!fileInfo.exists) {
         return res.status(404).send('File not found')
@@ -65,10 +70,12 @@ export function makeHttpServer(config: ReaderConfigInterface) {
         'last-modified': fileInfo.lastModified.toUTCString(),
         'content-length': fileInfo.contentLength
       })
-
-      if (isGetRequest) {
-        await pipelineAsync(fileInfo.data, res)
-      }
+      /**
+       * for now only GET request is available. so will slash the next line of case check
+       */
+      // if (isGetRequest) {
+      await pipelineAsync(fileInfo.data, res)
+      // }
       res.end()
     } catch (err) {
       logger.error(err)

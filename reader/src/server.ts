@@ -1,17 +1,19 @@
 import path from 'path'
 import fs from 'fs-extra'
 import { ReaderConfigInterface } from './config.js'
-import { DriverModel } from "./driverModel";
+import { DriverModel } from './driverModel'
+import { Readable } from 'stream'
 
 const METADATA_DIRNAME = '.gaia-metadata'
 
-export type GetFileInfo = { 
-  exists: boolean; 
+export type GetFileInfo = {
+  exists: boolean;
   contentType?: string;
   contentLength?: number;
-  etag?: string; 
+  etag?: string;
   lastModified?: Date;
   fileReadStream?: fs.ReadStream;
+  data?: Readable
 }
 
 export class GaiaDiskReader {
@@ -26,7 +28,7 @@ export class GaiaDiskReader {
 
   }
 
-  isPathValid(path: string){
+  isPathValid(path: string) {
     // for now, only disallow double dots.
     return !path.includes('..')
   }
@@ -52,7 +54,7 @@ export class GaiaDiskReader {
     let readStream: fs.ReadStream
     try {
       const metadataPath = path.join(storageRoot, METADATA_DIRNAME, topLevelDir, filename)
-      let metadata: {'content-type'?: string, 'etag'?: string} = { }
+      let metadata: { 'content-type'?: string, 'etag'?: string } = {}
       try {
         metadata = await fs.readJson(metadataPath)
       } catch (error) {
@@ -62,10 +64,10 @@ export class GaiaDiskReader {
         readStream = fs.createReadStream(filePath)
       }
       return {
-        exists: true, 
-        lastModified: stat.mtime, 
-        contentLength: stat.size, 
-        contentType: metadata['content-type'], 
+        exists: true,
+        lastModified: stat.mtime,
+        contentLength: stat.size,
+        contentType: metadata['content-type'],
         etag: metadata['etag'],
         fileReadStream: readStream
       }
@@ -87,10 +89,21 @@ export class ReaderServer {
     this.config = config
   }
 
-  async handleGet(topLevelDir: string, filename: string, openFileStream: boolean): Promise<GetFileInfo> {
+  async handleGet(topLevelDir: string, filename: string): Promise<GetFileInfo> {
     const statResult = await this.driver.performStat({
       path: filename,
       storageTopLevel: topLevelDir
     })
+
+    if (statResult.exists) {
+      const result = await this.driver.performRead({
+        path: filename,
+        storageTopLevel: topLevelDir
+      })
+
+      return { ...result }
+    } else {
+      throw new Error('File not found')
+    }
   }
 }

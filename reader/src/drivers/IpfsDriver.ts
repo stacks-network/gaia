@@ -5,7 +5,7 @@ import { Readable } from 'stream'
 import { concat as uint8ArrayConcat } from 'uint8arrays/concat'
 
 import { DriverModel, PerformReadArgs, PerformStatArgs, ReadResult, StatResult } from '../driverModel.js'
-import { BadPathError, InvalidInputError, DoesNotExist } from '../errors.js'
+import { BadPathError, DoesNotExist } from '../errors.js'
 
 
 export interface IPFS_CONFIG_TYPE {
@@ -143,7 +143,6 @@ class IpfsDriver implements DriverModel {
       if (error.name === 'HTTPError' && error.message === 'file does not exist') {
         throw new DoesNotExist('File does not exist')
       }
-      /* istanbul ignore next */
       throw error
     }
     if (stat.type !== 'file') {
@@ -163,7 +162,6 @@ class IpfsDriver implements DriverModel {
       lastModified: new Date('1970-01-01')
     }
     return result
-    // return Promise.resolve(undefined)
   }
 }
 
