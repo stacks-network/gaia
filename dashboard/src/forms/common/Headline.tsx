@@ -1,6 +1,6 @@
 import styled from "styled-components";
-import { Field } from "../ConfigForm";
-import { Container, Description } from "./common.styled";
+import { Field } from "forms/ConfigForm";
+import { Container, Description } from "forms/common/common.styled";
 
 interface HeadlineProps {
     field: Field;

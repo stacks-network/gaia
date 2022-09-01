@@ -1,3 +1,5 @@
+import json2toml from "json2toml";
+
 interface ACMEConfig {
   agreeTos: boolean;
   email: string;
@@ -87,6 +89,11 @@ interface Whitelist {
   items: string[];
 }
 
+export enum ConfigurationFormat {
+  JSON = "JSON",
+  TOML = "TOML",
+}
+
 export interface Config {
   driver: Drivers;
   port: number;
@@ -115,17 +122,33 @@ export interface Config {
 export default class Configuration {
   config: Config | undefined = undefined;
 
-  private constructor(config: Config) {
+  constructor(config: Config) {
     this.config = config;
   }
 
-  exportToTOML(): Blob {
-    const config = `port = ${this.config?.port}
-driver = ${this.config?.driver}
-    `;
+  exportToJSON(): Blob {
+    if (this.config === undefined) {
+      throw Error("Configuration is empty");
+    }
 
-    return new Blob([config], {
+    return new Blob([JSON.stringify(this.config)], {
       type: "text/plain",
     });
+  }
+
+  exportToTOML(): Blob {
+    if (this.config === undefined) {
+      throw Error("Configuration is empty");
+    }
+
+    const tomlConfig = json2toml(this.config);
+
+    return new Blob([tomlConfig], {
+      type: "text/plain",
+    });
+  }
+
+  toTOML(): string {
+    return json2toml(this.config);
   }
 }

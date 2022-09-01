@@ -1,8 +1,8 @@
-import { Container, Error, FormInputBody, LabelHeadline } from "./common.styled";
+import { Container, Error, FormInputBody, LabelHeadline } from "forms/common/common.styled";
 import { FormControl, MenuItem, Select } from "@mui/material";
-import { FormFieldProps } from "../types/FormFieldProps";
+import { FormFieldProps } from "forms/types/FormFieldProps";
 import { ErrorMessage } from "@hookform/error-message";
-import { FieldName } from "../types/Fieldnames";
+import { FieldName } from "forms/types/Fieldnames";
 
 interface DropdownProps {
     setCurrentDriver: Function;

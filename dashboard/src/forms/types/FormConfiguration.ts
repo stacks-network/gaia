@@ -1,5 +1,5 @@
-import { Drivers } from "../../configuration/Configuration";
-import { Field, FieldType } from "../ConfigForm";
+import { Drivers } from "configuration/Configuration";
+import { Field, FieldType } from "forms/ConfigForm";
 import { FieldName } from "./Fieldnames";
 
 interface Section {

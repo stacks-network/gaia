@@ -1,6 +1,6 @@
-import { Description, Error, FormInputBody, FormInputContainer, LabelHeadline } from "./common.styled";
+import { Description, Error, FormInputBody, FormInputContainer, LabelHeadline } from "forms/common/common.styled";
 import { Checkbox as MUICheckbox } from "@mui/material";
-import { FormFieldProps } from "../types/FormFieldProps";
+import { FormFieldProps } from "forms/types/FormFieldProps";
 import { ErrorMessage } from "@hookform/error-message";
 
 const Checkbox: React.FC<FormFieldProps> = ({ headline, field, handleDependantFields, errors, register }) => {

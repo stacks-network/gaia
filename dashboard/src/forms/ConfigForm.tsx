@@ -1,14 +1,16 @@
 import React from "react";
 import { useForm } from "react-hook-form";
-import { Config, Drivers } from "../configuration/Configuration";
+import { Config, Drivers } from "configuration/Configuration";
 import styled from "styled-components";
 import { FieldName } from "./types/Fieldnames";
-import { FormConfiguration } from "./types/FormConfiguration";
-import Checkbox from "./common/Checkbox";
-import Input from "./common/Input";
-import Headline from "./common/Headline";
-import Dropdown from "./common/Dropdown";
+import { FormConfiguration } from "forms/types/FormConfiguration";
+import Checkbox from "forms/common/Checkbox";
+import Input from "forms/common/Input";
+import Headline from "forms/common/Headline";
+import Dropdown from "forms/common/Dropdown";
 import { Button } from "@mui/material";
+import { Module } from "forms/types/FormFieldProps";
+import { useAppSelector, useAppDispatch } from "redux/hooks";
 
 export enum FieldType {
     CHECKBOX,
@@ -44,7 +46,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ sections }) => {
 
     const [currentDriver, setCurrentDriver] = React.useState<Drivers>(Drivers.AWS);
     const [currentSection, setCurrentSection] = React.useState<number>(0);
-    const [formHeight, setFormHeight] = React.useState<number>(0);
+    const [activeModule, setActiveModule] = React.useState<number>(0);
 
     const handleDependantFields = (dependsOn: FieldName[]): boolean => {
         for (let i = 0; i < dependsOn.length; i++) {
@@ -64,7 +66,6 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ sections }) => {
     const onSubmit = handleSubmit((data) => {
         window.localStorage.setItem("config", JSON.stringify(data, null, 2));
         window.scrollTo({ top: 0 });
-        setFormHeight(getSectionHeight(currentSection + 1));
         setCurrentSection(currentSection + 1);
     });
 
@@ -125,18 +126,26 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ sections }) => {
         }
     };
 
-    const getSectionHeight = (index: number = 0): number => {
-        const section = document.getElementById(`section_${index}`);
-
-        return section!.scrollHeight + 50;
+    const onButtonClick = (button: number, module: Module) => {
+        setActiveModule(button);
+        window.localStorage.setItem("module", module);
+        window.localStorage.setItem("config", "");
+        setCurrentSection(0);
     };
 
-    React.useEffect(() => {
-        setFormHeight(getSectionHeight());
-    }, [currentDriver]);
-
     return (
-        <Container style={{ height: formHeight }} id="form">
+        <Container id="form">
+            <ModuleSelect>
+                <Button variant={`${activeModule === 0 ? "contained" : "outlined"}`} onClick={() => onButtonClick(0, Module.HUB)}>
+                    Hub
+                </Button>
+                <Button variant={`${activeModule === 1 ? "contained" : "outlined"}`} onClick={() => onButtonClick(1, Module.READER)}>
+                    Reader
+                </Button>
+                <Button variant={`${activeModule === 2 ? "contained" : "outlined"}`} onClick={() => onButtonClick(2, Module.ADMIN)}>
+                    Admin
+                </Button>
+            </ModuleSelect>
             {sections.sections?.map(({ sectionFields, sectionName }, index) => {
                 return (
                     <Section
@@ -145,7 +154,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ sections }) => {
                             onSubmit();
                         }}
                         key={`${index}__${sectionName?.name}`}
-                        className={currentSection === index ? "active" : currentSection > index ? "prev" : "next"}
+                        className={currentSection === index ? "active" : ""}
                         id={`section_${index}`}
                     >
                         <SectionHeadline>{sectionName ? sectionName.name : "General Settings"}</SectionHeadline>
@@ -164,7 +173,6 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ sections }) => {
                                 disabled={currentSection === 0}
                                 onClick={() => {
                                     window.scrollTo({ top: 0 });
-                                    setFormHeight(getSectionHeight(currentSection - 1));
                                     setCurrentSection(currentSection - 1);
                                 }}
                             >
@@ -200,6 +208,24 @@ const Container = styled.div`
     z-index: 50;
 `;
 
+const ModuleSelect = styled.div`
+    position: absolute;
+    top: 20px;
+    right: 20px;
+
+    button {
+        margin: 0 5px;
+        &.MuiButton-contained {
+            background: ${({ theme }) => theme.palette.main} !important;
+        }
+
+        &.MuiButton-outlined {
+            color: ${({ theme }) => theme.palette.main} !important;
+            border-color: ${({ theme }) => theme.palette.main} !important;
+        }
+    }
+`;
+
 const Buttons = styled.div`
     display: flex;
     flex-direction: row;
@@ -222,21 +248,12 @@ const Buttons = styled.div`
 `;
 
 const Section = styled.form`
-    transition: 1.5s ease transform;
-    top: 0;
     width: 60%;
-    position: absolute;
+    display: none;
+    padding: 0 0 50px 0;
 
     &.active {
-        transform: translateX(0);
-    }
-
-    &.prev {
-        transform: translateX(-100vw);
-    }
-
-    &.next {
-        transform: translateX(100vw);
+        display: initial;
     }
 `;
 

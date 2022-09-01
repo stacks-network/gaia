@@ -1,6 +1,6 @@
-import { Container, Description, Error, FormInputBody, LabelHeadline } from "./common.styled";
+import { Container, Description, Error, FormInputBody, LabelHeadline } from "forms/common/common.styled";
 import { TextField } from "@mui/material";
-import { FormFieldProps } from "../types/FormFieldProps";
+import { FormFieldProps } from "forms/types/FormFieldProps";
 import styled from "styled-components";
 import { ErrorMessage } from "@hookform/error-message";
 

@@ -2,19 +2,28 @@ import styled from "styled-components";
 import React from "react";
 import MenuIcon from "@mui/icons-material/Menu";
 import CloseIcon from "@mui/icons-material/Close";
-import { Button } from "@mui/material";
+import { Button, SelectChangeEvent } from "@mui/material";
+import Configuration, { Config, ConfigurationFormat } from "../../configuration/Configuration";
+import { MenuItem, Select } from "@mui/material";
 
 const Infobox: React.FC = () => {
     const [menuOpen, setMenuOpen] = React.useState<boolean>(false);
-    const [infoContent, setInfoContent] = React.useState<string>("");
+    const [configuration, setConfiguration] = React.useState<Configuration>();
     const [copied, setCopied] = React.useState<boolean>(false);
+    const [infoContent, setInfoContent] = React.useState<string>("");
+    const [fileFormat, setFileFormat] = React.useState<ConfigurationFormat>(ConfigurationFormat.TOML);
     const COLLAPSE_CLASS = "collapse";
 
     const toggleConfig = () => {
         const config = window.localStorage.getItem("config");
 
-        if (config) {
-            setInfoContent(config);
+        if (config && config.length > 0) {
+            const conf = new Configuration(JSON.parse(config) as Config);
+            setConfiguration(conf);
+            const tomlConfig = conf?.toTOML();
+            if (tomlConfig) {
+                setInfoContent(tomlConfig);
+            }
         }
 
         const form = document.getElementById("form");
@@ -37,24 +46,82 @@ const Infobox: React.FC = () => {
     };
 
     const copyToClipboard = () => {
-        window.navigator.clipboard.writeText(infoContent);
+        if (!configuration) return;
+        window.navigator.clipboard.writeText(configuration?.toTOML());
         setCopied(true);
         setTimeout(() => {
             setCopied(false);
         }, 5000);
     };
 
+    const handleToTOML = () => {
+        const tomlConfig = configuration?.toTOML();
+
+        if (tomlConfig) {
+            setInfoContent(tomlConfig);
+        }
+    };
+
+    const handleDropdown = (event: SelectChangeEvent<ConfigurationFormat>) => {
+        if (event.target.value === ConfigurationFormat.JSON) {
+            setInfoContent(JSON.stringify(configuration?.config, null, 2));
+            setFileFormat(ConfigurationFormat.JSON);
+        } else {
+            handleToTOML();
+            setFileFormat(ConfigurationFormat.TOML);
+        }
+    };
+
+    const downloadFile = () => {
+        let module = window.localStorage.get("module");
+        const anchor = window.document.createElement("a");
+        if (!module) {
+            module = "hub";
+        }
+
+        let blob = configuration?.exportToTOML();
+
+        if (fileFormat === ConfigurationFormat.JSON) {
+            blob = configuration?.exportToJSON();
+        }
+
+        console.log(blob);
+
+        if (!blob) {
+            return;
+        }
+
+        anchor.href = window.URL.createObjectURL(blob);
+        anchor.download = `${module}_configuration.${fileFormat.toLowerCase()}`;
+        document.body.appendChild(anchor);
+        anchor.click();
+        document.body.removeChild(anchor);
+        window.URL.revokeObjectURL(anchor.href);
+    };
+
     return (
         <Container>
             <Info id="gaia-menu-info">
                 <InfoContent>
-                    <InfoHeadline>Your Gaia Hub Configuration</InfoHeadline>
+                    <HeadlineContainer>
+                        <InfoHeadline>Your Gaia Hub Configuration</InfoHeadline>
+                        <Select labelId={`format_dropdown`} onChange={(event) => handleDropdown(event)} defaultValue={ConfigurationFormat.TOML}>
+                            <MenuItem key={ConfigurationFormat.TOML} value={ConfigurationFormat.TOML}>
+                                {ConfigurationFormat.TOML}
+                            </MenuItem>
+                            <MenuItem key={ConfigurationFormat.JSON} value={ConfigurationFormat.JSON}>
+                                {ConfigurationFormat.JSON}
+                            </MenuItem>
+                        </Select>
+                    </HeadlineContainer>
                     <pre>{infoContent}</pre>
                     <Buttons>
                         <Button variant="contained" className={`${copied ? "copied" : ""}`} onClick={copyToClipboard}>
                             {copied ? "Copied" : "Copy"}
                         </Button>
-                        <Button variant="contained">Download</Button>
+                        <Button variant="contained" onClick={() => downloadFile()}>
+                            Download
+                        </Button>
                     </Buttons>
                 </InfoContent>
             </Info>
@@ -141,8 +208,7 @@ const Buttons = styled.div`
 `;
 
 const InfoHeadline = styled.h3`
-    min-width: 30vw;
-    margin: 10px;
+    min-width: 15vw;
     color: ${({ theme }) => theme.palette.main};
     ${({ theme }) => theme.fonts.headline.label};
 `;
@@ -187,4 +253,12 @@ const GaiaClose = styled(CloseIcon)`
     cursor: pointer;
     font-size: 40px !important;
     color: ${({ theme }) => theme.palette.main} !important;
+`;
+
+const HeadlineContainer = styled.div`
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin: 10px;
 `;

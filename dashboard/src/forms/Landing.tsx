@@ -1,8 +1,8 @@
 import { Button } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
-import StageBackground from "../assets/background.png";
-import Stacks from "../assets/stacks.png";
+import StageBackground from "assets/background.png";
+import Stacks from "assets/stacks.png";
 
 const Landing: React.FC = () => {
     const navigate = useNavigate();
