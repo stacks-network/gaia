@@ -13,9 +13,11 @@
     "express": "^4.18.1",
     "express-winston": "^4.2.0",
     "fs-extra": "^10.1.0",
-    "ipfs-http-client": "^57.0.3",
+    "ipfs-http-client": "56.0.2",
+    "lorem-ipsum": "^2.0.8",
     "node-fetch": "^3.2.6",
     "toml": "^3.0.0",
+    "uuid": "^8.3.2",
     "winston": "^3.8.1"
   },
   "devDependencies": {

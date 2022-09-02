@@ -1,10 +1,8 @@
 import * as fs from 'fs'
 import * as Path from 'path'
-
 import { ReaderServer } from '../src/server.js'
 import DiskDriver from '../src/drivers/diskDriver.js'
 import { getConfig } from '../src/config.js'
-
 
 test('check disk driver handleGet', (done) => {
 
@@ -87,10 +85,7 @@ test('check disk driver handleGet', (done) => {
         result.fileReadStream.on('error', reject)
       })
     })
-    .then((res) => {
-      
-      console.log('\nres: ', res)
-
+    .then(() => {
       // // blow away the file
       fs.unlinkSync(Path.join(storageDir, '12345/foo/bar.txt'))
       fs.rmdirSync(Path.join(storageDir, '12345/foo'))
@@ -100,7 +95,6 @@ test('check disk driver handleGet', (done) => {
       return server.handleGet('12345', 'foo/bar.txt')
     })
     .then((result) => {
-      console.log('\nres: ', result)
       // file does not exist
       expect(!result.exists).toBeTruthy()
       // file has no content type
