@@ -80,7 +80,7 @@ class DiskDriver implements DriverModel {
         contentLength: stat.contentLength,
         contentType: metadata['content-type'],
         etag: metadata['etag'],
-        data: readStream,
+        fileReadStream: readStream,
         lastModified: new Date(stat.lastModifiedDate)
       }
     } catch (error) {

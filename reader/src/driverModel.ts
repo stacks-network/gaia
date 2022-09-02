@@ -19,7 +19,7 @@ export interface StatResult {
 }
 
 export interface ReadResult extends StatResult {
-  data: Readable;
+  fileReadStream: Readable;
   exists: true;
   lastModified: Date
 }

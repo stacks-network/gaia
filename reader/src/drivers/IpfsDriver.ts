@@ -158,7 +158,7 @@ class IpfsDriver implements DriverModel {
     const result: ReadResult = {
       ...fileStat,
       exists: true,
-      data: Readable.from(dataStream),
+      fileReadStream: Readable.from(dataStream),
       lastModified: new Date('1970-01-01')
     }
     return result

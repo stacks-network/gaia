@@ -74,7 +74,7 @@ export function makeHttpServer(config: ReaderConfigInterface) {
        * for now only GET request is available. so will slash the next line of case check
        */
       // if (isGetRequest) {
-      await pipelineAsync(fileInfo.data, res)
+      await pipelineAsync(fileInfo.fileReadStream, res)
       // }
       res.end()
     } catch (err) {
