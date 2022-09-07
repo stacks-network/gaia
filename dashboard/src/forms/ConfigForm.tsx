@@ -228,10 +228,21 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ sections }) => {
                 id={`section_${sections.sections?.length}`}
             >
                 <DownloadHeadline>Your Gaia Config is ready!</DownloadHeadline>
-                <Paragraph></Paragraph>
-                <Button onClick={() => downloadFile()} variant="contained" form={`section_${sections.sections?.length}`}>
-                    Download
-                </Button>
+                <Paragraph>You can now proceed to download your configuration or go back and create a configuration for a different module</Paragraph>
+                <Buttons width="auto">
+                    <Button
+                        onClick={() => {
+                            setCurrentSection(0);
+                        }}
+                        variant="contained"
+                        form={`section_${sections.sections?.length}`}
+                    >
+                        Back
+                    </Button>
+                    <Button onClick={() => downloadFile()} variant="contained" form={`section_${sections.sections?.length}`}>
+                        Download
+                    </Button>
+                </Buttons>
             </DownloadSection>
         </Container>
     );
@@ -269,17 +280,23 @@ const ModuleSelect = styled.div`
     }
 `;
 
-const Buttons = styled.div`
+interface ButtonsProps {
+    width?: string;
+}
+
+const Buttons = styled.div<ButtonsProps>`
     display: flex;
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
-    width: 100%;
+    width: ${({ width }) => (width ? width : "100%")};
     height: 70px;
 
     button {
         height: 45px;
         width: 100px;
+        margin: 0 10px;
+
         :not(:disabled) {
             background-color: ${({ theme }) => theme.palette.main} !important;
         }
@@ -302,6 +319,7 @@ const Section = styled.form`
 
 const DownloadSection = styled(Section)`
     height: 100vh;
+    flex-direction: column;
 
     &.active {
         display: flex !important;
@@ -334,4 +352,5 @@ const Paragraph = styled.p`
 const DownloadHeadline = styled.h1`
     ${({ theme }) => theme.fonts.headline};
     color: ${({ theme }) => theme.palette.main};
+    margin: 0;
 `;

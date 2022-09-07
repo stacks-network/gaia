@@ -149,25 +149,24 @@ export default class Configuration {
   }
 
   toTOML(): string {
-    console.log("to toml");
-    console.log(this.config);
-
     if (
       this.config?.whitelist?.items &&
       typeof this.config?.whitelist?.items === "string"
     ) {
-      this.config.whitelist!.items! = (
-        this.config.whitelist.items as string
-      ).split(/[-_, ]+/);
+      Object.assign(
+        (this.config.whitelist.items as string).split(/[-_, ]+/),
+        this.config.whitelist!.items!
+      );
     }
 
     if (
       this.config?.validHubUrls?.items &&
       typeof this.config?.validHubUrls?.items === "string"
     ) {
-      this.config.validHubUrls!.items! = (
-        this.config.validHubUrls.items as string
-      ).split(/[-_, ]+/);
+      Object.assign(
+        (this.config.validHubUrls.items as string).split(/[-_, ]+/),
+        this.config.validHubUrls!.items!
+      );
     }
 
     return json2toml(this.config);

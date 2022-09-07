@@ -1,5 +1,5 @@
 import "./App.css";
-import { config, testConfig } from "./forms/types/FormConfiguration";
+import { config } from "./forms/types/FormConfiguration";
 import styled from "styled-components";
 import ConfigForm from "./forms/ConfigForm";
 import Infobox from "./forms/common/Infobox";
