@@ -8,14 +8,15 @@ const Checkbox: React.FC<FormFieldProps> = ({ headline, field, handleDependantFi
         <FormInputContainer>
             <FormInputBody>
                 <LabelHeadline>{headline}</LabelHeadline>
-                <ErrorMessage errors={errors} name={field.name} render={() => <Error>This Field is required</Error>} />
+                <ErrorMessage errors={errors} name={field.name} render={() => <Error>* This Field is required</Error>} />
             </FormInputBody>{" "}
-            <ErrorMessage errors={errors} name={field.name} render={() => <p>This Field is required</p>} />
             <FormInputBody>
                 <MUICheckbox
+                    defaultChecked={field.defaultValue}
+                    defaultValue={field.defaultValue}
+                    disabled={field.disabled}
                     id={`${field.name}_checkbox`}
                     {...register(field.name, {
-                        required: field.required,
                         validate: (value: boolean) => (field.dependsOn && handleDependantFields(field.dependsOn) ? value === true : true),
                     })}
                 />

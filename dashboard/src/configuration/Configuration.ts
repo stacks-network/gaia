@@ -82,11 +82,11 @@ interface TLSCertConfig {
 }
 
 interface ValidHubUrls {
-  items: string[];
+  items: unknown[];
 }
 
 interface Whitelist {
-  items: string[];
+  items: unknown[];
 }
 
 export enum ConfigurationFormat {
@@ -149,6 +149,27 @@ export default class Configuration {
   }
 
   toTOML(): string {
+    console.log("to toml");
+    console.log(this.config);
+
+    if (
+      this.config?.whitelist?.items &&
+      typeof this.config?.whitelist?.items === "string"
+    ) {
+      this.config.whitelist!.items! = (
+        this.config.whitelist.items as string
+      ).split(/[-_, ]+/);
+    }
+
+    if (
+      this.config?.validHubUrls?.items &&
+      typeof this.config?.validHubUrls?.items === "string"
+    ) {
+      this.config.validHubUrls!.items! = (
+        this.config.validHubUrls.items as string
+      ).split(/[-_, ]+/);
+    }
+
     return json2toml(this.config);
   }
 }

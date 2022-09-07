@@ -7,13 +7,8 @@ export function useConfiguration() {
     const [config, setConfig] = React.useState<Configuration>();
 
     React.useEffect(() => {
-        const localStorageConfig = window.localStorage.getItem("config");
-        console.log("useConfiguration");
         if (configuration) {
             const conf = new Configuration(configuration as Config);
-            setConfig(conf);
-        } else if (localStorageConfig) {
-            const conf = new Configuration(JSON.parse(localStorageConfig) as Config);
             setConfig(conf);
         }
     }, [configuration]);

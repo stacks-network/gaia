@@ -32,4 +32,6 @@ export const Description = styled.label`
 
 export const Error = styled.span`
     padding-left: 10px;
+    color: red;
+    ${({ theme }) => theme.fonts.paragraph}
 `;

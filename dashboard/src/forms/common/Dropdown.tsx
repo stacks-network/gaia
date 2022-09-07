@@ -13,7 +13,7 @@ const Dropdown: React.FC<FormFieldProps & DropdownProps> = ({ headline, field, h
         <Container>
             <FormInputBody>
                 <LabelHeadline>{headline}</LabelHeadline>
-                <ErrorMessage errors={errors} name={field.name} render={() => <Error>This Field is required</Error>} />
+                <ErrorMessage errors={errors} name={field.name} render={() => <Error>* This Field is required</Error>} />
             </FormInputBody>{" "}
             <ErrorMessage errors={errors} name={field.name} render={() => <p>This Field is required</p>} />
             <FormControl fullWidth>

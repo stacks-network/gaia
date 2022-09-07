@@ -28,10 +28,6 @@ export const dashboardSlice = createSlice({
     },
     setConfiguration: (state, action: PayloadAction<any>) => {
       state.configuration = Object.assign(action.payload, state.configuration);
-      window.localStorage.setItem(
-        "config",
-        JSON.stringify(state.configuration)
-      );
     },
     setFileFormat: (state, action: PayloadAction<ConfigurationFormat>) => {
       state.format = action.payload;

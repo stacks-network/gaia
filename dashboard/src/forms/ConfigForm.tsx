@@ -25,11 +25,13 @@ export interface Field {
     type: FieldType;
     name: FieldName;
     description?: string;
-    // if type is dropdown
     values?: string[];
     required?: boolean;
     dependsOn?: FieldName[];
     driverConfig?: Drivers;
+    defaultValue?: boolean | string;
+    disabled?: boolean;
+    convertInputToArray?: boolean;
 }
 
 interface ConfigFormProps {
@@ -50,6 +52,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ sections }) => {
     const [currentSection, setCurrentSection] = React.useState<number>(0);
     const [activeModule, setActiveModule] = React.useState<number>(0);
     const fileFormat = useAppSelector((state) => state.dashboard.format);
+    const module = useAppSelector((state) => state.dashboard.module);
     const dispatch = useAppDispatch();
     const configuration = useConfiguration();
 
@@ -78,8 +81,12 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ sections }) => {
         if (name.includes(".")) {
             if (name.split(".")[2]) {
                 return name.split(".")[2];
-            } else {
-                return name.split(".")[1];
+            } else if (name.split(".")[1]) {
+                if (name.split(".")[1] !== "items") {
+                    return name.split(".")[1];
+                } else {
+                    return name.split(".")[0];
+                }
             }
         }
 
@@ -134,7 +141,6 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ sections }) => {
     const onButtonClick = (button: number, module: Module) => {
         setActiveModule(button);
         dispatch(setModule(module));
-        window.localStorage.setItem("config", "");
         setCurrentSection(0);
     };
 
@@ -205,24 +211,28 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ sections }) => {
                             >
                                 Back
                             </Button>
-                            {currentSection < sections.sections!.length - 1 ? (
-                                <Button
-                                    variant="contained"
-                                    disabled={currentSection === sections.sections!.length - 1}
-                                    type="submit"
-                                    form={`section_${index}`}
-                                >
-                                    Next
-                                </Button>
-                            ) : (
-                                <Button onClick={() => downloadFile()} variant="contained" type="submit" form={`section_${index}`}>
-                                    Download
-                                </Button>
-                            )}
+                            <Button variant="contained" type="submit" form={`section_${index}`}>
+                                Next
+                            </Button>
                         </Buttons>
                     </Section>
                 );
             })}
+            <DownloadSection
+                onSubmit={(e) => {
+                    e.preventDefault();
+                    onSubmit();
+                }}
+                key={`${sections.sections?.length}__complete`}
+                className={currentSection === sections.sections?.length ? "active" : ""}
+                id={`section_${sections.sections?.length}`}
+            >
+                <DownloadHeadline>Your Gaia Config is ready!</DownloadHeadline>
+                <Paragraph></Paragraph>
+                <Button onClick={() => downloadFile()} variant="contained" form={`section_${sections.sections?.length}`}>
+                    Download
+                </Button>
+            </DownloadSection>
         </Container>
     );
 };
@@ -290,7 +300,38 @@ const Section = styled.form`
     }
 `;
 
+const DownloadSection = styled(Section)`
+    height: 100vh;
+
+    &.active {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center;
+    }
+
+    button {
+        height: 45px;
+        width: 100px;
+        :not(:disabled) {
+            background-color: ${({ theme }) => theme.palette.main} !important;
+        }
+
+        :disabled {
+            background-color: ${({ theme }) => theme.palette.darkGrey} !important;
+        }
+    }
+`;
+
 const SectionHeadline = styled.h2`
     ${({ theme }) => theme.fonts.headline.section};
+    color: ${({ theme }) => theme.palette.main};
+`;
+
+const Paragraph = styled.p`
+    ${({ theme }) => theme.fonts.paragraph}
+`;
+
+const DownloadHeadline = styled.h1`
+    ${({ theme }) => theme.fonts.headline};
     color: ${({ theme }) => theme.palette.main};
 `;

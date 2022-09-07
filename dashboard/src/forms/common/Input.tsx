@@ -9,10 +9,12 @@ const Input: React.FC<FormFieldProps> = ({ headline, field, handleDependantField
         <Container>
             <FormInputBody>
                 <LabelHeadline>{headline}</LabelHeadline>
-                <ErrorMessage errors={errors} name={field.name} render={() => <Error>This Field is required</Error>} />
+                <ErrorMessage errors={errors} name={field.name} render={() => <Error>* This Field is required</Error>} />
             </FormInputBody>
             <Description htmlFor={`${field.name}_input`}>{field.description}</Description>
             <CustomTextField
+                defaultValue={field.defaultValue}
+                disabled={field.disabled}
                 id={`${field.name}_input`}
                 label={"Type here"}
                 {...register(field.name, {
