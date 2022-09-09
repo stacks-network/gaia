@@ -1,5 +1,8 @@
 import { create, IPFSHTTPClient } from 'ipfs-http-client'
-import { StatResult as IpfsStatResult } from 'ipfs-core-types/src/files/index.js'
+import { StatResult as IpfsStatResult} from 'ipfs-core-types/src/files/index.js'
+import { create as createDaemon } from 'ipfs-core'
+import { HttpApi } from 'ipfs-http-server'
+import { HttpGateway } from 'ipfs-http-gateway'
 
 import { Readable } from 'stream'
 import { BadPathError, InvalidInputError, DoesNotExist } from '../errors.js'
@@ -66,16 +69,7 @@ class IpfsDriver implements DriverModel {
     if (!config.bucket) {
       logger.warn(`The disk driver does not use the "config.bucket" variable. It is set to ${config.bucket}`)
     }
-    this.client = create({ url: config.ipfsSettings.apiAddress })
-    this.readURL = config.readURL
-    if (!this.readURL.endsWith('/')) {
-      // must end in /
-      this.readURL = `${this.readURL}/`
-    }
-
-    this.storageRootDirectory = Path.normalize(config.ipfsSettings.storageRootDirectory)
-    this.pageSize = config.pageSize ? config.pageSize : 100
-    this.initPromise = this.client.files.mkdir(this.storageRootDirectory, { parents: true })
+    this.initPromise = this.initIpfs(config)
   }
 
   ensureInitialized() {
@@ -98,6 +92,34 @@ class IpfsDriver implements DriverModel {
 
   getReadURLPrefix() {
     return this.readURL
+  }
+  async initIpfs(config) {
+    await this.initIpfsDaemon()
+    await this.initIpfsClient(config)
+  }
+  async initIpfsDaemon() {
+    console.log('\n Initializing the ipfs daemon...')
+    const ipfs = await createDaemon()
+    const httpApi = new HttpApi(ipfs)
+    const httpGateway = new HttpGateway(ipfs)
+    await httpApi.start()
+    
+    // this.node = ipfs
+    console.log('\n Ipfs daemon started')
+    return httpGateway.start()
+  }
+
+  async initIpfsClient(config: IPFS_CONFIG_TYPE) {
+    this.client = create({ url: config.ipfsSettings.apiAddress })
+    this.readURL = config.readURL
+    if (!this.readURL.endsWith('/')) {
+      // must end in /
+      this.readURL = `${this.readURL}/`
+    }
+
+    this.storageRootDirectory = Path.normalize(config.ipfsSettings.storageRootDirectory)
+    this.pageSize = config.pageSize ? config.pageSize : 100
+    await this.client.files.mkdir(this.storageRootDirectory, { parents: true })
   }
 
   async mkdirs(path: string) {
@@ -351,7 +373,7 @@ class IpfsDriver implements DriverModel {
     try {
       stat = await this.client.files.stat(absoluteFilePath)
     } catch (error) {
-      if (error.name === 'HTTPError' && error.message === 'file does not exist') {
+      if (error.name === 'HTTPError') {
         const result = {
           exists: false
         } as StatResult
