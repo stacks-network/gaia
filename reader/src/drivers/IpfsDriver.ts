@@ -1,4 +1,5 @@
 import { create, IPFSHTTPClient } from 'ipfs-http-client'
+// eslint-disable-next-line import/no-unresolved
 import { StatResult as IpfsStatResult } from 'ipfs-core-types/src/files/index.js'
 import * as Path from 'path'
 import { Readable } from 'stream'
@@ -42,7 +43,6 @@ class IpfsDriver implements DriverModel {
     }
     return true
   }
-
 
   static parseFileStat(stat: IpfsStatResult, metaData: string): StatResult {
     const metaDataJson = JSON.parse(metaData)
@@ -110,7 +110,7 @@ class IpfsDriver implements DriverModel {
     try {
       stat = await this.client.files.stat(absoluteFilePath)
     } catch (error) {
-      if (error.name === 'HTTPError' && error.message === 'file does not exist') {
+      if (error.name === 'HTTPError') {
         const result = {
           exists: false
         } as StatResult
