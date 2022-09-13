@@ -210,8 +210,13 @@
             "additionalProperties": false,
             "description": "Required if `driver` is `ipfs`",
             "properties": {
+                "isIpfsAlready": {
+                  "type": "boolean",
+                  "default": false
+                },
                 "apiAddress": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Default value is `/ip4/127.0.0.1/tcp/5002` if isIpfsAlready is `false`"
                 },
                 "storageRootDirectory": {
                     "type": "string"
