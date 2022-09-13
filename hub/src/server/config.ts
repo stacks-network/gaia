@@ -503,6 +503,9 @@ export function getConfig() {
     const driverClass = getDriverClass(config.driver)
     const driverConfigInfo = driverClass.getConfigInformation()
     config = deepMerge<HubConfigInterface>({} as any, driverConfigInfo.defaults, configGlobal, driverConfigInfo.envVars)
+    if(config.driver === 'ipfs') {
+      if (!config.ipfsSettings.isIpfsAlready) config.ipfsSettings.apiAddress = '/ip4/127.0.0.1/tcp/5002'
+    }
   }
 
   const formats = [

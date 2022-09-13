@@ -18,6 +18,7 @@ import { logger } from '../utils.js'
 
 export interface IPFS_CONFIG_TYPE {
   ipfsSettings: {
+    isIpfsAlready?: boolean,
     apiAddress?: string,
     storageRootDirectory?: string
   },
@@ -94,7 +95,9 @@ class IpfsDriver implements DriverModel {
     return this.readURL
   }
   async initIpfs(config) {
-    await this.initIpfsDaemon()
+    if(!config.ipfsSettings.isIpfsAlready) {
+      await this.initIpfsDaemon()
+    }
     await this.initIpfsClient(config)
   }
   async initIpfsDaemon() {
