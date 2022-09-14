@@ -1,18 +1,14 @@
 import React from "react";
-import { useForm } from "react-hook-form";
-import { Config, ConfigurationFormat, Drivers } from "configuration/Configuration";
+import { ConfigurationFormat, Drivers } from "configuration/Configuration";
 import styled from "styled-components";
 import { FieldName } from "./types/Fieldnames";
 import { FormConfiguration } from "forms/types/FormConfiguration";
-import Checkbox from "forms/common/Checkbox";
-import Input from "forms/common/Input";
-import Headline from "forms/common/Headline";
-import Dropdown from "forms/common/Dropdown";
 import { Button } from "@mui/material";
 import { Module } from "forms/types/FormFieldProps";
 import { useAppDispatch, useAppSelector } from "redux/hooks";
-import { setConfiguration, setModule } from "redux/hooks/dashboard/dashboardSlice";
+import { setModule, setCurrentSection } from "redux/hooks/dashboard/dashboardSlice";
 import { useConfiguration } from "./customHook/configuration";
+import FormStep from "./common/FormStep";
 
 export enum FieldType {
     CHECKBOX,
@@ -40,108 +36,17 @@ interface ConfigFormProps {
 }
 
 const ConfigForm: React.FC<ConfigFormProps> = ({ sections }) => {
-    const {
-        register,
-        getValues,
-        handleSubmit,
-        unregister,
-        formState: { errors },
-    } = useForm<Config>();
-
-    const [currentDriver, setCurrentDriver] = React.useState<Drivers>(Drivers.AWS);
-    const [currentSection, setCurrentSection] = React.useState<number>(0);
     const [activeModule, setActiveModule] = React.useState<number>(0);
     const fileFormat = useAppSelector((state) => state.dashboard.format);
     const module = useAppSelector((state) => state.dashboard.module);
+    const currentSection = useAppSelector((state) => state.dashboard.currentSection);
     const dispatch = useAppDispatch();
     const configuration = useConfiguration();
-
-    const handleDependantFields = (dependsOn: FieldName[]): boolean => {
-        for (let i = 0; i < dependsOn.length; i++) {
-            const field = getValues(dependsOn[i]);
-            if (field !== undefined) {
-                if (typeof field === "boolean") {
-                    return field;
-                } else if (field.toString().length > 0) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    };
-
-    const onSubmit = handleSubmit((data) => {
-        dispatch(setConfiguration(data));
-        window.scrollTo({ top: 0 });
-        setCurrentSection(currentSection + 1);
-    });
-
-    const getHeadline = (name: string): string => {
-        if (name.includes(".")) {
-            if (name.split(".")[2]) {
-                return name.split(".")[2];
-            } else if (name.split(".")[1]) {
-                if (name.split(".")[1] !== "items") {
-                    return name.split(".")[1];
-                } else {
-                    return name.split(".")[0];
-                }
-            }
-        }
-
-        return name;
-    };
-
-    const getFormField = (field: Field): React.ReactElement<any, any> => {
-        const headline = getHeadline(field.name);
-
-        if (field.type === FieldType.INPUT) {
-            return (
-                <Input
-                    key={field.name}
-                    field={field}
-                    handleDependantFields={handleDependantFields}
-                    errors={errors}
-                    headline={headline}
-                    register={register}
-                    currentDriver={currentDriver}
-                />
-            );
-        } else if (field.type === FieldType.CHECKBOX) {
-            return (
-                <Checkbox
-                    key={field.name}
-                    field={field}
-                    handleDependantFields={handleDependantFields}
-                    errors={errors}
-                    headline={headline}
-                    register={register}
-                />
-            );
-        } else if (field.type === FieldType.HEADLINE) {
-            return <Headline key={field.name} headline={headline} field={field} />;
-        } else if (field.type === FieldType.DROPDOWN) {
-            return (
-                <Dropdown
-                    key={field.name}
-                    field={field}
-                    handleDependantFields={handleDependantFields}
-                    errors={errors}
-                    headline={headline}
-                    register={register}
-                    setCurrentDriver={setCurrentDriver}
-                />
-            );
-        } else {
-            return <></>;
-        }
-    };
 
     const onButtonClick = (button: number, module: Module) => {
         setActiveModule(button);
         dispatch(setModule(module));
-        setCurrentSection(0);
+        dispatch(setCurrentSection(-currentSection));
     };
 
     const downloadFile = () => {
@@ -178,56 +83,14 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ sections }) => {
                 </Button>
             </ModuleSelect>
             {sections.sections?.map(({ sectionFields, sectionName }, index) => {
-                return (
-                    <Section
-                        onSubmit={(e) => {
-                            e.preventDefault();
-                            onSubmit();
-                        }}
-                        key={`${index}__${sectionName?.name}`}
-                        className={currentSection === index ? "active" : ""}
-                        id={`section_${index}`}
-                    >
-                        <SectionHeadline>{sectionName ? sectionName.name : "General Settings"}</SectionHeadline>
-                        {sectionFields.map((field) => {
-                            if (field.driverConfig && field.driverConfig !== currentDriver) {
-                                if (getValues(field.name)) {
-                                    unregister(field.name);
-                                }
-
-                                return <></>;
-                            }
-
-                            return getFormField(field);
-                        })}
-                        <Buttons>
-                            <Button
-                                variant="contained"
-                                disabled={currentSection === 0}
-                                onClick={() => {
-                                    window.scrollTo({ top: 0 });
-                                    setCurrentSection(currentSection - 1);
-                                }}
-                            >
-                                Back
-                            </Button>
-                            <Button variant="contained" type="submit" form={`section_${index}`}>
-                                Next
-                            </Button>
-                        </Buttons>
-                    </Section>
-                );
+                return <FormStep sectionFields={sectionFields} key={index} index={index} sectionName={sectionName} />;
             })}
             <DownloadSection
-                onSubmit={(e) => {
-                    e.preventDefault();
-                    onSubmit();
-                }}
                 key={`${sections.sections?.length}__complete`}
                 className={currentSection === sections.sections?.length ? "active" : ""}
                 id={`section_${sections.sections?.length}`}
             >
-                <DownloadHeadline>Your Gaia Config is ready!</DownloadHeadline>
+                <DownloadHeadline>Your Configuration is ready!</DownloadHeadline>
                 <Paragraph>You can now proceed to download your configuration or go back and create a configuration for a different module</Paragraph>
                 <Buttons width="auto">
                     <Button
@@ -239,7 +102,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ sections }) => {
                     >
                         Back
                     </Button>
-                    <Button onClick={() => downloadFile()} variant="contained" form={`section_${sections.sections?.length}`}>
+                    <Button onClick={() => downloadFile()} variant="contained">
                         Download
                     </Button>
                 </Buttons>
@@ -284,7 +147,7 @@ interface ButtonsProps {
     width?: string;
 }
 
-const Buttons = styled.div<ButtonsProps>`
+export const Buttons = styled.div<ButtonsProps>`
     display: flex;
     flex-direction: row;
     justify-content: space-between;
@@ -307,7 +170,7 @@ const Buttons = styled.div<ButtonsProps>`
     }
 `;
 
-const Section = styled.form`
+export const Section = styled.form`
     width: 60%;
     display: none;
     padding: 0 0 50px 0;
@@ -338,11 +201,6 @@ const DownloadSection = styled(Section)`
             background-color: ${({ theme }) => theme.palette.darkGrey} !important;
         }
     }
-`;
-
-const SectionHeadline = styled.h2`
-    ${({ theme }) => theme.fonts.headline.section};
-    color: ${({ theme }) => theme.palette.main};
 `;
 
 const Paragraph = styled.p`

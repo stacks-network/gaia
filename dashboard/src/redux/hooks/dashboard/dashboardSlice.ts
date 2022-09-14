@@ -10,6 +10,7 @@ interface DashboardState {
   module: Module;
   configuration: Configuration | Object | undefined;
   format: ConfigurationFormat;
+  currentSection: number;
 }
 
 // Define the initial state using that type
@@ -17,6 +18,7 @@ const initialState: DashboardState = {
   module: Module.HUB,
   configuration: undefined,
   format: ConfigurationFormat.TOML,
+  currentSection: 0,
 };
 
 export const dashboardSlice = createSlice({
@@ -32,10 +34,13 @@ export const dashboardSlice = createSlice({
     setFileFormat: (state, action: PayloadAction<ConfigurationFormat>) => {
       state.format = action.payload;
     },
+    setCurrentSection: (state, action: PayloadAction<number>) => {
+      state.currentSection += action.payload;
+    },
   },
 });
 
-export const { setModule, setConfiguration, setFileFormat } =
+export const { setModule, setConfiguration, setFileFormat, setCurrentSection } =
   dashboardSlice.actions;
 
 export const selectModule = (state: RootState) => state.dashboard.module;

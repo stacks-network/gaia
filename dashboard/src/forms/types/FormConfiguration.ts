@@ -22,13 +22,68 @@ export const testConfig: FormConfiguration = {
         {
           type: FieldType.INPUT,
           name: FieldName.WHITELIST_ITEMS,
-          convertInputToArray: true,
+          description:
+            "List of ID addresses allowed to use this hub. Specifying this makes the hub private \nand only accessible to the specified addresses. Leaving this unspecified makes the hub \npublicly usable by any ID.",
+        },
+        {
+          type: FieldType.INPUT,
+          name: FieldName.AUTH_TIMESTAMP_CACHE_SIZE,
+          description:
+            "Time in seconds for how long to cache client authentication tokens. The timestamp is written to a bucket-specific file (/{address}-auth). This becomes the oldest valid iat timestamp for authentication tokens that write to the /{address}/ bucket. Cache is used to decrease latency when determining write access.",
+        },
+        {
+          type: FieldType.INPUT,
+          name: FieldName.BUCKET,
+          description:
+            "Only applicable to object store drivers (gcs/s3/azure), this setting is the name of the object store, i.e. an s3 bucket of `s3://mybucket` means the value here would be `mybucket`",
+        },
+        {
+          type: FieldType.INPUT,
+          name: FieldName.CACHE_CONTROL,
+          description:
+            "Only applicable to object store drivers (gcs/s3/azure), this setting applies cache-control settings to files in the bucket",
+        },
+
+        {
+          type: FieldType.INPUT,
+          name: FieldName.HTTPS_PORT,
+          description:
+            "Requires `enableHttps` set to true, as well as `tlsCertConfig` configured with an installed SSL certificate. This option configures the port to serve https traffic on (default: 443)",
+        },
+        {
+          type: FieldType.INPUT,
+          name: FieldName.MAX_FILE_UPLOAD_SIZE,
+          description:
+            "The maximum allowed POST body size in megabytes. \nThe content-size header is checked, and the POST body stream \nis monitoring while streaming from the client. \n[Recommended] Minimum 100KB (or approximately 0.1MB)",
+        },
+        {
+          type: FieldType.INPUT,
+          name: FieldName.PAGE_SIZE,
+          description: "The number of items to return when listing files",
+        },
+        {
+          type: FieldType.INPUT,
+          name: FieldName.READ_URL,
+          description:
+            "Route/domain to use to read - this would be the fqdn to where the files are stored for reading. Typically this would be used when using a CDN to cache files where the read/write URL's would be different.",
         },
         {
           type: FieldType.CHECKBOX,
-          name: FieldName.ACME_CONFIG_COMMUNITY_MEMBER,
-          disabled: true,
-          defaultValue: true,
+          name: FieldName.REQUIRE_CORRECT_HUB_URL,
+          description:
+            "Domain name used for auth/signing challenges. If this is true, `serverName` must match the hub url in an auth payload.",
+        },
+        {
+          type: FieldType.INPUT,
+          name: FieldName.VALID_HUB_URLS_ITEMS,
+          dependsOn: [FieldName.REQUIRE_CORRECT_HUB_URL],
+          description:
+            "If `requireCorrectHubUrl` is true then the hub specified in an auth payload can also be\ncontained within in array.",
+        },
+        {
+          type: FieldType.INPUT,
+          name: FieldName.SERVERNAME,
+          dependsOn: [FieldName.REQUIRE_CORRECT_HUB_URL],
         },
       ],
     },
@@ -145,6 +200,124 @@ export const config: FormConfiguration = {
       ],
     },
     {
+      sectionFields: [
+        {
+          type: FieldType.INPUT,
+          name: FieldName.WHITELIST_ITEMS,
+          description:
+            "List of ID addresses allowed to use this hub. Specifying this makes the hub private \nand only accessible to the specified addresses. Leaving this unspecified makes the hub \npublicly usable by any ID.",
+        },
+        {
+          type: FieldType.INPUT,
+          name: FieldName.AUTH_TIMESTAMP_CACHE_SIZE,
+          description:
+            "Time in seconds for how long to cache client authentication tokens. The timestamp is written to a bucket-specific file (/{address}-auth). This becomes the oldest valid iat timestamp for authentication tokens that write to the /{address}/ bucket. Cache is used to decrease latency when determining write access.",
+        },
+        {
+          type: FieldType.INPUT,
+          name: FieldName.BUCKET,
+          description:
+            "Only applicable to object store drivers (gcs/s3/azure), this setting is the name of the object store, i.e. an s3 bucket of `s3://mybucket` means the value here would be `mybucket`",
+        },
+        {
+          type: FieldType.INPUT,
+          name: FieldName.CACHE_CONTROL,
+          description:
+            "Only applicable to object store drivers (gcs/s3/azure), this setting applies cache-control settings to files in the bucket",
+        },
+
+        {
+          type: FieldType.INPUT,
+          name: FieldName.HTTPS_PORT,
+          description:
+            "Requires `enableHttps` set to true, as well as `tlsCertConfig` configured with an installed SSL certificate. This option configures the port to serve https traffic on (default: 443)",
+        },
+        {
+          type: FieldType.INPUT,
+          name: FieldName.MAX_FILE_UPLOAD_SIZE,
+          description:
+            "The maximum allowed POST body size in megabytes. \nThe content-size header is checked, and the POST body stream \nis monitoring while streaming from the client. \n[Recommended] Minimum 100KB (or approximately 0.1MB)",
+        },
+        {
+          type: FieldType.INPUT,
+          name: FieldName.PAGE_SIZE,
+          description: "The number of items to return when listing files",
+        },
+        {
+          type: FieldType.INPUT,
+          name: FieldName.READ_URL,
+          description:
+            "Route/domain to use to read - this would be the fqdn to where the files are stored for reading. Typically this would be used when using a CDN to cache files where the read/write URL's would be different.",
+        },
+        {
+          type: FieldType.CHECKBOX,
+          name: FieldName.REQUIRE_CORRECT_HUB_URL,
+          description:
+            "Domain name used for auth/signing challenges. If this is true, `serverName` must match the hub url in an auth payload.",
+        },
+        {
+          type: FieldType.INPUT,
+          name: FieldName.VALID_HUB_URLS_ITEMS,
+          dependsOn: [FieldName.REQUIRE_CORRECT_HUB_URL],
+          description:
+            "If `requireCorrectHubUrl` is true then the hub specified in an auth payload can also be\ncontained within in array.",
+        },
+        {
+          type: FieldType.INPUT,
+          name: FieldName.SERVERNAME,
+          dependsOn: [FieldName.REQUIRE_CORRECT_HUB_URL],
+        },
+      ],
+    },
+    {
+      sectionName: {
+        name: FieldName.ARGS_TRANSPORT,
+        type: FieldType.HEADLINE,
+      },
+      sectionFields: [
+        {
+          type: FieldType.CHECKBOX,
+          name: FieldName.ARGS_TRANSPORT_COLORIZE,
+          description:
+            "Colorize logging output, useful when tailing logs to spot errors/warnings etc",
+        },
+        {
+          type: FieldType.CHECKBOX,
+          name: FieldName.ARGS_TRANSPORT_HANDLE_EXCEPTION,
+          description:
+            "Option to leave server running if an exception is encountered",
+          defaultValue: true,
+          disabled: true,
+        },
+        {
+          type: FieldType.CHECKBOX,
+          name: FieldName.ARGS_TRANSPORT_JSON,
+          description:
+            "option to display logging output to json format (typically for use with logging aggregators)",
+        },
+        {
+          type: FieldType.DROPDOWN,
+          name: FieldName.ARGS_TRANSPORT_LEVEL,
+          values: Object.keys(ArgsTransportLevel).map(
+            (key: string) =>
+              ArgsTransportLevel[key as keyof typeof ArgsTransportLevel]
+          ),
+          description: "Logging level based on RFC-5424 (default: warn)",
+        },
+        {
+          type: FieldType.CHECKBOX,
+          name: FieldName.ARGS_TRANSPORT_TIMESTAMP,
+          description: "Include timestamp in the log message",
+          defaultValue: true,
+          disabled: true,
+        },
+        {
+          type: FieldType.INPUT,
+          name: FieldName.AUTH_TIMESTAMP_CACHE_SIZE,
+        },
+      ],
+    },
+    {
       sectionName: {
         name: FieldName.ACME_CONFIG,
         type: FieldType.HEADLINE,
@@ -246,132 +419,6 @@ export const config: FormConfiguration = {
           name: FieldName.ACME_CONFIG_VERSION,
           description:
             "The ACME version to use. `v02`/`draft-12` is for Let's Encrypt v2 otherwise known as ACME draft 12.",
-        },
-      ],
-    },
-    {
-      sectionFields: [
-        {
-          type: FieldType.CHECKBOX,
-          name: FieldName.REQUIRE_CORRECT_HUB_URL,
-        },
-        {
-          type: FieldType.INPUT,
-          name: FieldName.VALID_HUB_URLS_ITEMS,
-          dependsOn: [FieldName.REQUIRE_CORRECT_HUB_URL],
-          description:
-            "If `requireCorrectHubUrl` is true then the hub specified in an auth payload can also be\ncontained within in array.",
-        },
-        {
-          type: FieldType.INPUT,
-          name: FieldName.WHITELIST_ITEMS,
-          description:
-            "List of ID addresses allowed to use this hub. Specifying this makes the hub private \nand only accessible to the specified addresses. Leaving this unspecified makes the hub \npublicly usable by any ID.",
-        },
-        {
-          type: FieldType.INPUT,
-          name: FieldName.AUTH_TIMESTAMP_CACHE_SIZE,
-          description:
-            "Time in seconds for how long to cache client authentication tokens. The timestamp is written to a bucket-specific file (/{address}-auth). This becomes the oldest valid iat timestamp for authentication tokens that write to the /{address}/ bucket. Cache is used to decrease latency when determining write access.",
-        },
-        {
-          type: FieldType.INPUT,
-          name: FieldName.BUCKET,
-          description:
-            "Only applicable to object store drivers (gcs/s3/azure), this setting is the name of the object store, i.e. an s3 bucket of `s3://mybucket` means the value here would be `mybucket`",
-        },
-        {
-          type: FieldType.INPUT,
-          name: FieldName.CACHE_CONTROL,
-          description:
-            "Only applicable to object store drivers (gcs/s3/azure), this setting applies cache-control settings to files in the bucket",
-        },
-
-        {
-          type: FieldType.INPUT,
-          name: FieldName.HTTPS_PORT,
-          description:
-            "Requires `enableHttps` set to true, as well as `tlsCertConfig` configured with an installed SSL certificate. This option configures the port to serve https traffic on (default: 443)",
-        },
-        {
-          type: FieldType.INPUT,
-          name: FieldName.MAX_FILE_UPLOAD_SIZE,
-          description:
-            "The maximum allowed POST body size in megabytes. \nThe content-size header is checked, and the POST body stream \nis monitoring while streaming from the client. \n[Recommended] Minimum 100KB (or approximately 0.1MB)",
-        },
-        {
-          type: FieldType.INPUT,
-          name: FieldName.PAGE_SIZE,
-          description: "The number of items to return when listing files",
-        },
-        {
-          type: FieldType.INPUT,
-          name: FieldName.READ_URL,
-          description:
-            "Route/domain to use to read - this would be the fqdn to where the files are stored for reading. Typically this would be used when using a CDN to cache files where the read/write URL's would be different.",
-        },
-        {
-          type: FieldType.CHECKBOX,
-          name: FieldName.REQUIRE_CORRECT_HUB_URL,
-          description:
-            "Domain name used for auth/signing challenges. If this is true, `serverName` must match the hub url in an auth payload.",
-        },
-        {
-          type: FieldType.INPUT,
-          name: FieldName.SERVERNAME,
-          dependsOn: [FieldName.REQUIRE_CORRECT_HUB_URL],
-        },
-      ],
-    },
-    {
-      sectionName: {
-        name: FieldName.ARGS_TRANSPORT,
-        type: FieldType.HEADLINE,
-      },
-      sectionFields: [
-        {
-          type: FieldType.HEADLINE,
-          name: FieldName.ARGS_TRANSPORT,
-        },
-        {
-          type: FieldType.CHECKBOX,
-          name: FieldName.ARGS_TRANSPORT_COLORIZE,
-          description:
-            "Colorize logging output, useful when tailing logs to spot errors/warnings etc",
-        },
-        {
-          type: FieldType.CHECKBOX,
-          name: FieldName.ARGS_TRANSPORT_HANDLE_EXCEPTION,
-          description:
-            "Option to leave server running if an exception is encountered",
-          defaultValue: true,
-          disabled: true,
-        },
-        {
-          type: FieldType.CHECKBOX,
-          name: FieldName.ARGS_TRANSPORT_JSON,
-          description:
-            "option to display logging output to json format (typically for use with logging aggregators)",
-        },
-        {
-          type: FieldType.DROPDOWN,
-          name: FieldName.ARGS_TRANSPORT_LEVEL,
-          values: Object.keys(ArgsTransportLevel).map(
-            (key: string) =>
-              ArgsTransportLevel[key as keyof typeof ArgsTransportLevel]
-          ),
-          description: "Logging level based on RFC-5424 (default: warn)",
-        },
-        {
-          type: FieldType.CHECKBOX,
-          name: FieldName.ARGS_TRANSPORT_TIMESTAMP,
-          description: "Include timestamp in the log message",
-          defaultValue: true,
-          disabled: true,
-        },
-        {
-          type: FieldType.INPUT,
-          name: FieldName.AUTH_TIMESTAMP_CACHE_SIZE,
         },
       ],
     },
