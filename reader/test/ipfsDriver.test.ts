@@ -12,8 +12,7 @@ import IpfsDriver from '../src/drivers/IpfsDriver.js'
 import { getConfig } from '../src/config.js'
 
 
-
-describe('ipfsDriver test', () => {
+xdescribe('ipfsDriver test', () => {
   const driverConfig = {
     cacheControl: 'no-cache',
     driver: 'ipfs',
