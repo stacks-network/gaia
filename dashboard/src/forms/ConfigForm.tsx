@@ -95,7 +95,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ sections }) => {
                 <Buttons width="auto">
                     <Button
                         onClick={() => {
-                            setCurrentSection(0);
+                            dispatch(setCurrentSection(-currentSection));
                         }}
                         variant="contained"
                         form={`section_${sections.sections?.length}`}

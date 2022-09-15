@@ -24,11 +24,20 @@ const FormStep: React.FC<FormStepProps> = ({ sectionName, sectionFields, index }
         getValues,
         handleSubmit,
         unregister,
+        setValue,
         formState: { errors },
     } = useForm<Config>();
     const [currentDriver, setCurrentDriver] = React.useState<Drivers>(Drivers.AWS);
     const currentSection = useAppSelector((state) => state.dashboard.currentSection);
     const dispatch = useAppDispatch();
+
+    React.useEffect(() => {
+        sectionFields
+            .filter((field) => field.defaultValue)
+            .forEach((field) => {
+                setValue(field.name, field.defaultValue);
+            });
+    }, [sectionFields, setValue]);
 
     const handleDependantFields = (dependsOn: FieldName[]): boolean => {
         for (let i = 0; i < dependsOn.length; i++) {
