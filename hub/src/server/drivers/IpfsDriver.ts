@@ -1,5 +1,5 @@
 import { create, IPFSHTTPClient } from 'ipfs-http-client'
-import { StatResult as IpfsStatResult} from 'ipfs-core-types/src/files/index.js'
+import { StatResult as IpfsStatResult} from 'ipfs-core-types/src/files'
 import { create as createDaemon } from 'ipfs-core'
 import { HttpApi } from 'ipfs-http-server'
 import { HttpGateway } from 'ipfs-http-gateway'
