@@ -55,7 +55,6 @@ const FormStep: React.FC<FormStepProps> = ({ sectionName, sectionFields, index }
     };
 
     const onSubmit = handleSubmit((data) => {
-        console.log(data);
         dispatch(setConfiguration(data));
         window.scrollTo({ top: 0 });
         dispatch(setCurrentSection(1));
