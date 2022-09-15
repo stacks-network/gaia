@@ -56,7 +56,7 @@
     "build": "tsc",
     "lint": "eslint --ext .ts ./src -f unix",
     "lint:fix": "eslint --ext .ts ./src --fix",
-    "test:coverage": "cross-env NODE_ENV=test jest --coverage",
+    "test:coverage": "cross-env NODE_ENV=test jest --coverage --forceExit",
     "test": "run-p lint build test:coverage",
     "start": "node lib/index.js"
   },
