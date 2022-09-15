@@ -71,6 +71,7 @@ tmp/gaia-disk
 */coverage/*
 /docker/packer/vars.json
 node_modules
+hub/configs
 config.json
 
 # Deploy files
