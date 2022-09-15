@@ -10,6 +10,7 @@ import AzDriver from '../../../src/server/drivers/AzDriver.js'
 import S3Driver from '../../../src/server/drivers/S3Driver.js'
 import GcDriver from '../../../src/server/drivers/GcDriver.js'
 import DiskDriver from '../../../src/server/drivers/diskDriver.js'
+import IpfsDriver from '../../../src/server/drivers/IpfsDriver.js'
 import InMemoryDriver from './InMemoryDriver.js'
 import * as gaiaReader from '../../../../reader/src/http.js'
 
@@ -25,14 +26,16 @@ const envConfigPaths = {
   az: process.env.AZ_CONFIG_PATH,
   aws: process.env.AWS_CONFIG_PATH,
   gc: process.env.GC_CONFIG_PATH,
-  disk: process.env.DISK_CONFIG_PATH
+  disk: process.env.DISK_CONFIG_PATH,
+  ipfs: process.env.IPFS_CONFIG_PATH,
 };
 
 export const driverConfigs: Record<string, any> = {
   az: undefined,
   aws: undefined,
   gc: undefined,
-  disk: undefined
+  disk: undefined,
+  ipfs: undefined
 };
 
 if (driverConfigTestData) {
@@ -79,6 +82,10 @@ export const availableDrivers: { [name: string]: { class: DriverConstructor, cre
   disk: {
     class: DiskDriver,
     create: config => new DiskDriver({ ...driverConfigs.disk, ...config })
+  },
+  ipfs: {
+    class: IpfsDriver,
+    create: config => new IpfsDriver({ ...driverConfigs.ipfs, ...config })
   }
 };
 

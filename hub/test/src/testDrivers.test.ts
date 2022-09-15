@@ -18,14 +18,14 @@ export function addMockFetches(fetchLib: fetchMock.FetchMockSandbox, prefix: any
 }
 
 
-function testDriver(testName: string, mockTest: boolean, dataMap: {key: string, data: string}[], createDriver: (config?: any) => DriverModel) {
-
+function testDriver(testName: string, driverName: string, mockTest: boolean, dataMap: {key: string, data: string}[], createDriver: (config?: any) => DriverModel) {
   test(testName, async () => {
     const topLevelStorage = `${Date.now()}r${Math.random()*1e6|0}`
     const cacheControlOpt = 'no-cache, no-store, must-revalidate'
     const driver = createDriver({
       pageSize: 3,
-      cacheControl: cacheControlOpt
+      cacheControl: cacheControlOpt,
+      ...integrationTestDrivers.driverConfigs[driverName]
     })
     try {
       if (mockTest) {
@@ -821,7 +821,7 @@ describe('perform driver mock tests', () => {
     const testName = `mock test for driver: ${name}`
     const mockTest = true
     const { driverClass, dataMap, config } = mockTestDrivers.availableMockedDrivers[name]();
-    testDriver(testName, mockTest, dataMap, testConfig => new driverClass({...config, ...testConfig}))
+    testDriver(testName, name, mockTest, dataMap, testConfig => new driverClass({...config, ...testConfig}))
   }
 })
 
@@ -831,7 +831,7 @@ describe('perform driver integration tests', () => {
     const driverInfo = integrationTestDrivers.availableDrivers[name];
     const testName = `integration test for driver: ${name}`
     const mockTest = false
-    testDriver(testName, mockTest, [], testConfig => driverInfo.create(testConfig))
+    testDriver(testName, name, mockTest, [], testConfig => driverInfo.create(testConfig))
   }
 })
 

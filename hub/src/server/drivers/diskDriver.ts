@@ -48,7 +48,7 @@ class DiskDriver implements DriverModel {
     if (!config.diskSettings.storageRootDirectory) {
       throw new Error('Config is missing storageRootDirectory')
     }
-    if (config.bucket) {
+    if (!config.bucket) {
       logger.warn(`The disk driver does not use the "config.bucket" variable. It is set to ${config.bucket}`)
     }
 

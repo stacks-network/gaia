@@ -186,9 +186,14 @@ export class HubServer {
     },
     stream: Readable
   ): Promise<WriteResult> {
-    // needed to be resolved
+    // RESOLVE: The next line of code need to resolve in ipfs driver. This cash using the file system
+    // under the `/$address-auth/authTimestamp` folder. But on Ipfs driver didn't created this sub folder.
+    let oldestValidTokenTimestamp = 0
+    if (this.config.ipfsSettings) oldestValidTokenTimestamp = 0
+    else oldestValidTokenTimestamp = await this.authTimestampCache.getAuthTimestamp(address)
+    
     // const oldestValidTokenTimestamp = await this.authTimestampCache.getAuthTimestamp(address)
-    const oldestValidTokenTimestamp = 0
+    // const oldestValidTokenTimestamp = 0
 
     this.validate(address, requestHeaders, oldestValidTokenTimestamp)
     let contentType = requestHeaders['content-type']
