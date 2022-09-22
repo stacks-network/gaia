@@ -11,7 +11,7 @@ import { ReaderServer } from '../src/server.js'
 import IpfsDriver from '../src/drivers/IpfsDriver.js'
 import { getConfig } from '../src/config.js'
 
-test('check ipfs driver handleGet', (done) => {
+xtest('check ipfs driver handleGet', (done) => {
   const driverConfig = {
     cacheControl: 'no-cache',
     driver: 'ipfs',
