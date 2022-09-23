@@ -2,7 +2,7 @@ import React from "react";
 import { ConfigurationFormat, Drivers } from "configuration/Configuration";
 import styled from "styled-components";
 import { FieldName } from "./types/Fieldnames";
-import { FormConfiguration } from "forms/types/FormConfiguration";
+import { adminConfig, FormConfiguration, hubConfig, readerConfig } from "forms/types/FormConfiguration";
 import { Button } from "@mui/material";
 import { Module } from "forms/types/FormFieldProps";
 import { useAppDispatch, useAppSelector } from "redux/hooks";
@@ -42,11 +42,20 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ sections }) => {
     const currentSection = useAppSelector((state) => state.dashboard.currentSection);
     const dispatch = useAppDispatch();
     const configuration = useConfiguration();
+    const [currentSections, setSections] = React.useState<FormConfiguration>(sections);
 
     const onButtonClick = (button: number, module: Module) => {
         setActiveModule(button);
         dispatch(setModule(module));
         dispatch(setCurrentSection(-currentSection));
+
+        if (module === Module.ADMIN) {
+            setSections(adminConfig);
+        } else if (module === Module.HUB) {
+            setSections(hubConfig);
+        } else {
+            setSections(readerConfig);
+        }
     };
 
     const downloadFile = () => {
@@ -82,13 +91,13 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ sections }) => {
                     Admin
                 </Button>
             </ModuleSelect>
-            {sections.sections?.map(({ sectionFields, sectionName }, index) => {
+            {currentSections.sections?.map(({ sectionFields, sectionName }, index) => {
                 return <FormStep sectionFields={sectionFields} key={index} index={index} sectionName={sectionName} />;
             })}
             <DownloadSection
-                key={`${sections.sections?.length}__complete`}
-                className={currentSection === sections.sections?.length ? "active" : ""}
-                id={`section_${sections.sections?.length}`}
+                key={`${currentSections.sections?.length}__complete`}
+                className={currentSection === currentSections.sections?.length ? "active" : ""}
+                id={`section_${currentSections.sections?.length}`}
             >
                 <DownloadHeadline>Your Configuration is ready!</DownloadHeadline>
                 <Paragraph>You can now proceed to download your configuration or go back and create a configuration for a different module</Paragraph>
@@ -98,7 +107,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ sections }) => {
                             dispatch(setCurrentSection(-currentSection));
                         }}
                         variant="contained"
-                        form={`section_${sections.sections?.length}`}
+                        form={`section_${currentSections.sections?.length}`}
                     >
                         Back
                     </Button>

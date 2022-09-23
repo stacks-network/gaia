@@ -15,6 +15,209 @@ export interface FormConfiguration {
   sections?: Section[];
 }
 
+const ArgsTransport: Section = {
+  sectionName: {
+    name: FieldName.ARGS_TRANSPORT,
+    type: FieldType.HEADLINE,
+  },
+  sectionFields: [
+    {
+      type: FieldType.CHECKBOX,
+      name: FieldName.ARGS_TRANSPORT_COLORIZE,
+      description:
+        "Colorize logging output, useful when tailing logs to spot errors/warnings etc",
+    },
+    {
+      type: FieldType.CHECKBOX,
+      name: FieldName.ARGS_TRANSPORT_HANDLE_EXCEPTION,
+      description:
+        "Option to leave server running if an exception is encountered",
+      defaultValue: true,
+      disabled: true,
+    },
+    {
+      type: FieldType.CHECKBOX,
+      name: FieldName.ARGS_TRANSPORT_JSON,
+      description:
+        "option to display logging output to json format (typically for use with logging aggregators)",
+    },
+    {
+      type: FieldType.DROPDOWN,
+      name: FieldName.ARGS_TRANSPORT_LEVEL,
+      values: Object.keys(ArgsTransportLevel).map(
+        (key: string) =>
+          ArgsTransportLevel[key as keyof typeof ArgsTransportLevel]
+      ),
+      description: "Logging level based on RFC-5424 (default: warn)",
+    },
+    {
+      type: FieldType.CHECKBOX,
+      name: FieldName.ARGS_TRANSPORT_TIMESTAMP,
+      description: "Include timestamp in the log message",
+      defaultValue: true,
+      disabled: true,
+    },
+    {
+      type: FieldType.INPUT,
+      name: FieldName.AUTH_TIMESTAMP_CACHE_SIZE,
+    },
+  ],
+};
+
+const ACMEConfig: Section = {
+  sectionName: {
+    name: FieldName.ACME_CONFIG,
+    type: FieldType.HEADLINE,
+  },
+  sectionFields: [
+    {
+      type: FieldType.CHECKBOX,
+      name: FieldName.ACME_CONFIG_AGREETOS,
+      description:
+        "Accept Let's Encrypt(TM) v2 Agreement. You must accept the ToS as the host which handles the certs. \nSee the subscriber agreement at https://letsencrypt.org/repository/",
+      dependsOn: [
+        FieldName.ACME_CONFIG_APPROVE_DOMAIN,
+        FieldName.ACME_CONFIG_COMMUNITY_MEMBER,
+        FieldName.ACME_CONFIG_CONFIG_DIR,
+        FieldName.ACME_CONFIG_DEBUG,
+        FieldName.ACME_CONFIG_EMAIL,
+        FieldName.ACME_CONFIG_SECURITY_UPDATES,
+        FieldName.ACME_CONFIG_SERVER,
+        FieldName.ACME_CONFIG_SERVERNAME,
+        FieldName.ACME_CONFIG_TELEMETRY,
+        FieldName.ACME_CONFIG_VERSION,
+      ],
+    },
+    {
+      type: FieldType.INPUT,
+      name: FieldName.ACME_CONFIG_APPROVE_DOMAIN,
+      description:
+        'Array of allowed domains such as `[ "example.com", "www.example.com" ]`',
+    },
+    {
+      type: FieldType.CHECKBOX,
+      name: FieldName.ACME_CONFIG_COMMUNITY_MEMBER,
+      description:
+        "Join the Greenlock community to get notified of important updates.",
+    },
+    {
+      type: FieldType.INPUT,
+      name: FieldName.ACME_CONFIG_CONFIG_DIR,
+      description: "Writable directory where certs will be saved.",
+    },
+    {
+      type: FieldType.CHECKBOX,
+      name: FieldName.ACME_CONFIG_DEBUG,
+      description:
+        "Join the Greenlock community to get notified of important updates.",
+    },
+    {
+      type: FieldType.INPUT,
+      name: FieldName.ACME_CONFIG_EMAIL,
+      description: "The email address of the ACME user / hosting provider.",
+      dependsOn: [
+        FieldName.ACME_CONFIG_APPROVE_DOMAIN,
+        FieldName.ACME_CONFIG_COMMUNITY_MEMBER,
+        FieldName.ACME_CONFIG_CONFIG_DIR,
+        FieldName.ACME_CONFIG_DEBUG,
+        FieldName.ACME_CONFIG_EMAIL,
+        FieldName.ACME_CONFIG_SECURITY_UPDATES,
+        FieldName.ACME_CONFIG_SERVER,
+        FieldName.ACME_CONFIG_SERVERNAME,
+        FieldName.ACME_CONFIG_TELEMETRY,
+        FieldName.ACME_CONFIG_VERSION,
+      ],
+    },
+    {
+      type: FieldType.CHECKBOX,
+      name: FieldName.ACME_CONFIG_SECURITY_UPDATES,
+      description:
+        "Important and mandatory notices from Greenlock, related to security or breaking API changes.",
+      dependsOn: [
+        FieldName.ACME_CONFIG_APPROVE_DOMAIN,
+        FieldName.ACME_CONFIG_COMMUNITY_MEMBER,
+        FieldName.ACME_CONFIG_CONFIG_DIR,
+        FieldName.ACME_CONFIG_DEBUG,
+        FieldName.ACME_CONFIG_EMAIL,
+        FieldName.ACME_CONFIG_SECURITY_UPDATES,
+        FieldName.ACME_CONFIG_SERVER,
+        FieldName.ACME_CONFIG_SERVERNAME,
+        FieldName.ACME_CONFIG_TELEMETRY,
+        FieldName.ACME_CONFIG_VERSION,
+      ],
+    },
+    {
+      type: FieldType.INPUT,
+      name: FieldName.ACME_CONFIG_SERVER,
+    },
+    {
+      type: FieldType.INPUT,
+      name: FieldName.ACME_CONFIG_SERVERNAME,
+      description:
+        'The default servername to use when the client doesn\'t specify.\nExample: "example.com"',
+    },
+    {
+      type: FieldType.CHECKBOX,
+      name: FieldName.ACME_CONFIG_TELEMETRY,
+      description: "Contribute telemetry data to the project.",
+    },
+    {
+      type: FieldType.INPUT,
+      name: FieldName.ACME_CONFIG_VERSION,
+      description:
+        "The ACME version to use. `v02`/`draft-12` is for Let's Encrypt v2 otherwise known as ACME draft 12.",
+    },
+  ],
+};
+
+export const adminConfig: FormConfiguration = {
+  sections: [
+    {
+      sectionFields: [
+        {
+          type: FieldType.INPUT,
+          name: FieldName.PORT,
+        },
+        {
+          type: FieldType.INPUT,
+          name: FieldName.API_KEYS,
+          convertInputToArray: true,
+        },
+        {
+          type: FieldType.HEADLINE,
+          name: FieldName.GAIA_SETTINGS,
+        },
+        {
+          type: FieldType.INPUT,
+          name: FieldName.GAIA_SETTINGS_CONFIG_PATH,
+        },
+        {
+          type: FieldType.HEADLINE,
+          name: FieldName.RELOAD_SETTINGS,
+        },
+        {
+          type: FieldType.INPUT,
+          name: FieldName.RELOAD_SETTINGS_COMMAND,
+        },
+        {
+          type: FieldType.INPUT,
+          name: FieldName.RELOAD_SETTINGS_ARGV,
+          convertInputToArray: true,
+        },
+        {
+          type: FieldType.INPUT,
+          name: FieldName.RELOAD_SETTINGS_SETUID,
+        },
+        {
+          type: FieldType.INPUT,
+          name: FieldName.RELOAD_SETTINGS_SETGID,
+        },
+      ],
+    },
+    ArgsTransport,
+  ],
+};
+
 export const testConfig: FormConfiguration = {
   sections: [
     {
@@ -98,7 +301,20 @@ export const testConfig: FormConfiguration = {
   ],
 };
 
-export const config: FormConfiguration = {
+export const readerConfig: FormConfiguration = {
+  sections: [
+    {
+      sectionFields: [
+        {
+          type: FieldType.INPUT,
+          name: FieldName.PORT,
+        },
+      ],
+    },
+  ],
+};
+
+export const hubConfig: FormConfiguration = {
   sections: [
     {
       sectionFields: [
@@ -199,6 +415,8 @@ export const config: FormConfiguration = {
         },
       ],
     },
+    ACMEConfig,
+    ArgsTransport,
     {
       sectionFields: [
         {
@@ -269,159 +487,7 @@ export const config: FormConfiguration = {
         },
       ],
     },
-    {
-      sectionName: {
-        name: FieldName.ARGS_TRANSPORT,
-        type: FieldType.HEADLINE,
-      },
-      sectionFields: [
-        {
-          type: FieldType.CHECKBOX,
-          name: FieldName.ARGS_TRANSPORT_COLORIZE,
-          description:
-            "Colorize logging output, useful when tailing logs to spot errors/warnings etc",
-        },
-        {
-          type: FieldType.CHECKBOX,
-          name: FieldName.ARGS_TRANSPORT_HANDLE_EXCEPTION,
-          description:
-            "Option to leave server running if an exception is encountered",
-          defaultValue: true,
-          disabled: true,
-        },
-        {
-          type: FieldType.CHECKBOX,
-          name: FieldName.ARGS_TRANSPORT_JSON,
-          description:
-            "option to display logging output to json format (typically for use with logging aggregators)",
-        },
-        {
-          type: FieldType.DROPDOWN,
-          name: FieldName.ARGS_TRANSPORT_LEVEL,
-          values: Object.keys(ArgsTransportLevel).map(
-            (key: string) =>
-              ArgsTransportLevel[key as keyof typeof ArgsTransportLevel]
-          ),
-          description: "Logging level based on RFC-5424 (default: warn)",
-        },
-        {
-          type: FieldType.CHECKBOX,
-          name: FieldName.ARGS_TRANSPORT_TIMESTAMP,
-          description: "Include timestamp in the log message",
-          defaultValue: true,
-          disabled: true,
-        },
-        {
-          type: FieldType.INPUT,
-          name: FieldName.AUTH_TIMESTAMP_CACHE_SIZE,
-        },
-      ],
-    },
-    {
-      sectionName: {
-        name: FieldName.ACME_CONFIG,
-        type: FieldType.HEADLINE,
-      },
-      sectionFields: [
-        {
-          type: FieldType.CHECKBOX,
-          name: FieldName.ACME_CONFIG_AGREETOS,
-          description:
-            "Accept Let's Encrypt(TM) v2 Agreement. You must accept the ToS as the host which handles the certs. \nSee the subscriber agreement at https://letsencrypt.org/repository/",
-          dependsOn: [
-            FieldName.ACME_CONFIG_APPROVE_DOMAIN,
-            FieldName.ACME_CONFIG_COMMUNITY_MEMBER,
-            FieldName.ACME_CONFIG_CONFIG_DIR,
-            FieldName.ACME_CONFIG_DEBUG,
-            FieldName.ACME_CONFIG_EMAIL,
-            FieldName.ACME_CONFIG_SECURITY_UPDATES,
-            FieldName.ACME_CONFIG_SERVER,
-            FieldName.ACME_CONFIG_SERVERNAME,
-            FieldName.ACME_CONFIG_TELEMETRY,
-            FieldName.ACME_CONFIG_VERSION,
-          ],
-        },
-        {
-          type: FieldType.INPUT,
-          name: FieldName.ACME_CONFIG_APPROVE_DOMAIN,
-          description:
-            'Array of allowed domains such as `[ "example.com", "www.example.com" ]`',
-        },
-        {
-          type: FieldType.CHECKBOX,
-          name: FieldName.ACME_CONFIG_COMMUNITY_MEMBER,
-          description:
-            "Join the Greenlock community to get notified of important updates.",
-        },
-        {
-          type: FieldType.INPUT,
-          name: FieldName.ACME_CONFIG_CONFIG_DIR,
-          description: "Writable directory where certs will be saved.",
-        },
-        {
-          type: FieldType.CHECKBOX,
-          name: FieldName.ACME_CONFIG_DEBUG,
-          description:
-            "Join the Greenlock community to get notified of important updates.",
-        },
-        {
-          type: FieldType.INPUT,
-          name: FieldName.ACME_CONFIG_EMAIL,
-          description: "The email address of the ACME user / hosting provider.",
-          dependsOn: [
-            FieldName.ACME_CONFIG_APPROVE_DOMAIN,
-            FieldName.ACME_CONFIG_COMMUNITY_MEMBER,
-            FieldName.ACME_CONFIG_CONFIG_DIR,
-            FieldName.ACME_CONFIG_DEBUG,
-            FieldName.ACME_CONFIG_EMAIL,
-            FieldName.ACME_CONFIG_SECURITY_UPDATES,
-            FieldName.ACME_CONFIG_SERVER,
-            FieldName.ACME_CONFIG_SERVERNAME,
-            FieldName.ACME_CONFIG_TELEMETRY,
-            FieldName.ACME_CONFIG_VERSION,
-          ],
-        },
-        {
-          type: FieldType.CHECKBOX,
-          name: FieldName.ACME_CONFIG_SECURITY_UPDATES,
-          description:
-            "Important and mandatory notices from Greenlock, related to security or breaking API changes.",
-          dependsOn: [
-            FieldName.ACME_CONFIG_APPROVE_DOMAIN,
-            FieldName.ACME_CONFIG_COMMUNITY_MEMBER,
-            FieldName.ACME_CONFIG_CONFIG_DIR,
-            FieldName.ACME_CONFIG_DEBUG,
-            FieldName.ACME_CONFIG_EMAIL,
-            FieldName.ACME_CONFIG_SECURITY_UPDATES,
-            FieldName.ACME_CONFIG_SERVER,
-            FieldName.ACME_CONFIG_SERVERNAME,
-            FieldName.ACME_CONFIG_TELEMETRY,
-            FieldName.ACME_CONFIG_VERSION,
-          ],
-        },
-        {
-          type: FieldType.INPUT,
-          name: FieldName.ACME_CONFIG_SERVER,
-        },
-        {
-          type: FieldType.INPUT,
-          name: FieldName.ACME_CONFIG_SERVERNAME,
-          description:
-            'The default servername to use when the client doesn\'t specify.\nExample: "example.com"',
-        },
-        {
-          type: FieldType.CHECKBOX,
-          name: FieldName.ACME_CONFIG_TELEMETRY,
-          description: "Contribute telemetry data to the project.",
-        },
-        {
-          type: FieldType.INPUT,
-          name: FieldName.ACME_CONFIG_VERSION,
-          description:
-            "The ACME version to use. `v02`/`draft-12` is for Let's Encrypt v2 otherwise known as ACME draft 12.",
-        },
-      ],
-    },
+
     {
       sectionName: {
         name: FieldName.TLS_CERT_CONFIG,
