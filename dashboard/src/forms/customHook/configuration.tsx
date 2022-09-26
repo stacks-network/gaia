@@ -7,10 +7,9 @@ export function useConfiguration() {
     const [config, setConfig] = React.useState<Configuration>();
 
     React.useEffect(() => {
-        if (configuration) {
-            const conf = new Configuration(configuration as Config);
-            setConfig(conf);
-        }
+        const conf = new Configuration(configuration as Config);
+        console.log(conf);
+        setConfig(conf);
     }, [configuration]);
 
     return config;

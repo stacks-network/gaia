@@ -6,7 +6,7 @@ import { adminConfig, FormConfiguration, hubConfig, readerConfig } from "forms/t
 import { Button } from "@mui/material";
 import { Module } from "forms/types/FormFieldProps";
 import { useAppDispatch, useAppSelector } from "redux/hooks";
-import { setModule, setCurrentSection } from "redux/hooks/dashboard/dashboardSlice";
+import { setModule, setCurrentSection, setConfiguration } from "redux/hooks/dashboard/dashboardSlice";
 import { useConfiguration } from "./customHook/configuration";
 import FormStep from "./common/FormStep";
 
@@ -46,6 +46,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ sections }) => {
 
     const onButtonClick = (button: number, module: Module) => {
         setActiveModule(button);
+        dispatch(setConfiguration(undefined));
         dispatch(setModule(module));
         dispatch(setCurrentSection(-currentSection));
 
