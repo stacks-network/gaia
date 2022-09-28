@@ -1,33 +1,85 @@
 import { createLogger, transports, Logger, format } from 'winston'
 import fs from 'fs'
+import toml from 'toml'
 import process from 'process'
-import { ConsoleTransportOptions } from 'winston/lib/winston/transports'
 
+import { DriverModel, DriverConstructor } from './driverModel.js'
 
-interface LoggingConfig {
-  timestamp: boolean;
-  colorize: boolean;
-  json: boolean;
+import { DISK_CONFIG_TYPE } from './drivers/diskDriver.js'
+import { IPFS_CONFIG_TYPE } from './drivers/IpfsDriver.js'
+
+export type DriverName = 'disk' | 'ipfs'
+
+export type LogLevel = 'error' | 'warn' | 'info' | 'verbose' | 'debug'
+
+export interface LoggingConfigInterface {
+  timestamp?: boolean;
+  colorize?: boolean;
+  json?: boolean;
+  level?: LogLevel;
+  handleExceptions?: boolean;
 }
 
-export interface DiskReaderConfig { 
-  diskSettings: {
-    storageRootDirectory: string
-  };
+// LoggingConfig defaults
+class LoggingConfig implements LoggingConfigInterface {
+  /**
+   * @default warn
+   */
+  level?= 'warn' as LogLevel
+  handleExceptions?= true
+  timestamp?= true
+  colorize?= true
+  json?= false
 }
 
-export interface Config extends DiskReaderConfig {
-  argsTransport: ConsoleTransportOptions & LoggingConfig;
-  regtest: boolean;
-  testnet: boolean;
-  port: number;
-  cacheControl?: string;
-  diskSettings: {
-    storageRootDirectory: string
-  };
+type SubType<T, K extends keyof T> = K extends keyof T ? T[K] : never;
+
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+export interface ReaderConfigInterface extends ReaderConfig { }
+
+export class ReaderConfig {
+  /**
+   * Required if `driver` is `disk`
+   */
+  diskSettings?: SubType<DISK_CONFIG_TYPE, 'diskSettings'>
+
+  /**
+   * Required if `driver` is `ipfs`
+   */
+  ipfsSettings?: SubType<IPFS_CONFIG_TYPE, 'ipfsSettings'>
+
+  argsTransport?= new LoggingConfig()
+  regtest = false
+  testnet = false
+
+  driver = undefined as DriverName
+
+  /**
+   * @minimum 0
+   * @maximum 65535
+   * @TJS-type integer
+   */
+  port = 8008
+  cacheControl?= 'no-cache'
+
+  /**
+   * Only used in tests
+   * @private
+   * @ignore
+   */
+  driverInstance?: DriverModel
+
+  /**
+   * Only used in tests
+   * @private
+   * @ignore
+   */
+  driverClass?: DriverConstructor
 }
 
-const configDefaults: Config = {
+const configDefaults: ReaderConfig = {
+  cacheControl: 'no-cache',
+  driver: 'disk',
   argsTransport: {
     level: 'debug',
     handleExceptions: true,
@@ -45,11 +97,29 @@ const configDefaults: Config = {
 
 export const logger: Logger = createLogger()
 
+function getConfigJSON(configPath: string) {
+  let configJSON
+  try {
+    const fileContent = fs.readFileSync(configPath, { encoding: 'utf8' })
+    if (configPath.match(/\.json$/i)) {
+      configJSON = JSON.parse(fileContent)
+    } else if (configPath.match(/\.toml$/i)) {
+      configJSON = toml.parse(fileContent)
+    } else {
+      configJSON = {}
+    }
+  } catch (err) {
+    configJSON = {}
+  }
+  return configJSON
+}
+
 export function getConfig() {
   const configPath = process.env.CONFIG_PATH || process.argv[2] || './config.json'
-  let config: Config
+  const configJSON = getConfigJSON(configPath)
+  let config: ReaderConfig
   try {
-    config = { ...configDefaults, ...JSON.parse(fs.readFileSync(configPath).toString()) }
+    config = { ...configDefaults, ...configJSON }
   } catch (e) {
     console.error(`Failed to read config: ${e}`)
     config = { ...configDefaults }

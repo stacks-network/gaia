@@ -1,5 +1,6 @@
 import winston from 'winston'
 import fs from 'fs'
+import toml from 'toml'
 import process from 'process'
 import Ajv from 'ajv'
 
@@ -10,14 +11,15 @@ import { AZ_CONFIG_TYPE } from './drivers/AzDriver.js'
 import { DISK_CONFIG_TYPE } from './drivers/diskDriver.js'
 import { GC_CONFIG_TYPE } from './drivers/GcDriver.js'
 import { S3_CONFIG_TYPE } from './drivers/S3Driver.js'
+import { IPFS_CONFIG_TYPE } from './drivers/IpfsDriver.js'
 
-export type DriverName = 'aws' | 'azure' | 'disk' | 'google-cloud'
+export type DriverName = 'aws' | 'azure' | 'disk' | 'google-cloud' | 'ipfs'
 
 export type LogLevel = 'error' | 'warn' | 'info' | 'verbose' | 'debug'
 
 export const enum HttpsOption {
   cert_files = 'cert_files',
-  acme = 'acme' 
+  acme = 'acme'
 }
 
 export interface LoggingConfigInterface {
@@ -33,14 +35,14 @@ class LoggingConfig implements LoggingConfigInterface {
   /**
    * @default warn
    */
-  level? = 'warn' as LogLevel
-  handleExceptions? = true
-  timestamp? = true
-  colorize? = true
-  json? = false
+  level?= 'warn' as LogLevel
+  handleExceptions?= true
+  timestamp?= true
+  colorize?= true
+  json?= false
 }
 
-export interface ProofCheckerConfigInterface { 
+export interface ProofCheckerConfigInterface {
   proofsRequired?: number;
 }
 
@@ -49,7 +51,7 @@ class ProofCheckerConfig implements ProofCheckerConfigInterface {
   /**
    * @TJS-type integer
    */
-  proofsRequired? = 0
+  proofsRequired?= 0
 }
 
 export interface AcmeConfigInterface {
@@ -170,6 +172,11 @@ export class HubConfig {
   diskSettings?: SubType<DISK_CONFIG_TYPE, 'diskSettings'>
 
   /**
+   * Required if `driver` is `ipfs`
+   */
+  ipfsSettings?: SubType<IPFS_CONFIG_TYPE, 'ipfsSettings'>
+
+  /**
    * Required if `driver` is `google-cloud`
    */
   gcCredentials?: SubType<GC_CONFIG_TYPE, 'gcCredentials'>
@@ -179,22 +186,22 @@ export class HubConfig {
    */
   awsCredentials?: SubType<S3_CONFIG_TYPE, 'awsCredentials'>
 
-  argsTransport? = new LoggingConfig()
-  proofsConfig? = new ProofCheckerConfig()
-  requireCorrectHubUrl? = false
+  argsTransport?= new LoggingConfig()
+  proofsConfig?= new ProofCheckerConfig()
+  requireCorrectHubUrl?= false
   /**
    * Domain name used for auth/signing challenges. 
    * If `requireCorrectHubUrl` is true then this must match the hub url in an auth payload. 
    */
-  serverName? = 'gaia-0'
-  bucket? = 'hub'
+  serverName?= 'gaia-0'
+  bucket?= 'hub'
   /**
    * @minimum 1
    * @maximum 4096
    * @TJS-type integer
    */
-  pageSize? = 100
-  cacheControl? = 'no-cache'
+  pageSize?= 100
+  cacheControl?= 'no-cache'
   /**
    * The maximum allowed POST body size in megabytes. 
    * The content-size header is checked, and the POST body stream 
@@ -202,11 +209,11 @@ export class HubConfig {
    * [Recommended] Minimum 100KB (or approximately 0.1MB)
    * @minimum 0.1
    */
-  maxFileUploadSize? = 20
+  maxFileUploadSize?= 20
   /**
    * @TJS-type integer
    */
-  authTimestampCacheSize? = 50000
+  authTimestampCacheSize?= 50000
 
   driver = undefined as DriverName
 
@@ -224,14 +231,14 @@ export class HubConfig {
    * @maximum 65535
    * @TJS-type integer
    */
-  httpsPort? = 443
+  httpsPort?= 443
 
   /**
    * Disabled by default. 
    * If set to `cert_files` then `tlsCertConfig` must be set. 
    * If set to `acme` then `acmeConfig` must be set. 
    */
-  enableHttps? = undefined as HttpsOption
+  enableHttps?= undefined as HttpsOption
 
   /**
    * Options for Automatic Certificate Management Environment client. 
@@ -280,14 +287,14 @@ export class HubConfig {
 
 }
 
-type EnvVarTypeInfo = [string, 'list' | 'int' | 'boolean' ]
+type EnvVarTypeInfo = [string, 'list' | 'int' | 'boolean']
 type EnvVarType = string | EnvVarTypeInfo
 type EnvVarProp = EnvVarType | EnvVarObj
 interface EnvVarObj {
   [key: string]: EnvVarProp
 }
 
-const globalEnvVars: EnvVarObj = { 
+const globalEnvVars: EnvVarObj = {
   whitelist: ['GAIA_WHITELIST', 'list'],
   readURL: 'GAIA_READ_URL',
   driver: 'GAIA_DRIVER',
@@ -317,6 +324,24 @@ const globalEnvVars: EnvVarObj = {
   }
 }
 
+function getConfigJSON(configPath: string) {
+  let configJSON
+  try {
+    const fileContent = fs.readFileSync(configPath, { encoding: 'utf8' })
+    if (configPath.match(/\.json$/i)) {
+      configJSON = JSON.parse(fileContent)
+    } else if (configPath.match(/\.toml$/i)) {
+      configJSON = toml.parse(fileContent)
+    } else {
+      configJSON = {}
+    }
+  } catch (err) {
+    console.log('err: ', err)
+    configJSON = {}
+  }
+  return configJSON
+}
+
 function getConfigEnv(envVars: EnvVarObj) {
   const configEnv: Record<string, any> = {}
 
@@ -326,7 +351,7 @@ function getConfigEnv(envVars: EnvVarObj) {
 
   const detectedEnvVars: string[] = []
 
-  function populateObj(getTarget: () => Record<string, any>, envVarProp: EnvVarObj){
+  function populateObj(getTarget: () => Record<string, any>, envVarProp: EnvVarObj) {
     for (const [name, value] of Object.entries(envVarProp)) {
       if (typeof value === 'string') {
         if (process.env[value]) {
@@ -421,11 +446,11 @@ export function getConfigDefaults(): HubConfigInterface {
   removeEmptyOrUndefined(configDefaults)
 
   return configDefaults
-} 
+}
 
 export function validateConfigSchema(
-  schemaFilePath: string, 
-  configObj: any, 
+  schemaFilePath: string,
+  configObj: any,
   warnCallback: (msg: string) => void = (msg => console.error(msg))
 ) {
   try {
@@ -458,13 +483,8 @@ export function validateConfigSchema(
 }
 
 export function getConfig() {
-  const configPath = process.env.CONFIG_PATH || process.argv[2] || './config.json'
-  let configJSON
-  try {
-    configJSON = JSON.parse(fs.readFileSync(configPath, { encoding: 'utf8' }))
-  } catch (err) {
-    configJSON = {}
-  }
+  const configPath = process.env.CONFIG_PATH || process.argv[2] || './config.toml'
+  const configJSON = getConfigJSON(configPath)
 
   if (configJSON.servername) {
     if (!configJSON.serverName) {
@@ -483,6 +503,9 @@ export function getConfig() {
     const driverClass = getDriverClass(config.driver)
     const driverConfigInfo = driverClass.getConfigInformation()
     config = deepMerge<HubConfigInterface>({} as any, driverConfigInfo.defaults, configGlobal, driverConfigInfo.envVars)
+    if(config.driver === 'ipfs') {
+      if (!config.ipfsSettings.isIpfsAlready) config.ipfsSettings.apiAddress = '/ip4/127.0.0.1/tcp/5002'
+    }
   }
 
   const formats = [

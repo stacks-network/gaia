@@ -16,9 +16,9 @@ export class AuthTimestampCache {
 
   constructor(readUrlPrefix: string, driver: DriverModel, maxCacheSize: number) {
     this.currentCacheEvictions = 0
-    this.cache = new LRUCache<string, number>({ 
-      max: maxCacheSize, 
-      noDisposeOnSet: true, 
+    this.cache = new LRUCache<string, number>({
+      max: maxCacheSize,
+      noDisposeOnSet: true,
       dispose: () => {
         this.currentCacheEvictions++
       }
@@ -50,7 +50,7 @@ export class AuthTimestampCache {
   async readAuthTimestamp(bucketAddress: string): Promise<number> {
 
     const authTimestampDir = this.getAuthTimestampFileDir(bucketAddress)
-    
+
     let fetchResponse: Response
     try {
       const authNumberFileUrl = `${this.readUrlPrefix}${authTimestampDir}/${AUTH_TIMESTAMP_FILE_NAME}`
@@ -130,7 +130,7 @@ export class AuthTimestampCache {
     contentStream.push(null) // Mark EOF
 
     await this.driver.performWrite({
-      storageTopLevel: authTimestampFileDir, 
+      storageTopLevel: authTimestampFileDir,
       path: AUTH_TIMESTAMP_FILE_NAME,
       stream: contentStream,
       contentLength: contentBuffer.length,

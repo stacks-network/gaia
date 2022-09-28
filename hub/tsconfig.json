@@ -2,6 +2,7 @@
   "compilerOptions": {
     "module": "esnext",
     "esModuleInterop": true,
+    "skipLibCheck": true,
     "target": "esnext",
     "moduleResolution": "Node",
     "outDir": "lib",
@@ -12,6 +13,7 @@
     "noImplicitAny": false,
     "useUnknownInCatchVariables": false,
     "inlineSourceMap": true,
+    
   },
   "ts-node": {
     "esm": true

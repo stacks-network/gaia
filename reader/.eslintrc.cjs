@@ -11,7 +11,7 @@ module.exports = {
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
     "project": "./tsconfig.json",
-    "tsconfigRootDir": __dirname,
+    "tsconfigRootDir": __dirname
   },
   "plugins": [
     "@typescript-eslint"
@@ -79,6 +79,8 @@ module.exports = {
     "@typescript-eslint/restrict-template-expressions": "off",
     "@typescript-eslint/no-unsafe-member-access": "off",
     "@typescript-eslint/no-unsafe-assignment": "off",
+    "@typescript-eslint/no-unsafe-argument": "off",
     "@typescript-eslint/no-misused-promises": "off",
+    "@typescript-eslint/no-unsafe-return": "off",
   }
 };

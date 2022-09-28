@@ -10,8 +10,8 @@
     "colorize": false,
     "json": true
   },
-  "awsCredentials": {
-    "accessKeyId": "YOUR_ACCESS_KEY",
-    "secretAccessKey": "YOUR_SECRET_KEY"
+  "ipfsSettings": {
+    "isIpfsAlready": false,
+    "storageRootDirectory": "/gaia-ipfs"
   }
 }

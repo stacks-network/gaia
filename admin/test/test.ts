@@ -2,7 +2,7 @@ import fs from 'fs'
 
 import { AdminAPI, patchConfigFile, readConfigFileSections } from '../src/server.js'
 
-test('patch config file only sets top-level fields', () => {
+test('patch JSON config file only sets top-level fields', () => {
   expect.assertions(2)
   const config_1 = {
     a: 'b',
@@ -34,6 +34,58 @@ test('patch config file only sets top-level fields', () => {
   }
 
   fs.writeFileSync(configPath, '{}')
+
+  patchConfigFile(configPath, config_1)
+  const data_1 = readConfigFileSections(configPath, ['a', 'c'])
+
+  // read complete config file
+  expect(data_1).toEqual(config_1)
+
+  patchConfigFile(configPath, config_2)
+  const data_2 = readConfigFileSections(configPath, ['a', 'c'])
+
+  // patched config file has different section
+  expect(data_2).toEqual(config_1_2)
+
+  try {
+    fs.unlinkSync(configPath)
+  }
+  catch (e) {
+  }
+})
+
+test('patch TOML config file only sets top-level fields', () => {
+  expect.assertions(2)
+  const config_1 = {
+    a: 'b',
+    c: {
+      d: 'e',
+      f: 'g'
+    }
+  }
+
+  const config_2 = {
+    c: {
+      h: 'i'
+    }
+  }
+
+  // config 1 + config 2
+  const config_1_2 = {
+    a: 'b',
+    c: {
+      h: 'i'
+    }
+  }
+
+  const configPath = '/tmp/test-gaia-admin-config.toml'
+  try {
+    fs.unlinkSync(configPath)
+  }
+  catch (e) {
+  }
+
+  fs.writeFileSync(configPath, '')
 
   patchConfigFile(configPath, config_1)
   const data_1 = readConfigFileSections(configPath, ['a', 'c'])

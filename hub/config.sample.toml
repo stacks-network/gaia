@@ -1,0 +1,12 @@
+port = 3000
+driver = ""
+bucket = ""
+readURL = ""
+
+[argsTransport]
+level = "debug"
+handleExceptions = true
+timestamp = true
+colorize = false
+json = true
+

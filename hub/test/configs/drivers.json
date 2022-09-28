@@ -1,0 +1,35 @@
+{
+  "diskSelfHosted": {
+    "port": 3000,
+    "driver": "disk",
+    "readURL": "http://localhost:8008/",
+    "argsTransport": {
+      "level": "debug",
+      "handleExceptions": true,
+      "timestamp": true,
+      "colorize": false,
+      "json": true
+    },
+    "diskSettings": {
+      "storageRootDirectory": "/tmp/gaia-disk"
+    },
+    "config": {
+      "bucket": "hub"
+    }
+  },
+  "inMemoryDriver": {
+    "port": 3000,
+    "driver": "memory",
+    "readURL": "http://localhost:8008/",
+    "argsTransport": {
+      "level": "debug",
+      "handleExceptions": true,
+      "timestamp": true,
+      "colorize": false,
+      "json": true
+    },
+    "config": {
+      "bucket": "hub"
+    }
+  }
+}

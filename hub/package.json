@@ -23,11 +23,18 @@
     "fs-extra": "^10.1.0",
     "greenlock-express": "^4.0.3",
     "greenlock-store-fs": "^3.2.2",
+    "ipfs-core": "^0.14.3",
+    "ipfs-core-types": "^0.12.0",
+    "ipfs-http-client": "^56.0.2",
+    "ipfs-http-gateway": "^0.9.3",
+    "ipfs-http-server": "^0.11.3",
     "jsontokens": "^3.1.1",
     "lru-cache": "^7.12.0",
+    "multiformats": "^9.7.1",
     "nanoid": "^3.3.4",
     "node-fetch": "^2.6.1",
     "tiny-secp256k1": "^2.2.1",
+    "toml": "^3.0.0",
     "winston": "^3.8.1"
   },
   "devDependencies": {
@@ -68,7 +75,7 @@
     "build:schema": "typescript-json-schema tsconfig.json HubConfig --required --noExtraProps --refs=false -o config-schema.json",
     "lint": "eslint --ext .ts ./src -f unix",
     "lint:fix": "eslint --ext .ts ./src --fix",
-    "test:coverage": "cross-env NODE_ENV=test LOCAL_DRIVER_CONFIG_TEST_DATA=configs/drivers.json NODE_OPTIONS=--experimental-vm-modules jest --coverage",
+    "test:coverage": "cross-env NODE_ENV=test LOCAL_DRIVER_CONFIG_TEST_DATA=test/configs/drivers.json NODE_OPTIONS=--experimental-vm-modules jest --coverage",
     "test": "npm-run-all build --parallel lint test:coverage",
     "start": "node lib/index.js"
   },

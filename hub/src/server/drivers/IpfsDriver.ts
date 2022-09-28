@@ -1,26 +1,36 @@
-import fs from 'fs-extra'
-import { readdir } from 'fs'
-import { PassThrough } from 'stream'
+import { create, IPFSHTTPClient } from 'ipfs-http-client'
+import { StatResult as IpfsStatResult} from 'ipfs-core-types/src/files'
+import { create as createDaemon } from 'ipfs-core'
+import { HttpApi } from 'ipfs-http-server'
+import { HttpGateway } from 'ipfs-http-gateway'
+
+import { Readable } from 'stream'
 import { BadPathError, InvalidInputError, DoesNotExist } from '../errors.js'
 import * as Path from 'path'
-import * as crypto from 'crypto'
-import { 
+import { base16 } from 'multiformats/bases/base16'
+import { concat as uint8ArrayConcat } from 'uint8arrays/concat'
+import {
   ListFilesResult, PerformWriteArgs, WriteResult, PerformDeleteArgs, PerformRenameArgs,
   PerformStatArgs, StatResult, PerformReadArgs, ReadResult, PerformListFilesArgs,
-  ListFilesStatResult, ListFileStatResult, DriverStatics, DriverModel 
+  ListFilesStatResult, ListFileStatResult, DriverStatics, DriverModel
 } from '../driverModel.js'
-import { pipelineAsync, logger, dateToUnixTimeSeconds } from '../utils.js'
+import { logger } from '../utils.js'
 
-export interface DISK_CONFIG_TYPE { 
-  diskSettings: { storageRootDirectory?: string },
+export interface IPFS_CONFIG_TYPE {
+  ipfsSettings: {
+    isIpfsAlready?: boolean,
+    apiAddress?: string,
+    storageRootDirectory?: string
+  },
   bucket?: string,
   pageSize?: number,
-  readURL: string 
+  readURL: string
 }
 
 const METADATA_DIRNAME = '.gaia-metadata'
 
-class DiskDriver implements DriverModel {
+class IpfsDriver implements DriverModel {
+  client: IPFSHTTPClient
   storageRootDirectory: string
   readURL: string
   pageSize: number
@@ -30,37 +40,37 @@ class DiskDriver implements DriverModel {
 
   static getConfigInformation() {
     const envVars: any = {}
-    if (process.env['GAIA_DISK_STORAGE_ROOT_DIR']) {
-      const diskSettings = { storageRootDirectory: process.env['GAIA_DISK_STORAGE_ROOT_DIR'] }
-      envVars['diskSettings'] = diskSettings
+    const ipfsSettings: any = {}
+    if (process.env['GAIA_IPFS_API_ADDRESS']) {
+      envVars['ipfsSettings'] = ipfsSettings
+      ipfsSettings['apiAddress'] = process.env['GAIA_IPFS_API_ADDRESS']
     }
-
+    if (process.env['GAIA_IPFS_STORAGE_ROOT_DIR']) {
+      envVars['ipfsSettings'] = ipfsSettings
+      ipfsSettings['storageRootDirectory'] = process.env['GAIA_IPFS_STORAGE_ROOT_DIR']
+    }
     return {
-      defaults: { diskSettings: { storageRootDirectory: undefined as any } },
+      defaults: {
+        ipfsSettings: {
+          apiAddress: undefined as any,
+          storageRootDirectory: undefined as any
+        }
+      },
       envVars
     }
   }
 
-  constructor (config: DISK_CONFIG_TYPE) {
+  constructor(config: IPFS_CONFIG_TYPE) {
     if (!config.readURL) {
       throw new Error('Config is missing readURL')
     }
-    if (!config.diskSettings.storageRootDirectory) {
+    if (!config.ipfsSettings.storageRootDirectory) {
       throw new Error('Config is missing storageRootDirectory')
     }
     if (!config.bucket) {
       logger.warn(`The disk driver does not use the "config.bucket" variable. It is set to ${config.bucket}`)
     }
-
-    this.storageRootDirectory = Path.resolve(Path.normalize(config.diskSettings.storageRootDirectory))
-    this.readURL = config.readURL
-    if (!this.readURL.endsWith('/')) {
-      // must end in /
-      this.readURL = `${this.readURL}/`
-    }
-
-    this.pageSize = config.pageSize ? config.pageSize : 100
-    this.initPromise = fs.ensureDir(this.storageRootDirectory)
+    this.initPromise = this.initIpfs(config)
   }
 
   ensureInitialized() {
@@ -71,7 +81,7 @@ class DiskDriver implements DriverModel {
     return Promise.resolve()
   }
 
-  static isPathValid(path: string){
+  static isPathValid(path: string) {
     if (path.includes('..')) {
       return false
     }
@@ -81,15 +91,45 @@ class DiskDriver implements DriverModel {
     return true
   }
 
-  getReadURLPrefix () {
+  getReadURLPrefix() {
     return this.readURL
+  }
+  async initIpfs(config) {
+    if(!config.ipfsSettings.isIpfsAlready) {
+      await this.initIpfsDaemon()
+    }
+    await this.initIpfsClient(config)
+  }
+  async initIpfsDaemon() {
+    console.log('\n Initializing the ipfs daemon...')
+    const ipfs = await createDaemon()
+    const httpApi = new HttpApi(ipfs)
+    const httpGateway = new HttpGateway(ipfs)
+    await httpApi.start()
+    
+    // this.node = ipfs
+    console.log('\n Ipfs daemon started')
+    return httpGateway.start()
+  }
+
+  async initIpfsClient(config: IPFS_CONFIG_TYPE) {
+    this.client = create({ url: config.ipfsSettings.apiAddress })
+    this.readURL = config.readURL
+    if (!this.readURL.endsWith('/')) {
+      // must end in /
+      this.readURL = `${this.readURL}/`
+    }
+
+    this.storageRootDirectory = Path.normalize(config.ipfsSettings.storageRootDirectory)
+    this.pageSize = config.pageSize ? config.pageSize : 100
+    await this.client.files.mkdir(this.storageRootDirectory, { parents: true })
   }
 
   async mkdirs(path: string) {
     const normalizedPath = Path.normalize(path)
     try {
       // Ensures that the directory exists. If the directory structure does not exist, it is created. Like mkdir -p.
-      const wasCreated: any = await fs.ensureDir(normalizedPath)
+      const wasCreated: any = await this.client.files.mkdir(normalizedPath, { parents: true })
       if (wasCreated) {
         logger.debug(`mkdir ${normalizedPath}`)
       }
@@ -101,20 +141,10 @@ class DiskDriver implements DriverModel {
 
   async findAllFiles(listPath: string): Promise<string[]> {
     // returns a list of files prefixed by listPath
-    const dirEntries: fs.Dirent[] = await new Promise((resolve, reject) => {
-      readdir(listPath, {withFileTypes: true}, (err, files) => {
-        if (err) {
-          reject(err)
-        } else {
-          resolve(files)
-        }
-      })
-    })
-
     const fileNames: string[] = []
-    for (const dirEntry of dirEntries) {
+    for await (const dirEntry of this.client.files.ls(listPath)) {
       const fileOrDir = `${listPath}${Path.sep}${dirEntry.name}`
-      if (dirEntry.isDirectory()) {
+      if (dirEntry.type === 'directory') {
         const childEntries = await this.findAllFiles(fileOrDir)
         fileNames.push(...childEntries)
       } else {
@@ -141,15 +171,21 @@ class DiskDriver implements DriverModel {
     let pageNum
     const listPath = Path.normalize(`${this.storageRootDirectory}/${args.pathPrefix}`)
 
-    if (!await fs.pathExists(listPath)) {
-      // nope 
-      const emptyResponse: ListFilesResult = {
-        entries: [],
-        page: null
+    try {
+      await this.client.files.stat(listPath)
+    } catch (error) {
+      if (error.name === 'HTTPError' && error.message === 'file does not exist') {
+        // nope
+        const emptyResponse: ListFilesResult = {
+          entries: [],
+          page: null
+        }
+        return emptyResponse
       }
-      return emptyResponse
+      /* istanbul ignore next */
+      throw error
     }
-    
+
     try {
       if (args.page) {
         if (!(/^[0-9]+$/.exec(args.page))) {
@@ -159,12 +195,13 @@ class DiskDriver implements DriverModel {
       } else {
         pageNum = 0
       }
-      const stat = await fs.stat(listPath)
-      if (!stat.isDirectory()) {
+      // const stat = await fs.stat(listPath)
+      const stat = await this.client.files.stat(listPath)
+      if (stat.type !== 'directory') {
         // All the cloud drivers return a single empty entry in this situation
         return { entries: [''], page: null }
       }
-    } catch(e) {
+    } catch (e) {
       throw new Error('Invalid arguments: invalid page or not a directory')
     }
 
@@ -180,7 +217,7 @@ class DiskDriver implements DriverModel {
     const filePathResult = await this.listFilesInternal(args)
     const fileStats: ListFileStatResult[] = []
     for (const file of filePathResult.entries) {
-      const fileStat = await this.performStat({storageTopLevel: args.pathPrefix, path: file})
+      const fileStat = await this.performStat({ storageTopLevel: args.pathPrefix, path: file })
       fileStats.push({
         ...fileStat,
         name: file,
@@ -193,12 +230,12 @@ class DiskDriver implements DriverModel {
     }
   }
 
-  getFullFilePathInfo(args: {storageTopLevel: string, path: string} ) {
+  getFullFilePathInfo(args: { storageTopLevel: string, path: string }) {
     if (!args.storageTopLevel) {
       throw new BadPathError('Invalid Path')
     }
 
-    if (!DiskDriver.isPathValid(args.path) || !DiskDriver.isPathValid(args.storageTopLevel)) {
+    if (!IpfsDriver.isPathValid(args.path) || !IpfsDriver.isPathValid(args.storageTopLevel)) {
       throw new BadPathError('Invalid Path')
     }
 
@@ -229,7 +266,7 @@ class DiskDriver implements DriverModel {
     const contentType = args.contentType
 
     if (contentType && contentType.length > 1024) {
-      // no way this is valid 
+      // no way this is valid
       throw new InvalidInputError('Invalid content-type')
     }
 
@@ -238,67 +275,52 @@ class DiskDriver implements DriverModel {
     const absdirname = Path.dirname(absoluteFilePath)
     await this.mkdirs(absdirname)
 
-    const hash = crypto.createHash('md5')
-    const hashMonitoredStream = new PassThrough({
-      transform: (chunk: Buffer, _encoding, callback) => {
-        hash.update(chunk)
-        // Pass the chunk Buffer through, untouched. This takes the fast 
-        // path through the stream pipe lib. 
-        callback(null, chunk)
-      }
-    })
+    await this.client.files.write(absoluteFilePath, args.stream, { create: true, mode: 0o600 })
 
-    const hashMonitorPipeline = pipelineAsync(args.stream, hashMonitoredStream)
-
-    const writePipe = fs.createWriteStream(absoluteFilePath, { mode: 0o600, flags: 'w' })
-    const fileStreamPipeline = pipelineAsync(hashMonitoredStream, writePipe)
-
-    await Promise.all([hashMonitorPipeline, fileStreamPipeline])
-
-    const etag = hash.digest('hex')
+    const stat = await this.client.files.stat(absoluteFilePath)
+    const etag = stat.cid.toV1().toString(base16)
 
     const metaDataDirPath = Path.dirname(metaDataFilePath)
     await this.mkdirs(metaDataDirPath)
-    await fs.writeFile(
-      metaDataFilePath, 
-      JSON.stringify({ 'content-type': contentType, etag }), { mode: 0o600 })
+
+    await this.client.files.write(metaDataFilePath, JSON.stringify({ 'content-type': contentType, etag }), { create: true, mode: 0o600 })
 
     return {
       publicURL: `${this.readURL}${args.storageTopLevel}/${args.path}`,
       etag
     }
-    
+
   }
 
   async performDelete(args: PerformDeleteArgs): Promise<void> {
     const { absoluteFilePath, metaDataFilePath } = this.getFullFilePathInfo(args)
-    let stat: fs.Stats
+    let stat: IpfsStatResult
     try {
-      stat = await fs.stat(absoluteFilePath)
+      stat = await this.client.files.stat(absoluteFilePath)
     } catch (error) {
-      if (error.code === 'ENOENT') {
+      if (error.name === 'HTTPError' && error.message === 'file does not exist') {
         throw new DoesNotExist('File does not exist')
       }
       /* istanbul ignore next */
       throw error
     }
-    if (!stat.isFile()) {
-      // Disk driver is special here in that it mirrors the behavior of cloud storage APIs. 
-      // Directories are not first-class objects in blob storages, and so they will 
+
+    if (stat.type !== 'file') {
+      // Disk driver is special here in that it mirrors the behavior of cloud storage APIs.
+      // Directories are not first-class objects in blob storages, and so they will
       // simply return 404s for the blob name even if the name happens to be a prefix
       // (pseudo-directory) of existing blobs.
       throw new DoesNotExist('Path is not a file')
     }
-    await fs.unlink(absoluteFilePath)
-    await fs.unlink(metaDataFilePath)
+    await this.client.files.rm(absoluteFilePath)
+    await this.client.files.rm(metaDataFilePath)
   }
 
-  static async parseFileStat(stat: fs.Stats, metaDataFilePath: string): Promise<StatResult> {
-    const metaDataJsonStr = await fs.readFile(metaDataFilePath, 'utf8')
-    const metaDataJson = JSON.parse(metaDataJsonStr)
+  static parseFileStat(stat: IpfsStatResult, metaData: string): StatResult {
+    const metaDataJson = JSON.parse(metaData)
     const contentType = metaDataJson['content-type']
     const etag = metaDataJson['etag']
-    const lastModified = dateToUnixTimeSeconds(stat.mtime)
+    const lastModified = stat.mtime.secs
 
     const result: StatResult = {
       exists: true,
@@ -310,42 +332,51 @@ class DiskDriver implements DriverModel {
     return result
   }
 
+  async readMetaDataFile(filePath: string) {
+    const chunks = []
+    for await (const chunk of this.client.files.read(filePath)) {
+      chunks.push(chunk)
+    }
+    return uint8ArrayConcat(chunks).toString()
+  }
+
   async performRead(args: PerformReadArgs): Promise<ReadResult> {
     const { absoluteFilePath, metaDataFilePath } = this.getFullFilePathInfo(args)
-    let stat: fs.Stats
+    let stat: IpfsStatResult
     try {
-      stat = await fs.stat(absoluteFilePath)
+      stat = await this.client.files.stat(absoluteFilePath)
     } catch (error) {
-      if (error.code === 'ENOENT') {
+      if (error.name === 'HTTPError' && error.message === 'file does not exist') {
         throw new DoesNotExist('File does not exist')
       }
       /* istanbul ignore next */
       throw error
     }
-    if (!stat.isFile()) {
-      // Disk driver is special here in that it mirrors the behavior of cloud storage APIs. 
-      // Directories are not first-class objects in blob storages, and so they will 
+    if (stat.type !== 'file') {
+      // Disk driver is special here in that it mirrors the behavior of cloud storage APIs.
+      // Directories are not first-class objects in blob storages, and so they will
       // simply return 404s for the blob name even if the name happens to be a prefix
       // (pseudo-directory) of existing blobs.
       throw new DoesNotExist('File does not exist')
     }
-    const fileStat = await DiskDriver.parseFileStat(stat, metaDataFilePath)
-    const dataStream = fs.createReadStream(absoluteFilePath)
+    const metaData = await this.readMetaDataFile(metaDataFilePath)
+    const fileStat = IpfsDriver.parseFileStat(stat, metaData)
+    const dataStream = this.client.files.read(absoluteFilePath)
     const result: ReadResult = {
       ...fileStat,
       exists: true,
-      data: dataStream
+      data: Readable.from(dataStream)
     }
     return result
   }
 
   async performStat(args: PerformStatArgs): Promise<StatResult> {
     const { absoluteFilePath, metaDataFilePath } = this.getFullFilePathInfo(args)
-    let stat: fs.Stats
+    let stat: IpfsStatResult
     try {
-      stat = await fs.stat(absoluteFilePath)
+      stat = await this.client.files.stat(absoluteFilePath)
     } catch (error) {
-      if (error.code === 'ENOENT') {
+      if (error.name === 'HTTPError') {
         const result = {
           exists: false
         } as StatResult
@@ -354,9 +385,9 @@ class DiskDriver implements DriverModel {
       /* istanbul ignore next */
       throw error
     }
-    if (!stat.isFile()) {
-      // Disk driver is special here in that it mirrors the behavior of cloud storage APIs. 
-      // Directories are not first-class objects in blob storages, and so they will 
+    if (stat.type !== 'file') {
+      // Disk driver is special here in that it mirrors the behavior of cloud storage APIs.
+      // Directories are not first-class objects in blob storages, and so they will
       // simply return 404s for the blob name even if the name happens to be a prefix
       // (pseudo-directory) of existing blobs.
       const result = {
@@ -364,49 +395,50 @@ class DiskDriver implements DriverModel {
       } as StatResult
       return result
     }
-    const result = await DiskDriver.parseFileStat(stat, metaDataFilePath)
+    const metaData = await this.readMetaDataFile(metaDataFilePath)
+    const result = IpfsDriver.parseFileStat(stat, metaData)
     return result
   }
 
   async performRename(args: PerformRenameArgs): Promise<void> {
     const pathsOrig = this.getFullFilePathInfo(args)
     const pathsNew = this.getFullFilePathInfo({
-      storageTopLevel: args.storageTopLevel, 
+      storageTopLevel: args.storageTopLevel,
       path: args.newPath
     })
 
-    let statOrig: fs.Stats
+    let statOrig: IpfsStatResult
     try {
-      statOrig = await fs.stat(pathsOrig.absoluteFilePath)
+      statOrig = await this.client.files.stat(pathsOrig.absoluteFilePath)
     } catch (error) {
-      if (error.code === 'ENOENT') {
+      if (error.name === 'HTTPError' && error.message === 'file does not exist') {
         throw new DoesNotExist('File does not exist')
       }
       /* istanbul ignore next */
       throw error
     }
-    if (!statOrig.isFile()) {
+    if (statOrig.type !== 'file') {
       throw new DoesNotExist('Path is not a file')
     }
 
-    let statNew: fs.Stats
+    let statNew: IpfsStatResult
     try {
-      statNew = await fs.stat(pathsNew.absoluteFilePath)
-      if (!statNew.isFile()) {
-        throw new DoesNotExist('New path exists and is not a file')
-      }
+      statNew = await this.client.files.stat(pathsNew.absoluteFilePath)
     } catch (error) {
-      if (error.code !== 'ENOENT') {
+      if (error.name !== 'HTTPError' || error.message !== 'file does not exist') {
         throw new Error(`Unexpected new file location stat error: ${error}`)
       }
     }
+    if (statNew.type !== 'file') {
+      throw new DoesNotExist('New path exists and is not a file')
+    }
 
-    await fs.move(pathsOrig.absoluteFilePath, pathsNew.absoluteFilePath, {overwrite: true})
-    await fs.move(pathsOrig.metaDataFilePath, pathsNew.metaDataFilePath, {overwrite: true})
+    await this.client.files.mv(pathsOrig.absoluteFilePath, pathsNew.absoluteFilePath)
+    await this.client.files.mv(pathsOrig.metaDataFilePath, pathsNew.metaDataFilePath)
   }
 
 }
 
-const driver: typeof DiskDriver & DriverStatics = DiskDriver
+const driver: typeof IpfsDriver & DriverStatics = IpfsDriver
 export default driver
 

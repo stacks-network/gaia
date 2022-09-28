@@ -22,7 +22,13 @@ class MockProofs extends ProofChecker {
 async function usingIntegrationDrivers(func: (driver: DriverModel, name: string) => Promise<any> | void) {
   for (const name in integrationTestDrivers.availableDrivers) {
     const driverInfo = integrationTestDrivers.availableDrivers[name];
-    const driver = driverInfo.create();
+    const cacheControlOpt = 'no-cache, no-store, must-revalidate'
+    
+    const driver = driverInfo.create({
+      pageSize: 3,
+     cacheControl: cacheControlOpt,
+      ...integrationTestDrivers.driverConfigs[name]
+    });
     try {
       await driver.ensureInitialized();
       await func(driver, name);
