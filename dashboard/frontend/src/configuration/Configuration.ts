@@ -89,6 +89,18 @@ interface Whitelist {
   items: unknown[];
 }
 
+interface GaiaSettings {
+  configPath: string;
+}
+
+interface ReloadSettings {
+  command: string;
+  argv: string[];
+  env: any;
+  setuid: number;
+  setgid: number;
+}
+
 export enum ConfigurationFormat {
   JSON = "JSON",
   TOML = "TOML",
@@ -117,6 +129,9 @@ export interface Config {
   tlsCertConfig?: TLSCertConfig;
   validHubUrls?: ValidHubUrls;
   whitelist?: Whitelist;
+  apiKeys?: string[];
+  gaiaSettings?: GaiaSettings;
+  reloadSettings?: ReloadSettings;
 }
 
 export default class Configuration {

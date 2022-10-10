@@ -12,7 +12,7 @@ import { useConfiguration } from "forms/customHook/configuration";
 const Infobox: React.FC = () => {
     const [menuOpen, setMenuOpen] = React.useState<boolean>(false);
     const [copied, setCopied] = React.useState<boolean>(false);
-    const [infoContent, setInfoContent] = React.useState<string>("");
+    const [infoContent, setInfoContent] = React.useState<string | undefined>("");
     const COLLAPSE_CLASS = "collapse";
     const module = useAppSelector((state) => state.dashboard.module);
     const fileFormat = useAppSelector((state) => state.dashboard.format);
@@ -26,7 +26,10 @@ const Infobox: React.FC = () => {
             } else {
                 setInfoContent(configuration.toTOML());
             }
+        } else {
+            setInfoContent(undefined);
         }
+
         const form = document.getElementById("form");
         const button = document.getElementById("gaia-menu-button");
         const info = document.getElementById("gaia-menu-info");

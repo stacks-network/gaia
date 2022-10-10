@@ -58,4 +58,12 @@ export enum FieldName {
   VALID_HUB_URLS_ITEMS = "validHubUrls.items",
   WHITELIST = "whitelist",
   WHITELIST_ITEMS = "whitelist.items",
+  API_KEYS = "apiKeys",
+  GAIA_SETTINGS = "gaiaSettings",
+  GAIA_SETTINGS_CONFIG_PATH = "gaiaSettings.configPath",
+  RELOAD_SETTINGS = "reloadSettings",
+  RELOAD_SETTINGS_COMMAND = "reloadSettings.command",
+  RELOAD_SETTINGS_ARGV = "reloadSettings.argv",
+  RELOAD_SETTINGS_SETUID = "reloadSettings.setuid",
+  RELOAD_SETTINGS_SETGID = "reloadSettings.setgid",
 }
