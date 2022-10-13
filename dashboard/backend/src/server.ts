@@ -4,18 +4,18 @@ import { hubConfigSchema, adminConfigSchema, readerConfigSchema } from './config
 import { runSubprocess, readConfigFileSections, patchConfigFile } from './utils'
 
 export class Server {
-		
+
 	config: Config
 
 	constructor(config: Config) {
 		this.config = config
 	}
 
-  handleGetHubConfig(): Promise<{ status: any, statusCode: number }> {
-    return this.handleGetFields(this.config.hubSettings, Object.keys(hubConfigSchema.properties))
-  }
+	handleGetHubConfig(): Promise<{ status: any, statusCode: number }> {
+		return this.handleGetFields(this.config.hubSettings, Object.keys(hubConfigSchema.properties))
+	}
 
-  handleSetHubConfig(newConfig: any): Promise<{ status: any, statusCode: number }> {
+	handleSetHubConfig(newConfig: any): Promise<{ status: any, statusCode: number }> {
 		const ajv = new Ajv({ strict: false })
 		const valid = ajv.validate(hubConfigSchema, newConfig)
 		if (!valid) {
@@ -30,14 +30,14 @@ export class Server {
 			return Promise.resolve().then(() => ret)
 		}
 		return this.handleSetFields(this.config.hubSettings, newConfig, Object.keys(hubConfigSchema.properties))
-  }
-	
-  handleGetAdminConfig(): Promise<{ status: any, statusCode: number }> {
-    return this.handleGetFields(this.config.adminSettings, Object.keys(adminConfigSchema.properties))
-  }
+	}
+
+	handleGetAdminConfig(): Promise<{ status: any, statusCode: number }> {
+		return this.handleGetFields(this.config.adminSettings, Object.keys(adminConfigSchema.properties))
+	}
 
 	handleSetAdminConfig(newConfig: any): Promise<{ status: any, statusCode: number }> {
-    const ajv = new Ajv({ strict: false })
+		const ajv = new Ajv({ strict: false })
 		const valid = ajv.validate(adminConfigSchema, newConfig)
 		if (!valid) {
 			logger.error(`Failed to validate Admin configuration: ${JSON.stringify(ajv.errors)}`)
@@ -51,14 +51,14 @@ export class Server {
 			return Promise.resolve().then(() => ret)
 		}
 		return this.handleSetFields(this.config.adminSettings, newConfig, Object.keys(adminConfigSchema.properties))
-  }
-	
-  handleGetReaderConfig(): Promise<{ status: any, statusCode: number }> {
-    return this.handleGetFields(this.config.readerSettings, Object.keys(readerConfigSchema.properties))
-  }
+	}
+
+	handleGetReaderConfig(): Promise<{ status: any, statusCode: number }> {
+		return this.handleGetFields(this.config.readerSettings, Object.keys(readerConfigSchema.properties))
+	}
 
 	handleSetReaderConfig(newConfig: any): Promise<{ status: any, statusCode: number }> {
-    const ajv = new Ajv({ strict: false })
+		const ajv = new Ajv({ strict: false })
 		const valid = ajv.validate(readerConfigSchema, newConfig)
 		if (!valid) {
 			logger.error(`Failed to validate Reader configuration: ${JSON.stringify(ajv.errors)}`)
@@ -72,7 +72,7 @@ export class Server {
 			return Promise.resolve().then(() => ret)
 		}
 		return this.handleSetFields(this.config.readerSettings, newConfig, Object.keys(readerConfigSchema.properties))
-  }
+	}
 
 	// Reloads the Gaia hub by launching the reload subprocess
 	handleReload(config: ModuleSettings): Promise<{ status: any, statusCode: number }> {
@@ -82,13 +82,20 @@ export class Server {
 			return Promise.resolve().then(() => ret)
 		}
 
-		const cmd = config.reloadCommandLine.command
-		const argv = config.reloadCommandLine.argv
-		const env = config.reloadCommandLine.env
-		const uid = config.reloadCommandLine.setuid
-		const gid = config.reloadCommandLine.setgid
-
-		return runSubprocess(cmd, argv, env, uid, gid)
+		return Promise.resolve().then(() => {
+			const cmd = config.reloadCommandLine.command
+			const argv = config.reloadCommandLine.argv
+			const env = config.reloadCommandLine.env
+			const uid = config.reloadCommandLine.setuid
+			const gid = config.reloadCommandLine.setgid
+			return runSubprocess(cmd, argv, env, uid, gid)
+		})
+			.then(() => {
+				return { statusCode: 200, status: { result: 'OK' } }
+			})
+			.catch((e) => {
+				return { statusCode: 500, status: { error: e.message } }
+			})
 	}
 
 	// don't call this from outside this class

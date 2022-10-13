@@ -17,7 +17,7 @@ export function runSubprocess(
 	env: NodeJS.ProcessEnv,
 	uid?: number,
 	gid?: number
-): Promise<{ 'status': any, 'statusCode': number }> {
+): Promise<void> {
 	const opts: childProcess.SpawnOptions = {
 		cwd: '/',
 		env: env,
@@ -39,38 +39,43 @@ export function runSubprocess(
 		opts.gid = gid
 	}
 
-	return new Promise((resolve) => {
+	return new Promise((resolve, reject) => {
 		childProcess.spawn(cmd, argv, opts)
 			.on('exit', (code: number, signal: string) => {
 				if (code === 0) {
-					const ret = { statusCode: 200, status: { result: 'OK' } }
-					resolve(ret)
+					resolve()
+					// const ret = { statusCode: 200, status: { result: 'OK' } }
+					// resolve(ret)
 				} else {
-					const ret = {
-						statusCode: 500,
-						status: { error: `Command exited with code ${code} (signal=${signal})` }
-					}
-					resolve(ret)
+					reject(new Error(`Command exited with code ${code} (signal=${signal})`))
+					// const ret = {
+					// 	statusCode: 500,
+					// 	status: { error: `Command exited with code ${code} (signal=${signal})` }
+					// }
+					// resolve(ret)
 				}
 			})
 			.on('close', (code: number, signal: string) => {
 				if (code === 0) {
-					const ret = { statusCode: 200, status: { result: 'OK' } }
-					resolve(ret)
+					resolve()
+					// const ret = { statusCode: 200, status: { result: 'OK' } }
+					// resolve(ret)
 				} else {
-					const ret = {
-						statusCode: 500,
-						status: { error: `Command closed with code ${code} (signal=${signal})` }
-					}
-					resolve(ret)
+					reject(new Error(`Command closed with code ${code} (signal=${signal})`))
+					// const ret = {
+					// 	statusCode: 500,
+					// 	status: { error: `Command closed with code ${code} (signal=${signal})` }
+					// }
+					// resolve(ret)
 				}
 			})
 			.on('error', () => {
-				const ret = {
-					statusCode: 500,
-					status: { error: 'Command could not be spawned, killed, or signaled' }
-				}
-				resolve(ret)
+				reject(new Error('Command could not be spawned, killed, or signaled'))
+				// const ret = {
+				// 	statusCode: 500,
+				// 	status: { error: 'Command could not be spawned, killed, or signaled' }
+				// }
+				// resolve(ret)
 			})
 	})
 }
@@ -132,7 +137,7 @@ export function patchConfigFile(configFilePath: string, newFields: Record<string
 export function readConfigFileSections(configFilePath: string, fields: string | string[]): any {
 
 	if (!configFilePath) {
-		throw new Error('Config file nto given')
+		throw new Error('Config file not given')
 	}
 
 	try {
