@@ -8,11 +8,12 @@
   "license": "MIT",
   "scripts": {
     "start": "node dist/index.js",
-    "build": "tsc",
+    "build": "tsc --project tsconfig.build.json",
     "lint": "eslint --ext .ts ./src -f unix",
     "lint:fix": "eslint --ext .ts ./src --fix",
     "test:coverage": "cross-env NODE_ENV=test jest --coverage",
-    "test": "run-p build lint test:coverage"
+    "test": "run-p build lint test:coverage",
+    "temp": "nodemon"
   },
   "dependencies": {
     "ajv": "^8.11.0",
@@ -25,11 +26,17 @@
   "devDependencies": {
     "@types/cors": "^2.8.12",
     "@types/express": "^4.17.14",
+    "@types/jest": "^29.1.2",
     "@types/node": "^18.8.0",
     "@typescript-eslint/eslint-plugin": "^5.38.1",
     "@typescript-eslint/parser": "^5.38.1",
     "eslint": "^8.24.0",
     "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-jest": "^27.1.1",
+    "jest": "^29.1.2",
+    "nodemon": "^2.0.20",
+    "ts-jest": "^29.0.3",
+    "ts-node": "^10.9.1",
     "typescript": "^4.8.4"
   }
 }

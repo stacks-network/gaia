@@ -3,23 +3,38 @@
     "level": "debug",
     "handleExceptions": true,
     "timestamp": true,
-    "stringify": true,
     "colorize": true,
     "json": true
   },
-  "port": 8009,
-  "apiKeys": [ "hello" ],
-  "gaiaSettings": {
-    "configPath": "/tmp/hub/config.json"
+  "port": 5000,
+  "hubSettings": {
+    "configPath": "/tmp/hub-config.json",
+    "reloadCommandLine": {
+      "command": "",
+      "argv": [],
+      "env": {},
+      "setuid": 1000,
+      "setgid": 1000
+    }
   },
-  "reloadSettings": {
-    "command": "/bin/sh",
-    "argv": [
-      "-c",
-      "docker restart docker_hub_1 &"
-    ],
-    "env": {},
-    "setuid": 1000,
-    "setgid": 1000
+  "adminSettings": {
+    "configPath": "/tmp/admin-config.json",
+    "reloadCommandLine": {
+      "command": "",
+      "argv": [],
+      "env": {},
+      "setuid": 1000,
+      "setgid": 1000
+    }
+  },
+  "readerSettings": {
+    "configPath": "/tmp/reader-config.json",
+    "reloadCommandLine": {
+      "command": "",
+      "argv": [],
+      "env": {},
+      "setuid": 1000,
+      "setgid": 1000
+    }
   }
 }
