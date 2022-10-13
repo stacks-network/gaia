@@ -37,7 +37,7 @@ const configDefaults: Config = {
     colorize: true,
     json: true
   },
-  port: 8009,
+  port: 5000,
   hubSettings: {
     configPath: '/tmp/hub-config.json',
     reloadCommandLine: {
