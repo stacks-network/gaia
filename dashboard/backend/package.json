@@ -12,8 +12,7 @@
     "lint": "eslint --ext .ts ./src -f unix",
     "lint:fix": "eslint --ext .ts ./src --fix",
     "test:coverage": "cross-env NODE_ENV=test jest --coverage",
-    "test": "run-p build lint test:coverage",
-    "temp": "nodemon"
+    "test": "run-p build lint test:coverage"
   },
   "dependencies": {
     "ajv": "^8.11.0",
