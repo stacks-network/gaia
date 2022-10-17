@@ -1,0 +1,40 @@
+{
+  "argsTransport": {
+    "level": "debug",
+    "handleExceptions": true,
+    "timestamp": true,
+    "colorize": true,
+    "json": true
+  },
+  "port": 5000,
+  "hubSettings": {
+    "configPath": "/tmp/hub-config.json",
+    "reloadCommandLine": {
+      "command": "",
+      "argv": [],
+      "env": {},
+      "setuid": 1000,
+      "setgid": 1000
+    }
+  },
+  "adminSettings": {
+    "configPath": "/tmp/admin-config.json",
+    "reloadCommandLine": {
+      "command": "",
+      "argv": [],
+      "env": {},
+      "setuid": 1000,
+      "setgid": 1000
+    }
+  },
+  "readerSettings": {
+    "configPath": "/tmp/reader-config.json",
+    "reloadCommandLine": {
+      "command": "",
+      "argv": [],
+      "env": {},
+      "setuid": 1000,
+      "setgid": 1000
+    }
+  }
+}
