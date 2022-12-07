@@ -13,7 +13,7 @@
     "express": "^4.18.1",
     "express-winston": "^4.2.0",
     "fs-extra": "^10.1.0",
-    "ipfs-core": "^0.14.3",
+    "ipfs-core": "^0.17.0",
     "ipfs-core-types": "^0.12.0",
     "ipfs-http-client": "56.0.2",
     "ipfs-http-gateway": "^0.9.3",
